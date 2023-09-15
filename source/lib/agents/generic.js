@@ -5,12 +5,17 @@ const HEARTBEAT_TIMEOUT = 10000
 const UPLOAD_TYPE = 'application/json;type=upload'
 const SUBSCRIPTION_TYPE = 'application/json;type=subscription'
 const POSTGRES_QUERY_TYPE = 'application/json;type=postgres-query'
+const TAG_TYPE = 'application/json;type=tag'
 
 //  transform our custom path implementation to the standard JSONPatch path
 function standardJSONPatch(patch) {
   return patch.map(p => {
     return {...p, path: '/' + p.path.map(sanitizeJSONPatchPathSegment).join('/')}
   })
+}
+
+function isUUID(string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(string)
 }
 
 function sanitizeJSONPatchPathSegment(s) {
@@ -32,6 +37,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   const watchers = {}
   const keyToSubscriptionId = {}
   const lastInteractionResponse = {}
+  const tagTypeToTargetCache = {}
   const messageQueue = []
   let resolveEnvironment
   let disconnected = false
@@ -206,9 +212,22 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
   function create({ id=uuid(), active_type, active }) {
     //  TODO: collapse into 1 patch and 1 interact call
-    interact(id, [{ op: 'add', path: ['active_type'], value: active_type }])
-    interact(id, [{ op: 'add', path: ['active'], value: active }])
+    interact(id, [{ op: 'add', path: ['active_type'], value: active_type }], false)
+    interact(id, [{ op: 'add', path: ['active'], value: active }], false)
     return id
+  }
+
+  async function tagIfNotYetTaggedInSession(tag_type, target) {
+    const targetCache = tagTypeToTargetCache[tag_type]
+    if (targetCache && targetCache[target]) return
+
+    if (!targetCache) tagTypeToTargetCache[tag_type] = {}
+    tagTypeToTargetCache[tag_type][target] = true
+
+      //  always use absolute referene when tagging
+    if (!isUUID(target)) target = (await metadata(target)).id
+
+    await tag(tag_type, target)
   }
 
   async function environment() {
@@ -216,6 +235,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   }
 
   function state(scope) {
+    tagIfNotYetTaggedInSession('connected', scope)
     return new Promise(async (resolveState, rejectState) => {
       if (!keyToSubscriptionId[scope]) {
         const id = uuid()
@@ -323,7 +343,9 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     return { swaps }
   }
 
-  async function interact(scope, patch) {
+  //  TODO: addTag option should probably not be exposed
+  async function interact(scope, patch, addTag=true) {
+    if (addTag) tagIfNotYetTaggedInSession('mutated', scope)
     //  TODO: ensure user is owner of scope
     const response = queueMessage({scope, patch})
 
@@ -407,6 +429,14 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     return lastMessageResponse()
   }
 
+  async function tag(tag_type, target, context=[]) {
+    console.log('creating tag!', tag_type, target, context)
+    await create({
+      active_type: TAG_TYPE,
+      active: { tag_type, target, context }
+    })
+  }
+
   return {
     uuid,
     environment,
@@ -426,6 +456,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     synced,
     disconnect,
     reconnect,
+    tag,
     debug
   }
 }

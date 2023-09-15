@@ -57,10 +57,10 @@ function embed(environment, iframe) {
       if (listeners.close) listeners.close()
     }
     else if (type === 'environment') {
-      const response = await Agent.environment()
-      const context = [...response.context, environment.id]
-      Object.assign(response, { ...response, context })
-      sendDown(response)
+      const env = await Agent.environment()
+      const context = [...env.context, environment.id]
+      Object.assign(env, { ...env, context })
+      sendDown(env)
     }
     else if (type === 'interact') {
       const { scope, patch } = message
@@ -70,6 +70,11 @@ function embed(environment, iframe) {
     }
     else if (type === 'metadata') {
       sendDown(await Agent.metadata(message.scope))
+    }
+    else if (type === 'tag') {
+      const { tag_type, target, context } = message
+      const prependedContext = [environment.id, ...context]
+      sendDown(await Agent.tag(tag_type, target, prependedContext))
     }
     else if (type === 'state') {
       const { scope } = message

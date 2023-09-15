@@ -1,4 +1,4 @@
-import { v1 as uuid } from 'uuid'
+import { validate as isUUID, v1 as uuid } from 'uuid'
 import MutableProxy from '../../persistence/json.js'
 
 export default function EmbeddedAgent() {
@@ -68,7 +68,23 @@ export default function EmbeddedAgent() {
     return id
   }
 
+  const tagTypeToTargetCache = {}
+  async function tagIfNotYetTaggedInSession(tag_type, target) {
+    const targetCache = tagTypeToTargetCache[tag_type]
+    if (targetCache && targetCache[target]) return
+
+    //  always use absolute referene when tagging
+    if (!isUUID(target)) target = (await metadata(target)).id
+
+    if (!tagTypeToTargetCache[tag_type]) tagTypeToTargetCache[tag_type] = {}
+    tagTypeToTargetCache[tag_type][target] = true
+
+    await tag(tag_type, target)
+  }
+
+
   function watch(id, fn) {
+    tagIfNotYetTaggedInSession('connected', id)
     if (!watchers[id]) watchers[id] = []
     watchers[id].push(fn)
     return () => removeWatcher(id, fn)
@@ -80,6 +96,7 @@ export default function EmbeddedAgent() {
   }
 
   async function state(scope) {
+    tagIfNotYetTaggedInSession('connected', scope)
     const startState = await send({ type: 'state', scope })
     return new MutableProxy(startState, patch => {
       const activePatch = structuredClone(patch)
@@ -94,6 +111,7 @@ export default function EmbeddedAgent() {
   }
 
   function interact(scope, patch) {
+    tagIfNotYetTaggedInSession('mutated', scope)
     return send({ type: 'interact', scope, patch })
   }
 
@@ -172,6 +190,10 @@ export default function EmbeddedAgent() {
     })
   }
 
+  function tag(tag_type, target, context=[]) {
+    return send({ type: 'tag', tag_type, target, context })
+  }
+
   function login(provider, username, password) {
     return send({ type: 'login', provider, username, password })
   }
@@ -198,6 +220,7 @@ export default function EmbeddedAgent() {
     metadata,
     disconnect,
     reconnect,
-    synced
+    synced,
+    tag
   }
 }
