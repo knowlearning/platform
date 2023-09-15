@@ -8,7 +8,7 @@
 docker run -d -p 5000:5000 --restart=always --name registry registry:2
 
 # create a kind cluster with proper configuration
-sh boot-development-cluster.sh
+sh setup.sh
 
 # deploy core application to local cluster
 sh deploy.sh
