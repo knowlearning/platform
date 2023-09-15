@@ -1,6 +1,6 @@
 site_name: Know Learning Documentation
-repo_url: https://github.com/knowlearning/documentation
-edit_uri: edit/trunk/docs/
+repo_url: https://github.com/knowlearning/platform
+edit_uri: edit/trunk/documentation/docs/
 nav:
   - Home: index.md
   - Introduction:
