@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: serve
+  annotations:
+    cloud.google.com/backend-config: '{"default":"serve-backend-config"}'
+spec:
+  type: LoadBalancer
+  loadBalancerIP: '35.222.119.41'
+  selector:
+    app: serve
+  sessionAffinity: ClientIP
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 8080
+  - name: https
+    protocol: TCP
+    port: 443
+    targetPort: 4443
+---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: serve-backend-config
+spec:
+  timeoutSec: 600
+  sessionAffinity:
+    affinityType: "CLIENT_IP"

@@ -1,0 +1,14 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: kl-core
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - hostPort: 32001
+    containerPort: 30001
+    listenAddress: "127.0.0.1"
+    protocol: TCP
+  - hostPort: 32003
+    containerPort: 30003
+    listenAddress: "127.0.0.1"
+    protocol: TCP

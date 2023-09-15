@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gcs
+spec:
+  type: LoadBalancer
+  selector:
+    app: gcs
+  ports:
+  - name: https
+    protocol: TCP
+    port: 4443
+    nodePort: 30003
+  - name: http
+    protocol: TCP
+    port: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gcs
+  labels:
+    app: gcs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gcs
+  template:
+    metadata:
+      labels:
+        app: gcs
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - name: gcs
+        image: gcs
+        ports:
+        - containerPort: 4443
+        - containerPort: 8000
+        args: [
+          -scheme, both,
+          -port, '4443',
+          -port-http, '8000',
+          -log-level, debug,
+          -cors-headers, 'x-upload-content-type,x-goog-content-sha256,x-goog-resumable,x-goog-meta-user,x-goog-meta-type,x-goog-meta-name,x-goog-meta-edit,x-goog-meta-view,x-goog-meta-base,x-goog-meta-domain',
+          -external-url, https://localhost:32003,
+          -public-host, localhost
+        ]

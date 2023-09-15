@@ -1,0 +1,3 @@
+KUBE_CONTEXT=gke_opensourcelearningplatform_us-central1_skaffold-deployed
+kubectl config use-context $KUBE_CONTEXT
+kubectl config use-namespace production

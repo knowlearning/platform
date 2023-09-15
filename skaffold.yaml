@@ -1,0 +1,41 @@
+apiVersion: skaffold/v4beta2
+kind: Config
+
+build:
+  artifacts:
+  - image: gcs
+    context: ./infrastructure/development/
+    docker:
+      dockerfile: ./gcs.Dockerfile
+  - image: redis
+    context: ./infrastructure/development/
+    docker:
+      dockerfile: ./redis.Dockerfile
+  - image: postgres
+    context: ./infrastructure/development/
+    docker:
+      dockerfile: ./postgres.Dockerfile
+  - image: serve
+    context: ./source
+    docker:
+      dockerfile: ./serve.Dockerfile
+  - image: patch
+    context: ./source
+    docker:
+      dockerfile: ./patch.Dockerfile
+profiles:
+- name: development
+  manifests:
+    kustomize:
+      paths:
+      - ./infrastructure/development
+  deploy:
+    kubeContext: kind-kl-core
+    kubectl: {}
+- name: production
+  manifests:
+    kustomize:
+      paths:
+      - ./infrastructure/production
+  deploy:
+    kubectl: {}

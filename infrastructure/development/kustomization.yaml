@@ -1,0 +1,99 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ./gcs.yaml
+- ./redis.yaml
+- ./postgres.yaml
+- ./service.yaml
+- ../base
+
+configMapGenerator:
+- name: serve-env
+  literals:
+  - MODE=local
+  - ADMIN_DOMAIN=admin.localhost
+  - NODE_TLS_REJECT_UNAUTHORIZED=0
+  - GC_PROJECT_ID=opensourcelearningplatform
+  - INTERNAL_GCS_API_ENDPOINT=http://gcs:8000
+  - EXTERNAL_GCS_API_ENDPOINT=https://localhost:32003
+  - GCS_BUCKET_NAME=local-gcs-bucket
+  - REDIS_HOST=redis
+  - REDIS_PORT=6379
+  - POSTGRES_HOST=postgres
+  - POSTGRES_PORT=5432
+  - |
+    INSECURE_DEVELOPMENT_CERT=-----BEGIN CERTIFICATE-----
+    MIIDczCCAlugAwIBAgIUG1EzDiYkA732T94ZnhnJLe3JwuMwDQYJKoZIhvcNAQEL
+    BQAwJzELMAkGA1UEBhMCVVMxGDAWBgNVBAMMD0V4YW1wbGUtUm9vdC1DQTAeFw0y
+    MzAyMTkyMjQyMjVaFw0yNTEyMDkyMjQyMjVaMG0xCzAJBgNVBAYTAlVTMRIwEAYD
+    VQQIDAlZb3VyU3RhdGUxETAPBgNVBAcMCFlvdXJDaXR5MR0wGwYDVQQKDBRFeGFt
+    cGxlLUNlcnRpZmljYXRlczEYMBYGA1UEAwwPbG9jYWxob3N0LmxvY2FsMIIBIjAN
+    BgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4muCOhsDk/1wGbgifpG8YnBeFAqF
+    bCcKNZhKRSdqkvZgyzTALXRpBSq8g9aDgUr4KGeR24Y4f54TUNKLZtDi6rnawMLa
+    AAR7xfLmWE9WKrDKejlh6ybwV+aUdFbQzbn2u/UsdPfjqTSqOT2hBb3aizWOtOcF
+    9BjDmIMD3f2ymil5vCsLHoB0IYR0Bo/lX8lTW9rh408V5devjn1q/CguhKu2JYKT
+    YJFIVcDEXLrks5tZFUyloDm+DMtk8q6WEAO3kFlUQ4sqlO4s1i3NVCSXZjc4da10
+    KNTPHMyPAcjT4drPtHMhAu+0bBn3UJrsKgU21S+a538M3LnMi6ex0Y/ODQIDAQAB
+    o1EwTzAfBgNVHSMEGDAWgBQB9WHmalnGzcomlsvePvWCAuhZGjAJBgNVHRMEAjAA
+    MAsGA1UdDwQEAwIE8DAUBgNVHREEDTALgglsb2NhbGhvc3QwDQYJKoZIhvcNAQEL
+    BQADggEBAFs+/g8IW5W5aD+FwzbxxJXS6vUWX4KSYkjzaf/I23g7ml9Sxj7nkAgg
+    x/340ViRhiFDBTKDTwgGf37Pliia5hrH8MzX1QhBGq+8TiDjzo9N4/sXcBvCV0KJ
+    frLoEOlXkgirri2vU8Mcojz0S2r+SSk855AgM0otdwGUeMUhYc5amuvDom5ojhoy
+    W4GGZ0MLdbY/ZHkpOKPqg00FZevhVohXR8ML1dOCtxQY0iFhPPO+xlR1qHbyF0wk
+    HZpui3XpDGNDHfGZAfJqSVrDnruSSKrWvpZE+f6MQaG030ciZz86TK6CJH2YKshA
+    cmeQix2Zqgan4aa6a4jAivSw5hHtQxg=
+    -----END CERTIFICATE-----
+  - |
+    INSECURE_DEVELOPMENT_KEY=-----BEGIN PRIVATE KEY-----
+    MIIEwAIBADANBgkqhkiG9w0BAQEFAASCBKowggSmAgEAAoIBAQDia4I6GwOT/XAZ
+    uCJ+kbxicF4UCoVsJwo1mEpFJ2qS9mDLNMAtdGkFKryD1oOBSvgoZ5Hbhjh/nhNQ
+    0otm0OLqudrAwtoABHvF8uZYT1YqsMp6OWHrJvBX5pR0VtDNufa79Sx09+OpNKo5
+    PaEFvdqLNY605wX0GMOYgwPd/bKaKXm8KwsegHQhhHQGj+VfyVNb2uHjTxXl16+O
+    fWr8KC6Eq7YlgpNgkUhVwMRcuuSzm1kVTKWgOb4My2TyrpYQA7eQWVRDiyqU7izW
+    Lc1UJJdmNzh1rXQo1M8czI8ByNPh2s+0cyEC77RsGfdQmuwqBTbVL5rnfwzcucyL
+    p7HRj84NAgMBAAECggEBAKk6f3gcbr0ypJGkjauaE3pjz/0crAJc34WVUJWFU2OK
+    YGghAi43HrNs8L99GocNWJMibeLs29eOd5Nl+ikboS6dQMHoIPX4Y+ZcmQuSKK35
+    uyxFLUmLrgGU5opZxPCuuJpdMiAukusJ4NytkmdvMiPwILxXG50I0VBxQ/eswcv0
+    Idu6nNd1j3MHYmsDk2PRTQOA/W1f/IIb+SyAHIOsWmQylUrNLx+GLg4/mPdAN2oV
+    0fWe3i+3rxv1/DIF3e8TEYp3AcRarUASXy8fAHslPhDfG/zxlwg35iacwZ4d6pmJ
+    qat/ZsrHdnFbgoCQfOPUFIgSQXMGnJCkauV3eWjzqgECgYEA+UDP/XT7JX/kWR2p
+    JPxpg2MNMDABzYEQIzMw7wC/mYVC2mUrmo57Mp+fEXtchFOAa5xQXsef0w9iEN9A
+    cSlqTU3LeI+vxWMhfWv4fsKVZESAFFZYFVregc1Ng/Bqhnsdrk2C3ySE/ESg33oc
+    2eLz51LyvN5f6JC9u+tHWm+7r40CgYEA6Ix5flyfwLKTPv7Ms5Y/q+f8OBPC+CNX
+    +cWkX/25dsVnKvGITa0qhEGHhuQvR12wfQ7IXBKBDqv1gevF0iHS4AQo39cEayoO
+    X49DAdMlTE0NDUMkHiakc3BgG4gHXpfuv3cvzBPUDz8J5iaopdCCU9culhrD7I0+
+    3V9qq03LuIECgYEA8zS9fbdGU1nOKvJZF8C/B7d/p9Q//hB/+Yi6p4qYaajxCX6M
+    JFwAc+3yXTF8nZWIiffVKBYqqdupuYLNM13Q3qsY7YNuY/CNPf87Uhx1foekXbO+
+    cN/gmtEDYMkWeC/rTydMmoTcyfYA7u4M9sGPcdirB4UIGjoZGCLD1ceOYAUCgYEA
+    qHOBWnBb5Gk20k4eGATBUJQ2FqTx+W8YvjxVypbvbsKl7eySMLo8bxtMwgCu4sJS
+    IvS/XDqnM+qKZ7dTT9jieRVqSmLlt376dGxBPKQng3LY/n9hPVn+jASeCbNqqzHh
+    Zt4+SFUgqn6efBIK3joA/hyEiYUP4V2baR5CFZ6/8IECgYEAxsmwoFOynxJ6QQlE
+    pN9c64+t1eiInvBs24HVa4nZVD/OXdSO+CirDr4TNSdKhyNHISCgKHpqPGo88FZK
+    7CFckjlnLSrQkhDCugvKTeWrdtRRVW0pdHOXzi/E5/X7OMy8ULKSiJQg6dFVN5EM
+    HDr3tHVVBtMcoeRyfTK8anIiAdw=
+    -----END PRIVATE KEY-----
+- name: agent-env
+  literals:
+  - MODE=local
+  - NODE_TLS_REJECT_UNAUTHORIZED=0
+  - SERVE_HOST=serve:8080
+  - SERVICE_ACCOUNT_TOKEN=/var/run/secrets/kubernetes.io/serviceaccount/token
+
+secretGenerator:
+- name: gcs-service-account
+  literals:
+  - GCS_SERVICE_ACCOUNT_CREDENTIALS={"client_email":"example@example.com","private_key":"-----BEGIN RSA PRIVATE KEY-----\nMIICWwIBAAKBgHLBIr2p6z4uQIH0/UeTaKFoS1P7r6pWJJ8Xu6NoKw90fq/8feyt\n2GSAm9ATjpl0D5JtO1GZdGnL0ZWCiTm0Umwk0uLiv+9TPByEJQGWm0uL76UZdDIq\n+QhJ4vvBkBda+szw1h9g7l9z/Zsf7VwcnsTex2FjkaEsBtkPzRri0BNrAgMBAAEC\ngYBf2j+AmWwr9kpfwxnFLbYaDJnPPs5Ow8G3OgW7yokdUbt4mLk+dz/nQx3jQlK8\njxtqvd7sm/eHX35jGjQxhRPKoteqx7E1mFrw/Rj/IBiRsjf/gZTc07YWs0UuSGpt\nkhbcE7m9eG1nEC8Cje45tQQRHCo+f8ycGa7m3rZVUC2P4QJBAOTpXv4RSKraXPjx\njfEw9cCIMsGb9vqS3OgBZHjZ3Tfy06tSW3RvbK7k3aoVPOL+rPqjgd7t3YmZIMIn\nZ17ANSkCQQCAVX84RQzNspkrGW5Fvs1/3JM66gmPPkSN3mdXte2InJdv0auAn8LK\nh8ZoHqnqFrwvLDGz0fpIUUQAQVWeeuJzAkB4MybjSFYdCO6a9dQv2yKgR6RHT8tf\nhjCjTt/gKZ5k24hURLmrKTsrlxfiUKaZF1vjfGocklCrCRJPgPthoJIJAkBJuFNX\ncJr1QqYoEvi8iemkjIHq8uxA4+UfleXJhdGIi2OWsVwSjDOqgipgP1UeCqdZdcqr\nYHCkwEIO33kei7qvAkEApPxgWNEAe5iv/HoIxkumc/+Xjp/K8nF3Fi9xgHAYc7Oa\nVYD4cO4HhFEhHIGVAwJBCEoupxYLKxrNq1+exW3Tmg==\n-----END RSA PRIVATE KEY-----","public_key":"-----BEGIN PUBLIC KEY-----\nMIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgHLBIr2p6z4uQIH0/UeTaKFoS1P7\nr6pWJJ8Xu6NoKw90fq/8feyt2GSAm9ATjpl0D5JtO1GZdGnL0ZWCiTm0Umwk0uLi\nv+9TPByEJQGWm0uL76UZdDIq+QhJ4vvBkBda+szw1h9g7l9z/Zsf7VwcnsTex2Fj\nkaEsBtkPzRri0BNrAgMBAAE=\n-----END PUBLIC KEY-----"}
+- name: google-oauth-client-credentials
+  files:
+  - .credentials/GOOGLE_OAUTH_CLIENT_CREDENTIALS
+- name: postgres-service-account
+  literals:
+  - POSTGRES_PASSWORD=insecure-dev-password
+- name: serve-encryption-keys
+  literals:
+  - PUBLIC_ENCRYPTION_KEY=x
+  - SECRET_ENCRYPTION_KEY=x
+- name: redis-service-account
+  literals:
+  - REDIS_SERVICE_ACCOUNT_CREDENTIALS=

@@ -1,0 +1,204 @@
+export default function () {
+  const TEST_TABLE_TYPE = `application/json;type=test-type`
+
+  const TEST_ENTRY_0_ID = uuid()
+  const TEST_ENTRY_0 = {
+    text_test_column: 'Test Text',
+    integer_test_column: 42,
+    boolean_test_column: true
+  }
+
+  const TEST_ENTRY_1_ID = uuid()
+  const TEST_ENTRY_1 = {
+    text_test_column: 'Test Text',
+    integer_test_column: 42,
+    boolean_test_column: true
+  }
+
+  const TEST_ENTRY_2_ID = uuid()
+  const TEST_ENTRY_2 = {
+    text_test_column: 'More Test Text',
+    integer_test_column: 84,
+    boolean_test_column: false
+  }
+
+  const CONFIGURATION_1 = `
+postgres:
+  tables:
+    test_table:
+      type: ${TEST_TABLE_TYPE}
+      columns:
+        text_test_column: TEXT
+        integer_test_column: INTEGER
+        boolean_test_column: BOOLEAN
+  scopes:
+    my-test-table-entries: |
+      SELECT * FROM test_table WHERE id = '${TEST_ENTRY_1_ID}'
+    my-test-table-entries-metadata: |
+      SELECT * FROM metadata WHERE id = '${TEST_ENTRY_1_ID}'
+    my-test-table-previous-entries-metadata: |
+      SELECT * FROM metadata WHERE id = '${TEST_ENTRY_0_ID}'
+    test-function-call:
+      SELECT * FROM test_fn('${TEST_ENTRY_0_ID}')
+  functions:
+    test_fn:
+      returns:
+        id: TEXT
+      language: PLpgSQL
+      body: |
+        BEGIN
+          RETURN QUERY
+            SELECT test_table.id AS id
+            FROM test_table
+            WHERE test_table.id = input_id;
+        END;
+      arguments:
+      - name: input_id
+        type: TEXT
+`
+
+const CONFIGURATION_2 = `
+postgres:
+  tables:
+    test_table_2:
+      type: ${TEST_TABLE_TYPE}
+      columns:
+        text_test_column: TEXT
+        integer_test_column: INTEGER
+        boolean_test_column: BOOLEAN
+  scopes:
+    my-reconfigured-test-table-entries: |
+      SELECT * FROM test_table_2 WHERE id = '${TEST_ENTRY_1_ID}'
+    my-test-table-entries-metadata: |
+      SELECT * FROM metadata WHERE id = '${TEST_ENTRY_1_ID}'
+    my-test-table-previous-entries-metadata: |
+      SELECT * FROM metadata WHERE id = '${TEST_ENTRY_0_ID}'
+    my-test-table-entry-after-reconfig: |
+      SELECT * FROM test_table_2 WHERE id = '${TEST_ENTRY_2_ID}'
+    my-old-test-table: |
+      SELECT * FROM test_table
+  functions: {}
+`
+
+  describe('Postgres configuration', function () {
+    it ('Can add scopes before initialization', async function () {
+      const metadata = await Agent.metadata(TEST_ENTRY_0_ID)
+      const state = await Agent.state(TEST_ENTRY_0_ID)
+      metadata.active_type = TEST_TABLE_TYPE
+      Object.assign(state, TEST_ENTRY_0)
+      await Agent.synced()
+    })
+
+    it('Can claim and configure domain', async function () {
+      const { domain } = await Agent.environment()
+      await Agent.claim(domain)
+      const config = await Agent.state('config')
+      console.log('uploading')
+      config[domain] = {
+        config: await Agent.upload(
+          'test domain config',
+          'application/yaml',
+          CONFIGURATION_1
+        )
+      }
+      console.log('uploaded')
+      await Agent.synced()
+      //  TODO: some way to certify that our user has been set as domain admin
+    })
+
+    it('Can write a new record of configured table type', async function () {
+      const metadata = await Agent.metadata(TEST_ENTRY_1_ID)
+      const state = await Agent.state(TEST_ENTRY_1_ID)
+      metadata.active_type = TEST_TABLE_TYPE
+      Object.assign(state, TEST_ENTRY_1)
+      await Agent.synced()
+
+      const md2 = await Agent.metadata(TEST_ENTRY_1_ID)
+      expect(md2.active_type).to.equal(TEST_TABLE_TYPE)
+    })
+
+    it('Can retrieve expected record from test table type', async function () {
+      expect(await Agent.state('my-test-table-entries'))
+      .to.deep.equal([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
+    })
+
+    it('Can call functions in special query scopes', async function () {
+      expect(await Agent.state('test-function-call'))
+      .to.deep.equal([{ id: TEST_ENTRY_0_ID }])
+    })
+
+    it('Can query metadata for scopes created after configuration', async function () {
+      const response = await Agent.state('my-test-table-entries-metadata')
+      const { auth: { user }, domain } = await Agent.environment()
+
+      expect(response.length).to.equal(1)
+      expect(response[0].id).to.deep.equal(TEST_ENTRY_1_ID)
+      expect(response[0].ii).to.equal(4)
+      expect(response[0].domain).to.equal(domain)
+      expect(response[0].active_type).to.equal(TEST_TABLE_TYPE)
+      expect(response[0].owner).to.equal(user)
+      expect(response[0].active_size).to.equal(0)
+      expect(response[0].storage_size).to.equal(0)
+    })
+
+    it('Can query metadata for scopes created before configuration', async function () {
+      const response = await Agent.state('my-test-table-previous-entries-metadata')
+      const { auth: { user }, domain } = await Agent.environment()
+
+      expect(response.length).to.equal(1)
+      expect(response[0].id).to.deep.equal(TEST_ENTRY_0_ID)
+      expect(response[0].ii).to.equal(4)
+      expect(response[0].domain).to.equal(domain)
+      expect(response[0].active_type).to.equal(TEST_TABLE_TYPE)
+      expect(response[0].owner).to.equal(user)
+      expect(response[0].active_size).to.equal(0)
+      expect(response[0].storage_size).to.equal(0)
+    })
+
+    it('Can re-configure a domain', async function () {
+      const { domain } = await Agent.environment()
+      const config = await Agent.state('config')
+
+      config[domain] = {
+        config: await Agent.upload(
+          'test domain config 2',
+          'application/yaml',
+          CONFIGURATION_2
+        )
+      }
+      await Agent.synced()
+    })
+
+    it('Can get expected result from re-configured table', async function () {
+      expect(
+        await Agent.state('my-reconfigured-test-table-entries')
+      )
+      .to.deep.equal(
+        [{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }]
+      )
+    })
+
+    it('Can query metadata for scopes created after re-configuration', async function () {
+      const metadata = await Agent.metadata(TEST_ENTRY_2_ID)
+      metadata.active_type = TEST_TABLE_TYPE
+      const state = await Agent.state(TEST_ENTRY_2_ID)
+      Object.assign(state, TEST_ENTRY_2)
+      await Agent.synced()
+
+      expect( await Agent.state('my-test-table-entry-after-reconfig') )
+      .to.deep.equal( [{ id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 }] )
+    })
+
+    it('Cannot query old tables', async function () {
+      let errored = false
+      try {
+        const state = await Agent.state('my-old-test-table')
+      }
+      catch (error) {
+        if (error.error === '42P01') errored = true
+      }
+      if (!errored) throw new Error('Expected postgres 42P01 error on query involving new table')
+    })
+
+  })
+}

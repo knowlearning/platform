@@ -1,0 +1,55 @@
+X Cache config in serve/configuration.js !!!
+X Fix infinite auth loop when user token is expired
+X Remove default scope concept from embedded agent and root agent
+X Test metadata pull for new approach
+X Test uploads and downloads
+X Move uploads and downloads to type backed scopes
+X Reset needs to remove active, not set to null
+X Fix test postgres config timeouts by reducing pressure on db
+X Use js Date param trick for postgres wrapper to simplify query for metadata side effect
+X Fix up and test all SQL mirror operations
+X Better error behavior when special scope queries are broken
+X Make root agent show default scope
+X Fix expired auth token
+X Use secure httpOnly cookies for ws sessions
+X Move upload and download metadata to new format
+X Allow Agent.download(id).direct() and Agent.download(id).url()
+  Document vue binding
+  Fix old session messages getting queued and passed to new sessions (because of using cookie sid instead of client prvided session)
+  Bundle interaction messages to reduce websocket strain
+  Compaction
+  Batch inserts into postgres
+  On domain config, return response with watchable request scope
+  Make setting metadata type on object sufficient for triggering postgres update
+  Add generic agent cache clearing for testing purposes
+  Respect side effects for all patch array items, NOT just first
+  Handlable "exit" event from embedded agents
+  Cache downloaded content at agent level
+  Throttle naughty clients (protect against infinite loops on the client)
+  Agent retry downloads on 404 (useful if there was a recent upload... see TODO in patch-content.js though)
+  Add a test for resetting
+  Use create-folder-content in agent upload to handle upload of items and return one piece of content that is the content-graph
+  Remove create-folder-content from home app
+  Don't trigger json mutable state persistence change if value not changed
+  Add new vuePersistentRef export to npm module for composition api usage
+  Add error if trying to create persistent vue component from composition api component (guide user to use vuePersistentRef)
+  Add ability to launch agents
+  Bundle synchronously applied patches in mutable proxy as single patch operation
+  Verify DNS A Names for candidate host before going through cert provisioning process
+  Better protocol for patch request ingestion (feedback for requesting agent?)
+  Make serve watch/update config (make function that helps with watcher pattern)
+
+= Domain Administration
+  Use DNS TXT record challenge to handle domain claims
+
+  Live db
+X   Choose managed postgres vendor
+X   Launch to prod with credentials
+    Confine firewall ip address access
+
+  Authorization
+    Admin specifies access rule queries
+    Check for passing access rule query on cross-user state request (later handle cross domain requests with special queries)
+
+= Hosting
+  Provision certs like old core

@@ -1,0 +1,1 @@
+FROM redis/redis-stack-server:6.2.2-v5

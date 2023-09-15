@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: serve
+---
+# TODO: scope to only restricted domain namespaces
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manage-domain-agents
+rules:
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["list", "get", "create", "update", "delete"]
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["create", "delete"]
+- apiGroups: [""]
+  resources: ["serviceaccounts"]
+  verbs: ["create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: manage-domain-agents-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: manage-domain-agents
+subjects:
+- kind: ServiceAccount
+  name: serve
+  namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: serve
+  labels:
+    app: serve
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: serve
+  template:
+    metadata:
+      labels:
+        app: serve
+    spec:
+      serviceAccountName: serve
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: serve
+        image: serve
+        resources:
+          requests:
+            memory: 1024Mi
+            cpu: 100m
+        ports:
+        - containerPort: 8080
+        - containerPort: 4443
+        envFrom:
+        - secretRef:
+            name: redis-service-account
+        - secretRef:
+            name: postgres-service-account
+        - secretRef:
+            name: gcs-service-account
+        - secretRef:
+            name: google-oauth-client-credentials
+        - secretRef:
+            name: serve-encryption-keys
+        - configMapRef:
+            name: serve-env
+        env:
+        - name: PORT
+          value: "8080"
+        - name: TLS_PORT
+          value: "4443"

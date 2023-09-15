@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: production
+
+resources:
+- ../base
+- service.yaml
+
+configMapGenerator:
+- name: serve-env
+  literals:
+  - ADMIN_DOMAIN=admin.knowlearning.systems
+  - GC_PROJECT_ID=opensourcelearningplatform
+  - INTERNAL_GCS_API_ENDPOINT=
+  - EXTERNAL_GCS_API_ENDPOINT=
+  - GCS_BUCKET_NAME=development-bucket-opensourcelearningplatform
+  - MODE=production
+  - MICROSOFT_IDENTITY_APPLICATION_ID=c44ceeca-8f9a-49c2-9bea-cc7135da8943
+  - REDIS_HOST=redis-12681.c1.us-central1-2.gce.cloud.redislabs.com
+  - REDIS_PORT=12681
+  - POSTGRES_HOST=34.83.43.224
+  - POSTGRES_PORT=5432
+  - AGENT_IMAGE_DENO=gcr.io/opensourcelearningplatform/agent-deno-image:7fe82f1
+- name: agent-env
+  literals:
+  - MODE=production
+  - SERVE_HOST=serve
+  - SERVICE_ACCOUNT_TOKEN=/var/run/secrets/kubernetes.io/serviceaccount/token
+
+secretGenerator:
+- name: gcs-service-account
+  files:
+  - .credentials/GCS_SERVICE_ACCOUNT_CREDENTIALS
+- name: google-oauth-client-credentials
+  files:
+  - .credentials/GOOGLE_OAUTH_CLIENT_CREDENTIALS
+- name: redis-service-account
+  files:
+  - .credentials/REDIS_SERVICE_ACCOUNT_CREDENTIALS
+- name: postgres-service-account
+  files:
+  - .credentials/POSTGRES_PASSWORD
+- name: serve-encryption-keys
+  files:
+  - .credentials/SECRET_ENCRYPTION_KEY
+  - .credentials/PUBLIC_ENCRYPTION_KEY
