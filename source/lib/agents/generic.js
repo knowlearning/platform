@@ -429,9 +429,8 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     return lastMessageResponse()
   }
 
-  async function tag(tag_type, target, context=[]) {
-    console.log('creating tag!', tag_type, target, context)
-    await create({
+  function tag(tag_type, target, context=[]) {
+    return create({
       active_type: TAG_TYPE,
       active: { tag_type, target, context }
     })
