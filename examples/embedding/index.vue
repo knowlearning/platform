@@ -26,10 +26,11 @@
       new {{ type }}
     </button>
     <button @click="openTest">test</button>
-    <div v-if="creating">
-      TODO: help create! {{ creating }}
-      <button @click="create">create</button>
-    </div>
+    <component
+      v-if="creating"
+      :is="creatingComponent"
+      @create="children.push($event)"
+    />
     <vueContentComponent
       v-else-if="current"
       :key="current"
@@ -41,9 +42,21 @@
 <script>
   import { v4 as uuid } from 'uuid'
   import { browserAgent, vueContentComponent } from '@knowlearning/agents'
+  import MultipleChoiceEditor from './editors/multiple-choice.vue'
+  import FreeResponseEditor from './editors/free-response.vue'
+  import RatingEditor from './editors/rating.vue'
+
+  const MULTIPLE_CHOICE_TYPE = 'application/json;type=multiple-choice'
+  const FREE_RESPONSE_TYPE = 'application/json;type=free-response'
+  const RATING_TYPE = 'application/json;type=rating'
 
   export default {
-    components: { vueContentComponent },
+    components: {
+      vueContentComponent,
+      MultipleChoiceEditor,
+      FreeResponseEditor,
+      RatingEditor
+    },
     props: {
       type: {
         type: String,
@@ -54,17 +67,30 @@
       return {
         current: null,
         environment: null,
-        types: [
-          'multiple choice',
-          'free response',
-          'rating'
-        ],
         creating: null,
         children: []
       }
     },
     async created() {
       this.environment = await Agent.environment()
+    },
+    computed: {
+      types() {
+        return [
+          MULTIPLE_CHOICE_TYPE,
+          FREE_RESPONSE_TYPE,
+          RATING_TYPE
+        ]
+      },
+      creatingComponent() {
+        if (!this.creating) return null
+
+        return {
+          [MULTIPLE_CHOICE_TYPE]: MultipleChoiceEditor,
+          [FREE_RESPONSE_TYPE]: FreeResponseEditor,
+          [RATING_TYPE]: RatingEditor
+        }[this.creating]
+      }
     },
     methods: {
       async startCreating(type) {
