@@ -12,14 +12,24 @@ export default function () {
   const TEST_ENTRY_1 = {
     text_test_column: 'Test Text',
     integer_test_column: 42,
-    boolean_test_column: true
+    boolean_test_column: true,
+    text_array_test_column: null
   }
 
   const TEST_ENTRY_2_ID = uuid()
   const TEST_ENTRY_2 = {
     text_test_column: 'More Test Text',
     integer_test_column: 84,
-    boolean_test_column: false
+    boolean_test_column: false,
+    text_array_test_column: null
+  }
+
+  const TEST_ENTRY_3_ID = uuid()
+  const TEST_ENTRY_3 = {
+    text_test_column: 'More Test Text',
+    integer_test_column: 84,
+    boolean_test_column: false,
+    text_array_test_column: ['abc', 'def']
   }
 
   const CONFIGURATION_1 = `
@@ -31,6 +41,7 @@ postgres:
         text_test_column: TEXT
         integer_test_column: INTEGER
         boolean_test_column: BOOLEAN
+        text_array_test_column: TEXT[]
   scopes:
     my-test-table-entries: |
       SELECT * FROM test_table WHERE id = '${TEST_ENTRY_1_ID}'
@@ -66,6 +77,7 @@ postgres:
         text_test_column: TEXT
         integer_test_column: INTEGER
         boolean_test_column: BOOLEAN
+        text_array_test_column: TEXT[]
   scopes:
     my-reconfigured-test-table-entries: |
       SELECT * FROM test_table_2 WHERE id = '${TEST_ENTRY_1_ID}'
@@ -75,6 +87,8 @@ postgres:
       SELECT * FROM metadata WHERE id = '${TEST_ENTRY_0_ID}'
     my-test-table-entry-after-reconfig: |
       SELECT * FROM test_table_2 WHERE id = '${TEST_ENTRY_2_ID}'
+    text-array-test-query: |
+      SELECT * FROM test_table_2 WHERE id = '${TEST_ENTRY_3_ID}'
     my-old-test-table: |
       SELECT * FROM test_table
   functions: {}
@@ -133,7 +147,7 @@ postgres:
 
       expect(response.length).to.equal(1)
       expect(response[0].id).to.deep.equal(TEST_ENTRY_1_ID)
-      expect(response[0].ii).to.equal(4)
+      expect(response[0].ii).to.equal(5)
       expect(response[0].domain).to.equal(domain)
       expect(response[0].active_type).to.equal(TEST_TABLE_TYPE)
       expect(response[0].owner).to.equal(user)
@@ -186,7 +200,18 @@ postgres:
       await Agent.synced()
 
       expect( await Agent.state('my-test-table-entry-after-reconfig') )
-      .to.deep.equal( [{ id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 }] )
+        .to.deep.equal( [{ id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 }] )
+    })
+
+    it('Can create and query text array columns', async function () {
+      const metadata = await Agent.metadata(TEST_ENTRY_3_ID)
+      metadata.active_type = TEST_TABLE_TYPE
+      const state = await Agent.state(TEST_ENTRY_3_ID)
+      Object.assign(state, TEST_ENTRY_3)
+      await Agent.synced()
+
+      expect( await Agent.state('text-array-test-query') )
+        .to.deep.equal( [{ id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 }] )
     })
 
     it('Cannot query old tables', async function () {

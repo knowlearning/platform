@@ -19,6 +19,7 @@ const constantMap = {
   PLpgSQL: 'PLpgSQL',
   BOOLEAN: 'BOOLEAN',
   TEXT: 'TEXT',
+  'TEXT[]': 'TEXT[]',
   TIMESTAMP: 'TIMESTAMP',
   INTEGER: 'INTEGER'
 }
