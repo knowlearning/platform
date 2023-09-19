@@ -16,7 +16,7 @@
       async create() {
         const id = await Agent.create({
           active_type: 'application/json;type=free-response',
-          active: { prompt, type: 'free response' }
+          active: { prompt: this.prompt, type: 'free response' }
         })
         this.$emit('create', id)
       }

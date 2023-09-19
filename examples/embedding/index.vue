@@ -1,8 +1,5 @@
 <template>
-  <div v-if="type">
-    Some {{ type }} Question!!!!
-  </div>
-  <div v-else-if="environment" class="wrapper">
+  <div v-if="environment" class="wrapper">
     <h2>Context</h2>
     {{ '/' + environment.context.join('/') }}
     <h2>Children</h2>
@@ -28,8 +25,8 @@
     <button @click="openTest">test</button>
     <component
       v-if="creating"
-      :is="creatingComponent"
-      @create="children.push($event)"
+      :is="editors[creating]"
+      @create="create"
     />
     <vueContentComponent
       v-else-if="current"
@@ -42,13 +39,12 @@
 <script>
   import { v4 as uuid } from 'uuid'
   import { browserAgent, vueContentComponent } from '@knowlearning/agents'
+
   import MultipleChoiceEditor from './editors/multiple-choice.vue'
   import FreeResponseEditor from './editors/free-response.vue'
   import RatingEditor from './editors/rating.vue'
 
-  const MULTIPLE_CHOICE_TYPE = 'application/json;type=multiple-choice'
-  const FREE_RESPONSE_TYPE = 'application/json;type=free-response'
-  const RATING_TYPE = 'application/json;type=rating'
+  import { MULTIPLE_CHOICE_TYPE, FREE_RESPONSE_TYPE, RATING_TYPE } from './types.js'
 
   export default {
     components: {
@@ -58,10 +54,8 @@
       RatingEditor
     },
     props: {
-      type: {
-        type: String,
-        required: false
-      }
+      id: String,
+      active_type: String
     },
     data() {
       return {
@@ -82,14 +76,12 @@
           RATING_TYPE
         ]
       },
-      creatingComponent() {
-        if (!this.creating) return null
-
+      editors() {
         return {
           [MULTIPLE_CHOICE_TYPE]: MultipleChoiceEditor,
           [FREE_RESPONSE_TYPE]: FreeResponseEditor,
           [RATING_TYPE]: RatingEditor
-        }[this.creating]
+        }
       }
     },
     methods: {
@@ -97,10 +89,7 @@
         this.current = null
         this.creating = type === this.creating ? null : type
       },
-      async create() {
-        const id = await Agent.create({
-          active: { type: this.creating }
-        })
+      async create(id) {
         this.creating = null
         this.children.push(id)
         this.current = id
@@ -115,6 +104,9 @@
       removeTake(index) {
         if (this.children[index] === this.current) this.current = null
         this.children.splice(index, 1)
+      },
+      close() {
+        alert('TODO: do close thing....')
       }
     }
   }
