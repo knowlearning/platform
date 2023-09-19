@@ -13,12 +13,11 @@ const { pathname } = url
 let rootComponent = editor
 let props = {}
 
-// If path is a uuid we have a player for,
-// use the corresponding data as props to the root component
+// If path is a uuid use the corresponding data as props to the root component
 const id = pathname.slice(1)
 if (isUUID(id)) {
-    rootComponent = window.innerWidth < 200 ? previewer : player
-    props = await Agent.state(id)
+  rootComponent = window.innerWidth < 200 || window.innerHeight < 200 ? previewer : player
+  props = await Agent.state(id)
 }
 
 //  Use the serialized embedding context as the default scope for

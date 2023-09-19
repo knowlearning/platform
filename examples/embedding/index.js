@@ -19,7 +19,7 @@ const id = pathname.slice(1)
 if (isUUID(id)) {
   const { active_type } = await Agent.metadata(id)
   if (players[active_type]) {
-    rootComponent = window.innerWidth < 200 ? previewers[active_type] : players[active_type]
+    rootComponent = window.innerWidth < 200 || window.innerHeight < 200 ? previewers[active_type] : players[active_type]
     props = await Agent.state(id)
   }
 }
