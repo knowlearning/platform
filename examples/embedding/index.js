@@ -1,17 +1,9 @@
 import { validate as isUUID } from 'uuid'
 import { browserAgent, vuePersistentComponent } from '@knowlearning/agents'
 import { createApp } from 'vue'
-import { MULTIPLE_CHOICE_TYPE, FREE_RESPONSE_TYPE, RATING_TYPE } from './types.js'
 import managementInterface from './index.vue'
-import MultipleChoicePlayer from './players/multiple-choice.vue'
-import FreeResponsePlayer from './players/free-response.vue'
-import RatingPlayer from './players/rating.vue'
-
-const players = {
-  [MULTIPLE_CHOICE_TYPE]: MultipleChoicePlayer,
-  [FREE_RESPONSE_TYPE]: FreeResponsePlayer,
-  [RATING_TYPE]: RatingPlayer
-}
+import players from './players/index.js'
+import previewers from './previewers/index.js'
 
 window.Agent = browserAgent()
 
@@ -27,7 +19,7 @@ const id = pathname.slice(1)
 if (isUUID(id)) {
   const { active_type } = await Agent.metadata(id)
   if (players[active_type]) {
-    rootComponent = players[active_type]
+    rootComponent = window.innerWidth < 200 ? previewers[active_type] : players[active_type]
     props = await Agent.state(id)
   }
 }

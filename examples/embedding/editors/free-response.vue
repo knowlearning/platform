@@ -6,6 +6,8 @@
 </template>
 
 <script>
+  import { FREE_RESPONSE_TYPE } from '../types.js'
+
   export default {
     data() {
       return {
@@ -15,7 +17,7 @@
     methods: {
       async create() {
         const id = await Agent.create({
-          active_type: 'application/json;type=free-response',
+          active_type: FREE_RESPONSE_TYPE,
           active: { prompt: this.prompt, type: 'free response' }
         })
         this.$emit('create', id)
