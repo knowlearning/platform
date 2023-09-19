@@ -1,6 +1,8 @@
 <template>
-  edit multiple choice...
-  <button @click="create">create</button>
+  <div>
+    edit multiple choice...
+    <button @click="create">create</button>
+  </div>
 </template>
 
 <script>

@@ -1,6 +1,8 @@
 <template>
-  Multiple choice Previewer
-  {{ choice ? 'Choice selected!' : 'Choice not selected...' }}
+  <div>
+    Multiple choice Previewer
+    {{ choice ? 'Choice selected!' : 'Choice not selected...' }}
+  </div>
 </template>
 
 <script>

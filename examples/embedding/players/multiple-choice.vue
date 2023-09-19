@@ -1,5 +1,7 @@
 <template>
-  play multiple choice...
+  <div>
+    play multiple choice...
+  </div>
 </template>
 
 <script>
