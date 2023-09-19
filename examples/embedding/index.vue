@@ -104,9 +104,6 @@
       removeTake(index) {
         if (this.children[index] === this.current) this.current = null
         this.children.splice(index, 1)
-      },
-      close() {
-        alert('TODO: do close thing....')
       }
     }
   }
