@@ -10,7 +10,9 @@
           :key="id"
           :class="{ selected: current === id }"
         >
-          <td @click="select(id)">{{id}}</td>
+          <td @click="select(id)">
+            <Name :id="id" />
+          </td>
           <td><button @click="removeTake(index)">x</button></td>
         </tr>
       </tbody>
@@ -23,11 +25,16 @@
       new {{ type }}
     </button>
     <button @click="openTest">test</button>
-    <component
-      v-if="creating"
-      :is="editors[creating]"
-      @create="create"
-    />
+    <div v-if="creating">
+      <div>
+        name:
+        <input type="text" v-model="newItemName" />
+      </div>
+      <component
+        :is="editors[creating]"
+        @create="create"
+      />
+    </div>
     <vueContentComponent
       v-else-if="current"
       :key="current"
@@ -40,6 +47,8 @@
   import { v4 as uuid } from 'uuid'
   import { browserAgent, vueContentComponent } from '@knowlearning/agents'
 
+  import Name from './components/name.vue'
+
   import MultipleChoiceEditor from './editors/multiple-choice.vue'
   import FreeResponseEditor from './editors/free-response.vue'
   import RatingEditor from './editors/rating.vue'
@@ -49,6 +58,7 @@
   export default {
     components: {
       vueContentComponent,
+      Name,
       MultipleChoiceEditor,
       FreeResponseEditor,
       RatingEditor
@@ -60,6 +70,7 @@
     data() {
       return {
         current: null,
+        newItemName: 'New Item',
         environment: null,
         creating: null,
         children: []
@@ -86,10 +97,14 @@
     },
     methods: {
       async startCreating(type) {
+        this.newItemName = 'New Item'
         this.current = null
         this.creating = type === this.creating ? null : type
       },
       async create(id) {
+        const md = await Agent.metadata(id)
+        md.name = this.newItemName
+        this.newItemName = 'New Item'
         this.creating = null
         this.children.push(id)
         this.current = id

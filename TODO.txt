@@ -14,11 +14,11 @@ X Fix expired auth token
 X Use secure httpOnly cookies for ws sessions
 X Move upload and download metadata to new format
 X Allow Agent.download(id).direct() and Agent.download(id).url()
-  Document vue binding
-  Fix old session messages getting queued and passed to new sessions (because of using cookie sid instead of client prvided session)
+X Document vue binding
+X Fix old session messages getting queued and passed to new sessions (because of using cookie sid instead of client prvided session)
   Bundle interaction messages to reduce websocket strain
   Compaction
-  Batch inserts into postgres
+X Batch inserts into postgres
   On domain config, return response with watchable request scope
   Make setting metadata type on object sufficient for triggering postgres update
   Add generic agent cache clearing for testing purposes
@@ -53,3 +53,13 @@ X   Launch to prod with credentials
 
 = Hosting
   Provision certs like old core
+
+= PILA Related
+X 1)  track context of subscriptions... turns out tracking create/update of items is better
+X 2)  save that context in a convenient way (postgres table)
+  3)  Make a sequence wrapper and some example content
+  4)  Work on sequence wrapper surfacing some sort of "performance data" about each child
+      (thinking of things like badges/checks on map node)
+  5)  Consume that info to populate a generic dashboard
+  6)  Map performance data onto a less generic dashboard
+  7)  Be able to assign and view dashboard as a teacher
