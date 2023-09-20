@@ -2,6 +2,7 @@
   <div>
     <div
       v-for="{ x, y }, id in nodes"
+      class="node"
       :key="id"
       :style="{
         position: 'absolute',
@@ -16,9 +17,10 @@
         mode="preview"
       />
       <div
-        class="preview-drag-cover"
+        class="drag-cover"
         draggable="true"
         @dragstart="handleDragStart($event, id)"
+        @dragend="dragOffset = null"
       />
     </div>
   </div>
@@ -38,6 +40,7 @@
     },
     data() {
       return {
+        dragOffset: null,
         nodes: {},
         edges: {}
       }
@@ -48,7 +51,11 @@
         event.dataTransfer.dropEffect = 'move'
       },
       async handleDrop(event) {
-        const { clientX: x, clientY: y } = event
+        let { clientX: x, clientY: y } = event
+          if (this.dragOffset) {
+            x -= this.dragOffset.x
+            y -= this.dragOffset.y
+          }
 
         const text = event.dataTransfer.getData("text")
 
@@ -60,17 +67,27 @@
         event.preventDefault()
         event.stopPropagation()
       },
-      handleDragStart(e, id) {
+      handleDragStart(event, id) {
+        const { clientX: x, clientY: y } = event
+        this.dragOffset = {
+          x: x - this.nodes[id].x,
+          y: y - this.nodes[id].y
+        }
         //  TODO: store offset to use in this same component
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', id);
+        event.dataTransfer.effectAllowed = 'move'
+        event.dataTransfer.setData('text/plain', id)
       }
     }
   }
 </script>
 
 <style>
-  .preview-drag-cover
+  .node
+  {
+    transition: top 200ms, left 200ms;
+  }
+
+  .drag-cover
   {
     position: absolute;
     top: 0;
@@ -81,7 +98,7 @@
     cursor: move;
   }
 
-  .preview-drag-cover:hover
+  .drag-cover:hover
   {
     background: rgba(0,0,0,0.1);
   }
