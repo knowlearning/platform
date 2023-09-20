@@ -210,7 +210,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     checkHeartbeat()
   }
 
-  function create({ id=uuid(), active_type, active }) {
+  function create({ id=uuid(), active_type, active, name }) {
     //  TODO: collapse into 1 patch and 1 interact call
     interact(id, [{ op: 'add', path: ['active_type'], value: active_type }], false)
     interact(id, [{ op: 'add', path: ['active'], value: active }], false)

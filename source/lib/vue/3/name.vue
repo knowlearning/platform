@@ -3,7 +3,7 @@
     draggable="true"
     @dragstart="handleDragStart"
   >
-    {{ metadata ? metadata.name.trim() || 'unnamed' : '...' }}
+    {{ loading ? '...' : name }}
   </span>
 </template>
 
@@ -14,11 +14,19 @@
     },
     data() {
       return {
+        loading: true,
         metadata: null
       }
     },
     async created() {
       this.metadata = await Agent.metadata(this.id)
+      this.loading = false
+    },
+    computed: {
+      name() {
+        if (this.loading) return
+        else return this.metadata && this.metadata.name ? this.metadata.name : 'unnamed'
+      }
     },
     methods: {
       handleDragStart(e) {

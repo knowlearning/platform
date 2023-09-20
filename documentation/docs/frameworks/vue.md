@@ -51,7 +51,7 @@ You can embed other sites that use @knowlearning/agents like so:
 ```html
 <template>
   <div>
-    <vueContentComponent
+    <vueEmbedComponent
       :id="id"
       @state="handleState"
       @mutate="handleMutate"
@@ -60,11 +60,11 @@ You can embed other sites that use @knowlearning/agents like so:
 </template>
 
 <script>
-  import { vueContentComponent } from '@knowlearning/agents'
+  import { vueEmbedComponent } from '@knowlearning/agents'
 
   export default {
     components: {
-      vueContentComponent
+      vueEmbedComponent
     },
     data() {
       return {
@@ -90,10 +90,10 @@ You can embed other sites that use @knowlearning/agents like so:
 The id passed into an embedded content component will be handled in the following way when deciding how to resolve the url to load into the embedded iframe:
 
 - If ```id``` is a UUID, then the url for the iframe will be: ```https://DOMAIN_THAT_CREATED_UUID/UUID```.
-  > For example: if ```dd3d48cf-82d7-43ab-8f5c-d2b7ab06a2ff``` is set as ```id```, then the vueContentComponent will look at the metadata for that UUID to find the domain where it was created. If, for instance, the domain that created that UUID is app.knowlearning.org, then the URL that vueContentComponent will load in its iframe is: ```https://app.knowlearning.org/dd3d48cf-82d7-43ab-8f5c-d2b7ab06a2ff```
+  > For example: if ```dd3d48cf-82d7-43ab-8f5c-d2b7ab06a2ff``` is set as ```id```, then the vueEmbedComponent will look at the metadata for that UUID to find the domain where it was created. If, for instance, the domain that created that UUID is app.knowlearning.org, then the URL that vueEmbedComponent will load in its iframe is: ```https://app.knowlearning.org/dd3d48cf-82d7-43ab-8f5c-d2b7ab06a2ff```
 
-- If ```id``` is already a valid URL with a domain included (like ```app.knowlearning.org``` or ```app.knowlearning.org/any-other-path``` or even ```app.knowlearning.org/cc3e48de-82d8-42bc-8f5c-d2b7ab06a2fa```), then vueContentComponent will simply load that url in its iframe.
+- If ```id``` is already a valid URL with a domain included (like ```app.knowlearning.org``` or ```app.knowlearning.org/any-other-path``` or even ```app.knowlearning.org/cc3e48de-82d8-42bc-8f5c-d2b7ab06a2fa```), then vueEmbedComponent will simply load that url in its iframe.
 
 !!! tip
 
-    It is completely up to every domain owner to decide how to deal with URL paths, but we recommend all app creators check for a UUID passed as the path so that they can do something expected when an embedding app uses a UUID that belongs to their domain for the ```id``` of a vueContentComponent. Please see the "Recommended Scaffolding" to see an app structure we really recommend.
+    It is completely up to every domain owner to decide how to deal with URL paths, but we recommend all app creators check for a UUID passed as the path so that they can do something expected when an embedding app uses a UUID that belongs to their domain for the ```id``` of a vueEmbedComponent. Please see the "Recommended Scaffolding" to see an app structure we really recommend.

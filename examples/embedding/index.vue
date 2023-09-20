@@ -11,7 +11,7 @@
           :class="{ selected: current === id }"
         >
           <td @click="select(id)">
-            <Name :id="id" />
+            <vueNameComponent :id="id" />
           </td>
           <td><button @click="removeTake(index)">x</button></td>
         </tr>
@@ -35,7 +35,7 @@
         @create="create"
       />
     </div>
-    <vueContentComponent
+    <vueEmbedComponent
       v-else-if="current"
       :key="current"
       :id="current"
@@ -45,9 +45,7 @@
 
 <script>
   import { v4 as uuid } from 'uuid'
-  import { browserAgent, vueContentComponent } from '@knowlearning/agents'
-
-  import Name from './components/name.vue'
+  import { browserAgent, vueEmbedComponent, vueNameComponent } from '@knowlearning/agents'
 
   import MultipleChoiceEditor from './editors/multiple-choice.vue'
   import FreeResponseEditor from './editors/free-response.vue'
@@ -57,8 +55,8 @@
 
   export default {
     components: {
-      vueContentComponent,
-      Name,
+      vueEmbedComponent,
+      vueNameComponent,
       MultipleChoiceEditor,
       FreeResponseEditor,
       RatingEditor

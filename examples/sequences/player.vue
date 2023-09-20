@@ -5,7 +5,7 @@
 </template>
 
 <script>
-  import { browserAgent, vueContentComponent } from '@knowlearning/agents'
+  import { browserAgent, vueEmbedComponent } from '@knowlearning/agents'
   export default {}
 </script>
 

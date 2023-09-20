@@ -1,5 +1,11 @@
 <template>
-  <div>
+  <div class="wrapper">
+    <div class="header">
+      name: <input v-model="name" />
+      <span v-if="saving">Saving...</span>
+      <vueNameComponent v-else-if="lastSave" :id="lastSave"/>
+      <button v-if="!saving" @click="save">save</button>
+    </div>
     <div
       v-for="{ x, y }, id in nodes"
       class="node"
@@ -12,7 +18,7 @@
         height: '100px'
       }"
     >
-      <vueContentComponent
+      <vueEmbedComponent
         :id="id"
         mode="preview"
       />
@@ -28,11 +34,13 @@
 
 <script>
   import { validate as isUUID } from 'uuid'
-  import { browserAgent, vueContentComponent } from '@knowlearning/agents'
+  //  TODO: separate vue into different package. ie: @knowlearning/frameworks/vue.js
+  import { browserAgent, vueEmbedComponent, vueNameComponent } from '@knowlearning/agents'
 
   export default {
     components: {
-      vueContentComponent
+      vueEmbedComponent,
+      vueNameComponent
     },
     created() {
       window.addEventListener('dragover', this.handleDragover)
@@ -40,6 +48,9 @@
     },
     data() {
       return {
+        name: '',
+        saving: false,
+        lastSave: null,
         dragOffset: null,
         nodes: {},
         edges: {}
@@ -52,10 +63,10 @@
       },
       async handleDrop(event) {
         let { clientX: x, clientY: y } = event
-          if (this.dragOffset) {
-            x -= this.dragOffset.x
-            y -= this.dragOffset.y
-          }
+        if (this.dragOffset) {
+          x -= this.dragOffset.x
+          y -= this.dragOffset.y
+        }
 
         const text = event.dataTransfer.getData("text")
 
@@ -76,6 +87,19 @@
         //  TODO: store offset to use in this same component
         event.dataTransfer.effectAllowed = 'move'
         event.dataTransfer.setData('text/plain', id)
+      },
+      async save() {
+        this.saving = true
+        const { nodes, edges, name } = this
+        //  TODO: allow setting name in create call
+        const id = await Agent.create({
+          active_type: 'application/json;type=map',
+          active: { nodes, edges },
+        })
+        const metadata = await Agent.metadata(id)
+        metadata.name = name
+        this.saving = false
+        this.lastSave = id
       }
     }
   }
