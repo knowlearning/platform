@@ -1,6 +1,5 @@
 <template>
   <div>
-    editor
     <div
       v-for="{ x, y }, id in nodes"
       :key="id"
