@@ -1,10 +1,18 @@
 <template>
-  <div class="wrapper">
+  <vueEmbedComponent
+    v-if="playing"
+    :id="lastSave"
+  />
+  <div
+    v-else
+    class="wrapper"
+  >
     <div class="header">
       name: <input v-model="name" />
       <span v-if="saving">Saving...</span>
       <vueNameComponent v-else-if="lastSave" :id="lastSave"/>
       <button v-if="!saving" @click="save">save</button>
+      <button @click="playing = true">play</button>
     </div>
     <div
       v-for="{ x, y }, id in nodes"
@@ -49,6 +57,7 @@
     data() {
       return {
         name: '',
+        playing: false,
         saving: false,
         lastSave: null,
         dragOffset: null,
