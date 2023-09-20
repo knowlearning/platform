@@ -2,6 +2,7 @@
   <vueEmbedComponent
     v-if="playing"
     :id="lastSave"
+    @close="playing = false"
   />
   <div
     v-else
@@ -35,7 +36,14 @@
         draggable="true"
         @dragstart="handleDragStart($event, id)"
         @dragend="dragOffset = null"
-      />
+      >
+        <button
+          class="remove-button"
+          @click="delete nodes[id]"
+        >
+          x
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -129,11 +137,20 @@
     bottom: 0;
     user-select: none;
     cursor: move;
+    opacity: 0;
+    transition: opacity 150ms;
   }
 
   .drag-cover:hover
   {
+    opacity: 1;
     background: rgba(0,0,0,0.1);
   }
 
+  .remove-button
+  {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+  }
 </style>

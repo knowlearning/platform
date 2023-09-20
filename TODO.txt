@@ -59,9 +59,10 @@ X 1)  track context of subscriptions... turns out tracking create/update of item
 X 2)  save that context in a convenient way (postgres table)
   3)  Make a sequence wrapper and some example content
 X     - Editor
+X       - remove item
       - Player
-      - Previewer
-  4)  Work on sequence wrapper surfacing some sort of "performance data" about each child
+        - close stuff
+  4)  Work on sequence wrapper surfacing some sort of "performance data" about each child in their previews
       (thinking of things like badges/checks on map node)
   5)  Consume that info to populate a generic dashboard
   6)  Map performance data onto a less generic dashboard

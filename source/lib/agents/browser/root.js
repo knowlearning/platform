@@ -24,9 +24,6 @@ export default () => {
     reboot: () => window.location.reload()
   })
 
-  const { state } = agent
-  //  TODO: remove agent.state proxy here as part of "get rid of default scope" work
-  agent.state = (scope=host,user,domain) => state(scope, user, domain)
   agent.local = () => {
     if (isLocal()) return
 
@@ -38,6 +35,9 @@ export default () => {
 
     localStorage.removeItem('api')
     location.reload()
+  }
+  agent.close = () => {
+    window.close()
   }
 
   return agent

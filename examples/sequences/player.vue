@@ -2,11 +2,13 @@
   <vueEmbedComponent
     v-if="current"
     :id="current"
+    @close="current = null"
   />
   <div
     class="wrapper"
     v-else
   >
+    <button @click="close">done</button>
     <div
       v-for="{ x, y }, id in nodes"
       class="node"
@@ -52,7 +54,10 @@
     methods: {
       open(id) {
         this.current = id
-      }
+      },
+      close() {
+        Agent.close()
+      },
     }
   }
 </script>

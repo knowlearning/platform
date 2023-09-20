@@ -2,6 +2,7 @@
   <div>
     {{ prompt }}
     <textarea v-model="response" />
+    <button @click="close">done</button>
   </div>
 </template>
 
@@ -13,6 +14,11 @@
     data() {
       return {
         response: ''
+      }
+    },
+    methods: {
+      close() {
+        Agent.close()
       }
     }
   }

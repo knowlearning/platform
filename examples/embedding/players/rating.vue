@@ -3,6 +3,7 @@
     {{ prompt }}
     <input type="range" :min="min" :max="max" :step="step" v-model="rating" />
     {{ rating }}
+    <button @click="close">done</button>
   </div>
 </template>
 
@@ -18,6 +19,11 @@
       return {
         response: '',
         rating: null
+      }
+    },
+    methods: {
+      close() {
+        Agent.close()
       }
     }
   }

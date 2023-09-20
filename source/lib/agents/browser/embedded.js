@@ -202,6 +202,7 @@ export default function EmbeddedAgent() {
   function disconnect() { return send({ type: 'disconnect' }) }
   function reconnect() { return send({ type: 'reconnect' }) }
   function synced() { return send({ type: 'synced' }) }
+  function close() { return send({ type: 'close' }) }
 
   return {
     embedded: true,
@@ -221,6 +222,7 @@ export default function EmbeddedAgent() {
     disconnect,
     reconnect,
     synced,
+    close,
     tag
   }
 }

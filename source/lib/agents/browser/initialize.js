@@ -54,6 +54,7 @@ function embed(environment, iframe) {
       sendDown({})
     }
     else if (type === 'close') {
+      console.log('closing?', listeners)
       if (listeners.close) listeners.close()
     }
     else if (type === 'environment') {
