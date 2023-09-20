@@ -235,7 +235,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   }
 
   function state(scope) {
-    tagIfNotYetTaggedInSession('connected', scope)
+    tagIfNotYetTaggedInSession('subscribed', scope)
     return new Promise(async (resolveState, rejectState) => {
       if (!keyToSubscriptionId[scope]) {
         const id = uuid()

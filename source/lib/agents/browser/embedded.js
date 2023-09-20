@@ -84,7 +84,7 @@ export default function EmbeddedAgent() {
 
 
   function watch(id, fn) {
-    tagIfNotYetTaggedInSession('connected', id)
+    tagIfNotYetTaggedInSession('subscribed', id)
     if (!watchers[id]) watchers[id] = []
     watchers[id].push(fn)
     return () => removeWatcher(id, fn)
@@ -96,7 +96,7 @@ export default function EmbeddedAgent() {
   }
 
   async function state(scope) {
-    tagIfNotYetTaggedInSession('connected', scope)
+    tagIfNotYetTaggedInSession('subscribed', scope)
     const startState = await send({ type: 'state', scope })
     return new MutableProxy(startState, patch => {
       const activePatch = structuredClone(patch)
