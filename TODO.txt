@@ -69,12 +69,12 @@ X       - preview
 X     - style rating item
 X       - player
 X       - preview
-      - implement multiple-choice
-        - player
-        - preview
-      - style multiple-choice
-        - player
-        - preview
+X     - implement multiple-choice
+X       - player
+X       - preview
+X     - style multiple-choice
+X       - player
+X       - preview
       - style sequence wrapper
         - reasonable loading view for nodes
         - breadcrumbs for context
