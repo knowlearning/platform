@@ -75,12 +75,12 @@ X       - preview
 X     - style multiple-choice
 X       - player
 X       - preview
-      - style sequence wrapper
-        - reasonable loading view for nodes
-        - breadcrumbs for context
-      - STRETCH:
-        - style editors for VDEs
-        - style editor site for VDEs
+X     - style sequence wrapper
+X       - reasonable loading view for nodes
+P       - breadcrumbs for context
+X     - STRETCH:
+X       - style editors for VDEs
+X       - style editor site for VDEs
   5)  Consume that info to populate a generic dashboard
       - add query with params ability so we can query for all users with mutation tags in a context
       - render list of users + content names + scopes with mutations in context
