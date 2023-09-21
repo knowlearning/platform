@@ -66,6 +66,9 @@
   .node
   {
     transition: top 200ms, left 200ms;
+    border-radius: 16px;
+    border: 1px solid #EEEEEE;
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 8px 8px;
   }
 
   .node-cover
@@ -75,12 +78,15 @@
     left: 0;
     right: 0;
     bottom: 0;
+    border-radius: 16px;
     user-select: none;
+    cursor: pointer;
   }
 
   .node-cover:hover
   {
-    background: rgba(0,0,0,0.1);
+    opacity: 1;
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
   }
 
 </style>

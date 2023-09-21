@@ -140,12 +140,13 @@
     cursor: move;
     opacity: 0;
     transition: opacity 150ms;
+    border-radius: 16px;
   }
 
   .drag-cover:hover
   {
     opacity: 1;
-    background: rgba(0,0,0,0.1);
+    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
   }
 
   .remove-button
