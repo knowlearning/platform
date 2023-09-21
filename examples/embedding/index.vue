@@ -123,11 +123,7 @@
   }
 </script>
 
-<style>
-  .wrapper
-  {
-    padding-left: 2em;
-  }
+<style scoped>
   .selected
   {
     background: yellow;

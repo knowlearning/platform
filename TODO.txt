@@ -64,7 +64,7 @@ X     - Player
 X       - close stuff
   4)  Make sequence wrapper look good
       - style free-response item
-        - player
+X       - player
         - preview
       - style rating item
         - player
