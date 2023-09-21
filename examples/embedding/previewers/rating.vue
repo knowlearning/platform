@@ -1,8 +1,10 @@
 <template>
-  <div>
-    {{ prompt }}
-    <input type="range" :min="min" :max="max" :step="step" v-model="rating" />
-    {{ rating }}
+  <div class="wrapper">
+    <img class="icon" src="/rating-icon.png" />
+    <div>
+      {{ prompt.slice(0, 12) }}...
+    </div>
+    {{ rating === null ? '?' : rating }}
   </div>
 </template>
 
@@ -24,4 +26,12 @@
 </script>
 
 <style>
+  .wrapper
+  {
+    text-align: center;
+  }
+  .icon
+  {
+    width: 32px;
+  }
 </style>

@@ -1,9 +1,15 @@
 <template>
-  <div>
-    {{ prompt }}
-    <input type="range" :min="min" :max="max" :step="step" v-model="rating" />
-    {{ rating }}
-    <button @click="close">done</button>
+  <div class="wrapper">
+    <div>
+      <h3>{{ prompt }}</h3>
+    </div>
+    <div>
+      <input type="range" :min="min" :max="max" :step="step" v-model="rating" />
+      {{ rating }}
+    </div>
+    <div>
+      <button @click="close">done</button>
+    </div>
   </div>
 </template>
 
@@ -29,5 +35,18 @@
   }
 </script>
 
-<style>
+<style scoped>
+  .wrapper
+  {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+    background: gainsboro;
+  }
+  textarea
+  {
+    height: 33vh;
+  }
 </style>

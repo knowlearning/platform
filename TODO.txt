@@ -65,7 +65,7 @@ X       - close stuff
   4)  Make sequence wrapper look good
       - style free-response item
 X       - player
-        - preview
+X       - preview
       - style rating item
         - player
         - preview
@@ -94,6 +94,8 @@ Demo Outline
   - stress that different items from different domains can provide customized summary views.  
 - share pre-made map
 - show dashboard progress of participants on pre-made map
+  - "user maps have dashboard capabilities"
+  - "3rd party item creators can adjust previews at their request without even needing to work through us"
   - show context (breadcrumb names of tag context) scope was mutated in
 - show map editor
   - emphasize dragging from a foreign sources
