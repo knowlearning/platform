@@ -1,7 +1,10 @@
 <template>
-  <div class="prompt">
-    {{ prompt.slice(0, 12) }}...
-    <div class="checkbox">
+  <div class="wrapper">
+    <img src="/free-response-icon.png" />
+    <div>
+      {{ prompt.slice(0, 12) }}...
+    </div>
+    <div>
       [{{ responded ? '✔' : ' ' }}]
     </div>
   </div>
@@ -26,17 +29,15 @@
 </script>
 
 <style>
-  .prompt
+  img {
+    width: 32px;
+  }
+  .wrapper
   {
     position: absolute;
     width: 100vw;
     height: 100vh;
+    text-align: center;
     overflow: hidden;
-  }
-  .checkbox
-  {
-    position: fixed;
-    bottom: 0;
-    right: 0;
   }
 </style>

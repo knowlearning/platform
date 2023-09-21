@@ -63,10 +63,13 @@ X       - remove item
 X     - Player
 X       - close stuff
   4)  Make sequence wrapper look good
-      - style free-response item
+X     - style free-response item
 X       - player
 X       - preview
-      - style rating item
+X     - style rating item
+X       - player
+X       - preview
+      - implement multiple-choice
         - player
         - preview
       - style multiple-choice
