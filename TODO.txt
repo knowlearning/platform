@@ -62,8 +62,42 @@ X     - Editor
 X       - remove item
 X     - Player
 X       - close stuff
-  4)  Work on sequence wrapper surfacing some sort of "performance data" about each child in their previews
-      (thinking of things like badges/checks on map node)
+  4)  Make sequence wrapper look good
+      - style free-response item
+        - player
+        - preview
+      - style rating item
+        - player
+        - preview
+      - style multiple-choice
+        - player
+        - preview
+      - style sequence wrapper
+        - reasonable loading view for nodes
+        - breadcrumbs for context
+      - STRETCH:
+        - style editors for VDEs
+        - style editor site for VDEs
   5)  Consume that info to populate a generic dashboard
-  6)  Map performance data onto a less generic dashboard
+      - add query with params ability so we can query for all users with mutation tags in a context
+      - render list of users + content names + scopes with mutations in context
+      - render data at selected scope on demand
+  6)  Launch to a demo domain
   7)  Be able to assign and view dashboard as a teacher
+
+
+Demo Outline
+
+- show pre-made map
+  - emphasize it is embedding different domains
+  - emphasize re-attachment scheme (default and possibilities... "calculator app" example)
+  - stress that different items from different domains can provide customized summary views.  
+- share pre-made map
+- show dashboard progress of participants on pre-made map
+  - show context (breadcrumb names of tag context) scope was mutated in
+- show map editor
+  - emphasize dragging from a foreign sources
+  - item editors fully decoupled from each other and map
+- edit new map
+- share edited map
+- show dashboard for new map with arbitrarily added items
