@@ -96,6 +96,10 @@ export default function EmbeddedAgent() {
   }
 
   async function state(scope) {
+    if (scope === undefined) {
+      const { context } = await environment()
+      scope = JSON.stringify(context)
+    }
     tagIfNotYetTaggedInSession('subscribed', scope)
     const startState = await send({ type: 'state', scope })
     return new MutableProxy(startState, patch => {

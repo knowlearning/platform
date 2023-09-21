@@ -234,7 +234,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     return { ...(await environmentPromise), context: [] }
   }
 
-  function state(scope) {
+  function state(scope='[]') {
     tagIfNotYetTaggedInSession('subscribed', scope)
     return new Promise(async (resolveState, rejectState) => {
       if (!keyToSubscriptionId[scope]) {

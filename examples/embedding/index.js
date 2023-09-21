@@ -23,14 +23,6 @@ if (isUUID(id)) {
     props = await Agent.state(id)
   }
 }
-console.log('LOADED SOME EXPERIENCE!!!!', props)
 
-//  Use the serialized embedding context as the default scope for
-//  this experience. Another possible choice is to simply use the
-//  last part of the context as the name if reading/writing the same
-//  scope in any context is the desired behavior for this content.
-const { context } = await Agent.environment()
-const defaultScope = '/' + context.join('/')
-
-const app = createApp(vuePersistentComponent(rootComponent, defaultScope), props)
+const app = createApp(vuePersistentComponent(rootComponent), props)
 app.mount(document.body)
