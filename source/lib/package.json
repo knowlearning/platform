@@ -14,14 +14,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/knowlearning/core.git"
+    "url": "git+https://github.com/knowlearning/platform.git"
   },
   "author": "KnowLearning",
   "license": "MPL-2.0",
   "bugs": {
-    "url": "https://github.com/knowlearning/core/issues"
+    "url": "https://github.com/knowlearning/platform/issues"
   },
-  "homepage": "https://github.com/knowlearning/core#readme",
+  "homepage": "https://github.com/knowlearning/platform#readme",
   "dependencies": {
     "fast-json-patch": "^3.1.1",
     "uuid": "^8.3.2",

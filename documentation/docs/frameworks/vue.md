@@ -7,7 +7,7 @@
 You can create a vue application who's root component's state is automatically bound to a scope you specify:
 
 ```js
-import { vuePeristentComponent } from '@knowlearning/agents'
+import { vuePersistentComponent } from '@knowlearning/agents/vue.js'
 import myComponent from './my-component-file.vue'
 
 const id = 'uuid-or-name-of-scope-to-bind-to-component-data'
@@ -60,7 +60,7 @@ You can embed other sites that use @knowlearning/agents like so:
 </template>
 
 <script>
-  import { vueEmbedComponent } from '@knowlearning/agents'
+  import { vueEmbedComponent } from '@knowlearning/agents/vue.js'
 
   export default {
     components: {

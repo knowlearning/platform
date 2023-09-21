@@ -36,7 +36,7 @@
 <script>
   import { validate as isUUID } from 'uuid'
   //  TODO: separate vue into different package. ie: @knowlearning/frameworks/vue.js
-  import { vueEmbedComponent } from '@knowlearning/agents'
+  import { vueEmbedComponent } from '@knowlearning/agents/vue.js'
 
   export default {
     props: {

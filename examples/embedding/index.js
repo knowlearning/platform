@@ -1,5 +1,6 @@
 import { validate as isUUID } from 'uuid'
-import { browserAgent, vuePersistentComponent } from '@knowlearning/agents'
+import { browserAgent } from '@knowlearning/agents'
+import { vuePersistentComponent } from '@knowlearning/agents/vue.js'
 import { createApp } from 'vue'
 import managementInterface from './index.vue'
 import players from './players/index.js'

@@ -45,7 +45,8 @@
 
 <script>
   import { v4 as uuid } from 'uuid'
-  import { browserAgent, vueEmbedComponent, vueNameComponent } from '@knowlearning/agents'
+  import { browserAgent } from '@knowlearning/agents'
+  import { vueEmbedComponent, vueNameComponent } from '@knowlearning/agents/vue.js'
 
   import MultipleChoiceEditor from './editors/multiple-choice.vue'
   import FreeResponseEditor from './editors/free-response.vue'
