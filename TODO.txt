@@ -91,7 +91,8 @@ X     - add query with params ability so we can query for all users with mutatio
 
 Demo Outline
 
-- show pre-made map
+- show pre-made map:
+  - https://sequence-example.knowlearning.systems/
   - emphasize it is embedding different domains
   - emphasize re-attachment scheme (default and possibilities... "calculator app" example)
   - stress that different items from different domains can provide customized summary views.  
