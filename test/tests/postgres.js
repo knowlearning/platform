@@ -132,17 +132,17 @@ postgres:
     })
 
     it('Can retrieve expected record from test table type', async function () {
-      expect(await Agent.state('my-test-table-entries'))
+      expect(await Agent.query('my-test-table-entries'), [])
       .to.deep.equal([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
     })
 
     it('Can call functions in special query scopes', async function () {
-      expect(await Agent.state('test-function-call'))
+      expect(await Agent.query('test-function-call'))
       .to.deep.equal([{ id: TEST_ENTRY_0_ID }])
     })
 
     it('Can query metadata for scopes created after configuration', async function () {
-      const response = await Agent.state('my-test-table-entries-metadata')
+      const response = await Agent.query('my-test-table-entries-metadata')
       const { auth: { user }, domain } = await Agent.environment()
 
       expect(response.length).to.equal(1)
@@ -156,7 +156,7 @@ postgres:
     })
 
     it('Can query metadata for scopes created before configuration', async function () {
-      const response = await Agent.state('my-test-table-previous-entries-metadata')
+      const response = await Agent.query('my-test-table-previous-entries-metadata')
       const { auth: { user }, domain } = await Agent.environment()
 
       expect(response.length).to.equal(1)
@@ -185,7 +185,7 @@ postgres:
 
     it('Can get expected result from re-configured table', async function () {
       expect(
-        await Agent.state('my-reconfigured-test-table-entries')
+        await Agent.query('my-reconfigured-test-table-entries')
       )
       .to.deep.equal(
         [{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }]
@@ -199,7 +199,7 @@ postgres:
       Object.assign(state, TEST_ENTRY_2)
       await Agent.synced()
 
-      expect( await Agent.state('my-test-table-entry-after-reconfig') )
+      expect( await Agent.query('my-test-table-entry-after-reconfig') )
         .to.deep.equal( [{ id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 }] )
     })
 
@@ -210,16 +210,17 @@ postgres:
       Object.assign(state, TEST_ENTRY_3)
       await Agent.synced()
 
-      expect( await Agent.state('text-array-test-query') )
+      expect( await Agent.query('text-array-test-query') )
         .to.deep.equal( [{ id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 }] )
     })
 
     it('Cannot query old tables', async function () {
       let errored = false
       try {
-        const state = await Agent.state('my-old-test-table')
+        const state = await Agent.query('my-old-test-table')
       }
       catch (error) {
+        console.log('ERROR~~~~~~~~~~~~~', error)
         if (error.error === '42P01') errored = true
       }
       if (!errored) throw new Error('Expected postgres 42P01 error on query involving new table')

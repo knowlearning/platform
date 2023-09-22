@@ -15,30 +15,20 @@ export default async function (domain, user, session, patch, si, ii, send) {
     //const [id] = path //  TODO: track deletes of id in sessions object to unhook subscriptions
     const { scope } = value
 
-    if (config?.postgres?.scopes?.[scope]) {
-      handleQuery(config, domain, user, scope)
-        .then(({ rows }) => send({ si, ii: -1, active: rows }))
-        .catch(error =>  {
-          console.warn(error)
-          send({ si, error: error.code })
-        })
-    }
-    else {
-      //  TODO: authorization check here
-      if (!subscriptions[session]) subscriptions[session] = {}
+    //  TODO: authorization check here
+    if (!subscriptions[session]) subscriptions[session] = {}
 
-      const ss = subscriptions[session]
-      const id = await scopeToId(domain, user, scope)
-      if (!ss[id]) ss[id] = subscribe(id, send, scope)
-      await redis.connected //  TODO: assess if necessary
-      let state = await redis.client.json.get(id)
-      if (!state) {
-        state = initializationState(domain, user, scope)
-        //  TODO: ensure set was successful, otherwise just retry get
-        await redis.client.json.set(id, '$', state, { NX: true }) // initialize metadata if does not exist
-      }
-      send({ ...state, id, si })
+    const ss = subscriptions[session]
+    const id = await scopeToId(domain, user, scope)
+    if (!ss[id]) ss[id] = subscribe(id, send, scope)
+    await redis.connected //  TODO: assess if necessary
+    let state = await redis.client.json.get(id)
+    if (!state) {
+      state = initializationState(domain, user, scope)
+      //  TODO: ensure set was successful, otherwise just retry get
+      await redis.client.json.set(id, '$', state, { NX: true }) // initialize metadata if does not exist
     }
+    send({ ...state, id, si })
   }
   else send({ si, ii }) // non-side-effect inducing patch
 }

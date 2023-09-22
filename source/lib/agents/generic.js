@@ -421,12 +421,13 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     mode = 'debug'
   }
 
-  function query(query, params, domain) {
+  async function query(query, params, domain) {
     create({
       active_type: POSTGRES_QUERY_TYPE,
       active: { query, params, domain }
     })
-    return lastMessageResponse()
+    const { rows } = await lastMessageResponse()
+    return rows
   }
 
   function tag(tag_type, target, context=[]) {
