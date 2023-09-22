@@ -20,5 +20,14 @@ export default {
       provider: 'TEXT'
       //  TODO: add start and end timestamp
     }
+  },
+  tags: {
+    type: 'application/json;type=tag',
+    columns: {
+      context: 'TEXT[]',
+      tag_type: 'TEXT',
+      target: 'TEXT'
+      //  TODO: add start and end timestamp
+    }
   }
 }
