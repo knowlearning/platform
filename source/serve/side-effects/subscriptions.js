@@ -1,5 +1,4 @@
 import * as redis from '../redis.js'
-import handleQuery from '../handle-query.js'
 import subscribe from '../subscribe.js'
 import configuration from '../configuration.js'
 import initializationState from '../initialization-state.js'
