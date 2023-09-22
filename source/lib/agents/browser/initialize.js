@@ -65,7 +65,9 @@ function embed(environment, iframe) {
     }
     else if (type === 'interact') {
       const { scope, patch } = message
-      await Agent.interact(scope, patch)
+      //  TODO: should use a better approach to instruct agent
+      //        not to generate a tag from this interaction
+      await Agent.interact(scope, patch, false)
       if (listeners.mutate) listeners.mutate({ scope })
       sendDown({}) // TODO: might want to send down the interaction index
     }

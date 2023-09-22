@@ -222,6 +222,8 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     if (targetCache && targetCache[target]) return
 
     if (!targetCache) tagTypeToTargetCache[tag_type] = {}
+    if (tagTypeToTargetCache[tag_type][target]) return
+
     tagTypeToTargetCache[tag_type][target] = true
 
       //  always use absolute referene when tagging
@@ -431,6 +433,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   }
 
   function tag(tag_type, target, context=[]) {
+    console.log('TAGGING', tag_type, target, context)
     return create({
       active_type: TAG_TYPE,
       active: { tag_type, target, context }

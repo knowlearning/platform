@@ -3,6 +3,7 @@ import * as redis from './redis.js'
 import { download } from './storage.js'
 import subscribe from './subscribe.js'
 import ADMIN_DOMAIN_CONFIG from './admin-domain-config.js'
+import POSTGRES_DEFAULT_TABLES from './postgres-default-tables.js'
 
 const { ADMIN_DOMAIN } = process.env
 
@@ -52,6 +53,7 @@ export default async function configuration(domain) {
 
       cache[domain] = {
         ...parseYAML(await response.text()),
+        ...POSTGRES_DEFAULT_TABLES,
         admin
       }
     }

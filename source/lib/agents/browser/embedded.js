@@ -77,8 +77,9 @@ export default function EmbeddedAgent() {
     if (!isUUID(target)) target = (await metadata(target)).id
 
     if (!tagTypeToTargetCache[tag_type]) tagTypeToTargetCache[tag_type] = {}
-    tagTypeToTargetCache[tag_type][target] = true
+    if (tagTypeToTargetCache[tag_type][target]) return
 
+    tagTypeToTargetCache[tag_type][target] = true
     await tag(tag_type, target)
   }
 
@@ -114,8 +115,9 @@ export default function EmbeddedAgent() {
     return interact(scope, [{ op: 'add', path:['active'], value: null }])
   }
 
-  function interact(scope, patch) {
-    tagIfNotYetTaggedInSession('mutated', scope)
+  //  TODO: better approach than exposing addTag
+  function interact(scope, patch, addTag=true) {
+    if (addTag) tagIfNotYetTaggedInSession('mutated', scope)
     return send({ type: 'interact', scope, patch })
   }
 
