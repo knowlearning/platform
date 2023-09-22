@@ -53,8 +53,12 @@ export default async function configuration(domain) {
 
       cache[domain] = {
         ...parseYAML(await response.text()),
-        ...POSTGRES_DEFAULT_TABLES,
         admin
+      }
+
+      //  ensure domain has default postgres tables configured
+      if (cache[domain].postgres && cache[domain].postgres.tables) {
+        Object.assign(cache[domain].postgres.tables, POSTGRES_DEFAULT_TABLES)
       }
     }
   }
