@@ -16,14 +16,15 @@ X Move upload and download metadata to new format
 X Allow Agent.download(id).direct() and Agent.download(id).url()
 X Document vue binding
 X Fix old session messages getting queued and passed to new sessions (because of using cookie sid instead of client prvided session)
+X Handlable "close" event from embedded agents
+X Batch inserts into postgres
+  Utility in agent to calculate diff for state update and apply (for candli use now), something like Agent.sync(obj, newObj)
   Bundle interaction messages to reduce websocket strain
   Compaction
-X Batch inserts into postgres
   On domain config, return response with watchable request scope
   Make setting metadata type on object sufficient for triggering postgres update
   Add generic agent cache clearing for testing purposes
   Respect side effects for all patch array items, NOT just first
-  Handlable "exit" event from embedded agents
   Cache downloaded content at agent level
   Throttle naughty clients (protect against infinite loops on the client)
   Agent retry downloads on 404 (useful if there was a recent upload... see TODO in patch-content.js though)
@@ -91,19 +92,19 @@ X     - add query with params ability so we can query for all users with mutatio
 
 Demo Outline
 
-- show pre-made map:
-  - https://sequence-example.knowlearning.systems/
-  - emphasize it is embedding different domains
-  - emphasize re-attachment scheme (default and possibilities... "calculator app" example)
-  - stress that different items from different domains can provide customized summary views.  
+X show pre-made map:
+X - https://sequence-example.knowlearning.systems/
+X - emphasize it is embedding different domains
+X - emphasize re-attachment scheme (default and possibilities... "calculator app" example)
+X - stress that different items from different domains can provide customized summary views.
 - share pre-made map
 - show dashboard progress of participants on pre-made map
-  - "user maps have dashboard capabilities"
-  - "3rd party item creators can adjust previews at their request without even needing to work through us"
+X - "user maps have dashboard capabilities"
+X - "3rd party item creators can adjust previews at their request without even needing to work through us"
   - show context (breadcrumb names of tag context) scope was mutated in
-- show map editor
-  - emphasize dragging from a foreign sources
-  - item editors fully decoupled from each other and map
-- edit new map
+X show map editor
+X - emphasize dragging from a foreign sources
+X - item editors fully decoupled from each other and map
+X edit new map
 - share edited map
 - show dashboard for new map with arbitrarily added items
