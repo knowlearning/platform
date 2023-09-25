@@ -15,6 +15,11 @@ import 'mocha/mocha.css'
 
 window.Agent = browserAgent()
 
+if (window.location.hostname === 'localhost') {
+  const { auth: { user } } = await Agent.environment()
+  window.location.href = `https://${user}.${window.location.host}`
+}
+
 //  set up some globals for ease of use in test files
 window.expect = chai.expect
 window.uuid = uuid

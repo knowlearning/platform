@@ -26,7 +26,7 @@ const { ADMIN_DOMAIN, MODE } = process.env
 async function isAdmin(user, requestingDomain, requestedDomain) {
   return (
        (MODE === 'local' && requestingDomain.split(':')[0] === 'localhost')
-    || requestingDomain === `${user}.localhost`
+    || requestingDomain === `${user}.localhost:${parseInt(requestingDomain.split(':')[1])}`
     || (requestingDomain === ADMIN_DOMAIN && user === await domainAdmin(requestedDomain))
   )
 }
