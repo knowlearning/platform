@@ -3,6 +3,7 @@ const AUTH_HOST = 'https://auth.knowlearning.systems'
 function login() {
   const provider = 'google'
   const state = Math.random().toString(36).substring(2)
+  console.log('SETTING localStorage "state"', state, window.location)
   localStorage.setItem('state', state)
 
   window.location.href = `${AUTH_HOST}/${provider}/${state}/${encodeURIComponent(window.location.href)}`
