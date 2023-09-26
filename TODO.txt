@@ -18,6 +18,8 @@ X Document vue binding
 X Fix old session messages getting queued and passed to new sessions (because of using cookie sid instead of client prvided session)
 X Handlable "close" event from embedded agents
 X Batch inserts into postgres
+  Figure out how to deal with this breaking login: https://developer.chrome.com/en/docs/privacy-sandbox/storage-partitioning/
+      Do token sending to back end from inside the embedded iframe!
   Use referrer to make sure we reconnect sessions to the domain the session was created for
   Bundle interaction messages to reduce websocket strain
   Compaction
