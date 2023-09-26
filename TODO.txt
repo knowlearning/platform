@@ -18,7 +18,7 @@ X Document vue binding
 X Fix old session messages getting queued and passed to new sessions (because of using cookie sid instead of client prvided session)
 X Handlable "close" event from embedded agents
 X Batch inserts into postgres
-  Utility in agent to calculate diff for state update and apply (for candli use now), something like Agent.sync(obj, newObj)
+  Use referrer to make sure we reconnect sessions to the domain the session was created for
   Bundle interaction messages to reduce websocket strain
   Compaction
   On domain config, return response with watchable request scope
@@ -27,10 +27,9 @@ X Batch inserts into postgres
   Respect side effects for all patch array items, NOT just first
   Cache downloaded content at agent level
   Throttle naughty clients (protect against infinite loops on the client)
-  Agent retry downloads on 404 (useful if there was a recent upload... see TODO in patch-content.js though)
   Add a test for resetting
   Use create-folder-content in agent upload to handle upload of items and return one piece of content that is the content-graph
-  Remove create-folder-content from home app
+  Remove create-folder-content from admin app
   Don't trigger json mutable state persistence change if value not changed
   Add new vuePersistentRef export to npm module for composition api usage
   Add error if trying to create persistent vue component from composition api component (guide user to use vuePersistentRef)

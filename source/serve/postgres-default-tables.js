@@ -27,7 +27,6 @@ export default {
       context: 'TEXT[]',
       tag_type: 'TEXT',
       target: 'TEXT'
-      //  TODO: add start and end timestamp
     }
   }
 }
