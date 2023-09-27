@@ -64,9 +64,11 @@
 
         const key = this.current || "map"
         while (elapsed >= 1000) {
-          this.taskTimes[key] += 1000
+          if (!this.taskTimes[key]) this.taskTimes[key] = 0
+          this.taskTimes[key] += 1
           elapsed -= 1000
         }
+        console.log(key, this.taskTimes[key])
         setTimeout(updateTaskTime, 100)
       }
 
