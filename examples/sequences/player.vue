@@ -48,8 +48,29 @@
     },
     data() {
       return {
-        current: null
+        current: null,
+        mapTime: 0
+        taskTimes: {}
       }
+    },
+    created() {
+      let lastUpdate = Date.now()
+      let elapsed = 0
+
+      function updateTaskTime() {
+        const now = Date.now()
+        elapsed += now - lastUpdate
+        lastUpdate = now
+
+        const key = this.current || "map"
+        while (elapsed >= 1000) {
+          this.taskTimes[key] += 1000
+          elapsed -= 1000
+        }
+        setTimeout(updateTaskTime, 100)
+      }
+
+      setTimeout(updateTaskTime, 100)
     },
     methods: {
       open(id) {
