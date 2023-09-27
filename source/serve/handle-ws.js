@@ -27,14 +27,18 @@ function parseCookies(s) {
 }
 
 export default async function handleWebsocket(ws, upgradeReq) {
+  let user, session
   const cookies = parseCookies(upgradeReq.headers.cookie || '=')
   const sid = cookies.sid
-  if (!sid) ws.close()
 
   const namedScopeCache = {}
   const origin = upgradeReq.headers.origin || 'https://core'  //  TODO: domain should probably be "development", "staging" or "production" based on mode...
   const { host: domain } = new URL(upgradeReq.url, origin)
-  let user, session
+
+  if (!sid) {
+    console.warn(`Closing websocket due to missing sid for connection in domain: ${domain}`)
+    ws.close()
+  }
 
   let heartbeatTimeout
   function heartbeat() {
