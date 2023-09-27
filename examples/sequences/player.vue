@@ -56,7 +56,7 @@
       let lastUpdate = Date.now()
       let elapsed = 0
 
-      function updateTaskTime() {
+      const updateTaskTime => () {
         const now = Date.now()
         elapsed += now - lastUpdate
         lastUpdate = now
