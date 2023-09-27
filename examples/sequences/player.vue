@@ -49,7 +49,6 @@
     data() {
       return {
         current: null,
-        mapTime: 0
         taskTimes: {}
       }
     },
