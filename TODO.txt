@@ -18,6 +18,7 @@ X Document vue binding
 X Fix old session messages getting queued and passed to new sessions (because of using cookie sid instead of client prvided session)
 X Handlable "close" event from embedded agents
 X Batch inserts into postgres
+  await Agent.watch(id, updateFn) should probably await until the first call of updateFn
   Surface warning message in app for case where SID does not exist in incognito (link to docs on disabling setting in empty incognito tab)
   Joining teacher in PILA app does not trigger SQL sync
   Figure out how to deal with this breaking login: https://developer.chrome.com/en/docs/privacy-sandbox/storage-partitioning/

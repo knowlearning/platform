@@ -4,7 +4,7 @@
       <h3>{{ prompt }}</h3>
     </div>
     <div>
-      <input type="range" :min="min" :max="max" :step="step" v-model="rating" />
+      <input type="range" :min="min" :max="max" :step="step" v-model.number="rating" />
       {{ rating }}
     </div>
     <div>
