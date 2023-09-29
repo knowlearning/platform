@@ -433,7 +433,6 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   }
 
   function tag(tag_type, target, context=[]) {
-    console.log('TAGGING', tag_type, target, context)
     return create({
       active_type: TAG_TYPE,
       active: { tag_type, target, context }
