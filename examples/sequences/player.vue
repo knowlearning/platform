@@ -67,7 +67,6 @@
           this.taskTimes[key] += 1
           elapsed -= 1000
         }
-        console.log(key, this.taskTimes[key])
         setTimeout(updateTaskTime, 100)
       }
 
