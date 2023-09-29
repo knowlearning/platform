@@ -40,8 +40,6 @@ export default function EmbeddedAgent() {
   addEventListener('message', async ({ data }) => {
     if (data.type === 'auth') {
       // TODO: switch to access_token
-      debugger
-      console.log('localStorage "state", data.state, token, location --->>>', localStorage.getItem('state'), data.state, data.token, window.location)
       if (localStorage.getItem('state') === data.state) {
         localStorage.setItem('token', data.token)
       }
