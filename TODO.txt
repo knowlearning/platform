@@ -18,12 +18,12 @@ X Document vue binding
 X Fix old session messages getting queued and passed to new sessions (because of using cookie sid instead of client prvided session)
 X Handlable "close" event from embedded agents
 X Batch inserts into postgres
-  await Agent.watch(id, updateFn) should probably await until the first call of updateFn
-  Surface warning message in app for case where SID does not exist in incognito (link to docs on disabling setting in empty incognito tab)
+X  await Agent.watch(id, updateFn) should probably await until the first call of updateFn (cannot do because Agent.watch returns the unwatch function)
+  Use referrer to make sure we reconnect sessions to the domain the session was created for
   Joining teacher in PILA app does not trigger SQL sync
+  Surface warning message in app for case where SID does not exist in incognito (link to docs on disabling setting in empty incognito tab)
   Figure out how to deal with this breaking login: https://developer.chrome.com/en/docs/privacy-sandbox/storage-partitioning/
       Do token sending to back end from inside the embedded iframe!
-  Use referrer to make sure we reconnect sessions to the domain the session was created for
   Bundle interaction messages to reduce websocket strain
   Compaction
   On domain config, return response with watchable request scope
@@ -35,7 +35,6 @@ X Batch inserts into postgres
   Add a test for resetting
   Use create-folder-content in agent upload to handle upload of items and return one piece of content that is the content-graph
   Remove create-folder-content from admin app
-  Don't trigger json mutable state persistence change if value not changed
   Add new vuePersistentRef export to npm module for composition api usage
   Add error if trying to create persistent vue component from composition api component (guide user to use vuePersistentRef)
   Add ability to launch agents
@@ -44,8 +43,8 @@ X Batch inserts into postgres
   Better protocol for patch request ingestion (feedback for requesting agent?)
   Make serve watch/update config (make function that helps with watcher pattern)
 
-= Domain Administration
-  Use DNS TXT record challenge to handle domain claims
+  Domain Administration
+    Use DNS TXT record challenge to handle domain claims
 
   Live db
 X   Choose managed postgres vendor
@@ -56,59 +55,13 @@ X   Launch to prod with credentials
     Admin specifies access rule queries
     Check for passing access rule query on cross-user state request (later handle cross domain requests with special queries)
 
-= Hosting
-  Provision certs like old core
+  Hosting
+    Provision certs like old core
 
-= PILA Related
-X 1)  track context of subscriptions... turns out tracking create/update of items is better
-X 2)  save that context in a convenient way (postgres table)
-X 3)  Make a sequence wrapper and some example content
-X     - Editor
-X       - remove item
-X     - Player
-X       - close stuff
-  4)  Make sequence wrapper look good
-X     - style free-response item
-X       - player
-X       - preview
-X     - style rating item
-X       - player
-X       - preview
-X     - implement multiple-choice
-X       - player
-X       - preview
-X     - style multiple-choice
-X       - player
-X       - preview
-X     - style sequence wrapper
-X       - reasonable loading view for nodes
-P       - breadcrumbs for context
-X     - STRETCH:
-X       - style editors for VDEs
-X       - style editor site for VDEs
-  5)  Consume that info to populate a generic dashboard
-X     - add query with params ability so we can query for all users with mutation tags in a context
-      - render list of users + content names + scopes with mutations in context
-      - render data at selected scope on demand
-  6)  Launch to a demo domain
-  7)  Be able to assign and view dashboard as a teacher
+  Monitoring
+    Page Request Received
+    Agent Scripts Loaded
+    Agent WS connection initialized
+    Agent WS connection established
+    Agent Authed
 
-
-Demo Outline
-
-X show pre-made map:
-X - https://sequence-example.knowlearning.systems/
-X - emphasize it is embedding different domains
-X - emphasize re-attachment scheme (default and possibilities... "calculator app" example)
-X - stress that different items from different domains can provide customized summary views.
-- share pre-made map
-- show dashboard progress of participants on pre-made map
-X - "user maps have dashboard capabilities"
-X - "3rd party item creators can adjust previews at their request without even needing to work through us"
-  - show context (breadcrumb names of tag context) scope was mutated in
-X show map editor
-X - emphasize dragging from a foreign sources
-X - item editors fully decoupled from each other and map
-X edit new map
-- share edited map
-- show dashboard for new map with arbitrarily added items

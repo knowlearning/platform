@@ -27,7 +27,7 @@ function parseCookies(s) {
 }
 
 export default async function handleWebsocket(ws, upgradeReq) {
-  let user, session
+  let user, session, provider
   const cookies = parseCookies(upgradeReq.headers.cookie || '=')
   const sid = cookies.sid
 
@@ -59,6 +59,19 @@ export default async function handleWebsocket(ws, upgradeReq) {
     responseBuffers[session].push(message)
     activeWebsockets[session].send(JSON.stringify(message))
     heartbeat()
+  }
+
+  function sendAuthResponse() {
+    ws.send(JSON.stringify({
+      domain,
+      server: SESSION,
+      session,
+      auth: { user, provider },
+      ack: sessionMessageIndexes[session]
+    }))
+
+    activeWebsockets[session] = ws
+    responseBuffers[session].forEach(r => ws.send(JSON.stringify(r)))
   }
 
   pingWSConnection(ws, CLIENT_PING_INTERVAL)
@@ -96,7 +109,7 @@ export default async function handleWebsocket(ws, upgradeReq) {
           )
           if (rows[0]) {
             user = rows[0].user_id
-            const { provider } = rows[0]
+            provider = rows[0].provider
 
             if (rows[0].id === message.session) {
               session = rows[0].id
@@ -125,16 +138,7 @@ export default async function handleWebsocket(ws, upgradeReq) {
             if (!responseBuffers[session]) responseBuffers[session] = []
 
             //  TODO: call this in 1 function rather than repeating below
-            ws.send(JSON.stringify({
-              domain,
-              server: SESSION,
-              session,
-              auth: { user, provider },
-              ack: sessionMessageIndexes[session]
-            }))
-
-            activeWebsockets[session] = ws
-            responseBuffers[session].forEach(r => ws.send(JSON.stringify(r)))
+            sendAuthResponse()
             return
           }
         }
@@ -151,7 +155,9 @@ export default async function handleWebsocket(ws, upgradeReq) {
         console.log('NEW SESSION FOR USER', user, domain, session)
 
         //  TODO: consider storing at domain instead of core
-        const { provider_id, provider, credential } = authResponse
+        const { provider_id, credential } = authResponse
+        provider = authResponse.provider
+
         const userPatch = [
           { op: 'add', value: USER_TYPE, path: ['active_type'] },
           { op: 'add', value: { provider_id, provider, credential }, path: ['active'] }
@@ -183,17 +189,7 @@ export default async function handleWebsocket(ws, upgradeReq) {
         if (sessionMessageIndexes[session] === undefined) sessionMessageIndexes[session] = -1
         if (!responseBuffers[session]) responseBuffers[session] = []
 
-        //  TODO: call this in 1 function rather than repeating above
-        ws.send(JSON.stringify({
-          domain,
-          server: SESSION,
-          session,
-          auth: { user, provider },
-          ack: sessionMessageIndexes[session]
-        }))
-
-        activeWebsockets[session] = ws
-        responseBuffers[session].forEach(r => ws.send(JSON.stringify(r)))
+        sendAuthResponse()
       }
       catch (error) {
         console.log(error)
