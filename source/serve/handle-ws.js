@@ -93,8 +93,7 @@ export default async function handleWebsocket(ws, upgradeReq) {
 
       if (!message.token) {
         try {
-          //  TODO: add check to ensure credential is for same domain
-          const { rows } = await query(ADMIN_DOMAIN, `
+          const { rows } = await query(domain, `
             SELECT
               sessions.id as id,
               user_id,
@@ -124,13 +123,12 @@ export default async function handleWebsocket(ws, upgradeReq) {
                   value: {
                     session_credential,
                     user_id: user,
-                    provider,
-                    start: Date.now()
+                    provider
                   },
                   path: ['active']
                 }
               ])
-              await postgresSideEffects(ADMIN_DOMAIN, SESSION_TYPE, session)
+              await postgresSideEffects(domain, SESSION_TYPE, session)
               await metadataSideEffects(session)
             }
 

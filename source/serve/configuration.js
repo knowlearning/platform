@@ -64,7 +64,7 @@ export default async function configuration(domain) {
   }
   catch (error) { console.warn(error) }
 
-  if (!cache[domain]) cache[domain] = { admin: null }
+  if (!cache[domain]) cache[domain] = { admin: null, postgres: { tables: POSTGRES_DEFAULT_TABLES } }
 
   return cache[domain]
 }

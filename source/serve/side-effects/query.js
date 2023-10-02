@@ -35,6 +35,6 @@ export default async function (domain, user, _session, patch, si, ii, send) {
           .catch(error => send({ si, error: error.code }))
       )
   }
-  else throw new Error(`Postgres not configured for ${domain}`)
+  else throw new Error(`No query named "${queryName}" in ${domain}`)
 
 }

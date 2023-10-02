@@ -71,7 +71,7 @@ export async function applyConfiguration(domain, { postgres }, report) {
   return Promise.all(tasks.map(t => t()))
 }
 
-async function configurePostgres(domain, { tables, functions }, report) {
+async function configurePostgres(domain, { tables={}, functions={} }, report) {
   report.tasks.postgres = {}
   //  TODO: might want to error out if metadata table is configured
   return Promise.all([
