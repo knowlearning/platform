@@ -5,8 +5,8 @@ import MutableProxy from './json.js'
 const copy = x => JSON.parse(JSON.stringify(x))
 
 async function scopeIsUninitialized(scope) {
-  const { ii } = await Agent.metadata(scope)
-  return ii === 0
+  // TODO: better check
+  return Object.keys(await Agent.state(scope)).length === 0
 }
 
 export default async function (storeDefinition, scope=window.location.host) {
