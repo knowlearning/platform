@@ -171,8 +171,7 @@ export default async function handleWebsocket(ws, upgradeReq) {
             value: {
               session_credential,
               user_id: user,
-              provider,
-              start: Date.now()
+              provider
             },
             path: ['active']
           }

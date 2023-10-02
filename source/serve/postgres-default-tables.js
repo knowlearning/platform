@@ -18,7 +18,6 @@ export default {
       session_credential: 'TEXT',
       user_id: 'TEXT',
       provider: 'TEXT'
-      //  TODO: add start and end timestamp
     }
   },
   tags: {

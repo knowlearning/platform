@@ -15,9 +15,14 @@ import 'mocha/mocha.css'
 
 window.Agent = browserAgent()
 
-if (window.location.hostname === 'localhost') {
-  const { auth: { user } } = await Agent.environment()
-  window.location.href = `https://${user}.${window.location.host}`
+if (!Agent.embedded && confirm('Test locally?')) Agent.local()
+
+if (window.location.hostname === 'localhost' || window.location.hostname.endsWith('.localhost')) {
+  const { auth: { user, provider } } = await Agent.environment()
+  if (provider === 'anonymous') Agent.login()
+  else if (!window.location.hostname.startsWith(user + '.')) {
+    window.location.href = `https://${user}.localhost:5173`
+  }
 }
 
 //  set up some globals for ease of use in test files
@@ -52,8 +57,8 @@ Agent
       arrays()
       watch()
       reconnect()
-      uploads()
       if (!Agent.embedded) postgres()
+      uploads()
       latestBugfixes()
     })
   })
