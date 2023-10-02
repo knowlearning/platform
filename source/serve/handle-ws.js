@@ -9,12 +9,16 @@ import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
 import { query } from './postgres.js'
 import * as hash from './authenticate/hash.js'
+import configuration from './configuration.js'
+import { applyConfiguration } from './side-effects/config.js'
 
 const USER_TYPE = 'application/json;type=user'
 const SESSION_TYPE = 'application/json;type=session'
 const { ADMIN_DOMAIN } = process.env
 const CLIENT_PING_INTERVAL = 10000
 const HEARTBEAT_INTERVAL = 5000
+
+const configuredDomains = {}
 
 const sessionMessageIndexes = {}
 const responseBuffers = {}
@@ -34,6 +38,18 @@ export default async function handleWebsocket(ws, upgradeReq) {
   const namedScopeCache = {}
   const origin = upgradeReq.headers.origin || 'https://core'  //  TODO: domain should probably be "development", "staging" or "production" based on mode...
   const { host: domain } = new URL(upgradeReq.url, origin)
+
+  //  TODO: more reliable check in a more appropriate place
+  //        for domain configuration
+  if (!configuredDomains[domain]) {
+    console.log('DOMAIN CONFIG WE ARE APPLYING', await configuration(domain))
+    configuredDomains[domain] = new Promise(async resolve => {
+      const report = { tasks: [], start: Date.now() }
+      await applyConfiguration(domain, await configuration(domain), report)
+      resolve()
+    })
+  }
+  await configuredDomains[domain]
 
   if (!sid) {
     console.warn(`Closing websocket due to missing sid for connection in domain: ${domain}`)
@@ -245,7 +261,7 @@ async function authenticateUser(message, domain, session_credential) {
   await interact(domain, user, session, sessionPatch)
   //  TODO: sessions should belong to domain instead of ADMIN_DOMAIN
   //        or maybe both, like metadata...
-  await postgresSideEffects(ADMIN_DOMAIN, SESSION_TYPE, session)
+  await postgresSideEffects(domain, SESSION_TYPE, session)
   await metadataSideEffects(session)
 
   return { user, provider, session }

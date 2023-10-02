@@ -1,7 +1,5 @@
 import crypto from 'crypto'
 import pg from 'pg'
-import configuration from './configuration.js'
-import { applyConfiguration } from './side-effects/config.js'
 
 const hex = s => Buffer.from(s).toString('hex')
 
@@ -50,10 +48,7 @@ async function client(domain) {
     //  Create database for domain on-demand
     const c = await client('postgres')
     try {
-      await c.query(`CREATE DATABASE ${purifiedName(database)}`)
-      //  TODO: track report (third arument)
-      const report = { tasks: [], start: Date.now() }
-      await applyConfiguration(domain, await configuration(domain), report)
+      await c.query(`CREATE DATABASE ${purifiedName(database)}`)  //  TODO: track report (third arument)
     }
     catch (error) {
       if (!ignorableErrors[error.code]) {
