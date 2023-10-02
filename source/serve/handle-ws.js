@@ -61,19 +61,6 @@ export default async function handleWebsocket(ws, upgradeReq) {
     heartbeat()
   }
 
-  function sendAuthResponse() {
-    ws.send(JSON.stringify({
-      domain,
-      server: SESSION,
-      session,
-      auth: { user, provider },
-      ack: sessionMessageIndexes[session]
-    }))
-
-    activeWebsockets[session] = ws
-    responseBuffers[session].forEach(r => ws.send(JSON.stringify(r)))
-  }
-
   pingWSConnection(ws, CLIENT_PING_INTERVAL)
 
   ws.on('message', async messageBuffer => {
@@ -90,103 +77,26 @@ export default async function handleWebsocket(ws, upgradeReq) {
 
     if (!user) {
       const session_credential = await hash.create(sid)
-
-      if (!message.token) {
-        try {
-          const { rows } = await query(domain, `
-            SELECT
-              sessions.id as id,
-              user_id,
-              provider,
-              created
-            FROM sessions
-            JOIN metadata
-              ON metadata.id = sessions.id
-            WHERE session_credential = $1
-            ORDER BY created DESC LIMIT 1`,
-            [session_credential]
-          )
-          if (rows[0]) {
-            user = rows[0].user_id
-            provider = rows[0].provider
-
-            if (rows[0].id === message.session) {
-              session = rows[0].id
-              console.log('RECONNECTED SESSION FOR USER', user, provider, domain, session, session_credential)
-            }
-            else {
-              session = uuid()
-              await interact(domain, user, session, [
-                { op: 'add', value: SESSION_TYPE, path: ['active_type'] },
-                {
-                  op: 'add',
-                  value: {
-                    session_credential,
-                    user_id: user,
-                    provider
-                  },
-                  path: ['active']
-                }
-              ])
-              await postgresSideEffects(domain, SESSION_TYPE, session)
-              await metadataSideEffects(session)
-            }
-
-            if (sessionMessageIndexes[session] === undefined) sessionMessageIndexes[session] = -1
-            if (!responseBuffers[session]) responseBuffers[session] = []
-
-            //  TODO: call this in 1 function rather than repeating below
-            sendAuthResponse()
-            return
-          }
-        }
-        catch (error) {
-          console.warn('error reconnecting session', error)
-        }
-      }
-
       try {
-        const authority = domain === 'core' ? 'core' : 'JWT'
-        const authResponse = await authenticate(message.token, authority)
-        user = authResponse.user
-        session = uuid()
-        console.log('NEW SESSION FOR USER', user, domain, session)
-
-        //  TODO: consider storing at domain instead of core
-        const { provider_id, credential } = authResponse
-        provider = authResponse.provider
-
-        const userPatch = [
-          { op: 'add', value: USER_TYPE, path: ['active_type'] },
-          { op: 'add', value: { provider_id, provider, credential }, path: ['active'] }
-        ]
-        await interact(ADMIN_DOMAIN, 'users', user, userPatch)
-        await postgresSideEffects(ADMIN_DOMAIN, USER_TYPE, user)
-        await metadataSideEffects(user)
-
-        const sessionPatch = [
-          { op: 'add', value: SESSION_TYPE, path: ['active_type'] },
-          {
-            op: 'add',
-            value: {
-              session_credential,
-              user_id: user,
-              provider
-            },
-            path: ['active']
-          }
-        ]
-        await interact(domain, user, session, sessionPatch)
-        //  TODO: sessions should belong to domain instead of ADMIN_DOMAIN
-        //        or maybe both, like metadata...
-        await postgresSideEffects(ADMIN_DOMAIN, SESSION_TYPE, session)
-        await metadataSideEffects(session)
+        const userAuthResponse = await authenticateUser(message, domain, session_credential)
+        user = userAuthResponse.user
+        provider = userAuthResponse.provider
+        session = userAuthResponse.session
 
         //  TODO: consider making this cross server
         if (sessionMessageIndexes[session] === undefined) sessionMessageIndexes[session] = -1
         if (!responseBuffers[session]) responseBuffers[session] = []
 
-        sendAuthResponse()
+        ws.send(JSON.stringify({
+          domain,
+          server: SESSION,
+          session,
+          auth: { user, provider },
+          ack: sessionMessageIndexes[session]
+        }))
+
+        activeWebsockets[session] = ws
+        responseBuffers[session].forEach(r => ws.send(JSON.stringify(r)))
       }
       catch (error) {
         console.log(error)
@@ -248,4 +158,95 @@ async function processMessage(domain, user, session, namedScopeCache, { ack, sco
   console.log('DONE PROCESSING', si)
   resolve()
 */
+}
+
+async function authenticateUser(message, domain, session_credential) {
+  let user, provider, session
+  if (!message.token) {
+    try {
+      const { rows } = await query(domain, `
+        SELECT
+          sessions.id as id,
+          user_id,
+          provider,
+          created
+        FROM sessions
+        JOIN metadata
+          ON metadata.id = sessions.id
+        WHERE session_credential = $1
+        ORDER BY created DESC LIMIT 1`,
+        [session_credential]
+      )
+      if (rows[0]) {
+        user = rows[0].user_id
+        provider = rows[0].provider
+
+        if (rows[0].id === message.session) {
+          session = rows[0].id
+          console.log('RECONNECTED SESSION FOR USER', user, provider, domain, session, session_credential)
+        }
+        else {
+          session = uuid()
+          await interact(domain, user, session, [
+            { op: 'add', value: SESSION_TYPE, path: ['active_type'] },
+            {
+              op: 'add',
+              value: {
+                session_credential,
+                user_id: user,
+                provider
+              },
+              path: ['active']
+            }
+          ])
+          await postgresSideEffects(domain, SESSION_TYPE, session)
+          await metadataSideEffects(session)
+        }
+
+        //  TODO: call this in 1 function rather than repeating below
+        return { user, provider, session }
+      }
+    }
+    catch (error) {
+      console.warn('error reconnecting session', error)
+    }
+  }
+
+  const authority = domain === 'core' ? 'core' : 'JWT'
+  const authResponse = await authenticate(message.token, authority)
+  user = authResponse.user
+  session = uuid()
+  console.log('NEW SESSION FOR USER', user, domain, session)
+
+  //  TODO: consider storing at domain instead of core
+  const { provider_id, credential } = authResponse
+  provider = authResponse.provider
+
+  const userPatch = [
+    { op: 'add', value: USER_TYPE, path: ['active_type'] },
+    { op: 'add', value: { provider_id, provider, credential }, path: ['active'] }
+  ]
+  await interact(ADMIN_DOMAIN, 'users', user, userPatch)
+  await postgresSideEffects(ADMIN_DOMAIN, USER_TYPE, user)
+  await metadataSideEffects(user)
+
+  const sessionPatch = [
+    { op: 'add', value: SESSION_TYPE, path: ['active_type'] },
+    {
+      op: 'add',
+      value: {
+        session_credential,
+        user_id: user,
+        provider
+      },
+      path: ['active']
+    }
+  ]
+  await interact(domain, user, session, sessionPatch)
+  //  TODO: sessions should belong to domain instead of ADMIN_DOMAIN
+  //        or maybe both, like metadata...
+  await postgresSideEffects(ADMIN_DOMAIN, SESSION_TYPE, session)
+  await metadataSideEffects(session)
+
+  return { user, provider, session }
 }
