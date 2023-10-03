@@ -12,7 +12,7 @@ export default defineConfig({
     alias: [
       {
         find: '@knowlearning/agents',
-        replacement: __dirname + '/../lib/browser.js'
+        replacement: `${__dirname}/lib/browser.js`
       },
       {
         find: 'fast-json-patch',
