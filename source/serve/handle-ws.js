@@ -1,8 +1,6 @@
 import { validate as isUUID, v4 as uuid } from 'uuid'
 import authenticate from './authenticate/index.js'
 import interact from './interact.js'
-import postgresSideEffects from './side-effects/postgres.js'
-import metadataSideEffects from './side-effects/metadata.js'
 import sideEffects from './side-effects/index.js'
 import pingWSConnection from './ping-ws-connection.js'
 import scopeToId from './scope-to-id.js'
@@ -163,9 +161,6 @@ async function processMessage(domain, user, session, namedScopeCache, { ack, sco
 
   const { ii, active_type } = await interact(domain, user, id, patch)
 
-  await metadataSideEffects(id)
-  await postgresSideEffects(domain, active_type, id)
-
   // TODO: remove special scope based side effects
   const sideEffect = sideEffects[active_type] || sideEffects[scope] || (() => send({ si, ii }))
   await sideEffect(domain, user, session, patch, si, ii, send)
@@ -215,8 +210,6 @@ async function authenticateUser(message, domain, session_credential) {
               path: ['active']
             }
           ])
-          await postgresSideEffects(domain, SESSION_TYPE, session)
-          await metadataSideEffects(session)
         }
 
         //  TODO: call this in 1 function rather than repeating below
@@ -243,8 +236,6 @@ async function authenticateUser(message, domain, session_credential) {
     { op: 'add', value: { provider_id, provider, credential }, path: ['active'] }
   ]
   await interact(ADMIN_DOMAIN, 'users', user, userPatch)
-  await postgresSideEffects(ADMIN_DOMAIN, USER_TYPE, user)
-  await metadataSideEffects(user)
 
   const sessionPatch = [
     { op: 'add', value: SESSION_TYPE, path: ['active_type'] },
@@ -259,10 +250,6 @@ async function authenticateUser(message, domain, session_credential) {
     }
   ]
   await interact(domain, user, session, sessionPatch)
-  //  TODO: sessions should belong to domain instead of ADMIN_DOMAIN
-  //        or maybe both, like metadata...
-  await postgresSideEffects(domain, SESSION_TYPE, session)
-  await metadataSideEffects(session)
 
   return { user, provider, session }
 }

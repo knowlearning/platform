@@ -1,5 +1,7 @@
 import * as redis from './redis.js'
 import initializationState from './initialization-state.js'
+import postgresSideEffects from './side-effects/postgres.js'
+import metadataSideEffects from './side-effects/metadata.js'
 
 export default async function interact( domain, user, scope, patch, timestamp=Date.now() ) {
   //  TODO: validate that patch's paths can only start with "active", "active_type", or "name"
@@ -17,7 +19,6 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
   //  transaction.json.arrAppend(scope, '$["history"]', { session, patch, timestamp })
 
   transaction.json.numIncrBy(scope, '$.ii', 1)
-  transaction.json.get(scope, { path: '$.active_type' })
 
   for (let i=0; i<patch.length; i++) {
     const { op, path, value } = patch[i]
@@ -44,12 +45,13 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
       transaction.json.set(scope, JSONPath, value)
     }
   }
+  transaction.json.get(scope, { path: '$.active_type' })
+
   try {
     const response = await transaction.exec()
-    const iiResponseIndex = isInitializationPatch ? 2 : 1
-    const ii = response[iiResponseIndex][0]
+    const ii = response[isInitializationPatch ? 2 : 1][0]
     //  TODO: cache active_types so as not to require fetch on each interaction
-    const active_type = response[iiResponseIndex + 1][0]
+    const active_type = response[response.length-1][0]
 
     redis
       .client
@@ -57,6 +59,10 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
       .catch(error => {
         console.log('ERROR PUBLISHING!!!!!!!!', scope, error)
       })
+
+    await metadataSideEffects(scope)
+    await postgresSideEffects(domain, active_type, scope)
+
     return { ii, active_type }
   }
   catch (error) {

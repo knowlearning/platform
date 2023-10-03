@@ -19,7 +19,7 @@ X Fix old session messages getting queued and passed to new sessions (because of
 X Handlable "close" event from embedded agents
 X Batch inserts into postgres
 X  await Agent.watch(id, updateFn) should probably await until the first call of updateFn (cannot do because Agent.watch returns the unwatch function)
-  Use referrer to make sure we reconnect sessions to the domain the session was created for
+X Use referrer to make sure we reconnect sessions to the domain the session was created for
   Joining teacher in PILA app does not trigger SQL sync
   Surface warning message in app for case where SID does not exist in incognito (link to docs on disabling setting in empty incognito tab)
   Figure out how to deal with this breaking login: https://developer.chrome.com/en/docs/privacy-sandbox/storage-partitioning/
