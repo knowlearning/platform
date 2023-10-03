@@ -3,8 +3,11 @@ import { v4 as uuid } from 'uuid'
 import jwkToPem from 'jwk-to-pem'
 import jwt from 'jsonwebtoken'
 import https from 'https'
+import interact from '../interact/index.js'
 import { query } from '../postgres.js'
 
+const USER_TYPE = 'application/json;type=user'
+const SESSION_TYPE = 'application/json;type=session'
 const { ADMIN_DOMAIN, GOOGLE_OAUTH_CLIENT_CREDENTIALS } = process.env
 
 const {
@@ -22,6 +25,89 @@ const ISS_TO_PROVIDER_MAP = {
   'accounts.google.com': 'google'
 }
 
+export default async function authenticate(message, domain, session_credential) {
+  let user, provider, session
+  if (!message.token) {
+    try {
+      const { rows } = await query(domain, `
+        SELECT
+          sessions.id as id,
+          user_id,
+          provider,
+          created
+        FROM sessions
+        JOIN metadata
+          ON metadata.id = sessions.id
+        WHERE session_credential = $1
+        ORDER BY created DESC LIMIT 1`,
+        [session_credential]
+      )
+      if (rows[0]) {
+        user = rows[0].user_id
+        provider = rows[0].provider
+
+        if (rows[0].id === message.session) {
+          session = rows[0].id
+          console.log('RECONNECTED SESSION FOR USER', user, provider, domain, session, session_credential)
+        }
+        else {
+          session = uuid()
+          await interact(domain, user, session, [
+            { op: 'add', value: SESSION_TYPE, path: ['active_type'] },
+            {
+              op: 'add',
+              value: {
+                session_credential,
+                user_id: user,
+                provider
+              },
+              path: ['active']
+            }
+          ])
+        }
+
+        //  TODO: call this in 1 function rather than repeating below
+        return { user, provider, session }
+      }
+    }
+    catch (error) {
+      console.warn('error reconnecting session', error)
+    }
+  }
+
+  const authority = domain === 'core' ? 'core' : 'JWT'
+  const authResponse = await authenticateToken(message.token, authority)
+  user = authResponse.user
+  session = uuid()
+  console.log('NEW SESSION FOR USER', user, domain, session)
+
+  //  TODO: consider storing at domain instead of core
+  const { provider_id, credential } = authResponse
+  provider = authResponse.provider
+
+  const userPatch = [
+    { op: 'add', value: USER_TYPE, path: ['active_type'] },
+    { op: 'add', value: { provider_id, provider, credential }, path: ['active'] }
+  ]
+  await interact(ADMIN_DOMAIN, 'users', user, userPatch)
+
+  const sessionPatch = [
+    { op: 'add', value: SESSION_TYPE, path: ['active_type'] },
+    {
+      op: 'add',
+      value: {
+        session_credential,
+        user_id: user,
+        provider
+      },
+      path: ['active']
+    }
+  ]
+  await interact(domain, user, session, sessionPatch)
+
+  return { user, provider, session }
+}
+
 async function fetchJSON(url) {
   const r = await fetch(url, { signal: AbortSignal.timeout(3000) })
   return await r.json()
@@ -33,7 +119,7 @@ function kidFromToken(token) {
   return kid
 }
 
-export default (token, authority) => new Promise( async (resolve, reject) => {
+const authenticateToken = (token, authority) => new Promise( async (resolve, reject) => {
   if (authority === 'core') {
     coreVerfication(token, resolve, reject)
   }

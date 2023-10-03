@@ -4,7 +4,7 @@ import * as redis from '../redis.js'
 import * as postgres from '../postgres.js'
 import { download } from '../storage.js'
 import { parse as parseYAML } from 'yaml'
-import interact from '../interact.js'
+import interact from '../interact/index.js'
 import POSTGRES_DEFAULT_TABLES from '../postgres-default-tables.js'
 import MutableProxy from '../../lib/persistence/json.js'
 
@@ -131,8 +131,8 @@ async function syncTables(domain, tables, report) {
         tableTasks.push('Fetching syncable states from metadata')
         const { rows } = await (
           table === 'metadata'
-            ? postgres.query(ADMIN_DOMAIN, 'SELECT id FROM metadata WHERE domain = $1', [domain])
-            : postgres.query(ADMIN_DOMAIN, 'SELECT id FROM metadata WHERE domain = $1 AND active_type = $2', [domain, type])
+            ? postgres.query(domain, 'SELECT id FROM metadata WHERE domain = $1', [domain])
+            : postgres.query(domain, 'SELECT id FROM metadata WHERE domain = $1 AND active_type = $2', [domain, type])
         )
 
         tableTasks.push(`0/${rows.length} rows synced`)

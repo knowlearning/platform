@@ -1,18 +1,14 @@
 import { validate as isUUID, v4 as uuid } from 'uuid'
 import authenticate from './authenticate/index.js'
-import interact from './interact.js'
+import interact from './interact/index.js'
 import sideEffects from './side-effects/index.js'
 import pingWSConnection from './ping-ws-connection.js'
 import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
-import { query } from './postgres.js'
 import * as hash from './authenticate/hash.js'
 import configuration from './configuration.js'
 import { applyConfiguration } from './side-effects/config.js'
 
-const USER_TYPE = 'application/json;type=user'
-const SESSION_TYPE = 'application/json;type=session'
-const { ADMIN_DOMAIN } = process.env
 const CLIENT_PING_INTERVAL = 10000
 const HEARTBEAT_INTERVAL = 5000
 
@@ -92,10 +88,10 @@ export default async function handleWebsocket(ws, upgradeReq) {
     if (!user) {
       const session_credential = await hash.create(sid)
       try {
-        const userAuthResponse = await authenticateUser(message, domain, session_credential)
-        user = userAuthResponse.user
-        provider = userAuthResponse.provider
-        session = userAuthResponse.session
+        const authResponse = await authenticate(message, domain, session_credential)
+        user = authResponse.user
+        provider = authResponse.provider
+        session = authResponse.session
 
         //  TODO: consider making this cross server
         if (sessionMessageIndexes[session] === undefined) sessionMessageIndexes[session] = -1
@@ -169,87 +165,4 @@ async function processMessage(domain, user, session, namedScopeCache, { ack, sco
   console.log('DONE PROCESSING', si)
   resolve()
 */
-}
-
-async function authenticateUser(message, domain, session_credential) {
-  let user, provider, session
-  if (!message.token) {
-    try {
-      const { rows } = await query(domain, `
-        SELECT
-          sessions.id as id,
-          user_id,
-          provider,
-          created
-        FROM sessions
-        JOIN metadata
-          ON metadata.id = sessions.id
-        WHERE session_credential = $1
-        ORDER BY created DESC LIMIT 1`,
-        [session_credential]
-      )
-      if (rows[0]) {
-        user = rows[0].user_id
-        provider = rows[0].provider
-
-        if (rows[0].id === message.session) {
-          session = rows[0].id
-          console.log('RECONNECTED SESSION FOR USER', user, provider, domain, session, session_credential)
-        }
-        else {
-          session = uuid()
-          await interact(domain, user, session, [
-            { op: 'add', value: SESSION_TYPE, path: ['active_type'] },
-            {
-              op: 'add',
-              value: {
-                session_credential,
-                user_id: user,
-                provider
-              },
-              path: ['active']
-            }
-          ])
-        }
-
-        //  TODO: call this in 1 function rather than repeating below
-        return { user, provider, session }
-      }
-    }
-    catch (error) {
-      console.warn('error reconnecting session', error)
-    }
-  }
-
-  const authority = domain === 'core' ? 'core' : 'JWT'
-  const authResponse = await authenticate(message.token, authority)
-  user = authResponse.user
-  session = uuid()
-  console.log('NEW SESSION FOR USER', user, domain, session)
-
-  //  TODO: consider storing at domain instead of core
-  const { provider_id, credential } = authResponse
-  provider = authResponse.provider
-
-  const userPatch = [
-    { op: 'add', value: USER_TYPE, path: ['active_type'] },
-    { op: 'add', value: { provider_id, provider, credential }, path: ['active'] }
-  ]
-  await interact(ADMIN_DOMAIN, 'users', user, userPatch)
-
-  const sessionPatch = [
-    { op: 'add', value: SESSION_TYPE, path: ['active_type'] },
-    {
-      op: 'add',
-      value: {
-        session_credential,
-        user_id: user,
-        provider
-      },
-      path: ['active']
-    }
-  ]
-  await interact(domain, user, session, sessionPatch)
-
-  return { user, provider, session }
 }

@@ -1,5 +1,5 @@
 import crypto from 'crypto'
-import interact from '../interact.js'
+import interact from '../interact/index.js'
 import * as redis from '../redis.js'
 import initializationState from '../initialization-state.js'
 

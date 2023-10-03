@@ -1,7 +1,6 @@
-import * as redis from './redis.js'
-import initializationState from './initialization-state.js'
-import postgresSideEffects from './side-effects/postgres.js'
-import metadataSideEffects from './side-effects/metadata.js'
+import * as redis from '../redis.js'
+import initializationState from '../initialization-state.js'
+import sync from './sync.js'
 
 export default async function interact( domain, user, scope, patch, timestamp=Date.now() ) {
   //  TODO: validate that patch's paths can only start with "active", "active_type", or "name"
@@ -56,12 +55,9 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
     redis
       .client
       .publish(scope, JSON.stringify({ domain, user, scope, patch, ii }))
-      .catch(error => {
-        console.log('ERROR PUBLISHING!!!!!!!!', scope, error)
-      })
+      .catch(error => console.log('ERROR PUBLISHING!!!!!!!!', scope, error))
 
-    await metadataSideEffects(scope)
-    await postgresSideEffects(domain, active_type, scope)
+    await sync(domain, active_type, scope)
 
     return { ii, active_type }
   }

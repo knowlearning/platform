@@ -1,6 +1,6 @@
 import MutableProxy from '../lib/persistence/json.js'
 import { client, subscriptions, connected } from './redis.js'
-import interact from './interact.js'
+import interact from './interact/index.js'
 
 const patchResponses = {}
 

@@ -1,5 +1,3 @@
-//  TODO: actually put this in side-effect pipeline instead of one-off import in handle-ws.js
-
 import * as postgres from '../postgres.js'
 import configuration from '../configuration.js'
 
@@ -10,7 +8,7 @@ export default async function (domain, user, _session, patch, si, ii, send) {
 
   const { op, path, value: { query: queryName, params=[] } } = patch[0]
 
-  if (op !== 'add' || path.length !== 1 || path[0] !== 'active') throw new Error('Invalid query')
+  if (op !== 'add' || path.length !== 1 || path[0] !== 'active') return send({ si, ii })
 
   if (config?.postgres?.scopes?.[queryName]) {
       let query = config?.postgres?.scopes?.[queryName]
