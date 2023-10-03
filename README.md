@@ -2,30 +2,38 @@
 
 ## Development
 ```sh
-# install docker, kind, and skaffold
+# Install docker, kind, and skaffold.
 
-# need to run a local docker registry
+# Run a local docker registry.
 docker run -d -p 5000:5000 --restart=always --name registry registry:2
 
-# create a kind cluster with proper configuration
+# Create a kind cluster with proper configuration.
 sh setup.sh
 
-# deploy core application to local cluster
+# Deploy core application to local cluster.
+# This process does technically auto-reload servers on updates,
+# but manually stopping it with ctrl+c and re-running deploy.sh
+# is often faster.
 sh deploy.sh
+
+# If docker/kind/something raises an odd issue (we've seen
+# network resolution instabilities at the lower levels outside
+# of this project's scope...) just run setup.sh again to reset
+# your local cluster.
 ```
 
 ## Live
 ```sh
-# need to install skaffold, kubectl, gcloud, and gke-gcloud-auth-plugin
+# Install skaffold, kubectl, gcloud, and gke-gcloud-auth-plugin.
 gcloud components install gke-gcloud-auth-plugin
 
-# load credentials for gcloud
+# Load gcloud credentials.
 gcloud container clusters get-credentials skaffold-deployed --region us-central1
 
-# set cors config for production bucket
+# Set CORS config for production bucket.
 gsutil cors set infrastructure/production/CORS_CONFIG_FILE gs://development-bucket-opensourcelearningplatform
 
-# Deploy to GKE where $PROFILE is "staging" or "production"
+# Deploy to GKE where $PROFILE=staging or production.
 sh deploy.sh $PROFILE
 ```
 
