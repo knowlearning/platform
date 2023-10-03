@@ -8,6 +8,7 @@ import arrays from './tests/arrays.js'
 import metadata from './tests/metadata.js'
 import uploads from './tests/uploads.js'
 import postgres from './tests/postgres.js'
+import vuex from './tests/vuex.js'
 import latestBugfixes from './tests/latest-bugfixes.js'
 import { browserAgent } from '@knowlearning/agents'
 
@@ -56,6 +57,7 @@ Agent
       mutate()
       arrays()
       watch()
+      vuex()
       reconnect()
       if (!Agent.embedded) postgres()
       uploads()

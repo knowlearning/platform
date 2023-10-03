@@ -11,6 +11,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: '@knowlearning/agents/vue.js',
+        replacement: __dirname + '/../source/lib/vue.js'
+      },
+      {
         find: '@knowlearning/agents',
         replacement: __dirname + '/../source/lib/browser.js'
       },

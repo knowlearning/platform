@@ -72,7 +72,7 @@ async function attachModuleState(state, module, scopedPaths, path='') {
     const ephemeralPaths = descendantPaths(path, scopedPaths)
     state = MutableProxy(copy(initState), handlePatch, ephemeralPaths)
     if (await scopeIsUninitialized(scope)) {
-      Object.assign(state, module.state())
+      Object.assign(state, module.state instanceof Function ? module.state() : module.state)
     }
     return { ...module, state: () => state }
   }
