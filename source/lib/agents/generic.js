@@ -265,8 +265,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
           create({
             id,
             active_type: SUBSCRIPTION_TYPE,
-            active: { session, scope, ii: null },
-            initialized: Date.now()
+            active: { session, scope, ii: null, initialized: Date.now() },
           })
 
           try {
@@ -431,11 +430,14 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   }
 
   async function query(query, params, domain) {
+    const id = uuid()
     create({
+      id,
       active_type: POSTGRES_QUERY_TYPE,
-      active: { query, params, domain }
+      active: { query, params, domain, requested: Date.now() },
     })
     const { rows } = await lastMessageResponse()
+    interact(id, [{ op: 'add', path: ['active', 'responded'], value: Date.now() }])
     return rows
   }
 
