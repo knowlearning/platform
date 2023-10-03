@@ -155,7 +155,6 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
             domain = message.domain
             server = message.server
 
-            console.log('session', session)
             // save session metrics
             interact(session, [
               {op: 'add', path: ['active', 'loaded'], value: sessionMetrics.loaded },

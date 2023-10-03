@@ -107,7 +107,6 @@ postgres:
       const { domain } = await Agent.environment()
       await Agent.claim(domain)
       const config = await Agent.state('config')
-      console.log('uploading')
       config[domain] = {
         config: await Agent.upload(
           'test domain config',
@@ -115,7 +114,6 @@ postgres:
           CONFIGURATION_1
         )
       }
-      console.log('uploaded')
       await Agent.synced()
       //  TODO: some way to certify that our user has been set as domain admin
     })
@@ -215,15 +213,12 @@ postgres:
     })
 
     it('Cannot query old tables', async function () {
-      let errored = false
+      let erroredExpectedly = false
       try {
         const state = await Agent.query('my-old-test-table')
       }
-      catch (error) {
-        console.log('ERROR~~~~~~~~~~~~~', error)
-        if (error.error === '42P01') errored = true
-      }
-      if (!errored) throw new Error('Expected postgres 42P01 error on query involving new table')
+      catch (error) { erroredExpectedly = error.error === '42P01' }
+      if (!erroredExpectedly) throw new Error('Expected postgres 42P01 error on query involving new table')
     })
 
   })
