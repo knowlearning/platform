@@ -265,30 +265,20 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
           create({
             id,
             active_type: SUBSCRIPTION_TYPE,
-            active: { session, scope, ii: null }
+            active: { session, scope, ii: null },
+            initialized: Date.now()
           })
 
           try {
             const state = await lastMessageResponse()
-            //  TODO: replace with editing scope of type
-            interact(id, [{
-              op: 'add',
-              path: ['active', 'ii'],
-              value: 1 // TODO: use state.ii when is coming down properly...
-            }])
+            interact(id, [
+              { op: 'add', path: ['active', 'ii'], value: 1 }, // TODO: use state.ii when is coming down properly...
+              { op: 'add', path: ['active', 'synced'], value: Date.now() }
+            ])
 
             resolve(state)
-
-            if (state.ii === -1) {
-              // -1 indicates the result is a computed scope, so
-              // ii does not apply (we clear out the subscription to not cache value)
-              delete states[scope]
-              delete keyToSubscriptionId[scope]
-            }
           }
-          catch (error) {
-            reject(error)
-          }
+          catch (error) { reject(error) }
         })
       }
 
