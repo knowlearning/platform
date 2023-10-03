@@ -2,6 +2,7 @@ import MutableProxy from '../persistence/json.js'
 import download from './download.js'
 
 const HEARTBEAT_TIMEOUT = 10000
+const SESSION_TYPE = 'application/json;type=session'
 const UPLOAD_TYPE = 'application/json;type=upload'
 const SUBSCRIPTION_TYPE = 'application/json;type=subscription'
 const POSTGRES_QUERY_TYPE = 'application/json;type=postgres-query'
@@ -21,6 +22,12 @@ function isUUID(string) {
 function sanitizeJSONPatchPathSegment(s) {
   if (typeof s === "string") return s.replaceAll('~', '~0').replaceAll('/', '~1')
   else return s
+}
+
+const sessionMetrics = {
+  loaded: Date.now(),
+  connected: null,
+  authenticated: null
 }
 
 export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fetch, applyPatch, login, logout, reboot }) {
@@ -119,6 +126,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     ws = new WebSocket(`${protocol}://${host}`)
 
     ws.onopen = async () => {
+      if (!sessionMetrics.connected) sessionMetrics.connected = Date.now()
       log('AUTHORIZING NEWLY OPENED WS FOR SESSION:', session)
       failedConnections = 0
       ws.send(JSON.stringify({ token: await token(), session }))
@@ -141,10 +149,19 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
           authed = true
           if (!user) { // this is the first authed websocket connection
+            sessionMetrics.authenticated = Date.now()
             user = message.auth.user
             session = message.session
             domain = message.domain
             server = message.server
+
+            console.log('session', session)
+            // save session metrics
+            interact(session, [
+              {op: 'add', path: ['active', 'loaded'], value: sessionMetrics.loaded },
+              {op: 'add', path: ['active', 'connected'], value: sessionMetrics.connected },
+              {op: 'add', path: ['active', 'authenticated'], value: sessionMetrics.authenticated },
+            ])
             resolveEnvironment(message)
           }
           else if (server !== message.server) {

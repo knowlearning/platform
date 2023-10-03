@@ -133,7 +133,7 @@ export default async function handleWebsocket(ws, upgradeReq) {
 // let currentMessagePromise = null
 
 // TODO: don't need to dereference ack in params
-async function processMessage(domain, user, session, namedScopeCache, { ack, scope, patch, si }, send) {
+async function processMessage(domain, user, session, namedScopeCache, { scope, patch, si }, send) {
 /* TODO: decide if we want to allow special "synced" mode
   if (si) console.log('QUEUING', si)
   const prevMessagePromise = currentMessagePromise
