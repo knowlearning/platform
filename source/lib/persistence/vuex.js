@@ -9,12 +9,12 @@ async function scopeIsUninitialized(scope) {
   return Object.keys(await Agent.state(scope)).length === 0
 }
 
-export default async function (storeDefinition, scope=window.location.host) {
+export default async function (storeDefinition, scope) {
   let state = copy(await Agent.state(scope))
   const scopedPaths = getScopedPaths(storeDefinition)
   const stateAttachedStore = await attachModuleState(state, storeDefinition, scopedPaths)
   const s = stateAttachedStore.state
-  const originalState = s instanceof Function ? s() :  s
+  const originalState = s instanceof Function ? s() : s
 
   const handlePatch = patch => {
     patch.forEach(({ path }) => path.unshift('active'))
@@ -76,7 +76,8 @@ async function attachModuleState(state, module, scopedPaths, path='') {
     }
     return { ...module, state: () => state }
   }
-  else return state ? { ...module, state: () => state } : module
+  //  TODO: better check for initialized state
+  else return Object.keys(state).length ? { ...module, state: () => state } : module
 }
 
 function getScopedPaths(module, path="", paths={}) {

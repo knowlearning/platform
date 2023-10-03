@@ -20,7 +20,7 @@ export default function () {
 
     it(
       'Initializes a store with the expected default state',
-      async function () { 
+      async function () {
         const store = createStore(await vuePersistentStore({
           state: () => copy(STORE_START_STATE),
           modules: {
@@ -49,6 +49,55 @@ export default function () {
       async function () {
         const saved = await Agent.state(LEVEL_1_MODULE_SCOPE)
         expect(saved).to.deep.equal(STORE_LEVEL_1_MODULE_START_STATE)
+      }
+    )
+
+    it(
+      'Persists mutations to the root store',
+      async function () {
+        const store = createStore(await vuePersistentStore({
+          state: () => copy(STORE_START_STATE),
+          modules: {
+            level1: {
+              scope: LEVEL_1_MODULE_SCOPE,
+              state: copy(STORE_LEVEL_1_MODULE_START_STATE)
+            }
+          },
+          mutations: {
+            update(state) { state.testInt += 1 }
+          },
+          actions: {
+            update({commit}) { commit('update') }
+          }
+        }, id))
+        const rootPart = { ...store.state }
+        rootPart.testInt += 1
+        store.dispatch('update')
+        expect(rootPart).to.deep.equal(store.state)
+      }
+    )
+    it(
+      'Persists mutations to modules',
+      async function () {
+        const store = createStore(await vuePersistentStore({
+          state: () => copy(STORE_START_STATE),
+          modules: {
+            level1: {
+              scope: LEVEL_1_MODULE_SCOPE,
+              state: copy(STORE_LEVEL_1_MODULE_START_STATE),
+              mutations: {
+                update(state) { state.testArrModule2.push(32) }
+              },
+              actions: {
+                update({commit}) { commit('update') }
+              }
+            }
+          }
+        }, id))
+        const modulePart = { ...store.state.level1 }
+        modulePart.testArrModule2 = [...modulePart.testArrModule2, 32]
+        store.dispatch('update')
+        expect(modulePart).to.deep.equal(store.state.level1)
       }
     )
   })
