@@ -15,12 +15,12 @@ build:
     context: ./infrastructure/development/
     docker:
       dockerfile: ./postgres.Dockerfile
-  - image: serve
-    context: ./source
+  - image: core
+    context: ./
     docker:
-      dockerfile: ./serve.Dockerfile
+      dockerfile: ./core.Dockerfile
   - image: patch
-    context: ./source
+    context: ./
     docker:
       dockerfile: ./patch.Dockerfile
 profiles:

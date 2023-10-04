@@ -1,6 +1,6 @@
 FROM node:18.12.1
 
-WORKDIR /serve
+WORKDIR /core
 
 RUN npm install \
   @kubernetes/client-node@0.18.1 \
@@ -19,11 +19,11 @@ RUN npm install \
   acme-client@5.0.0
 
 # Copy local code to the container image.
-COPY ./serve ./serve
+COPY ./core ./core
 COPY ./lib ./lib
 
 # required for janky nodejs module support
 RUN echo '{ "type": "module" }' > package.json
 
 # Run the web service on container startup.
-CMD [ "node", "--max-old-space-size=2048", "./serve/index.js" ]
+CMD [ "node", "--max-old-space-size=2048", "./core/index.js" ]

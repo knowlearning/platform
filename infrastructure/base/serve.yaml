@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: serve
+  name: core
 ---
 # TODO: scope to only restricted domain namespaces
 apiVersion: rbac.authorization.k8s.io/v1
@@ -29,30 +29,30 @@ roleRef:
   name: manage-domain-agents
 subjects:
 - kind: ServiceAccount
-  name: serve
+  name: core
   namespace: default
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: serve
+  name: core
   labels:
-    app: serve
+    app: core
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: serve
+      app: core
   template:
     metadata:
       labels:
-        app: serve
+        app: core
     spec:
-      serviceAccountName: serve
+      serviceAccountName: core
       terminationGracePeriodSeconds: 10
       containers:
-      - name: serve
-        image: serve
+      - name: core
+        image: core
         resources:
           requests:
             memory: 1024Mi
@@ -70,9 +70,9 @@ spec:
         - secretRef:
             name: google-oauth-client-credentials
         - secretRef:
-            name: serve-encryption-keys
+            name: core-encryption-keys
         - configMapRef:
-            name: serve-env
+            name: core-env
         env:
         - name: PORT
           value: "8080"

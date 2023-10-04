@@ -15,11 +15,11 @@ export default defineConfig({
     alias: [
       {
         find: '@knowlearning/agents/vue.js',
-        replacement: __dirname + '/../../source/lib/vue.js'
+        replacement: __dirname + '/../../lib/vue.js'
       },
       {
         find: '@knowlearning/agents',
-        replacement: __dirname + '/../../source/lib/browser.js'
+        replacement: __dirname + '/../../lib/browser.js'
       },
       {
         find: 'fast-json-patch',

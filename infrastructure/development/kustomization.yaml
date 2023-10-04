@@ -9,7 +9,7 @@ resources:
 - ../base
 
 configMapGenerator:
-- name: serve-env
+- name: core-env
   literals:
   - MODE=local
   - ADMIN_DOMAIN=admin.localhost
@@ -90,7 +90,7 @@ secretGenerator:
 - name: postgres-service-account
   literals:
   - POSTGRES_PASSWORD=insecure-dev-password
-- name: serve-encryption-keys
+- name: core-encryption-keys
   literals:
   - PUBLIC_ENCRYPTION_KEY=x
   - SECRET_ENCRYPTION_KEY=x

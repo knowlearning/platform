@@ -8,7 +8,7 @@ resources:
 - service.yaml
 
 configMapGenerator:
-- name: serve-env
+- name: core-env
   literals:
   - ADMIN_DOMAIN=admin.knowlearning.systems
   - GC_PROJECT_ID=opensourcelearningplatform
@@ -41,7 +41,7 @@ secretGenerator:
 - name: postgres-service-account
   files:
   - .credentials/POSTGRES_PASSWORD
-- name: serve-encryption-keys
+- name: core-encryption-keys
   files:
   - .credentials/SECRET_ENCRYPTION_KEY
   - .credentials/PUBLIC_ENCRYPTION_KEY
