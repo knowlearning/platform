@@ -9,7 +9,7 @@ export default async function (domain, user, _session, patch, si, ii, send) {
   const { op, path, value: { query: queryName, params=[] } } = patch[0]
 
   if (op !== 'add' || path.length !== 1 || path[0] !== 'active') return send({ si, ii })
-
+console.log('CONFIG!!!!!!!!!!!!!!!!', config)
   if (config?.postgres?.scopes?.[queryName]) {
       let query = config?.postgres?.scopes?.[queryName]
       const namedParams = {

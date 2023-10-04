@@ -32,35 +32,29 @@ async function isAdmin(user, requestingDomain, requestedDomain) {
 }
 
 export default async function (domain, user, session, patch, si, ii, send) {
-  console.log('TRYING TO CONFIG A DOMAIN')
-  if (patch[0].path.length === 2 && await isAdmin(user, domain, patch[0].path[1])) {
+  console.log('TRYING TO CONFIG A DOMAIN', patch)
+  const [{ op, path, value }] = patch
+  if (op === 'add' && path.length === 1 && path[0] === 'active' && await isAdmin(user, domain, value.domain)) {
     console.log('CONFIGURING DOMAIN!!!!!!!!!!!', patch)
-    const { op, value: { config } } = patch[0]
-    const [_, confDomain] = patch[0].path
-
-    if (op === 'replace' || op === 'add') {
-      await interact('core', 'core', 'domain-config', [
-        { op: 'add', path: ['active', confDomain], value: { config, admin: user } }
-      ])
-      const url = await download(config, 3, true)
-      const response = await fetch(url)
-      if (response.status !== 200) {
-        throw new Error('Error getting config')
-      }
-
-      const reportId = uuid()
-      const report = coreState(reportId, domain)
-
-      report.tasks = {}
-      report.start = Date.now()
-      const configuration = parseYAML(await response.text())
-      await applyConfiguration(confDomain, configuration, report)
-      report.end = Date.now()
-      send({ si, ii, report: reportId })
+    const { config, report } = value
+    await interact('core', 'core', 'domain-config', [
+      { op: 'add', path: ['active', value.domain], value: { config, admin: user } }
+    ])
+    const url = await download(config, 3, true)
+    const response = await fetch(url)
+    if (response.status !== 200) {
+      throw new Error('Error getting config')
     }
-    else send({ si, ii })
+
+    const reportState = coreState(report, domain)
+
+    reportState.tasks = {}
+    reportState.start = Date.now()
+    const configuration = parseYAML(await response.text())
+    await applyConfiguration(value.domain, configuration, reportState)
+    reportState.end = Date.now()
   }
-  else send({ si, ii })
+  send({ si, ii })
 }
 
 export async function applyConfiguration(domain, { postgres }, report) {

@@ -5,7 +5,6 @@ import component from './index.vue'
 
 window.Agent = browserAgent()
 
-const root = vuePersistentComponent(component, 'default')
-const app = createApp(root)
+const app = createApp(component, { domain: window.location.pathname.slice(1) })
 
 app.mount('body')
