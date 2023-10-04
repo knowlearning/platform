@@ -23,6 +23,7 @@ X Use referrer to make sure we reconnect sessions to the domain the session was 
   Joining teacher in PILA app does not trigger SQL sync
   Surface warning message in app for case where SID does not exist in incognito (link to docs on disabling setting in empty incognito tab)
   Figure out how to deal with this breaking login: https://developer.chrome.com/en/docs/privacy-sandbox/storage-partitioning/
+    Fix by toggling off: chrome://flags/#third-party-storage-partitioning
       Do token sending to back end from inside the embedded iframe!
   Bundle interaction messages to reduce websocket strain
   Compaction
