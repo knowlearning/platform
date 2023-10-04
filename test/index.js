@@ -17,6 +17,7 @@ import 'mocha/mocha.css'
 window.Agent = browserAgent()
 
 if (!Agent.embedded && confirm('Test locally?')) Agent.local()
+else Agent.remote()
 
 if (window.location.hostname === 'localhost' || window.location.hostname.endsWith('.localhost')) {
   const { auth: { user, provider } } = await Agent.environment()
