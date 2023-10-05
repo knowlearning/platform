@@ -1,24 +1,22 @@
 <template>
   <div>
-    <textarea
-      class="query-input"
-      v-model="query"
-      @keypress.shift.enter.prevent="submitQuery"
-    ></textarea>
-    <div v-if="rows">
-      <table>
+    <textarea v-model="query" />
+    <button @click="submitQuery">submit</button>
+    <div v-if="response === null"></div>
+    <div v-else>
+      {{ response.length }} results
+      <table v-if="response.length">
         <thead>
           <tr>
             <th v-for="column in columns">{{ column }}</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in rows">
-            <td v-for="value in row">{{ value }}</td>
+          <tr v-for="row in response">
+            <td v-for="column in columns">{{ row[column] }}</td>
           </tr>
         </tbody>
       </table>
-      <div v-if="rows.length === 0">0 rows in result</div>
     </div>
   </div>
 </template>
@@ -32,16 +30,18 @@
     data() {
       return {
         query: 'SELECT * FROM test_table_2',
-        rows: null,
-        columns: null
+        response: null
       }
     },
     methods: {
       async submitQuery() {
-        this.rows = null
-        const { rows, columns } = await Agent.query(this.query, [], this.domain)
-        this.rows = rows
-        this.columns = columns
+        this.response = await Agent.query(this.query, [], this.domain)
+        console.log('RESPONSE!!!!!!!!', this.response)
+      }
+    },
+    computed: {
+      columns() {
+        return this.response && this.response.length ? Object.keys(this.response[0]) : []
       }
     }
   }
