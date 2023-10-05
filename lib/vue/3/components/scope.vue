@@ -1,5 +1,5 @@
 <template>
-  <pre v-if="state">{{value}}</pre>
+  <span v-if="state">{{value}}</span>
   <span v-else>loading...</span>
 </template>
 
