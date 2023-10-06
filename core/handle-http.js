@@ -9,18 +9,25 @@ const configPromise = new Promise(r => resolveConfig = r)
 pollForConfig()
 
 export default async function handleHTTP(req, res) {
-  await connected
+  try {
+    await connected
 
-  const { pathname, hostname } = new URL (req.url, `https://${req.headers.host}`)
+    const { pathname, hostname } = new URL (req.url, `https://${req.headers.host}`)
 
-  if      (isIPAddress(hostname)              ) emptyResponse(res)
-  else if (isWellKnownPath(pathname)          ) handleWellKnownPath(req, res)
-  else if (fromSecureOrigin(req)              ) coreBrowserResponse(req, res)
-  else if (await isHTTPSRedirectable(hostname)) HTTPSRedirect(req, res)
-  else {
-    console.log('TODO: initiate request for tls cert for', hostname, 'FROM HOST', req.headers.host)
-    //await initiateTLSCertRequest(hostname)
-    coreBrowserResponse(req, res)
+    if      (isIPAddress(hostname)              ) emptyResponse(res)
+    else if (isWellKnownPath(pathname)          ) handleWellKnownPath(req, res)
+    else if (fromSecureOrigin(req)              ) coreBrowserResponse(req, res)
+    else if (await isHTTPSRedirectable(hostname)) HTTPSRedirect(req, res)
+    else {
+      console.log('TODO: initiate request for tls cert for', hostname, 'FROM HOST', req.headers.host)
+      //await initiateTLSCertRequest(hostname)
+      coreBrowserResponse(req, res)
+    }
+  }
+  catch (error) {
+    console.warn(error)
+    res.writeHead(500)
+    res.end()
   }
 }
 
