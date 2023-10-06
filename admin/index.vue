@@ -3,7 +3,6 @@
   <div v-if="config ">
     config: {{config.config}}
     <vueScopeComponent :id="config.report" />
-    <RelationalQueryInterface :domain="domain" />
   </div>
   <input
     ref="fileInput"
@@ -14,6 +13,7 @@
   <button @click="$refs.fileInput.click()">
     Upload
   </button>
+  <RelationalQueryInterface :domain="domain" />
 </template>
 
 <script>
