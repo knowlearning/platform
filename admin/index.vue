@@ -14,13 +14,15 @@
     Upload
   </button>
   <RelationalQueryInterface :domain="domain" />
+  <DomainQueryPerformance :domain="domain" />
 </template>
 
 <script>
 
 import { v4 as uuid } from 'uuid'
-import RelationalQueryInterface from './relational-query-interface.vue'
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
+import RelationalQueryInterface from './relational-query-interface.vue'
+import DomainQueryPerformance from './domain-query-performance.vue'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
@@ -30,7 +32,8 @@ export default {
   },
   components: {
     vueScopeComponent,
-    RelationalQueryInterface
+    RelationalQueryInterface,
+    DomainQueryPerformance
   },
   data() {
     return {
