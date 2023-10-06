@@ -1,5 +1,5 @@
 <template>
-  <span v-if="state">{{value}}</span>
+  <span v-if="state">{{value ? value : placeholder }}</span>
   <span v-else>loading...</span>
 </template>
 
@@ -11,6 +11,10 @@
       path: {
         type: Array,
         default: []
+      },
+      placeholder: {
+        type: String,
+        default: ''
       }
   	},
   	data() {
