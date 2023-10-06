@@ -26,7 +26,7 @@ export default async function handleHTTP(req, res) {
   }
   catch (error) {
     console.warn(error)
-    res.writeHead(500)
+    res.writeHead(200)
     res.end()
   }
 }
