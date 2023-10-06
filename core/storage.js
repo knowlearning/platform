@@ -50,9 +50,9 @@ async function download(id, retries=3, internal=false) {
 
   //  TODO: Validation. If is not an immutable scope, download history
   //        otherwise download referenced object as here
-  const [uploadId] = await redis.client.json.get(id, { path: ['$.active.id'] })
 
   try {
+    const [uploadId] = await redis.client.json.get(id, { path: ['$.active.id'] })
     const expires = Date.now() + 15 * 60 * 1000
     const options = { action: 'read', expires }
 
@@ -60,7 +60,7 @@ async function download(id, retries=3, internal=false) {
     return directedURL(url, internal)
   }
   catch (error) {
-    console.warn('Erorr getting download url', error, id, uploadId)
+    console.warn('Erorr getting download url', error, id)
     if (retries === 0) throw new Error('Error getting download url')
     else return new Promise(resolve => {
       setTimeout(() => {
