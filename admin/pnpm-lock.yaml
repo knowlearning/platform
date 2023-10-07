@@ -17,6 +17,9 @@ dependencies:
   fast-json-patch:
     specifier: ^3.1.1
     version: 3.1.1
+  flatpickr:
+    specifier: ^4.6.13
+    version: 4.6.13
   uuid:
     specifier: ^9.0.0
     version: 9.0.0
@@ -29,6 +32,9 @@ dependencies:
   vue-chartjs:
     specifier: ^5.2.0
     version: 5.2.0(chart.js@4.4.0)(vue@3.3.4)
+  vue-flatpickr-component:
+    specifier: ^11.0.3
+    version: 11.0.3(vue@3.3.4)
   vuex:
     specifier: ^4.1.0
     version: 4.1.0(vue@3.3.4)
@@ -407,6 +413,10 @@ packages:
     resolution: {integrity: sha512-vf6IHUX2SBcA+5/+4883dsIjpBTqmfBjmYiWK1savxQmFk4JfBMLa7ynTYOs1Rolp/T1betJxHiGD3g1Mn8lUQ==}
     dev: false
 
+  /flatpickr@4.6.13:
+    resolution: {integrity: sha512-97PMG/aywoYpB4IvbvUJi0RQi8vearvU0oov1WW3k0WZPBMrTQVqekSX5CjSG/M4Q3i6A/0FKXC7RyAoAUUSPw==}
+    dev: false
+
   /fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -504,6 +514,16 @@ packages:
       vue: ^3.0.0-0 || ^2.7.0
     dependencies:
       chart.js: 4.4.0
+      vue: 3.3.4
+    dev: false
+
+  /vue-flatpickr-component@11.0.3(vue@3.3.4):
+    resolution: {integrity: sha512-SYNW/lqK1q9gzr5kQpNDwnlgUIDnXJpG1AmoDxVyOYVtUD7mLaDU1w+MJLFI644NYtwh9NrCt5LpojlsjtbvqA==}
+    engines: {node: '>=14.13.0'}
+    peerDependencies:
+      vue: ^3.2.0
+    dependencies:
+      flatpickr: 4.6.13
       vue: 3.3.4
     dev: false
 

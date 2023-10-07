@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { browserAgent } from '@knowlearning/agents'
 import { vuePersistentComponent } from '@knowlearning/agents/vue.js'
 import component from './index.vue'
+import './third-party-setup.js'
 
 window.Agent = browserAgent()
 
