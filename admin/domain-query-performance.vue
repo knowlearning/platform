@@ -75,9 +75,14 @@ export default {
         .data
         .forEach(({ query, round_trip_time }) => {
           if (!queryData[query]) queryData[query] = new Array(msBuckets.length).fill(0)
-          const bucketIndex = Math.round(parseInt(round_trip_time)/this.msInterval)
-          if (bucketIndex >= queryData[query].length) queryData[query][queryData[query].length - 1]
-          else queryData[query][bucketIndex] += 1
+          const bucketIndex = Math.min(
+            Math.max(
+              0,
+              Math.round(parseInt(round_trip_time - this.msMin)/this.msInterval)
+            ),
+            queryData[query].length - 1
+          )
+          queryData[query][bucketIndex] += 1
         })
 
       return {
