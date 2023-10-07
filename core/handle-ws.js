@@ -36,7 +36,6 @@ export default async function handleWebsocket(ws, upgradeReq) {
   //  TODO: more reliable check in a more appropriate place
   //        for domain configuration
   if (!configuredDomains[domain]) {
-    console.log('DOMAIN CONFIG WE ARE APPLYING', await configuration(domain))
     configuredDomains[domain] = new Promise(async resolve => {
       const report = { tasks: [], start: Date.now() }
       await applyConfiguration(domain, await configuration(domain), report)
