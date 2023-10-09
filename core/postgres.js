@@ -114,6 +114,15 @@ async function createTable(domain, table, columns) {
   `)
 }
 
+async function createIndex(domain, name, table, column) {
+  await query(domain, `
+    DO $$
+    BEGIN
+      CREATE INDEX IF NOT EXISTS ${purifiedName(name)} ON ${purifiedName(table)} (${purifiedName(column)});
+    END $$;
+  `)
+}
+
 async function createFunction(domain, name, definition) {
   await deleteFunction(domain, name) // if arguments change, postgres treats functions with the same name as different
 
@@ -228,6 +237,7 @@ async function setColumn(domain, table, column, id, value) {
 export {
   client,
   createTable,
+  createIndex,
   removeTable,
   removeColumn,
   setColumn,

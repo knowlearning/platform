@@ -43,23 +43,29 @@ export default async function configuration(domain) {
 
     if (domainConfig) {
       const { admin, config } = domainConfig
-      const url = await download(config, 3, true)
-      const response = await fetch(url)
+      if (config) {
+        const url = await download(config, 3, true)
+        const response = await fetch(url)
 
-      if (response.status !== 200) {
-        const text = await response.text()
-        throw new Error(text)
-      }
+        if (response.status !== 200) {
+          const text = await response.text()
+          throw new Error(text)
+        }
 
-      cache[domain] = {
-        ...parseYAML(await response.text()),
-        admin
+        cache[domain] = await response.text()
       }
+      else cache[domain] = {}
+
+      cache[domain].admin = admin
 
       //  ensure domain has default postgres tables configured
-      if (cache[domain].postgres && cache[domain].postgres.tables) {
-        Object.assign(cache[domain].postgres.tables, POSTGRES_DEFAULT_TABLES)
-      }
+      if (!cache[domain].postgres) cache[domain].postgres = {}
+      if (!cache[domain].postgres.tables) cache[domain].postgres.tables = {}
+      Object
+        .assign(
+          cache[domain].postgres.tables,
+          POSTGRES_DEFAULT_TABLES
+        )
     }
   }
   catch (error) { console.warn(error) }

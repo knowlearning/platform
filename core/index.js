@@ -6,7 +6,7 @@ import * as redis from './redis.js'
 import { decrypt } from './encryption.js'
 import handleWS from './handle-ws.js'
 import handleHTTP from './handle-http.js'
-import { applyConfiguration } from './side-effects/config.js'
+import { applyConfiguration, ensureDomainConfigured } from './side-effects/configure.js'
 import ADMIN_DOMAIN_CONFIG from './admin-domain-config.js'
 
 const {
@@ -26,6 +26,8 @@ const credentials = {
 // TODO: consider what to do with a real persistent report
 const report = {tasks:{}}
 await applyConfiguration(ADMIN_DOMAIN, ADMIN_DOMAIN_CONFIG, report)
+
+await ensureDomainConfigured('core')
 
 const httpServer = createServerHTTP(handleHTTP)
 const httpsServer = createServerHTTPS(credentials, handleHTTP)

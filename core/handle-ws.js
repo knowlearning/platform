@@ -6,13 +6,10 @@ import pingWSConnection from './ping-ws-connection.js'
 import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
 import * as hash from './authenticate/hash.js'
-import configuration from './configuration.js'
-import { applyConfiguration } from './side-effects/config.js'
+import { ensureDomainConfigured } from './side-effects/configure.js'
 
 const CLIENT_PING_INTERVAL = 10000
 const HEARTBEAT_INTERVAL = 5000
-
-const configuredDomains = {}
 
 const sessionMessageIndexes = {}
 const responseBuffers = {}
@@ -33,16 +30,7 @@ export default async function handleWebsocket(ws, upgradeReq) {
   const origin = upgradeReq.headers.origin || 'https://core'  //  TODO: domain should probably be "development", "staging" or "production" based on mode...
   const { host: domain } = new URL(upgradeReq.url, origin)
 
-  //  TODO: more reliable check in a more appropriate place
-  //        for domain configuration
-  if (!configuredDomains[domain]) {
-    configuredDomains[domain] = new Promise(async resolve => {
-      const report = { tasks: [], start: Date.now() }
-      await applyConfiguration(domain, await configuration(domain), report)
-      resolve()
-    })
-  }
-  await configuredDomains[domain]
+  await ensureDomainConfigured(domain)
 
   if (!sid) {
     console.warn(`Closing websocket due to missing sid for connection in domain: ${domain}`)

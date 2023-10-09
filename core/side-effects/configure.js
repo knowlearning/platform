@@ -6,6 +6,7 @@ import { download } from '../storage.js'
 import { parse as parseYAML } from 'yaml'
 import interact from '../interact/index.js'
 import POSTGRES_DEFAULT_TABLES from '../postgres-default-tables.js'
+import configuration from '../configuration.js'
 import MutableProxy from '../../lib/persistence/json.js'
 
 //  TODO: probably want to abstract this and allow different types
@@ -59,7 +60,7 @@ export default async function (domain, user, session, patch, si, ii, send) {
 
 export async function applyConfiguration(domain, { postgres }, report) {
   const tasks = []
-
+console.log('APPLYING CONFIGURATION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', postgres)
   if (postgres) tasks.push(() => configurePostgres(domain, postgres, report))
 
   return Promise.all(tasks.map(t => t()))
@@ -113,13 +114,15 @@ async function syncTables(domain, tables, report) {
   const createAndSyncTablePromises = (
     Object
       .entries(tables)
-      .map(async ([table, { type, columns }]) => {
+      .map(async ([table, { type, columns={}, indices={} }]) => {
         const tableTasks = report.tasks.postgres.tables[table]
 
         const allParams = []
         const orderedColumns = Object.keys(columns)
         tableTasks.push('Creating')
+        console.log('CREATING TABLE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', domain, table, columns)
         await postgres.createTable(domain, table, columns)
+        console.log('CREATEDDDDDDDDDDDDDDDDDDDD TABLE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', domain, table, columns)
         //  TODO: streaming, and less front end processing of result is probably
         //        a low hanging fruit optimization when the time is right
         tableTasks.push('Fetching syncable states from metadata')
@@ -130,6 +133,13 @@ async function syncTables(domain, tables, report) {
         )
 
         tableTasks.push(`0/${rows.length} rows synced`)
+
+        tableTasks.push(`Creating ${indices.length} indices`)
+
+        await Object.entries(indices).map(async ([name, { column }]) =>  {
+          tableTasks.push(`Creating index named ${name} on ${table} for ${column}`)
+          await postgres.createIndex(domain, name, table, column)
+        })
 
         if (rows.length === 0) {
           tableTasks.push('Done')
@@ -280,4 +290,17 @@ async function syncFunctions(domain, functions, report) {
     ...configuredFunctionPromises
   ])
 
+}
+
+const configuredDomains = {}
+export async function ensureDomainConfigured(domain) {
+  //  TODO: more reliable check
+  if (!configuredDomains[domain]) {
+    configuredDomains[domain] = new Promise(async resolve => {
+      const report = { tasks: [], start: Date.now() }
+      await applyConfiguration(domain, await configuration(domain), report)
+      resolve()
+    })
+  }
+  await configuredDomains[domain]
 }

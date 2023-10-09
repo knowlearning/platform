@@ -20,6 +20,7 @@ X Handlable "close" event from embedded agents
 X Batch inserts into postgres
 X  await Agent.watch(id, updateFn) should probably await until the first call of updateFn (cannot do because Agent.watch returns the unwatch function)
 X Use referrer to make sure we reconnect sessions to the domain the session was created for
+  Index metadata id, created, and updated as well as all table ids
   Joining teacher in PILA app does not trigger SQL sync
   Surface warning message in app for case where SID does not exist in incognito (link to docs on disabling setting in empty incognito tab)
   Figure out how to deal with this breaking login: https://developer.chrome.com/en/docs/privacy-sandbox/storage-partitioning/
