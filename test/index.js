@@ -16,14 +16,13 @@ import 'mocha/mocha.css'
 
 window.Agent = browserAgent()
 
-if (!Agent.embedded && confirm('Test locally?')) Agent.local()
-else Agent.remote()
+if (!Agent.embedded) Agent.local()
 
 if (window.location.hostname === 'localhost' || window.location.hostname.endsWith('.localhost')) {
   const { auth: { user, provider } } = await Agent.environment()
   if (provider === 'anonymous') Agent.login()
   else if (!window.location.hostname.startsWith(user + '.')) {
-    window.location.href = `https://${user}.localhost:5173`
+    window.location.href = `https://${user}.localhost:5112`
   }
 }
 
