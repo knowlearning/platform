@@ -10,6 +10,10 @@ export default {
       ii: 'INTEGER',
       active_size: 'INTEGER',
       storage_size: 'INTEGER'
+    },
+    indices: {
+      updated: { column: 'updated' },
+      created: { column: 'created' }
     }
   },
   sessions: {

@@ -33,10 +33,8 @@ async function isAdmin(user, requestingDomain, requestedDomain) {
 }
 
 export default async function (domain, user, session, patch, si, ii, send) {
-  console.log('TRYING TO CONFIG A DOMAIN', patch)
   const [{ op, path, value }] = patch
   if (op === 'add' && path.length === 1 && path[0] === 'active' && await isAdmin(user, domain, value.domain)) {
-    console.log('CONFIGURING DOMAIN!!!!!!!!!!!', patch)
     const { config, report } = value
     await interact('core', 'core', 'domain-config', [
       { op: 'add', path: ['active', value.domain], value: { config, admin: user } }
@@ -60,7 +58,6 @@ export default async function (domain, user, session, patch, si, ii, send) {
 
 export async function applyConfiguration(domain, { postgres }, report) {
   const tasks = []
-console.log('APPLYING CONFIGURATION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', postgres)
   if (postgres) tasks.push(() => configurePostgres(domain, postgres, report))
 
   return Promise.all(tasks.map(t => t()))
@@ -103,8 +100,8 @@ async function syncTables(domain, tables, report) {
           tableTasks.push(`Done`)
         }
         catch (error) {
-          console.log('TODO: some sort of audit logging, or expose error...')
-          console.log(error)
+          console.warn('TODO: some sort of audit logging, or expose error...')
+          console.warn(error)
           tableTasks.push('Error')
         }
       })
@@ -120,9 +117,7 @@ async function syncTables(domain, tables, report) {
         const allParams = []
         const orderedColumns = Object.keys(columns)
         tableTasks.push('Creating')
-        console.log('CREATING TABLE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', domain, table, columns)
         await postgres.createTable(domain, table, columns)
-        console.log('CREATEDDDDDDDDDDDDDDDDDDDD TABLE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', domain, table, columns)
         //  TODO: streaming, and less front end processing of result is probably
         //        a low hanging fruit optimization when the time is right
         tableTasks.push('Fetching syncable states from metadata')
@@ -278,8 +273,8 @@ async function syncFunctions(domain, functions, report) {
           tasks.push('Done')
         }
         catch (error) {
-          console.log('TODO: audit error, or perhaps send into progress report')
-          console.log(error)
+          console.warn('TODO: audit error, or perhaps send into progress report')
+          console.warn(error)
           tasks.push('Error')
         }
       })
