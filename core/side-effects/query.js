@@ -36,11 +36,16 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
           }
         })
 
+      const queryStart = Date.now()
       return (
         postgres
           .query(targetDomain, queryBody, queryParams, true)
           .then(({rows, fields}) => {
-            interact(domain, user, scope, patch)
+            interact(domain, user, scope, [{
+              op: 'add',
+              path: ['active', 'db_latency'],
+              value: Date.now() - queryStart
+            }])
             send({ si, ii, rows, columns: fields.map(f => f.name) })
           })
           .catch(error => send({ si, error: error.code }))

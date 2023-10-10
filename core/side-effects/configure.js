@@ -129,7 +129,7 @@ async function syncTables(domain, tables, report) {
 
         tableTasks.push(`0/${rows.length} rows synced`)
 
-        tableTasks.push(`Creating ${Object.key(indices).length} indices`)
+        tableTasks.push(`Creating ${Object.keys(indices).length} indices`)
 
         await Object.entries(indices).map(async ([name, { column }]) =>  {
           tableTasks.push(`Creating index named ${name} on ${table} for ${column}`)
