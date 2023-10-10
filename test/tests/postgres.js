@@ -174,15 +174,17 @@ postgres:
 
     it('Can re-configure a domain', async function () {
       const { domain } = await Agent.environment()
-      const config = await Agent.state('config')
 
-      config[domain] = {
-        config: await Agent.upload(
-          'test domain config 2',
-          'application/yaml',
-          CONFIGURATION_2
-        )
-      }
+      const config = await Agent.upload(
+        'test domain config 2',
+        'application/yaml',
+        CONFIGURATION_2
+      )
+      const report = uuid()
+      await Agent.create({
+        active_type: DOMAIN_CONFIG_TYPE,
+        active: { config, report, domain }
+      })
       await Agent.synced()
     })
 

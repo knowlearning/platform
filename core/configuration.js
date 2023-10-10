@@ -6,12 +6,14 @@ import ADMIN_DOMAIN_CONFIG from './admin-domain-config.js'
 import POSTGRES_DEFAULT_TABLES from './postgres-default-tables.js'
 
 const { ADMIN_DOMAIN } = process.env
+const DOMAIN_CONFIG_SCOPE = 'domain-config'
 
 const cache = {}
 
 //  invalidate cached domain config on claim change
-subscribe('domain-config', ({ patch: [{ path }] }) => {
+subscribe(DOMAIN_CONFIG_SCOPE, ({ patch: [{ path }] }) => {
   const domain = path[1]
+  console.log('invalidating cache...', domain, path)
   delete cache[domain]
 })
 
@@ -25,7 +27,7 @@ export async function domainAdmin(domain) {
   }
 
   const path = [`$.active["${domain}"]`]
-  const res = await redis.client.json.get('domain-config', { path })
+  const res = await redis.client.json.get(DOMAIN_CONFIG_SCOPE, { path })
   if (res && res[0]) return res[0].admin
   else return null
 }
