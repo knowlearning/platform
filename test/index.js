@@ -18,14 +18,6 @@ window.Agent = browserAgent()
 
 if (!Agent.embedded) Agent.local()
 
-if (window.location.hostname === 'localhost' || window.location.hostname.endsWith('.localhost')) {
-  const { auth: { user, provider } } = await Agent.environment()
-  if (provider === 'anonymous') Agent.login()
-  else if (!window.location.hostname.startsWith(user + '.')) {
-    window.location.href = `https://${user}.localhost:5112`
-  }
-}
-
 //  set up some globals for ease of use in test files
 window.expect = chai.expect
 window.uuid = uuid

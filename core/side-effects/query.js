@@ -2,7 +2,7 @@ import * as postgres from '../postgres.js'
 import configuration, { domainAdmin } from '../configuration.js'
 import interact from '../interact/index.js'
 
-const { ADMIN_DOMAIN } = process.env
+const { MODE, ADMIN_DOMAIN } = process.env
 
 export default async function ({ domain, user, session, scope, patch, si, ii, send }) {
   const config = await configuration(domain)
@@ -11,7 +11,7 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
 
   if (op !== 'add' || path.length !== 1 || path[0] !== 'active') return send({ si, ii })
 
-  if (domain === ADMIN_DOMAIN && targetDomain !== domain && user === await domainAdmin(targetDomain)) {
+  if (domain === ADMIN_DOMAIN && targetDomain !== domain && ( MODE === 'local' || user === await domainAdmin(targetDomain))) {
     //  TODO: ensure read-only client
     return (
       postgres

@@ -12,7 +12,7 @@ configMapGenerator:
 - name: core-env
   literals:
   - MODE=local
-  - ADMIN_DOMAIN=admin.localhost:5111
+  - ADMIN_DOMAIN=localhost:5111
   - NODE_TLS_REJECT_UNAUTHORIZED=0
   - GC_PROJECT_ID=opensourcelearningplatform
   - INTERNAL_GCS_API_ENDPOINT=http://gcs:8000

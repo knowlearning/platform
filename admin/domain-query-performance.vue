@@ -1,16 +1,17 @@
 <template>
-  <div v-if="data">
+  <div v-if="loaded">
     Time Range: <flatPickr v-model="timeRange" :config="{enableTime: true, mode: 'range'}" />
     Min: <input type="range" v-model.number="msMin" step="100" min="0" max="60000" />{{msMin}}ms
     Max: <input type="range" v-model.number="msMax" step="100" min="0" max="60000" />{{msMax}}ms
-    Interval: <input type="range" v-model.number="msInterval">{{msInterval}}ms
+    Interval: <input type="range" v-model.number="msInterval" step="1" min="1" max="200">{{msInterval}}ms
     dates: {{ new Date(startTS) }} {{ new Date(endTS) }}
-    <Bar
-      v-if="loaded"
-      :key="`${startTS}:${endTS}:${msMin}:${msMax}:${msInterval}`"
-      :data="chartData"
-    />
-    <div v-else>Loading...</div>
+    <div v-for="queryChartData in chartData">
+      <h1>{{ queryChartData.name }}</h1>
+      <Bar
+        :key="`${startTS}:${endTS}:${msMin}:${msMax}:${msInterval}`"
+        :data="queryChartData"
+      />
+    </div>
   </div>
   <div v-else>loading data</div>
 </template>
@@ -62,6 +63,11 @@ export default {
       }
       else return new Date().getTime()
     },
+    queryNames() {
+      return Array.from(
+        new Set(this.data.map(({ query }) => query))
+      )
+    },
     chartData() {
       const msBuckets = []
 
@@ -73,25 +79,48 @@ export default {
 
       this
         .data
-        .forEach(({ query, round_trip_time }) => {
-          if (!queryData[query]) queryData[query] = new Array(msBuckets.length).fill(0)
-          const bucketIndex = Math.min(
+        .forEach(({ query, round_trip_time, db_latency }) => {
+          if (!queryData[query]) queryData[query] = {
+            client_latency: new Array(msBuckets.length).fill(0),
+            db_latency: new Array(msBuckets.length).fill(0)
+          }
+
+          //  TODO: decompose
+          const clientLatencyBucketIndex = Math.min(
             Math.max(
               0,
               Math.round(parseInt(round_trip_time - this.msMin)/this.msInterval)
             ),
-            queryData[query].length - 1
+            queryData[query].client_latency.length - 1
           )
-          queryData[query][bucketIndex] += 1
+          queryData[query].client_latency[clientLatencyBucketIndex] += 1
+
+          const dbLatencyBucketIndex = Math.min(
+            Math.max(
+              0,
+              Math.round(parseInt(db_latency - this.msMin)/this.msInterval)
+            ),
+            queryData[query].db_latency.length - 1
+          )
+          queryData[query].db_latency[dbLatencyBucketIndex] += 1
+
         })
 
-      return {
-        labels: msBuckets.map(x => `~${x}ms`),
-        datasets: Object.keys(queryData).map(label => ({
-          label,
-          data: queryData[label]
-        }))
-      }
+      return Object.entries(queryData).map(([ query, data ]) => {
+        return {
+          name: query,
+          labels: msBuckets.map(x => `~${x}ms`), //  TODO: autofit/do < and > for ends
+          datasets: [
+            {
+              label: 'client latency',
+              data: data.client_latency
+            },{
+              label: 'db latency',
+              data: data.db_latency
+            }
+          ]
+        }
+      })
     }
   },
   methods: {
@@ -100,7 +129,8 @@ export default {
       const queryDataQuery = `
         SELECT
           query,
-          responded - requested AS round_trip_time
+          responded - requested AS round_trip_time,
+          db_latency
         FROM queries
         WHERE responded IS NOT NULL
           AND requested > $1
