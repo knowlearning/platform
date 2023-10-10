@@ -1,12 +1,16 @@
 import crypto from 'crypto'
 import pg from 'pg'
 
-const hex = s => Buffer.from(s).toString('hex')
-
 // necessary to ensure that
 function purifiedName(name) {
   if (/^[a-zA-z_][a-zA-Z0-9_]*$/.test(name)) return name
   else throw new Error('INVALID NAME ' + name)
+}
+
+function domainToDbName(domain) {
+
+  if (/^[a-zA-Z0-9_\-:]*$/.test(domain)) return domain
+  else throw new Error('INVALID DB NAME' + dbName)
 }
 
 const {
@@ -43,13 +47,13 @@ const clients = {}
 async function client(domain) {
   if (clients[domain]) return clients[domain]
 
-  const database = domain !== 'postgres' ? 'domain_' + hex(domain) : domain
+  const database = domain === 'postgres' ? 'postgres' : domainToDbName(domain)
 
   if (domain !== 'postgres') {
     //  Create database for domain on-demand
     const c = await client('postgres')
     try {
-      await c.query(`CREATE DATABASE ${purifiedName(database)}`)  //  TODO: track report (third arument)
+      await c.query(`CREATE DATABASE "${database}"`)  //  TODO: track report (third arument)
     }
     catch (error) {
       if (!ignorableErrors[error.code]) {

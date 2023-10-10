@@ -19,7 +19,7 @@ configMapGenerator:
   - MICROSOFT_IDENTITY_APPLICATION_ID=c44ceeca-8f9a-49c2-9bea-cc7135da8943
   - REDIS_HOST=redis-12681.c1.us-central1-2.gce.cloud.redislabs.com
   - REDIS_PORT=12681
-  - POSTGRES_HOST=34.83.43.224
+  - POSTGRES_HOST=34.173.107.236
   - POSTGRES_PORT=5432
   - AGENT_IMAGE_DENO=gcr.io/opensourcelearningplatform/agent-deno-image:7fe82f1
 - name: agent-env
