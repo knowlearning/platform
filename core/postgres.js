@@ -10,7 +10,7 @@ function purifiedName(name) {
 function domainToDbName(domain) {
 
   if (/^[a-zA-Z0-9_\-:]*$/.test(domain)) return domain
-  else throw new Error('INVALID DB NAME' + dbName)
+  else throw new Error('INVALID DB NAME' + domain)
 }
 
 const {
