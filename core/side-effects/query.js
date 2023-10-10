@@ -1,9 +1,10 @@
 import * as postgres from '../postgres.js'
 import configuration, { domainAdmin } from '../configuration.js'
+import interact from '../interact/index.js'
 
 const { ADMIN_DOMAIN } = process.env
 
-export default async function (domain, user, _session, patch, si, ii, send) {
+export default async function ({ domain, user, session, scope, patch, si, ii, send }) {
   const config = await configuration(domain)
 
   const { op, path, value: { query, params=[], domain:targetDomain=domain } } = patch[0]
@@ -38,7 +39,10 @@ export default async function (domain, user, _session, patch, si, ii, send) {
       return (
         postgres
           .query(targetDomain, queryBody, queryParams, true)
-          .then(({rows, fields}) => send({ si, ii, rows, columns: fields.map(f => f.name) }))
+          .then(({rows, fields}) => {
+            interact(domain, user, scope, patch)
+            send({ si, ii, rows, columns: fields.map(f => f.name) })
+          })
           .catch(error => send({ si, error: error.code }))
       )
   }

@@ -12,7 +12,7 @@ redis.connected.then(() => {
   redis.client.json.set('domain-config', '$', state, { NX: true })
 })
 
-export default async function claims(domain, user, session, patch, si, ii, send) {
+export default async function claims({ domain, user, session, scope, patch, si, ii, send }) {
   if (domain === ADMIN_DOMAIN || MODE === 'local') { //  can claim from any domain on local
     const claimedDomain = patch[0].path[1]
     const token = crypto.randomBytes(64).toString('hex')

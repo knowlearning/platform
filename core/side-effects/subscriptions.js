@@ -6,7 +6,7 @@ import scopeToId from '../scope-to-id.js'
 
 const subscriptions = {}
 
-export default async function (domain, user, session, patch, si, ii, send) {
+export default async function ({ domain, user, session, scope, patch, si, ii, send }) {
   const config = await configuration(domain)
   const { path, op, value} = patch[0]
 

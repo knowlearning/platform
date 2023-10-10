@@ -1,6 +1,6 @@
 import { download } from '../storage.js'
 
-export default async function (domain, user, session, patch, si, ii, send) {
+export default async function ({ domain, user, session, scope, patch, si, ii, send }) {
   const { path, op, value } = patch[0]
 
   if (op === 'add' && path.length === 1 && path[0] === 'active') {

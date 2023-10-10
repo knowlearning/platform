@@ -32,7 +32,7 @@ async function isAdmin(user, requestingDomain, requestedDomain) {
   )
 }
 
-export default async function (domain, user, session, patch, si, ii, send) {
+export default async function ({ domain, user, session, scope, patch, si, ii, send }) {
   const [{ op, path, value }] = patch
   if (op === 'add' && path.length === 1 && path[0] === 'active' && await isAdmin(user, domain, value.domain)) {
     const { config, report } = value
@@ -129,7 +129,7 @@ async function syncTables(domain, tables, report) {
 
         tableTasks.push(`0/${rows.length} rows synced`)
 
-        tableTasks.push(`Creating ${indices.length} indices`)
+        tableTasks.push(`Creating ${Object.key(indices).length} indices`)
 
         await Object.entries(indices).map(async ([name, { column }]) =>  {
           tableTasks.push(`Creating index named ${name} on ${table} for ${column}`)
