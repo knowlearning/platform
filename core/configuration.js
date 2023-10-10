@@ -52,7 +52,7 @@ export default async function configuration(domain) {
           throw new Error(text)
         }
 
-        cache[domain] = await response.text()
+        cache[domain] = parseYAML(await response.text())
       }
       else cache[domain] = {}
 
