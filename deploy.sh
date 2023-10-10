@@ -4,7 +4,9 @@ if [ -z $1 ]; then
   echo 'Deploying Development Profile To Local Cluster'
 
   npm --prefix test run dev &
+  npm --prefix admin run dev &
   google-chrome https://localhost:5112/
+  google-chrome https://localhost:5111/localhost:5112
 
   skaffold dev \
     --profile development \

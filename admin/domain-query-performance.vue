@@ -133,6 +133,7 @@ export default {
           db_latency
         FROM queries
         WHERE responded IS NOT NULL
+          AND db_latency IS NOT NULL
           AND requested > $1
           AND requested < $2
       `
