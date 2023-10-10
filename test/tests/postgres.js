@@ -1,3 +1,5 @@
+const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
+
 export default function () {
   const TEST_TABLE_TYPE = `application/json;type=test-type`
 
@@ -106,14 +108,17 @@ postgres:
     it('Can claim and configure domain', async function () {
       const { domain } = await Agent.environment()
       await Agent.claim(domain)
-      const config = await Agent.state('config')
-      config[domain] = {
-        config: await Agent.upload(
-          'test domain config',
-          'application/yaml',
-          CONFIGURATION_1
-        )
-      }
+
+      const config = await Agent.upload(
+        'test domain config',
+        'application/yaml',
+        CONFIGURATION_1
+      )
+      const report = uuid()
+      await Agent.create({
+        active_type: DOMAIN_CONFIG_TYPE,
+        active: { config, report, domain }
+      })
       await Agent.synced()
       //  TODO: some way to certify that our user has been set as domain admin
     })
@@ -169,15 +174,17 @@ postgres:
 
     it('Can re-configure a domain', async function () {
       const { domain } = await Agent.environment()
-      const config = await Agent.state('config')
 
-      config[domain] = {
-        config: await Agent.upload(
-          'test domain config 2',
-          'application/yaml',
-          CONFIGURATION_2
-        )
-      }
+      const config = await Agent.upload(
+        'test domain config 2',
+        'application/yaml',
+        CONFIGURATION_2
+      )
+      const report = uuid()
+      await Agent.create({
+        active_type: DOMAIN_CONFIG_TYPE,
+        active: { config, report, domain }
+      })
       await Agent.synced()
     })
 

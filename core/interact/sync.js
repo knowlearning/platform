@@ -4,7 +4,6 @@ import configuration from '../configuration.js'
 
 export default async function sync(domain, active_type, scope) {
   const config = await configuration(domain)
-
   const { tables } = config.postgres
 
   const tableNames = (
