@@ -7,21 +7,5 @@ export default defineConfig({
   plugins: [
     vue(),
     basicSsl()
-  ],
-  resolve: {
-    alias: [
-      {
-        find: '@knowlearning/agents',
-        replacement: `${__dirname}/../lib/browser.js`
-      },
-      {
-        find: 'fast-json-patch',
-        replacement: 'node_modules/fast-json-patch/index.mjs'
-      },
-      {
-        find: 'uuid',
-        replacement: 'node_modules/uuid/dist/esm-browser/index.js'
-      }
-    ]
-  }
+  ]
 })
