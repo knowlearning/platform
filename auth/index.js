@@ -38,13 +38,8 @@ else {
 
   if (code && state) {
     const { origin, provider } = JSON.parse(localStorage.getItem(state))
-    const iframe = document.createElement('iframe')
-    document.body.appendChild(iframe)
-
-    const embedded = Agent.embed({ id: origin }, iframe)
-
-    embedded.auth(`${provider}-${code}`, state)
-    embedded.on('close', () => window.location.href = origin)
+    window.location.href = `${origin}auth/${state}/${provider}-${code}`
+    localStorage.removeItem(state)
   }
 }
 
