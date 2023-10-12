@@ -43,8 +43,9 @@
 
         if (code && state) {
           const { origin, provider } = JSON.parse(localStorage.getItem(state))
-          const slashIfNecessary = origin.slice(-1) === '/' ? '' : '/'
-          window.location.href = `${origin}${slashIfNecessary}auth/${state}/${provider}-${code}`
+
+          const { protocol, host } = new URL(origin)
+          window.location.href = `${protocol}//${host}/auth/${state}/${provider}-${code}`
           localStorage.removeItem(state)
         }
       }
