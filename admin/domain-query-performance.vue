@@ -51,10 +51,12 @@ function histogramParams(data) {
     }
 }
 
+// Calculated bin is allowed to go between -1 and 1 over max
+// value for intervals to signal outside of range
 function calculateBin(min, max, interval, value) {
-  const numBins = max-min/interval
+  const numBins = (max-min)/interval
   const unclampedBin = Math.round(parseInt(value - min)/interval)
-  return Math.min(Math.max(0, unclampedBin), numBins-1)
+  return Math.min(Math.max(-1, unclampedBin), numBins)
 }
 
 export default {
@@ -114,7 +116,9 @@ export default {
       const db_latency = this.data.map(({ db_latency }) => db_latency)
       const { min, max, interval } = histogramParams([...round_trip_time_values, ...db_latency])
 
+      msBuckets.push(`<${min}ms`)
       for (let ms=min; ms <= max; ms += interval) msBuckets.push(ms)
+      msBuckets.push(`>${max}ms`)
 
       this
         .data
@@ -124,15 +128,14 @@ export default {
             db_latency: new Array(msBuckets.length).fill(0)
           }
 
-          queryData[query].client_latency[calculateBin(min, max, interval, round_trip_time)] += 1
-          queryData[query].db_latency[calculateBin(min, max, interval, db_latency)] += 1
+          queryData[query].client_latency[calculateBin(min, max, interval, round_trip_time) + 1] += 1
+          queryData[query].db_latency[calculateBin(min, max, interval, db_latency) + 1] += 1
         })
 
       const labels = (
         msBuckets
           .map((x, index) => {
-            if (index === 0) return `<${x}ms`
-            else if (index === msBuckets.length - 1) return `>${x}ms`
+            if (index === 0 || index === msBuckets.length - 1) return x
             else return `~${x}ms`
           })
       )
