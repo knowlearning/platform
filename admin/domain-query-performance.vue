@@ -38,11 +38,11 @@ function histogramParams(data) {
     console.log('IQR', IQR, data, Q1, Q3)
 
     // Calculate the suggested minimum and maximum
-    const min = parseInt(Math.max(data[0], Q1 - 1.5 * IQR))
+    const min = Math.round(Math.max(data[0], Q1 - 1.5 * IQR))
     const max = Math.min(data[data.length - 1], Q3 + 1.5 * IQR)
 
     // Calculate the suggested interval
-    const interval = parseInt((max - min) / NUM_BINS)
+    const interval = math.round((max - min) / NUM_BINS)
 
     return {
       min,
