@@ -42,7 +42,7 @@ function histogramParams(data) {
     const max = Math.min(data[data.length - 1], Q3 + 1.5 * IQR)
 
     // Calculate the suggested interval
-    const interval = math.round((max - min) / NUM_BINS)
+    const interval = Math.round((max - min) / NUM_BINS)
 
     return {
       min,
