@@ -26,7 +26,7 @@ function histogramParams(data) {
     if (!Array.isArray(data) || data.length === 0) return null
 
     // Sort data
-    data.sort()
+    data.sort((a, b) => a - b)
 
     // Calculate quartiles 1 and 3
     const Q1 = data[Math.floor(data.length * 0.05)]
