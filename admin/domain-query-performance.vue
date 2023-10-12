@@ -56,7 +56,7 @@ function histogramParams(data) {
 function calculateBin(min, max, interval, value) {
   const numBins = (max-min)/interval
   const unclampedBin = Math.round(parseInt(value - min)/interval)
-  return Math.min(Math.max(-1, unclampedBin), numBins)
+  return Math.min(Math.max(-1, unclampedBin), numBins + 1)
 }
 
 export default {
