@@ -51,8 +51,5 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
           .catch(error => send({ si, error: error.code }))
       )
   }
-  else {
-    console.log('Config thriowubg error', config)
-    throw new Error(`No query named "${query}" in ${targetDomain}`)
-  }
+  else throw new Error(`No query named "${query}" in ${targetDomain}`)
 }
