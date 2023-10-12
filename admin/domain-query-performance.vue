@@ -20,7 +20,7 @@
 import { Bar } from 'vue-chartjs'
 import flatPickr from 'vue-flatpickr-component'
 
-const NUM_BINS = 10
+const NUM_BINS = 16
 
 function histogramParams(data) {
     if (!Array.isArray(data) || data.length === 0) return null
