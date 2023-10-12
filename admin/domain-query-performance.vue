@@ -20,6 +20,39 @@
 import { Bar } from 'vue-chartjs'
 import flatPickr from 'vue-flatpickr-component'
 
+const NUM_BINS = 10
+
+function histogramParams(data) {
+    if (!Array.isArray(data) || data.length === 0) return null
+
+    // Sort data
+    data.sort()
+
+    // Calculate quartiles 1 and 3
+    const Q1 = data[Math.floor(data.length * 0.05)]
+    const Q3 = data[Math.floor(data.length * 0.95)]
+
+    // Interquartile range
+    const IQR = Q3 - Q1
+
+    console.log('IQR', IQR, data, Q1, Q3)
+
+    // Calculate the suggested minimum and maximum
+    const min = Math.max(data[0], Q1 - 1.5 * IQR)
+    const max = Math.min(data[data.length - 1], Q3 + 1.5 * IQR)
+
+    // Calculate the suggested interval
+    const interval = (max - min) / NUM_BINS
+
+    return { min, max, interval }
+}
+
+function calculateBin(min, max, interval, value) {
+  const numBins = max-min/interval
+  const unclampedBin = Math.round(parseInt(value - min)/interval)
+  return Math.min(Math.max(0, unclampedBin), numBins-1)
+}
+
 export default {
   props: {
     domain: String
@@ -71,11 +104,13 @@ export default {
     chartData() {
       const msBuckets = []
 
-      for (let ms=this.msMin; ms <= this.msMax; ms += this.msInterval){
-        msBuckets.push(ms)
-      }
-
       const queryData = {}
+
+      const round_trip_time_values = this.data.map(({ round_trip_time }) => round_trip_time)
+      const db_latency = this.data.map(({ db_latency }) => db_latency)
+      const { min, max, interval } = histogramParams([...round_trip_time_values, ...db_latency])
+
+      for (let ms=min; ms <= max; ms += interval) msBuckets.push(ms)
 
       this
         .data
@@ -85,31 +120,23 @@ export default {
             db_latency: new Array(msBuckets.length).fill(0)
           }
 
-          //  TODO: decompose
-          const clientLatencyBucketIndex = Math.min(
-            Math.max(
-              0,
-              Math.round(parseInt(round_trip_time - this.msMin)/this.msInterval)
-            ),
-            queryData[query].client_latency.length - 1
-          )
-          queryData[query].client_latency[clientLatencyBucketIndex] += 1
-
-          const dbLatencyBucketIndex = Math.min(
-            Math.max(
-              0,
-              Math.round(parseInt(db_latency - this.msMin)/this.msInterval)
-            ),
-            queryData[query].db_latency.length - 1
-          )
-          queryData[query].db_latency[dbLatencyBucketIndex] += 1
-
+          queryData[query].client_latency[calculateBin(min, max, interval, round_trip_time)] += 1
+          queryData[query].db_latency[calculateBin(min, max, interval, db_latency)] += 1
         })
+
+      const labels = (
+        msBuckets
+          .map((x, index) => {
+            if (index === 0) return `<${x}ms`
+            else if (index === msBuckets.length - 1) return `>${x}ms`
+            else return `~${x}ms`
+          })
+      )
 
       return Object.entries(queryData).map(([ query, data ]) => {
         return {
           name: query,
-          labels: msBuckets.map(x => `~${x}ms`), //  TODO: autofit/do < and > for ends
+          labels, //  TODO: autofit/do < and > for ends
           datasets: [
             {
               label: 'client latency',
@@ -138,6 +165,10 @@ export default {
           AND requested < $2
       `
       this.data = await Agent.query(queryDataQuery, [this.startTS, this.endTS], this.domain)
+      this.data.forEach((entry) => {
+        entry.round_trip_time = parseInt(entry.round_trip_time)
+        entry.db_latency = parseInt(entry.db_latency)
+      })
       this.loaded = true
     }
   }
