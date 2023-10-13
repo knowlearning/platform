@@ -14,15 +14,9 @@ export default async function handleHTTP(req, res) {
 
     const { pathname, hostname } = new URL (req.url, `https://${req.headers.host}`)
 
-    if      (isIPAddress(hostname)              ) emptyResponse(res)
-    else if (isWellKnownPath(pathname)          ) handleWellKnownPath(req, res)
-    else if (fromSecureOrigin(req)              ) coreBrowserResponse(req, res)
-    else if (await isHTTPSRedirectable(hostname)) HTTPSRedirect(req, res)
-    else {
-      console.log('TODO: initiate request for tls cert for', hostname, 'FROM HOST', req.headers.host)
-      //await initiateTLSCertRequest(hostname)
-      coreBrowserResponse(req, res)
-    }
+    if (isIPAddress(hostname)) emptyResponse(res)
+    else if (isWellKnownPath(pathname)) handleWellKnownPath(req, res)
+    else emptyResponse(res)
   }
   catch (error) {
     console.warn(error)
@@ -44,12 +38,6 @@ async function pollForConfig() {
 
 function isIPAddress(hostname) {
   return /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname)
-}
-
-function HTTPSRedirect(req, res) {
-  const redirectHost = MODE === 'local' ? req.headers.host.replace(':32010', ':32001') : req.headers.host
-  res.writeHead(302, { Location: `https://${redirectHost}${req.url}`})
-  res.end()
 }
 
 async function pipeResponse(url, res) {
@@ -110,17 +98,6 @@ function fromSecureOrigin(req) {
 
 function replaceSubdomainWithWildcard(hostname) {
   return `*.${hostname.split('.').slice(1).join('.')}`
-}
-
-async function isHTTPSRedirectable(domain) {
-  await connected
-
-  const wildcardDomain = replaceSubdomainWithWildcard(domain)
-  const path = [`$.state["${domain}"]`, `$.state["${wildcardDomain}"]`]
-  const res = await client.json.get('core/core/tls', { path })
-  const explicitTLSConfig = res && res[path[0]][0]
-  const wildcardTLSConfig = res && res[path[1]][0]
-  return explicitTLSConfig || wildcardTLSConfig
 }
 
 function emptyResponse(res) {
