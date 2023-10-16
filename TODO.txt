@@ -1,32 +1,3 @@
-X Cache config in serve/configuration.js !!!
-X Fix infinite auth loop when user token is expired
-X Remove default scope concept from embedded agent and root agent
-X Test metadata pull for new approach
-X Test uploads and downloads
-X Move uploads and downloads to type backed scopes
-X Reset needs to remove active, not set to null
-X Fix test postgres config timeouts by reducing pressure on db
-X Use js Date param trick for postgres wrapper to simplify query for metadata side effect
-X Fix up and test all SQL mirror operations
-X Better error behavior when special scope queries are broken
-X Make root agent show default scope
-X Fix expired auth token
-X Use secure httpOnly cookies for ws sessions
-X Move upload and download metadata to new format
-X Allow Agent.download(id).direct() and Agent.download(id).url()
-X Document vue binding
-X Fix old session messages getting queued and passed to new sessions (because of using cookie sid instead of client prvided session)
-X Handlable "close" event from embedded agents
-X Batch inserts into postgres
-X  await Agent.watch(id, updateFn) should probably await until the first call of updateFn (cannot do because Agent.watch returns the unwatch function)
-X Use referrer to make sure we reconnect sessions to the domain the session was created for
-X Figure out how to deal with this breaking login: https://developer.chrome.com/en/docs/privacy-sandbox/storage-partitioning/
-X   Fix by toggling off: chrome://flags/#third-party-storage-partitioning
-X Index metadata id, created, and updated as well as all table ids
-X Joining teacher in PILA app does not trigger SQL sync
-X On domain config, return response with watchable request scope
-X Make setting metadata type on object sufficient for triggering postgres update
-X Make serve watch/update config (make function that helps with watcher pattern)
   Add error if trying to create persistent vue component from composition api component (guide user to use vuePersistentRef)
   Add new vuePersistentRef export to npm module for composition api usage
   Add generic agent cache clearing for testing purposes
@@ -45,8 +16,6 @@ X Make serve watch/update config (make function that helps with watcher pattern)
     Use DNS TXT record challenge to handle domain claims
 
   Live db
-X   Choose managed postgres vendor
-X   Launch to prod with credentials
     Confine firewall ip address access
 
   Authorization
@@ -63,4 +32,3 @@ X   Launch to prod with credentials
     Agent WS connection initialized
     Agent WS connection established
     Agent Authed
-
