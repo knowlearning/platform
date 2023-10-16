@@ -1,34 +1,21 @@
-  Add error if trying to create persistent vue component from composition api component (guide user to use vuePersistentRef)
-  Add new vuePersistentRef export to npm module for composition api usage
-  Add generic agent cache clearing for testing purposes
-  Add a test for agent reset function
-  Bundle interaction messages to reduce websocket strain
-  Respect side effects for all patch array items, NOT just first
-  Compaction
-  Throttle naughty clients (protect against infinite loops on the client)
-    Add timeframe based metric for request volume to session data
-  Use create-folder-content in agent upload to handle upload of items and return one piece of content that is the content-graph
-  Remove create-folder-content from admin app
-  Add ability to launch agents
-  Better protocol for patch request ingestion (feedback for requesting agent?)
-
-  Domain Administration
-    Use DNS TXT record challenge to handle domain claims
-
-  Live db
-    Confine firewall ip address access
-
-  Authorization
+  Core
+    Add error if trying to create persistent vue component from composition api component (guide user to use vuePersistentRef)
+    Add new vuePersistentRef export to npm module for composition api usage
+    Add generic agent cache clearing for testing purposes
+    Add a test for agent reset function
+    Bundle interaction messages to reduce websocket strain
+    Respect side effects for all patch array items, NOT just first
+    Compaction
+    Throttle naughty clients (protect against infinite loops on the client)
+      Add timeframe based metric for request volume to session data
+    Use create-folder-content in agent upload to handle upload of items and return one piece of content that is the content-graph
+    Add ability to launch agents
     Admin specifies access rule queries
     Check for passing access rule query on cross-user state request (later handle cross domain requests with special queries)
 
-  Hosting
-    Provision certs like old core
-    Verify DNS A Names for candidate host before going through cert provisioning process
+  Admin
+    Require login for admin panel
+    Use DNS TXT record challenge to handle domain claims
 
-  Monitoring
-    Page Request Received
-    Agent Scripts Loaded
-    Agent WS connection initialized
-    Agent WS connection established
-    Agent Authed
+  Infrastructure
+    Confine postgres firewall ip address access
