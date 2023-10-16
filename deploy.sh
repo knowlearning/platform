@@ -16,10 +16,10 @@ if [ -z $1 ]; then
     --force # forces updates to spec by replacing old objects (used so same job can be depoyed each time)
 elif [ $1 = npm ]; then
   echo 'dry run:'
-  (cd ./lib; npm publish --access public --dry-run)
+  (cd ./client; npm publish --access public --dry-run)
   read -p 'Are you sure you want to deploy a new version of the @knowlearning/agents module? (y/N): ' choice
   if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
-    (cd ./lib; npm publish --access public )
+    (cd ./client; npm publish --access public )
   else
     echo 'NPM update deployment aborted'
     exit 1

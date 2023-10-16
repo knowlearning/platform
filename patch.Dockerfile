@@ -40,11 +40,11 @@ RUN pnpm install --dir /tmp/core \
 
 # Copy local code to the container image.
 COPY ./patch ./patch
-COPY ./lib ./lib
+COPY ./client ./client
 
 # make viewers available in the correct path to share installed modules
 # that are peer dependencies
-COPY ./lib /tmp/core
+COPY ./client /tmp/core
 
 # required for janky nodejs module support
 RUN echo '{ "type": "module" }' > package.json

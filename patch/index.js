@@ -1,5 +1,5 @@
 import fs from 'fs'
-import NodeAgent from '../lib/agents/node.js'
+import NodeAgent from '../client/agents/node.js'
 import build from './build.js'
 import patchContent from './patch-content.js'
 

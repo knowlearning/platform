@@ -20,7 +20,7 @@ RUN npm install \
 
 # Copy local code to the container image.
 COPY ./core ./core
-COPY ./lib ./lib
+COPY ./client ./client
 
 # required for janky nodejs module support
 RUN echo '{ "type": "module" }' > package.json
