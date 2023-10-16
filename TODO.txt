@@ -23,25 +23,23 @@ X Use referrer to make sure we reconnect sessions to the domain the session was 
 X Figure out how to deal with this breaking login: https://developer.chrome.com/en/docs/privacy-sandbox/storage-partitioning/
 X   Fix by toggling off: chrome://flags/#third-party-storage-partitioning
 X Index metadata id, created, and updated as well as all table ids
-  Joining teacher in PILA app does not trigger SQL sync
-  Bundle interaction messages to reduce websocket strain
-  Compaction
-  On domain config, return response with watchable request scope
-  Make setting metadata type on object sufficient for triggering postgres update
+X Joining teacher in PILA app does not trigger SQL sync
+X On domain config, return response with watchable request scope
+X Make setting metadata type on object sufficient for triggering postgres update
+X Make serve watch/update config (make function that helps with watcher pattern)
+  Add error if trying to create persistent vue component from composition api component (guide user to use vuePersistentRef)
+  Add new vuePersistentRef export to npm module for composition api usage
   Add generic agent cache clearing for testing purposes
+  Add a test for agent reset function
+  Bundle interaction messages to reduce websocket strain
   Respect side effects for all patch array items, NOT just first
-  Cache downloaded content at agent level
+  Compaction
   Throttle naughty clients (protect against infinite loops on the client)
-  Add a test for resetting
+    Add timeframe based metric for request volume to session data
   Use create-folder-content in agent upload to handle upload of items and return one piece of content that is the content-graph
   Remove create-folder-content from admin app
-  Add new vuePersistentRef export to npm module for composition api usage
-  Add error if trying to create persistent vue component from composition api component (guide user to use vuePersistentRef)
   Add ability to launch agents
-  Bundle synchronously applied patches in mutable proxy as single patch operation
-  Verify DNS A Names for candidate host before going through cert provisioning process
   Better protocol for patch request ingestion (feedback for requesting agent?)
-  Make serve watch/update config (make function that helps with watcher pattern)
 
   Domain Administration
     Use DNS TXT record challenge to handle domain claims
@@ -57,6 +55,7 @@ X   Launch to prod with credentials
 
   Hosting
     Provision certs like old core
+    Verify DNS A Names for candidate host before going through cert provisioning process
 
   Monitoring
     Page Request Received
