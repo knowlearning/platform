@@ -1,6 +1,34 @@
 # Vue
 
-## Persistent Components
+## Persistent State for Composition API
+```html
+<script setup>
+  import { reactive } from 'vue'
+
+  const reactiveData = reactive({ loaded: false })
+
+  async function asyncSetup() {
+    reactiveData.myLoadedPersistentData = awiat Agent.state({ count: 0 })
+    reactiveData.loaded = true
+  }
+
+  asyncSetup()
+</script>
+
+<template>
+  <h1>Hello Vue 3</h1>
+  <button
+    v-if="reactiveData.loaded"
+    @click="reactiveData.myLoadedPersistentData.count++"
+  >
+    Count is:
+    {{ reactiveData.myLoadedPersistentData.count }}
+  </button>
+  <div v-else>Loading...</div>
+</template>
+```
+
+## Persistent State for Options API Components
 
 ### Application Root Components
 

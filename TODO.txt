@@ -1,6 +1,5 @@
   Core
-    Add error if trying to create persistent vue component from composition api component (guide user to use vuePersistentRef)
-    Add new vuePersistentRef export to npm module for composition api usage
+    Add error if trying to create persistent vue component from composition api component (guide user to use docs for using composition api)
     Add generic agent cache clearing for testing purposes
     Add a test for agent reset function
     Bundle interaction messages to reduce websocket strain
