@@ -28,29 +28,7 @@ export default function (module, scope) {
         }
       }
       else if (component.setup) {
-        const origSetupFn = component.setup
-        const isReactiveRef = r => r && r.__v_isRef
-        component.setup = function setupProxy(a, b) { // need to specifically add this here, otherwise second argument not passed in arguments array (probably because of webpack optimization...)
-          let refs = origSetupFn.call(this, a, b)
-
-          Object
-            .entries(state)
-            .filter(([k]) => isReactiveRef(refs[k]))
-            .forEach(([k, v]) => refs[k].value = v)
-
-          Object
-            .entries(refs)
-            .filter(([_,r]) => isReactiveRef(r) && isScopeSerializable(r.value))
-            .forEach(([key, ref]) => {
-              watchEffect(() => {
-                if (state[key] !== ref.value) {
-                  state[key] = ref.value
-                }
-              })
-            })
-
-          return refs
-        }
+        throw new Error('vuePersistantCompoent is for components using the Options API. To use the composition API see https://docs.knowlearning.systems/frameworks/vue/')
       }
     }
 

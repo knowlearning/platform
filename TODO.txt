@@ -1,7 +1,7 @@
   Core
+X   Add error if trying to create persistent vue component from composition api component (guide user to use docs for using composition api)
     Embeded agent create sessions w/ context
     Embedding agent passes embed start time for embedded agent to record in addition to load + other times
-    Add error if trying to create persistent vue component from composition api component (guide user to use docs for using composition api)
     Traverse deep references into scopes for scope renderer
     Add generic agent cache clearing for testing purposes
     Add a test for agent reset function
