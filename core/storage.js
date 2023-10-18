@@ -2,6 +2,8 @@ import { Storage } from '@google-cloud/storage'
 import { v4 as uuid } from 'uuid'
 import * as redis from './redis.js'
 
+const DOWNLOAD_RETRY_INTERVAL = 1000
+
 const {
   INTERNAL_GCS_API_ENDPOINT,
   EXTERNAL_GCS_API_ENDPOINT,
@@ -62,11 +64,11 @@ async function download(id, retries=3, internal=false) {
   catch (error) {
     console.warn('Erorr getting download url', error, id)
     if (retries === 0) throw new Error('Error getting download url')
-    else return new Promise(resolve => {
-      setTimeout(() => {
-        download(id, retries-1, internal).then(r => resolve(r))
-      }, 1000)
-    })
+    // TODO: ensure errors propogate
+    else {
+      await new Promise(r => setTimeout(r, DOWNLOAD_RETRY_INTERVAL))
+      return download(id, retries-1, internal)
+    }
   }
 }
 
