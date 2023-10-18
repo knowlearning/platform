@@ -7,12 +7,12 @@
 
   const reactiveData = reactive({ loaded: false })
 
+  asyncSetup()
+
   async function asyncSetup() {
     reactiveData.myLoadedPersistentData = await Agent.state('my-count-state')
     reactiveData.loaded = true
   }
-
-  asyncSetup()
 </script>
 
 <template>
