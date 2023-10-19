@@ -1,6 +1,4 @@
   Core
-X   Add error if trying to create persistent vue component from composition api component (guide user to use docs for using composition api)
-X   Add a test for agent reset function
     Embeded agent create sessions w/ context
     Embedding agent passes embed start time for embedded agent to record in addition to load + other times
     Traverse deep references into scopes for scope renderer
@@ -16,7 +14,6 @@ X   Add a test for agent reset function
     Check for passing access rule query on cross-user state request (later handle cross domain requests with special queries)
 
   Admin
-    Require login for admin panel
     Use DNS TXT record challenge to handle domain claims
 
   Infrastructure
