@@ -54,8 +54,7 @@ function embed(environment, iframe) {
       sendDown({})
     }
     else if (type === 'close') {
-      console.log('closing?', listeners)
-      if (listeners.close) listeners.close()
+      if (listeners.close) listeners.close(message.info)
     }
     else if (type === 'environment') {
       const env = await Agent.environment()

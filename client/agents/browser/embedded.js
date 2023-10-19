@@ -209,7 +209,7 @@ export default function EmbeddedAgent() {
   function disconnect() { return send({ type: 'disconnect' }) }
   function reconnect() { return send({ type: 'reconnect' }) }
   function synced() { return send({ type: 'synced' }) }
-  function close() { return send({ type: 'close' }) }
+  function close(info) { return send({ type: 'close', info }) }
 
   return {
     embedded: true,
