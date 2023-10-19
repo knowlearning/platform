@@ -6,6 +6,14 @@ import './third-party-setup.js'
 
 window.Agent = browserAgent()
 
-const app = createApp(component, { domain: window.location.pathname.slice(1) })
+const { auth: { user, provider } } = await Agent.environment()
 
-app.mount('body')
+if (provider === 'anonymous') Agent.login()
+else {
+  // TODO: check domain and redirect / if invalid
+  const props = {
+    domain: window.location.pathname.slice(1),
+    user
+  }
+  createApp(component, props).mount('body')
+}

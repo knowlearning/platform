@@ -1,4 +1,5 @@
 <template>
+  <div>{{ user }}</div>
   <button @click="claim">claim {{ domain }} domain</button>
   <div v-if="config ">
     config: {{config.config}}
@@ -28,6 +29,7 @@ const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
 export default {
   props: {
+    user: String,
     domain: String
   },
   components: {
