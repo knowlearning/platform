@@ -47,7 +47,6 @@ export default function () {
       }
     )
 
-
     it(
       'Can watch references inside of scopes',
       async function () {
@@ -66,6 +65,74 @@ export default function () {
         state.x.y.z += 100
         state.x.y.z += 100
         state.x.y.z += 100
+
+        await new Promise(r => setTimeout(r, 50))
+
+        expect(seenValues).to.deep.equal(expectedValues)
+      }
+    )
+
+    it(
+      'Can can watch references embedded 1 level within a scope',
+      async function () {
+        const id1 = uuid()
+        const id2 = uuid()
+
+        await Agent.create({
+          id: id1,
+          active: { id_referencing_other_scope: id2 }
+        })
+
+        await Agent.create({
+          id: id2,
+          active: { x: 'woooo!' }
+        })
+
+        const expectedValues = ['woooo!', 'wooooooooooo!x2']
+        const seenValues = []
+
+        Agent.watch([id1, 'id_referencing_other_scope', 'x'], v => seenValues.push(v))
+
+        const id2State = await Agent.state(id2)
+        id2State.x = 'wooooooooooo!x2'
+
+        await new Promise(r => setTimeout(r, 50))
+
+        expect(seenValues).to.deep.equal(expectedValues)
+      }
+    )
+
+
+
+    it(
+      'Can can watch references embedded 2 levels within scopes',
+      async function () {
+        const id1 = uuid()
+        const id2 = uuid()
+        const id3 = uuid()
+
+        await Agent.create({
+          id: id1,
+          active: { id_referencing_other_scope: id2 }
+        })
+
+        await Agent.create({
+          id: id2,
+          active: { id_referencing_other_other_scope: id3 }
+        })
+
+        await Agent.create({
+          id: id3,
+          active: { x: 'woooo!' }
+        })
+
+        const expectedValues = ['woooo!', 'wooooooooooo!x2']
+        const seenValues = []
+
+        Agent.watch([id1, 'id_referencing_other_scope', 'id_referencing_other_other_scope'], v => seenValues.push(v))
+
+        const id3State = await Agent.state(id3)
+        id3State.x = 'wooooooooooo!x2'
 
         await new Promise(r => setTimeout(r, 50))
 
