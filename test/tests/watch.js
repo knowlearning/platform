@@ -129,10 +129,13 @@ export default function () {
         const expectedValues = ['woooo!', 'wooooooooooo!x2']
         const seenValues = []
 
-        Agent.watch([id1, 'id_referencing_other_scope', 'id_referencing_other_other_scope'], v => seenValues.push(v))
 
         const id3State = await Agent.state(id3)
-        id3State.x = 'wooooooooooo!x2'
+
+        Agent.watch([id1, 'id_referencing_other_scope', 'id_referencing_other_other_scope', 'x'], v => {
+          seenValues.push(v)
+          if (seenValues.length === 1) id3State.x = 'wooooooooooo!x2'
+        })
 
         await new Promise(r => setTimeout(r, 50))
 
