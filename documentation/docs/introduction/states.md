@@ -18,14 +18,33 @@ State will be a JSON object with whatever the owner of that super_special_uuid h
 Okay, so now you know how to get the current state for any uuid you might find in the wild. What if you want to know about changes that the owner of that state is making? Our API can help with that situation too:
 
 ```javascript
-function updateHandler(update) {
+function handleUpdate(update) {
   //  This function will be called any time the data at
   //  super_special_uuid is modified. The update parameter will
   //  contain the new state, as well as some other useful info.
   console.log(update)
 }
 
-Agent.watch(super_special_uuid, updateHandler)
+Agent.watch(super_special_uuid, handleUpdate)
+```
+
+Now, whenever the owner of ```super_special_uuid``` makes changes, the function called updateHandler will be called.
+
+
+## Deep State Watching
+
+Okay, so now you know how to watch the current state for any uuid you might find in the wild. What if you only care to watch certain references inside that state object? Our API can help with that situation too:
+
+```javascript
+function handleNewestValue(value) {
+  //  This function will be called any time the data at
+  //  super_special_uuid is modified, and the newest value
+  //  of the state.reference_inside_the_state will be given
+  console.log(value)
+}
+
+const referenceArray = [super_special_uuid, 'reference_inside_the_state' ]
+Agent.watch(referenceArray, handleNewestValue)
 ```
 
 Now, whenever the owner of ```super_special_uuid``` makes changes, the function called updateHandler will be called.
