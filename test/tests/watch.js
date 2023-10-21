@@ -28,6 +28,50 @@ export default function () {
         expect(updateOrder).to.deep.equal(expectedUpdateOrder)
       }
     )
+    it(
+      'Triggers callback for initial watch once',
+      async function () {
+        const id = uuid()
+        const state = await Agent.create({
+          id,
+          active: { x: 100 }
+        })
+        const expectedValues = [{ x: 100 }]
+        const seenValues = []
+
+        Agent
+          .watch(id, async ({state}) => seenValues.push(state))
+
+        await new Promise(r => setTimeout(r, 50))
+        expect(seenValues).to.deep.equal(expectedValues)
+      }
+    )
+
+
+    it(
+      'Can watch references inside of scopes',
+      async function () {
+        const id = uuid()
+        await Agent.create({
+          id,
+          active: { x: { y: { z: 100 } } }
+        })
+        const expectedValues = [100, 200, 300, 400]
+        const seenValues = []
+
+        Agent.watch([id, 'x', 'y', 'z'], v => seenValues.push(v))
+
+        const state = await Agent.state(id)
+
+        state.x.y.z += 100
+        state.x.y.z += 100
+        state.x.y.z += 100
+
+        await new Promise(r => setTimeout(r, 50))
+
+        expect(seenValues).to.deep.equal(expectedValues)
+      }
+    )
 
     it(
       'Closes a listening connection after a close call',

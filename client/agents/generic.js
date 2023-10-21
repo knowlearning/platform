@@ -300,7 +300,45 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     })
   }
 
+  function watchResolution(path, callback) {
+    const id = path[0]
+    const references = path.slice(1)
+    let unwatchDeeper = () => {}
+
+    const unwatch = watch(id, ({ state }) => {
+      if (references.length === 0) {
+        callback(value)
+        return
+      }
+
+      //  TODO: check if value we care about actually changed
+      //        and ignore this update if it has not.
+      unwatchDeeper()
+
+      let value = state
+      for (let index = 0; index < references.length; index += 1) {
+        value = value[references[index]]
+        if (
+          value === null ||
+          value === undefined ||
+          index === references.length - 1
+        ) callback(value)
+        else if (isUUID(value)) {
+          unwatchDeeper = watchResolution([value, ...references.slice(index + 1)], callback)
+          return
+        }
+      }
+    })
+
+    return () => {
+      unwatch()
+      unwatchDeeper()
+    }
+  }
+
   function watch(scope=DEFAULT_SCOPE_NAME, fn) {
+    if (Array.isArray(scope)) return watchResolution(scope, fn)
+
     let initialSent = false
     const queue = []
     function cb(update) {
