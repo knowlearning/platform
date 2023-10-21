@@ -295,6 +295,7 @@ export async function ensureDomainConfigured(domain) {
     configuredDomains[domain] = new Promise(async resolve => {
       const report = { tasks: [], start: Date.now() }
       await applyConfiguration(domain, await configuration(domain), report)
+        .catch(error => console.warn('configuration error', domain, error))
       resolve()
     })
   }
