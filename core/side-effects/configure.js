@@ -50,8 +50,9 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
     reportState.tasks = {}
     reportState.start = Date.now()
     const configuration = parseYAML(await response.text())
-    await applyConfiguration(value.domain, configuration, reportState)
-    reportState.end = Date.now()
+    applyConfiguration(value.domain, configuration, reportState)
+      .then(() => reportState.end = Date.now())
+      .catch(error => reportState.error = error.toString())
   }
   send({ si, ii })
 }
