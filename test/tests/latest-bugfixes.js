@@ -1,3 +1,7 @@
+function pause(ms) {
+  return new Promise(r => setTimeout(r, ms))
+}
+
 export default function latestBugfixes() {
   describe('Latest Bugfixes', function () {
     it('Can request two of the same states by uuid and await sync', async function () {
@@ -25,9 +29,13 @@ export default function latestBugfixes() {
           resolve()
         }
       })
+      await pause()
       s.x = 1
+      await pause()
       s.x = 2
+      await pause()
       s.x = 3
+      await pause()
 
       await p
     })

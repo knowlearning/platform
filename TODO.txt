@@ -1,5 +1,4 @@
   Core
-    Include synchronous updates in same patch
     Embeded agent create sessions w/ context
     Embedding agent passes embed start time for embedded agent to record in addition to load + other times
     Respect side effects for all patch array items, NOT just first

@@ -1,3 +1,7 @@
+function pause(ms) {
+  return new Promise(r => setTimeout(r, ms))
+}
+
 export default function () {
   describe('Session Reconnections', function () {
     it(
@@ -8,15 +12,23 @@ export default function () {
         const id = uuid()
         const state = await Agent.state(id)
 
+        await pause(10)
         state.x = 1
+        await pause(10)
         state.y = 2
+        await pause(10)
         state.z = 3
+        await pause(10)
 
         Agent.disconnect()
 
+        await pause(10)
         state.x = 2
+        await pause(10)
         state.y = 3
+        await pause(10)
         state.z = 4
+        await pause(10)
 
         Agent.reconnect()
 
@@ -24,6 +36,7 @@ export default function () {
         expect(finalState).to.deep.equal({x:2,y:3,z:4})
       }
     )
+
     //  TODO: test subscription reattachment after server switch
     it (
       'Re-attaches to subscriptions after disconnection and reconnection to same server',
@@ -37,23 +50,38 @@ export default function () {
         const state = await Agent.state(id)
         const statePromise = Agent.state(id)
 
-        Agent.watch(id, update => numUpdates += 1)
+        Agent.watch(id, update => {
+          numUpdates += 1
+        })
 
+        await pause(10)
         state.x = 1
+        await pause(10)
         state.y = 2
+        await pause(10)
         state.z = 3
+        await pause(10)
 
         Agent.disconnect()
 
+        await pause(100)
         state.x = 2
+        await pause(10)
         state.y = 3
+        await pause(10)
         state.z = 4
+        await pause(10)
 
         Agent.reconnect()
 
+        await pause(10)
         state.x = 3
+        await pause(10)
         state.y = 4
+        await pause(10)
         state.z = 5
+        await pause(10)
+
 
         const finalState = await Agent.state(id)
         expect(finalState).to.deep.equal({x:3,y:4,z:5})

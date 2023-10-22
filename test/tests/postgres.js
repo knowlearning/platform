@@ -150,7 +150,7 @@ postgres:
 
       expect(response.length).to.equal(1)
       expect(response[0].id).to.deep.equal(TEST_ENTRY_1_ID)
-      expect(response[0].ii).to.equal(5)
+      expect(response[0].ii).to.equal(1)
       expect(response[0].domain).to.equal(domain)
       expect(response[0].active_type).to.equal(TEST_TABLE_TYPE)
       expect(response[0].owner).to.equal(user)
@@ -164,7 +164,7 @@ postgres:
 
       expect(response.length).to.equal(1)
       expect(response[0].id).to.deep.equal(TEST_ENTRY_0_ID)
-      expect(response[0].ii).to.equal(4)
+      expect(response[0].ii).to.equal(1)
       expect(response[0].domain).to.equal(domain)
       expect(response[0].active_type).to.equal(TEST_TABLE_TYPE)
       expect(response[0].owner).to.equal(user)

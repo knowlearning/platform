@@ -1,3 +1,7 @@
+function pause(ms) {
+  return new Promise(r => setTimeout(r, ms))
+}
+
 export default function () {
   describe('Watchers', function () {
 
@@ -21,8 +25,12 @@ export default function () {
             }
           })
 
-        Object.assign(state, {x:1, y:2, z:3})
-
+        await pause()
+        state.x = 1
+        await pause()
+        state.y = 2
+        await pause()
+        state.z = 3
         await expectedUpdatesPromise
 
         expect(updateOrder).to.deep.equal(expectedUpdateOrder)
@@ -39,8 +47,7 @@ export default function () {
         const expectedValues = [{ x: 100 }]
         const seenValues = []
 
-        Agent
-          .watch(id, async ({state}) => seenValues.push(state))
+        Agent.watch(id, async ({state}) => seenValues.push(state))
 
         await new Promise(r => setTimeout(r, 50))
         expect(seenValues).to.deep.equal(expectedValues)
@@ -60,10 +67,12 @@ export default function () {
         const state = await Agent.state(id)
 
         state.x.y.z += 100
-        state.x.y.z += 100
-        state.x.y.z += 100
 
-        await new Promise(r => setTimeout(r, 50))
+        await pause()
+        state.x.y.z += 100
+        await pause()
+        state.x.y.z += 100
+        await pause(50)
 
         expect(seenValues).to.deep.equal(expectedValues)
       }
@@ -156,7 +165,7 @@ export default function () {
       async function () {
         this.timeout(5000)
 
-        const EXPECTED_UPDATES = 4
+        const EXPECTED_UPDATES = 3
         const id = uuid()
         const state = await Agent.state(id)
         let updatesSeen = 0
@@ -173,7 +182,12 @@ export default function () {
             })
         )
 
-        Object.assign(state, {x:1,y:2,z:3})
+        await pause()
+        state.x = 1
+        await pause()
+        state.y = 2
+        await pause()
+        state.z = 3
 
         // unwatch after 3 updates
         await thirdUpdatePromise

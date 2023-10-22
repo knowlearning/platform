@@ -56,6 +56,8 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   const environmentPromise = new Promise(r => resolveEnvironment = r)
   let lastSentSI = -1
   let lastHeartbeat
+  let lastSynchronousScopePatched = null
+  let lastSynchronousScopePatchPromise = null
   const syncedPromiseResolutions = []
 
   const patches = state('patches')
@@ -80,11 +82,12 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
   // TODO: clear acknowledged messages
   async function flushMessageQueue() {
-    // this makes flushing async so that we can combine synchronous updates into single patches
+    // this makes flushing async, giving time for queue message to combine synchronous updates
     await new Promise(resolve => resolve())
+    lastSynchronousScopePatched = null
 
-    // TODO: combine all synchronous patches by looking at all lastsentSI and larger messages
     while (authed && ws.readyState === WebSocket.OPEN && lastSentSI+1 < messageQueue.length) {
+      lastSynchronousScopePatched = null
       lastSentSI += 1
       ws.send(JSON.stringify(messageQueue[lastSentSI]))
 
@@ -99,11 +102,19 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
   function queueMessage({ scope, patch }) {
     isSynced = false
-    si += 1
-    const promise = new Promise((resolve, reject) => responses[si] = [[resolve, reject]])
-    messageQueue.push({ scope, patch, si, ts: Date.now()})
-    flushMessageQueue()
-    return promise
+    if (lastSynchronousScopePatched === scope) {
+      const i = messageQueue.length - 1
+      messageQueue[i].patch = [...messageQueue[i].patch, ...patch]
+    }
+    else {
+      si += 1
+      lastSynchronousScopePatchPromise = new Promise((resolve, reject) => responses[si] = [[resolve, reject]])
+      messageQueue.push({ scope, patch, si, ts: Date.now()})
+      lastSynchronousScopePatched = scope
+      flushMessageQueue()
+    }
+
+    return lastSynchronousScopePatchPromise
   }
 
   function checkHeartbeat() {
@@ -121,11 +132,11 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   async function restartConnection() {
     if (restarting) return
 
-    restarting = true
     authed = false
-    ws.onmessage = () => {} // needs to be a no-op since a closing ws can still get messages
     if (!disconnected) {
       await new Promise(r => setTimeout(r, Math.min(1000, failedConnections * 100)))
+      ws.onmessage = () => {} // needs to be a no-op since a closing ws can still get messages
+      restarting = true
       failedConnections += 1
       initWS() // TODO: don't do this if we are purposefully unloading...
       restarting = false
