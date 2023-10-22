@@ -2,11 +2,9 @@
     Include synchronous updates in same patch
     Embeded agent create sessions w/ context
     Embedding agent passes embed start time for embedded agent to record in addition to load + other times
-    Add generic agent cache clearing for testing purposes
     Respect side effects for all patch array items, NOT just first
     Compaction
     Throttle naughty clients (protect against infinite loops on the client)
-      Add timeframe based metric for request volume to session data
     Use create-folder-content in agent upload to handle upload of items and return one piece of content that is the content-graph
     Add ability to launch agents
     Admin specifies access rule queries
