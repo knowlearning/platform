@@ -1,10 +1,10 @@
   Core
     Embeded agent create sessions w/ context
     Embedding agent passes embed start time for embedded agent to record in addition to load + other times
+    History Download
     Compaction
     Throttle naughty clients (protect against infinite loops on the client)
     Use create-folder-content in agent upload to handle upload of items and return one piece of content that is the content-graph
-    Add ability to launch agents
     Admin specifies access rule queries
     Check for passing access rule query on cross-user state request (later handle cross domain requests with special queries)
 
