@@ -1,9 +1,8 @@
   Core
-X   Traverse deep references into scopes for scope renderer
+    Include synchronous updates in same patch
     Embeded agent create sessions w/ context
     Embedding agent passes embed start time for embedded agent to record in addition to load + other times
     Add generic agent cache clearing for testing purposes
-    Bundle interaction messages to reduce websocket strain
     Respect side effects for all patch array items, NOT just first
     Compaction
     Throttle naughty clients (protect against infinite loops on the client)

@@ -77,12 +77,19 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     if (watcherIndex > -1) watchers[key].splice(watcherIndex, 1)
     else console.warn('TRIED TO REMOVE WATCHER THAT DOES NOT EXIST')
   }
-  function flushMessageQueue() {
-    //  TODO: probably want to make this loop async so we don't try and push more to
-    //        a closed connection
+
+  // TODO: clear acknowledged messages
+  async function flushMessageQueue() {
+    // this makes flushing async so that we can combine synchronous updates into single patches
+    await new Promise(resolve => resolve())
+
+    // TODO: combine all synchronous patches by looking at all lastsentSI and larger messages
     while (authed && ws.readyState === WebSocket.OPEN && lastSentSI+1 < messageQueue.length) {
       lastSentSI += 1
       ws.send(JSON.stringify(messageQueue[lastSentSI]))
+
+      //  async so we don't try and push more to a closed connection
+      await new Promise(resolve => resolve())
     }
   }
 
@@ -90,11 +97,11 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     return new Promise((resolve, reject) => responses[si].push([resolve, reject]))
   }
 
-  function queueMessage(message) {
+  function queueMessage({ scope, patch }) {
     isSynced = false
     si += 1
     const promise = new Promise((resolve, reject) => responses[si] = [[resolve, reject]])
-    messageQueue.push({...message, si, ts: Date.now()})
+    messageQueue.push({ scope, patch, si, ts: Date.now()})
     flushMessageQueue()
     return promise
   }
@@ -231,6 +238,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
   function create({ id=uuid(), active_type, active, name }) {
     //  TODO: collapse into 1 patch and 1 interact call
+    //        (requires updating side effects)
     interact(id, [{ op: 'add', path: ['active_type'], value: active_type }], false)
     interact(id, [{ op: 'add', path: ['active'], value: active }], false)
     return id
