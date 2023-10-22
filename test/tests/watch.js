@@ -49,7 +49,8 @@ export default function () {
 
         Agent.watch(id, async ({state}) => seenValues.push(state))
 
-        await new Promise(r => setTimeout(r, 50))
+        while (seenValues.length < expectedValues.length) await pause(10)
+
         expect(seenValues).to.deep.equal(expectedValues)
       }
     )
@@ -72,7 +73,7 @@ export default function () {
         state.x.y.z += 100
         await pause()
         state.x.y.z += 100
-        await pause(50)
+        while (seenValues.length < expectedValues.length) await pause(10)
 
         expect(seenValues).to.deep.equal(expectedValues)
       }
@@ -95,7 +96,7 @@ export default function () {
         const id2State = await Agent.state(id2)
         id2State.x = 'wooooooooooo!x2'
 
-        await new Promise(r => setTimeout(r, 50))
+        while (seenValues.length < expectedValues.length) await pause(10)
 
         expect(seenValues).to.deep.equal(expectedValues)
       }
@@ -123,7 +124,7 @@ export default function () {
           if (seenValues.length === 1) id3State.x = 'wooooooooooo!x2'
         })
 
-        await new Promise(r => setTimeout(r, 50))
+        while (seenValues.length < expectedValues.length) await pause(10)
 
         expect(seenValues).to.deep.equal(expectedValues)
       }
@@ -154,7 +155,7 @@ export default function () {
           }
         })
 
-        await new Promise(r => setTimeout(r, 50))
+        while (seenValues.length < expectedValues.length) await pause(10)
 
         expect(seenValues).to.deep.equal(expectedValues)
       }
