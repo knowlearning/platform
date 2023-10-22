@@ -33,27 +33,30 @@ async function isAdmin(user, requestingDomain, requestedDomain) {
 }
 
 export default async function ({ domain, user, session, scope, patch, si, ii, send }) {
-  const [{ op, path, value }] = patch
-  if (op === 'add' && path.length === 1 && path[0] === 'active' && await isAdmin(user, domain, value.domain)) {
-    const { config, report } = value
-    await interact('core', 'core', 'domain-config', [
-      { op: 'add', path: ['active', value.domain], value: { config, admin: user } }
-    ])
-    const url = await download(config, 3, true)
-    const response = await fetch(url)
-    if (response.status !== 200) {
-      throw new Error('Error getting config')
+  for (let index = 0; index < patch.length; index ++) {
+    const { op, path, value } = patch[index]
+    if (op === 'add' && path.length === 1 && path[0] === 'active' && await isAdmin(user, domain, value.domain)) {
+      const { config, report } = value
+      await interact('core', 'core', 'domain-config', [
+        { op: 'add', path: ['active', value.domain], value: { config, admin: user } }
+      ])
+      const url = await download(config, 3, true)
+      const response = await fetch(url)
+      if (response.status !== 200) {
+        throw new Error('Error getting config')
+      }
+
+      const reportState = coreState(report, domain)
+
+      reportState.tasks = {}
+      reportState.start = Date.now()
+      const configuration = parseYAML(await response.text())
+      applyConfiguration(value.domain, configuration, reportState)
+        .then(() => reportState.end = Date.now())
+        .catch(error => reportState.error = error.toString())
     }
-
-    const reportState = coreState(report, domain)
-
-    reportState.tasks = {}
-    reportState.start = Date.now()
-    const configuration = parseYAML(await response.text())
-    applyConfiguration(value.domain, configuration, reportState)
-      .then(() => reportState.end = Date.now())
-      .catch(error => reportState.error = error.toString())
   }
+
   send({ si, ii })
 }
 

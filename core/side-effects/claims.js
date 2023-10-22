@@ -20,23 +20,15 @@ export default async function claims({ domain, user, session, scope, patch, si, 
     //  Make sure the domain config is initialized
     redis.client.json.set('domain-config', `$["active"][${JSON.stringify(claimedDomain)}]`, {}, { NX: true })
 
-    if (MODE === 'local') {
-      await interact('core', 'core', 'domain-config', [{
-        op: 'add',
-        path: ['active', claimedDomain, 'admin'],
-        value: user
-      }])
-    }
-    else {
-      //  TODO: ping DNS TXT record for token, and only set if the domain is actually set to token
-      await interact('core', 'core', 'domain-config', [{
-        op: 'add',
-        path: ['active', claimedDomain, 'admin'],
-        value: user
-      }])
-    }
-
     send({ si, ii, token })
+
+    if (!MODE === 'local') {} //  TODO: await DNS TXT record challenge pass (ping DNS TXT record until matches token)
+
+    await interact('core', 'core', 'domain-config', [{
+      op: 'add',
+      path: ['active', claimedDomain, 'admin'],
+      value: user
+    }])
   }
   else send({ si, ii })
 }

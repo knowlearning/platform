@@ -239,8 +239,11 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   function create({ id=uuid(), active_type, active, name }) {
     //  TODO: collapse into 1 patch and 1 interact call
     //        (requires updating side effects)
-    interact(id, [{ op: 'add', path: ['active_type'], value: active_type }], false)
-    interact(id, [{ op: 'add', path: ['active'], value: active }], false)
+    const patch = [
+      { op: 'add', path: ['active_type'], value: active_type },
+      { op: 'add', path: ['active'], value: active }
+    ]
+    interact(id, patch, false)
     return id
   }
 
