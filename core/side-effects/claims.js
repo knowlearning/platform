@@ -1,7 +1,10 @@
+import { promises as dnsPromises } from 'dns'
 import crypto from 'crypto'
 import interact from '../interact/index.js'
 import * as redis from '../redis.js'
 import initializationState from '../initialization-state.js'
+
+const CHALLENGE_TIMEOUT_LIMIT = 1000 * 60 * 5
 
 const { MODE, ADMIN_DOMAIN } = process.env
 
@@ -22,13 +25,41 @@ export default async function claims({ domain, user, session, scope, patch, si, 
 
     send({ si, ii, token })
 
-    if (!MODE === 'local') {} //  TODO: await DNS TXT record challenge pass (ping DNS TXT record until matches token)
-
-    await interact('core', 'core', 'domain-config', [{
-      op: 'add',
-      path: ['active', claimedDomain, 'admin'],
-      value: user
-    }])
+    passDNSOrHTTPChallenge(claimedDomain, user, token)
+      .then(async passed => {
+        if (passed) {
+          const patch = [{
+            op: 'add',
+            path: ['active', claimedDomain, 'admin'],
+            value: user
+          }]
+          await interact('core', 'core', 'domain-config', patch)
+        }
+      })
+      .catch(error => console.warn('Error claiming admin', claimedDomain, user, error))
   }
   else send({ si, ii })
+}
+
+async function passDNSOrHTTPChallenge(domain, user, token) {
+  if (MODE === 'local') return true
+  else if (domain.startsWith(`${user}.localhost:`)) return true
+
+  let passed = false
+  const started = Date.now()
+  const wellKnownURL =`https://${domain}/.well-known/knowlearning-admin-challenge`
+  while (!passed) {
+    await Promise.all([
+      fetch(wellKnownURL).then(async r => passed = passed || await r.text() === token),
+      resolveTXT(domain).then(r => passed = passed || r.includes(token))
+    ])
+    const elapsed = Date.now() - started
+    if (passed || elapsed > CHALLENGE_TIMEOUT_LIMIT) break
+  }
+  return passed
+}
+
+async function resolveTXT(domain) {
+  try { return await dnsPromises.resolveTxt(domain).then(r => r.flat()) }
+  catch (err) { return [] }
 }

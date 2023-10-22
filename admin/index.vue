@@ -1,6 +1,10 @@
 <template>
   <div>{{ user }}</div>
-  <button @click="claim">claim {{ domain }} domain</button>
+  <div v-if="claimMessage">
+    {{ claimMessage }}
+    <button @click="claimMessage = null">Okay</button>
+  </div>
+  <button v-else @click="claim">Become admin for {{ domain }}</button>
   <div v-if="config ">
     config: {{config.config}}
     <vueScopeComponent :id="config.report" />
@@ -39,7 +43,8 @@ export default {
   },
   data() {
     return {
-      config: null
+      config: null,
+      claimMessage: null
     }
   },
   async created() {
@@ -47,8 +52,16 @@ export default {
   },
   methods: {
     async claim() {
+      const start = Date.now()
+      this.claimMessage = 'claiming...'
       const { token } = await Agent.claim(this.domain)
-      alert(`Set "${token}" as record at "${this.domain}" to get admin status.`)
+      const elapsed = Date.now() - start
+      await new Promise(r => setTimeout(r, 1000 - elapsed))
+
+      this.claimMessage = `
+        Set "${token}" as a TXT record for "${this.domain}" become the admin.
+        Alternatively, make your website "${this.domain}/.well-known/knowlearning-admin-challenge" respond with "${token}"
+      `
     },
     async removeDomainConfig() {
       if (confirm(`Are you sure you want to remove your configuration for "${this.domain}"`)) {
