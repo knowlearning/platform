@@ -5,7 +5,6 @@ import interact from '../interact/index.js'
 const { MODE, ADMIN_DOMAIN } = process.env
 
 export default async function ({ domain, user, session, scope, patch, si, ii, send }) {
-  const config = await configuration(domain)
   for (let index = 0; index < patch.length; index++) {
     const { op, path, value: { query, params=[], domain:targetDomain=domain } } = patch[index]
 
@@ -20,10 +19,20 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
           .catch(error => send({ si, error: error.code }))
       )
     }
-    else if (config?.postgres?.scopes?.[query]) {
-        let queryBody = config?.postgres?.scopes?.[query]
+    else {
+      const config = await configuration(targetDomain)
+      const sameDomain = targetDomain === domain
+      let queryBody
+
+      if (sameDomain) queryBody = config?.postgres?.scopes?.[query]
+      else if (config?.postgres?.crossDomainQueries?.[query]?.domains?.includes(domain)) {
+        queryBody = config?.postgres?.crossDomainQueries?.[query]?.body
+      }
+
+      if (queryBody) {
         const namedParams = {
-          REQUESTER: user
+          REQUESTER: user,
+          DOMAIN: targetDomain
         }
         //  TODO: better replacement technique
         const queryParams = [...params]
@@ -50,8 +59,9 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
             })
             .catch(error => send({ si, error: error.code }))
         )
+      }
+      else throw new Error(`No query named "${query}" in ${targetDomain}`)
     }
-    else throw new Error(`No query named "${query}" in ${targetDomain}`)
   }
 
   send({ si, ii })
