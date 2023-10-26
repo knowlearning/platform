@@ -329,7 +329,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
     const unwatch = watch(id, ({ state }) => {
       if (references.length === 0) {
-        callback(value)
+        callback(state)
         return
       }
 
