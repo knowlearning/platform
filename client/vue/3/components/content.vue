@@ -1,6 +1,8 @@
 <template>
   <iframe
-    :ref="el => setup(el)"
+    :v-if="resolvedId"
+    :key="resolvedId"
+    :ref="el => setup(el, resolvedId)"
     class="wrapper"
     allow="camera;microphone"
   />
@@ -12,30 +14,46 @@ export default {
     id: {
       type: String,
       required: true
+    },
+    path: {
+      type: Array,
+      default: []
     }
+  },
+  data() {
+    return {
+      resolvedId: null
+    }
+  },
+  async created() {
+    this.startWatching()
+  },
+  watch: {
+    id() { this.startWatching() },
+    path: { deep: true, handler() { this.startWatching() } }
   },
   unmounted() {
     if (this.embedding) this.embedding.remove()
   },
   methods: {
-    setup(iframe) {
+    startWatching() {
+      if (this.stopWatching) this.stopWatching()
+      if (this.path.length) {
+        this.stopWatching = await Agent.watch([this.id, ...this.path], value => {
+          //  TODO: ensure resolved value is uuid or URL
+          this.resolvedId = value
+        })
+      }
+      else this.resolvedId = this.id
+    },
+    async setup(iframe, id) {
       if (!iframe || this.iframe === iframe) return
 
-      const { id } = this
       this.iframe = iframe
       this.embedding = Agent.embed({ id }, iframe)
       this.embedding.on('state', e => this.$emit('state', e))
       this.embedding.on('mutate', e => this.$emit('mutate', e))
       this.embedding.on('close', e => this.$emit('close', e))
-
-/*
-      const { handle } = this.embedding
-      //  if save or edit are listened to, attach handler
-      if (this.$attrs.onSave) {
-        handle('save', () => new Promise((resolve, reject) => this.$emit('save', { resolve, reject })))
-      }
-      if (this.$attrs.onEdit) handle('edit', () => this.$emit('edit'))
-*/
     }
   }
 }
