@@ -3,7 +3,11 @@
     :v-if="resolvedId"
     :key="resolvedId"
     :ref="el => setup(el, resolvedId)"
-    class="wrapper"
+    style="
+      width: 100%;
+      height: 100%;
+      border: none;
+    "
     allow="camera;microphone"
   />
 </template>
@@ -59,14 +63,3 @@ export default {
 }
 
 </script>
-
-<style scoped>
-
-.wrapper
-{
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
-</style>
