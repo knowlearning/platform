@@ -39,7 +39,7 @@ export default {
     startWatching() {
       if (this.stopWatching) this.stopWatching()
       if (this.path.length) {
-        this.stopWatching = await Agent.watch([this.id, ...this.path], value => {
+        this.stopWatching = Agent.watch([this.id, ...this.path], value => {
           //  TODO: ensure resolved value is uuid or URL
           this.resolvedId = value
         })
