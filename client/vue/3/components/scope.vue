@@ -29,7 +29,7 @@
     },
     methods: {
       startWatching() {
-        if (this.startWatching) this.stopWatching()
+        if (this.stopWatching) this.stopWatching()
         this.stopWatching = Agent.watch([this.id, ...this.path], value => this.value = value)
       }
     }
