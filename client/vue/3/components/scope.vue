@@ -1,5 +1,5 @@
 <template>
-  <span v-if="state">{{value ? value : placeholder }}</span>
+  <span v-if="value">{{ value === null && placeholder ? placeholder : value }}</span>
   <span v-else>loading...</span>
 </template>
 
@@ -8,46 +8,29 @@
   export default {
   	props: {
   	  id: String,
-      path: {
-        type: Array,
-        default: []
-      },
-      placeholder: {
-        type: String,
-        default: ''
-      }
+      path: { type: Array, default: [] },
+      placeholder: { type: String, default: '' }
   	},
   	data() {
   	  return {
-  	  	state: null
+  	  	value: undefined
   	  }
   	},
     watch: {
-      id() {
-        this.stopWatching()
-        this.startWatching()
+      id() { this.startWatching() },
+      path: { 
+        deep: true,
+        handler() { this.startWatching() }
       }
     },
-    mounted() {
-      this.startWatching()
-  	},
+    created() { this.startWatching() },
     unmounted() {
-      this.stopWatching()
-    },
-    computed: {
-      value() {
-        if (this.path.length === 0) return this.state
-
-        return (
-          this
-            .path
-            .reduce((acc, field) => acc?.[field], this.state)
-        )
-      }
+      if (this.startWatching) this.stopWatching()
     },
     methods: {
       startWatching() {
-        this.stopWatching = Agent.watch(this.id, ({ state }) => this.state = state)
+        if (this.startWatching) this.stopWatching()
+        this.stopWatching = Agent.watch([this.id, ...path], value => this.value = value)
       }
     }
   }
