@@ -83,8 +83,9 @@ async function passDNSOrHTTPChallenge(domain, user, token) {
     console.log('DNS_OR_HTTP_CHALLENGE CHECKING IF PASSING!!!', domain, user, token)
     await Promise.all([
       fetch(wellKnownURL).then(async r => {
-        console.log('DNS_OR_HTTP_CHALLENGE TEXT VALUE AT WELL KNOWN PATH', domain, user, await r.text(), token)
-        passed = passed || await r.text() === token
+        const body = await r.text()
+        console.log('DNS_OR_HTTP_CHALLENGE TEXT VALUE AT WELL KNOWN PATH', domain, user, body, token)
+        passed = passed || body === token
       }),
       resolveTXT(domain).then(r => {
         console.log('DNS_OR_HTTP_CHALLENGE TXT RECORD VALUE', domain, user, r, token)
