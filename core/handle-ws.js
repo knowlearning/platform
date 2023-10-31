@@ -144,6 +144,8 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
 
   const { ii, active_type } = await interact(domain, user, id, patch)
 
+  if (active_type === 'application/json;type=domain-claim') console.log('DOMAIN CLAIM', user, domain, scope, patch)
+
   const sideEffect = sideEffects[active_type] || (() => send({ si, ii }))
   await sideEffect({ domain, user, session, scope: id, patch, si, ii, send })
 
