@@ -1,3 +1,4 @@
+X Remove special "claims" name usage for domain
   Download archive of entire domain's data (so we can reliably delete live)
   Cross domain queries
   Fix initialization of domain config behavior (Avoid re-doing work)
@@ -17,4 +18,4 @@
   Use create-folder-content in agent upload to handle upload of items and return one piece of content that is the content-graph
   Admin specifies access rule queries
   Check for passing access rule query on cross-user state request (later handle cross domain requests with special queries)
-  Remove special "claims" name usage for domain
+  Fix claiming domains (http challenge doesnt seem to work)

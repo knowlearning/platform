@@ -10,6 +10,7 @@ const UPLOAD_TYPE = 'application/json;type=upload'
 const SUBSCRIPTION_TYPE = 'application/json;type=subscription'
 const POSTGRES_QUERY_TYPE = 'application/json;type=postgres-query'
 const TAG_TYPE = 'application/json;type=tag'
+const DOMAIN_CLAIM_TYPE = 'application/json;type=domain-claim'
 
 //  transform our custom path implementation to the standard JSONPatch path
 function standardJSONPatch(patch) {
@@ -443,7 +444,12 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   }
 
   async function claim(domain) {
-    return interact('claims', [{ op: 'add', path: ['active', domain], value: null }])
+    const id = uuid()
+    create({
+      id,
+      active_type: DOMAIN_CLAIM_TYPE,
+      active: { domain }
+    })
   }
 
   function reset(scope=DEFAULT_SCOPE_NAME) {

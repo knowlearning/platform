@@ -11,5 +11,5 @@ export default {
   'application/json;type=download': downloads,
   'application/json;type=postgres-query': query,
   'application/json;type=domain-config': configure,
-  claims
+  'application/json;type=domain-claim': claims
 }

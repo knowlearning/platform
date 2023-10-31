@@ -144,8 +144,7 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
 
   const { ii, active_type } = await interact(domain, user, id, patch)
 
-  // TODO: remove special scope based side effects
-  const sideEffect = sideEffects[active_type] || sideEffects[scope] || (() => send({ si, ii }))
+  const sideEffect = sideEffects[active_type] || (() => send({ si, ii }))
   await sideEffect({ domain, user, session, scope: id, patch, si, ii, send })
 
 /*

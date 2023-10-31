@@ -50,7 +50,7 @@ Agent
       arrays()
       watch()
       vuex()
-      reconnect()
+       reconnect()
       if (!Agent.embedded) postgres()
       uploads()
       latestBugfixes()

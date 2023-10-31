@@ -1,5 +1,6 @@
 import { promises as dnsPromises } from 'dns'
 import crypto from 'crypto'
+import { v4 as uuid } from 'uuid'
 import interact from '../interact/index.js'
 import * as redis from '../redis.js'
 import initializationState from '../initialization-state.js'
@@ -15,30 +16,57 @@ redis.connected.then(() => {
   redis.client.json.set('domain-config', '$', state, { NX: true })
 })
 
-export default async function claims({ domain, user, session, scope, patch, si, ii, send }) {
+//  TODO: probably want to abstract this and allow different types
+//        to help with removing privaleged named states
+function coreState(id, domain) {
+  const user = 'core'
+  interact(domain, user, id, [{ op: 'add', value: 'application/json', path: ['active_type'] }])
+  return new MutableProxy({}, async patch => {
+    patch.forEach(({ path }) => path.unshift('active'))
+    interact(domain, user, id, patch)
+  })
+}
+
+export default function claims({ domain, user, session, scope, patch, si, ii, send }) {
   if (domain === ADMIN_DOMAIN || MODE === 'local') { //  can claim from any domain on local
-    const claimedDomain = patch[0].path[1]
-    const token = crypto.randomBytes(64).toString('hex')
+    for (let index = 0; index < patch.length; index ++) {
+      const { path, value } = patch[index]
+      if (path.length === 2 && path[0] === 'active' && path[1] === 'domain') {
+        const token = crypto.randomBytes(64).toString('hex')
+        const claimedDomain = value
 
-    //  Make sure the domain config is initialized
-    redis.client.json.set('domain-config', `$["active"][${JSON.stringify(claimedDomain)}]`, {}, { NX: true })
+        //  Make sure the domain config is initialized
+        redis.client.json.set('domain-config', `$["active"][${JSON.stringify(claimedDomain)}]`, {}, { NX: true })
 
-    send({ si, ii, token })
+        const report = uuid()
+        send({ si, ii, token, report })
 
-    passDNSOrHTTPChallenge(claimedDomain, user, token)
-      .then(async passed => {
-        if (passed) {
-          const patch = [{
-            op: 'add',
-            path: ['active', claimedDomain, 'admin'],
-            value: user
-          }]
-          await interact('core', 'core', 'domain-config', patch)
-        }
-      })
-      .catch(error => console.warn('Error claiming admin', claimedDomain, user, error))
+        const reportState = coreState(report, domain)
+        reportState.started = Date.now()
+
+        return (
+          passDNSOrHTTPChallenge(claimedDomain, user, token)
+            .then(async passed => {
+              if (passed) {
+                reportState.success = Date.now()
+                const patch = [{
+                  op: 'add',
+                  path: ['active', claimedDomain, 'admin'],
+                  value: user
+                }]
+                await interact('core', 'core', 'domain-config', patch)
+              }
+            })
+            .catch(error => {
+              reportState.error = 'Error claiming domain'
+              console.warn('Error claiming admin', claimedDomain, user, error)
+            })
+        )
+      }
+    }
   }
-  else send({ si, ii })
+
+  send({ si, ii })
 }
 
 async function passDNSOrHTTPChallenge(domain, user, token) {
@@ -49,12 +77,20 @@ async function passDNSOrHTTPChallenge(domain, user, token) {
   const started = Date.now()
   const wellKnownURL =`https://${domain}/.well-known/knowlearning-admin-challenge`
   while (!passed) {
+    console.log('DNS_OR_HTTP_CHALLENGE CHECKING IF PASSING!!!', domain, user, token)
     await Promise.all([
-      fetch(wellKnownURL).then(async r => passed = passed || await r.text() === token),
-      resolveTXT(domain).then(r => passed = passed || r.includes(token))
+      fetch(wellKnownURL).then(async r => {
+        console.log('DNS_OR_HTTP_CHALLENGE TEXT VALUE AT WELL KNOWN PATH', domain, user, await r.text(), token)
+        passed = passed || await r.text() === token
+      }),
+      resolveTXT(domain).then(r => {
+        console.log('DNS_OR_HTTP_CHALLENGE TXT RECORD VALUE', domain, user, r, token)
+        passed = passed || r.includes(token)
+      })
     ])
     const elapsed = Date.now() - started
     if (passed || elapsed > CHALLENGE_TIMEOUT_LIMIT) break
+    console.log('DNS_OR_HTTP_CHALLENGE STILL WAITING', domain, user, elapsed, CHALLENGE_TIMEOUT_LIMIT)
   }
   return passed
 }
