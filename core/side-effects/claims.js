@@ -32,9 +32,9 @@ export default function claims({ domain, user, session, scope, patch, si, ii, se
     for (let index = 0; index < patch.length; index ++) {
       const { path, value } = patch[index]
       console.log('CHECKING CLAIM PATCH', domain, user, patch[index])
-      if (path.length === 2 && path[0] === 'active' && path[1] === 'domain') {
+      if (path.length === 1 && path[0] === 'active') {
         const token = crypto.randomBytes(64).toString('hex')
-        const claimedDomain = value
+        const claimedDomain = value.domain //  TODO: graceful fail
 
         //  Make sure the domain config is initialized
         redis.client.json.set('domain-config', `$["active"][${JSON.stringify(claimedDomain)}]`, {}, { NX: true })
