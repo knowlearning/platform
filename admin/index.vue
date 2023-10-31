@@ -56,12 +56,18 @@ export default {
       this.claimMessage = 'claiming...'
       const { token } = await Agent.claim(this.domain)
       const elapsed = Date.now() - start
-      await new Promise(r => setTimeout(r, 1000 - elapsed))
+      await new Promise(r => setTimeout(r, 500 - elapsed))
 
-      this.claimMessage = `
-        Set "${token}" as a TXT record for "${this.domain}" become the admin.
-        Alternatively, make your website "${this.domain}/.well-known/knowlearning-admin-challenge" respond with "${token}"
-      `
+
+      if (this.domain.startsWith(`${this.user}.localhost:`)) {
+        this.claimMessage = `You are now registered as the admin of ${this.domain}. You are welcome, Matt.`
+      }
+      else {
+        this.claimMessage = `
+          Set "${token}" as a TXT record for "${this.domain}" become the admin.
+          Alternatively, make your website "${this.domain}/.well-known/knowlearning-admin-challenge" respond with "${token}"
+        `
+      }
     },
     async removeDomainConfig() {
       if (confirm(`Are you sure you want to remove your configuration for "${this.domain}"`)) {
