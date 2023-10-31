@@ -47,6 +47,7 @@ export default function claims({ domain, user, session, scope, patch, si, ii, se
         return (
           passDNSOrHTTPChallenge(claimedDomain, user, token)
             .then(async passed => {
+              console.log('DNS_OR_HTTP_CHALLENGE PASSED?', claimedDomain, user, passed)
               if (passed) {
                 reportState.success = Date.now()
                 const patch = [{
