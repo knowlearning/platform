@@ -31,6 +31,7 @@ export default function claims({ domain, user, session, scope, patch, si, ii, se
   if (domain === ADMIN_DOMAIN || MODE === 'local') { //  can claim from any domain on local
     for (let index = 0; index < patch.length; index ++) {
       const { path, value } = patch[index]
+      console.log('CHECKING CLAIM PATCH', domain, user, patch[index])
       if (path.length === 2 && path[0] === 'active' && path[1] === 'domain') {
         const token = crypto.randomBytes(64).toString('hex')
         const claimedDomain = value
