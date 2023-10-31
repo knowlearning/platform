@@ -450,6 +450,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
       active_type: DOMAIN_CLAIM_TYPE,
       active: { domain }
     })
+    return lastMessageResponse()
   }
 
   function reset(scope=DEFAULT_SCOPE_NAME) {
