@@ -104,7 +104,10 @@ async function passDNSOrHTTPChallenge(domain, user, token, report) {
       report.timeout = 0
       break
     }
-    else report.timeout = CHALLENGE_TIMEOUT_LIMIT - elapsed
+    else {
+      report.timeout = CHALLENGE_TIMEOUT_LIMIT - elapsed
+      await new Promise(r => setTimeout(r, 1000 - elapsed))
+    }
     console.log('DNS_OR_HTTP_CHALLENGE STILL WAITING', domain, user, elapsed, CHALLENGE_TIMEOUT_LIMIT)
   }
 
