@@ -86,7 +86,7 @@ async function passDNSOrHTTPChallenge(domain, user, token) {
         const body = await r.text()
         console.log('DNS_OR_HTTP_CHALLENGE TEXT VALUE AT WELL KNOWN PATH', domain, user, body, token)
         passed = passed || body === token
-      }),
+      }).catch(error => console.log('DNS_OR_HTTP_CHALLENGE http fetch error', domain, user, error)),
       resolveTXT(domain).then(r => {
         console.log('DNS_OR_HTTP_CHALLENGE TXT RECORD VALUE', domain, user, r, token)
         passed = passed || r.includes(token)
