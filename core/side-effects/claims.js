@@ -83,17 +83,12 @@ async function passDNSOrHTTPChallenge(domain, user, token, report) {
   const wellKnownURL =`https://${domain}/.well-known/knowlearning-admin-challenge`
   while (!passed) {
     report.attempts += 1
-    console.log('DNS_OR_HTTP_CHALLENGE CHECKING IF PASSING!!!', domain, user, token)
     await Promise.all([
-      fetch(wellKnownURL).then(async r => {
-        const body = await r.text()
-        console.log('DNS_OR_HTTP_CHALLENGE TEXT VALUE AT WELL KNOWN PATH', domain, user, body, token)
-        passed = passed || body === token
-      }).catch(error => console.log('DNS_OR_HTTP_CHALLENGE http fetch error', domain, user, error)),
-      resolveTXT(domain).then(r => {
-        console.log('DNS_OR_HTTP_CHALLENGE TXT RECORD VALUE', domain, user, r, token)
-        passed = passed || r.includes(token)
-      })
+      fetch(wellKnownURL)
+        .then(async r => passed = passed || (await r.text()) === token)
+        .catch(error => console.warn('DNS_OR_HTTP_CHALLENGE http fetch error', domain, user, error)),
+      resolveTXT(domain)
+        .then(r => passed = passed || r.includes(token))
     ])
     const elapsed = Date.now() - started
     if (passed) {
@@ -108,7 +103,6 @@ async function passDNSOrHTTPChallenge(domain, user, token, report) {
       report.timeout = CHALLENGE_TIMEOUT_LIMIT - elapsed
       await new Promise(r => setTimeout(r, 1000 - elapsed))
     }
-    console.log('DNS_OR_HTTP_CHALLENGE STILL WAITING', domain, user, elapsed, CHALLENGE_TIMEOUT_LIMIT)
   }
 
   report.success = passed
