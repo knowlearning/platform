@@ -1,6 +1,6 @@
 X Remove special "claims" name usage for domain
+X Cross domain queries
   Download archive of entire domain's data (so we can reliably delete live)
-  Cross domain queries
   Fix initialization of domain config behavior (Avoid re-doing work)
     More granular edit of admin scopes that correspond to tables
   Authorizer as admin agent

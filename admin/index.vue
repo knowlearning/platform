@@ -2,6 +2,7 @@
   <div>{{ user }}</div>
   <div v-if="claimMessage">
     {{ claimMessage }}
+    <vueScopeComponent :id="claimReport" />
     <button @click="claimMessage = null">Okay</button>
   </div>
   <button v-else @click="claim">Become admin for {{ domain }}</button>
@@ -44,6 +45,7 @@ export default {
   data() {
     return {
       config: null,
+      claimReport: null,
       claimMessage: null
     }
   },
@@ -54,7 +56,8 @@ export default {
     async claim() {
       const start = Date.now()
       this.claimMessage = 'claiming...'
-      const { token } = await Agent.claim(this.domain)
+      const { token, report } = await Agent.claim(this.domain)
+      this.claimReport = report
       const elapsed = Date.now() - start
       await new Promise(r => setTimeout(r, 500 - elapsed))
 

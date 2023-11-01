@@ -44,14 +44,12 @@ export default function claims({ domain, user, session, scope, patch, si, ii, se
         send({ si, ii, token, report })
 
         const reportState = coreState(report, domain)
-        reportState.started = Date.now()
 
         return (
-          passDNSOrHTTPChallenge(claimedDomain, user, token)
+          passDNSOrHTTPChallenge(claimedDomain, user, token, reportState)
             .then(async passed => {
               console.log('DNS_OR_HTTP_CHALLENGE PASSED?', claimedDomain, user, passed)
               if (passed) {
-                reportState.success = Date.now()
                 const patch = [{
                   op: 'add',
                   path: ['active', claimedDomain, 'admin'],
@@ -72,7 +70,11 @@ export default function claims({ domain, user, session, scope, patch, si, ii, se
   send({ si, ii })
 }
 
-async function passDNSOrHTTPChallenge(domain, user, token) {
+async function passDNSOrHTTPChallenge(domain, user, token, report) {
+  report.started = Date.now()
+  report.attempts = 0
+  report.timeout = CHALLENGE_TIMEOUT_LIMIT
+
   if (MODE === 'local') return true
   else if (domain.startsWith(`${user}.localhost:`)) return true
 
@@ -80,6 +82,7 @@ async function passDNSOrHTTPChallenge(domain, user, token) {
   const started = Date.now()
   const wellKnownURL =`https://${domain}/.well-known/knowlearning-admin-challenge`
   while (!passed) {
+    report.attempts += 1
     console.log('DNS_OR_HTTP_CHALLENGE CHECKING IF PASSING!!!', domain, user, token)
     await Promise.all([
       fetch(wellKnownURL).then(async r => {
@@ -93,9 +96,19 @@ async function passDNSOrHTTPChallenge(domain, user, token) {
       })
     ])
     const elapsed = Date.now() - started
-    if (passed || elapsed > CHALLENGE_TIMEOUT_LIMIT) break
+    if (passed) {
+      delete report.timeout
+      break
+    }
+    else if (elapsed > CHALLENGE_TIMEOUT_LIMIT) {
+      report.timeout = 0
+      break
+    }
+    else report.timeout = CHALLENGE_TIMEOUT_LIMIT - elapsed
     console.log('DNS_OR_HTTP_CHALLENGE STILL WAITING', domain, user, elapsed, CHALLENGE_TIMEOUT_LIMIT)
   }
+
+  report.success = passed
   return passed
 }
 
