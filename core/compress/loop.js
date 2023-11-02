@@ -1,52 +1,51 @@
 import { brotliCompress, brotliDecompress } from 'zlib'
 import * as redis from '../redis.js'
 
-const BATCH_SIZE = 100
+const BATCH_SIZE = '1000'
 const BATCH_DELAY_MS = 1000
 
 let totalRaw = 0
 let totalCompressed = 0
 
-export default async function compressionLoop(cursor='0') {
-    await redis.connected
-    console.log('COMPRESS Loop Started')
-    redis.client.scan(cursor, 'COUNT', BATCH_SIZE, (error, reply) => {
-      if (error) {
-        console.error('Error scanning:', error)
-        client.quit()
-        return
-      }
+export default async function compressionLoop(startCursor='0') {
+  await redis.connected
+  console.log('COMPRESS Loop Started', startCursor)
 
-      const [cursor, keys] = reply
+  const scanResponse = await redis.client.sendCommand(['SCAN', startCursor, 'COUNT', BATCH_SIZE])
 
-      const transaction = redis.client.multi()
+  const [ cursor, keys ] = scanResponse
 
-      keys.forEach(key => transaction.sendCommand(['OBJECT', 'IDLETIME', key]))
-      keys.forEach(key => transaction.sendCommand(['MEMORY', 'USAGE', key]))
 
-      const response = await transaction.exec()
+  const keyTypeTransaction = redis.client.multi()
+  keys.forEach(key => keyTypeTransaction.type(key))
+  const keyTypes = await keyTypeTransaction.exec()
 
-      const idleTimes = response.slice(0, keys.length)
-      const memoryUsage = response.slice(keys.length)
+  const jsonKeys = keys.filter((key, index) => keyTypes[index] === 'ReJSON-RL')
 
-      const jsonDataTransaction = redis.client.multi()
-      keys.forEach(key => jsonDataTransaction.json.get(key))
-      const blobDataArray = await jsonDataTransaction.exec()
+  const transaction = redis.client.multi()
 
-      const totalUncompressedBlobBytes = memoryUsage.reduce((a, b) => a + b, 0)
-      const totalCompressedBlobBytes = (await compressJSON(blobDataArray)).length
-      console.log('COMPRESS Overall Blob Compression Ratio', totalCompressedBlobBytes, totalUncompressedBlobBytes, totalCompressedBlobBytes/totalUncompressedBlobBytes)
+  jsonKeys.forEach(key => transaction.OBJECT_IDLETIME(key))
+  jsonKeys.forEach(key => transaction.MEMORY_USAGE(key))
 
-      const individualCompressedBlobBytes = Promise.all(blobDataArray.map(async data => (await compressJSON(data)).length))
-      const individualCompressionRatios = individualCompressedBlobBytes.map((value, index) => value/memoryUsage[index])
+  const response = await transaction.exec()
+  const idleTimes = response.slice(0, jsonKeys.length)
+  const memoryUsage = response.slice(jsonKeys.length)
 
-      console.log('COMPRESS Individual Average Compression Ratio', average(individualCompressionRatios))
+  const jsonDataTransaction = redis.client.multi()
+  jsonKeys.forEach(key => jsonDataTransaction.json.get(key))
+  const blobDataArray = await jsonDataTransaction.exec()
 
-      // cursor returns to 0 once all keys scanned
-      if (cursor !== '0') {
-        setTimeout(() => compressionLoop(cursor), BATCH_DELAY_MS)
-      }
-    });
+  const totalUncompressedBlobBytes = memoryUsage.reduce((a, b) => a + b, 0)
+  const totalCompressedBlobBytes = (await compressJSON(blobDataArray)).length
+  console.log('COMPRESS Overall Blob Compression Ratio', totalCompressedBlobBytes, totalUncompressedBlobBytes, totalCompressedBlobBytes/totalUncompressedBlobBytes)
+
+  const individualCompressedBlobBytes = await Promise.all(blobDataArray.map(async data => (await compressJSON(data)).length))
+  const individualCompressionRatios = individualCompressedBlobBytes.map((value, index) => value/memoryUsage[index])
+
+  console.log('COMPRESS Individual Average Compression Ratio', average(individualCompressionRatios))
+
+  // cursor is 0 once all keys scanned
+  if (cursor !== '0') setTimeout(() => compressionLoop(cursor), BATCH_DELAY_MS)
 }
 
 function compressJSON(data) {
