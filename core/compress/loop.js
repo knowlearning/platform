@@ -7,14 +7,14 @@ const BATCH_DELAY_MS = 1000
 let totalRaw = 0
 let totalCompressed = 0
 
-export default async function compressionLoop(startCursor='0') {
+export default async function compressionLoop(startCursor='0', numProcessed=0) {
   await redis.connected
-  console.log('COMPRESS Loop Started', startCursor)
+  console.log('COMPRESS Loop Started Again With', numProcessed, 'Processed So far')
 
   const scanResponse = await redis.client.sendCommand(['SCAN', startCursor, 'COUNT', BATCH_SIZE])
 
+  // cursor is NOT INCREMENTAL. It is an id for an internal redis cursor
   const [ cursor, keys ] = scanResponse
-
 
   const keyTypeTransaction = redis.client.multi()
   keys.forEach(key => keyTypeTransaction.type(key))
@@ -47,7 +47,7 @@ export default async function compressionLoop(startCursor='0') {
   // cursor is 0 once all keys scanned
   if (cursor !== '0') {
     await new Promise(r => setTimeout(r, BATCH_DELAY_MS))
-    return compressionLoop(cursor)
+    return compressionLoop(cursor, numProcessed + jsonKeys.length)
   }
 }
 
