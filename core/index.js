@@ -8,6 +8,7 @@ import handleWS from './handle-ws.js'
 import handleHTTP from './handle-http.js'
 import { applyConfiguration, ensureDomainConfigured } from './side-effects/configure.js'
 import ADMIN_DOMAIN_CONFIG from './admin-domain-config.js'
+import compressionLoop from './compress/loop.js'
 
 const {
   PORT,
@@ -22,6 +23,8 @@ const credentials = {
   cert: INSECURE_DEVELOPMENT_CERT,
   key: INSECURE_DEVELOPMENT_KEY
 }
+
+compressionLoop()
 
 // TODO: consider what to do with a real persistent report
 const report = {tasks:{}}
