@@ -25,6 +25,7 @@ const credentials = {
 }
 
 compressionLoop()
+  .catch(error => console.error('COMPRESSION Error', error))
 
 // TODO: consider what to do with a real persistent report
 const report = {tasks:{}}

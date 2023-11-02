@@ -45,7 +45,10 @@ export default async function compressionLoop(startCursor='0') {
   console.log('COMPRESS Individual Average Compression Ratio', average(individualCompressionRatios))
 
   // cursor is 0 once all keys scanned
-  if (cursor !== '0') setTimeout(() => compressionLoop(cursor), BATCH_DELAY_MS)
+  if (cursor !== '0') {
+    await new Promise(r => setTimeout(r, BATCH_DELAY_MS))
+    return compressionLoop(cursor)
+  }
 }
 
 function compressJSON(data) {
