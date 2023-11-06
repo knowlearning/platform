@@ -2,9 +2,11 @@
 
 ## Goal
 
-The goal of this scaffold isn't to prescribe exactly how you should structure an app. Many apps won't need all the flexibility that this scaffold allows for, so they'll probably be better served by much simpler main scripts.
+The goal of this scaffold isn't to prescribe exactly how you should structure an app.
+The goal is to recommend a structure that works well when we consider applications that are meant to be embeddable in other applications.
+Many apps won't need all the flexibility that this scaffold allows, so they'll probably be better served by much simpler or application specific main scripts.
 
-The goal of this scaffold is to demonstrate, as simply as possible, a fully fleshed out structure with clear places to make top-level application architecture decisions. This structure should work well with any front-end web application framework.
+This structure should work well with any front-end web application framework.
 
 ## 3 Answers Required for Initialization
 
@@ -17,7 +19,7 @@ This one is pretty easy to answer since ```@knowlearning/agents``` handles authe
   const { auth: { user, provider } } = await Agent.environment()
 ```
 Now ```user``` will be the UUID that uniquely identifies your user (no matter who the provider is),
-and ```provider``` will be the single-sign-on provider the user logged in with
+and ```provider``` will be the single-sign-on provider the user logged in with.
 
 !!! warning
 

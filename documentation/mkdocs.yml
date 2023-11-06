@@ -17,8 +17,9 @@ nav:
     - Relational Data: reference/relational-data.md
     - Authorization: reference/authorization.md
   - How-Tos: how-tos/index.md
-  - Tutorials:
-    - Recommended App Scaffold: tutorials/recommended-app-scaffold.md
+  - Tutorials: index.md
+  - Embedding
+    - Recommended App Scaffold: embedding/recommended-app-scaffold.md
   - Frameworks:
     - Vue: frameworks/vue.md
 markdown_extensions:
