@@ -2,9 +2,9 @@
 
 ## Goal
 
-The goal of this scaffold isn't to prescribe exactly how you should structure an app.
+The goal of this scaffold isn't to prescribe exactly how to structure an app.
 The goal is to recommend a structure that works well when we consider applications that are meant to be embeddable in other applications.
-Many apps won't need all the flexibility that this scaffold allows, so they'll probably be better served by much simpler or application specific main scripts.
+Many apps won't need all the flexibility that this scaffold allows, such apps are better served by simpler or more application specific main scripts.
 
 This structure should work well with any front-end web application framework.
 
@@ -29,18 +29,18 @@ and ```provider``` will be the single-sign-on provider the user logged in with.
 
 The answer hinges on whether or not the current URL has a uuid as its resource path.
 
-  1.  We recommend that your app first checks if the path is a UUID.
-      If it is a UUID, we recommend inspecting its metadata and use its type to decide what content show.
-      We recommend this because it helps other apps that want to embed your content
-      (such apps include sequence wrappers and recommendation systems that make your content even more useful to everyone).
-  2.  If the path is not a UUID, then your app can make the decision to show whatever component or content as it normally would
-      (using a router for your framework, or whatever implementation you like best).
-      Other apps can still embed your content, but they will now need to rely on exact URLs to reference your content.
-      Embedding this way isn't so desireable since you will probably want to update the structure of your resource paths some day.
-      It is also easier to discover and share content via UUID
-      (Of course this is debatable; UUIDs are not the most beautiful looking things, and they are pretty hard to for humans to distinguish.
-      But they are really easy for computers to recognize and make use of!
-      If content is shared via UUID, then it becomes a lot easier to use the power tools Know Learning provides to explore connected data).
+1.  We recommend that your app first checks if the path is a UUID.
+    If it is a UUID, we recommend inspecting its metadata and use its type to decide what content show.
+    We recommend this because it helps other apps that want to embed your content
+    (such apps include sequence wrappers and recommendation systems that make your content even more useful to everyone).
+2.  If the path is not a UUID, then your app can make the decision to show whatever component or content as it normally would
+    (using a router for your framework, or whatever implementation you like best).
+    Other apps can still embed your content, but they will now need to rely on exact URLs to reference your content.
+    Embedding this way isn't so desireable since you will probably want to update the structure of your resource paths some day.
+    It is also easier to discover and share content via UUID
+    (Of course this is debatable; UUIDs are not the most beautiful looking things, and they are pretty hard to for humans to distinguish.
+    But they are really easy for computers to recognize and make use of!
+    If content is shared via UUID, then it becomes a lot easier to use the power tools Know Learning provides to explore connected data).
 
 ### How do we attach users to their previous application state?
 
