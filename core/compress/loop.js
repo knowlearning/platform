@@ -8,6 +8,7 @@ let totalRaw = 0
 let totalCompressed = 0
 
 export default async function compressionLoop(startCursor='0', numProcessed=0) {
+  return
   await redis.connected
   console.log('COMPRESS Loop Started Again With', numProcessed, 'Processed So far')
 
