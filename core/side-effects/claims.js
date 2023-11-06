@@ -78,10 +78,10 @@ async function passDNSOrHTTPChallenge(domain, user, token, report) {
   if (MODE === 'local') return true
   else if (domain.startsWith(`${user}.localhost:`)) return true
 
-  let passed = false
+  let passed = null
   const started = Date.now()
   const wellKnownURL =`https://${domain}/.well-known/knowlearning-admin-challenge`
-  while (!passed) {
+  while (passed === null) {
     report.attempts += 1
     await Promise.all([
       fetch(wellKnownURL)
@@ -97,9 +97,11 @@ async function passDNSOrHTTPChallenge(domain, user, token, report) {
     }
     else if (elapsed > CHALLENGE_TIMEOUT_LIMIT) {
       report.timeout = 0
+      passed = false
       break
     }
     else {
+      console.log('DNS_OR_HTTP_CHALLENGE trying again', CHALLENGE_TIMEOUT_LIMIT, elapsed)
       report.timeout = CHALLENGE_TIMEOUT_LIMIT - elapsed
       await new Promise(r => setTimeout(r, 1000 - elapsed))
     }
