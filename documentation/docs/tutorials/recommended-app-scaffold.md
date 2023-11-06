@@ -10,21 +10,22 @@ The goal of this scaffold is to demonstrate, as simply as possible, a fully fles
 
 Lets talk about 3 questions an app needs to answer before initialization:
 
-1.  What user is running our app?
-2.  What content should the user see?
-3.  What data do we use as the "props" to initialize the content?
+### What user is running our app?
 
-To help easily answer #1, ```@knowlearning/agents``` handles authentication for
-you:
+This one is pretty easy to answer since ```@knowlearning/agents``` handles authentication for you:
 ```js
   const { auth: { user, provider } } = await Agent.environment()
 ```
-Now ```user``` will be the UUID that uniquely identifies your user (no matter
-who the provider is), and ```provider``` will be the single-sign-on provider
-the user logged in with (WARNING! ```provider``` may be ```"anonymous"```, in
-which case you probably want to show a login page).
+Now ```user``` will be the UUID that uniquely identifies your user (no matter who the provider is),
+and ```provider``` will be the single-sign-on provider the user logged in with
 
-The answer to #2 hinges on whether or not the current URL has a uuid as its resource path.
+!!! warning
+
+    ```provider``` may be ```"anonymous"```, in which case you probably want to show a login page.
+
+### What content should the user see?
+
+The answer hinges on whether or not the current URL has a uuid as its resource path.
 
   1.  We recommend that your app first checks if the path is a UUID.
       If it is a UUID, we recommend inspecting its metadata, then using its type to decide what kind of content you want to show.
@@ -40,14 +41,16 @@ The answer to #2 hinges on whether or not the current URL has a uuid as its reso
       But they are really easy for computers to recognize and make use of!
       If content is shared via UUID, then it becomes a lot easier to use the power tools Know Learning provides to explore connected data).
 
-To answer question #3:
-If the path is a UUID, then we recommend you use the data of that UUID to initialize the content.
-Otherwise, the app decides as it normally would (perhaps using query parameters, hardcoded values, or even requesting specially named scopes for the user).
+### What data do we use as the "props" to initialize the content?
 
-Once these questions are answered, an app has everything it needs to initialize.
-he recommended scaffold implementation we will dive into now will explicitly show how to answer these questions in code.
+If the path is a UUID, then we recommend you use the data of that UUID to initialize the content;
+otherwise, your app can decide as it normally would
+(perhaps using query parameters, hardcoded values, or even requesting specially named scopes for the user).
 
 ## The Scaffold
+
+Once the above questions are answered, an app has everything it needs to initialize.
+The recommended scaffold implementation we will dive into now will explicitly show how to answer these questions in code:
 
 ```js
 import { browserAgent } from '@knowlearning/agents'
