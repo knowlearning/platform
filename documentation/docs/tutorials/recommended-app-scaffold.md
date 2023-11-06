@@ -44,8 +44,8 @@ The answer hinges on whether or not the current URL has a uuid as its resource p
 
 Just use:
 ```js
-  const application_state = await Agent.state()```
-````
+  const application_state = await Agent.state()
+```
 This will attach a user to the same state whenever they encounter your content at the same domain, or embedded in the same way.
 
 ## The Scaffold
