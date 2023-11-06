@@ -28,24 +28,25 @@ and ```provider``` will be the single-sign-on provider the user logged in with
 The answer hinges on whether or not the current URL has a uuid as its resource path.
 
   1.  We recommend that your app first checks if the path is a UUID.
-      If it is a UUID, we recommend inspecting its metadata, then using its type to decide what kind of content you want to show.
+      If it is a UUID, we recommend inspecting its metadata and use its type to decide what content show.
       We recommend this because it helps other apps that want to embed your content
       (such apps include sequence wrappers and recommendation systems that make your content even more useful to everyone).
   2.  If the path is not a UUID, then your app can make the decision to show whatever component or content as it normally would
       (using a router for your framework, or whatever implementation you like best).
-      Other apps can still embed your content, but they will now need to know your domain,
-      and remember the structure of your resource path to be able to reference your content.
+      Other apps can still embed your content, but they will now need to rely on exact URLs to reference your content.
       Embedding this way isn't so desireable since you will probably want to update the structure of your resource paths some day.
-      It is also much easier to discover and share content via UUID
+      It is also easier to discover and share content via UUID
       (Of course this is debatable; UUIDs are not the most beautiful looking things, and they are pretty hard to for humans to distinguish.
       But they are really easy for computers to recognize and make use of!
       If content is shared via UUID, then it becomes a lot easier to use the power tools Know Learning provides to explore connected data).
 
-### What data do we use as the "props" to initialize the content?
+### How do we attach users to their previous application state?
 
-If the path is a UUID, then we recommend you use the data of that UUID to initialize the content;
-otherwise, your app can decide as it normally would
-(perhaps using query parameters, hardcoded values, or even requesting specially named scopes for the user).
+Just use:
+```js
+  const application_state = await Agent.state()```
+````
+This will attach a user to the same state whenever they encounter your content at the same domain, or embedded in the same way.
 
 ## The Scaffold
 
@@ -106,3 +107,4 @@ else {
     If your application is not embedded, and just on your site in a user's browser, the situation is pretty simple:
     The user is always given the same run-state.
     If your application is embedded inside another, your content embedded in that application will be given a state unique to that embedding.
+
