@@ -18,8 +18,9 @@ nav:
     - Authorization: reference/authorization.md
   - How-Tos: how-tos/index.md
   - Tutorials: index.md
-  - Embedding
+  - Embedding:
     - Recommended App Scaffold: embedding/recommended-app-scaffold.md
+    - Recommended Dashboard Scaffold: embedding/recommended-dashboard-scaffold.md
   - Frameworks:
     - Vue: frameworks/vue.md
 markdown_extensions:
