@@ -1,6 +1,8 @@
+import { validate as isUUID } from 'uuid'
 import MutableProxy from '../../persistence/json.js'
-import initializeMessageQueue from './initialize-message-queue.js'
+import messageQueue from './message-queue.js'
 import stateImplementation from './state.js'
+import watchImplementation from './watch.js'
 import downloadImplementation from '../download.js'
 
 // TODO: consider using something better than name as mechanism
@@ -10,10 +12,6 @@ const UPLOAD_TYPE = 'application/json;type=upload'
 const POSTGRES_QUERY_TYPE = 'application/json;type=postgres-query'
 const TAG_TYPE = 'application/json;type=tag'
 const DOMAIN_CLAIM_TYPE = 'application/json;type=domain-claim'
-
-function isUUID(string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(string)
-}
 
 export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fetch, applyPatch, login, logout, reboot }) {
   const states = {}
@@ -26,19 +24,19 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   const environmentPromise = new Promise(r => resolveEnvironment = r)
 
   log('INITIALIZING AGENT CONNECTION')
-  const messageQueueReferences = { token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact }
   const [
     queueMessage,
     lastMessageResponse,
     disconnect,
     reconnect,
     synced
-  ] = initializeMessageQueue(resolveEnvironment, messageQueueReferences)
+  ] = messageQueue(resolveEnvironment, { token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact })
 
   const internalReferences = {
     keyToSubscriptionId,
     watchers,
     states,
+    state,
     create,
     environment,
     lastInteractionResponse,
@@ -46,24 +44,20 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     tagIfNotYetTaggedInSession,
     interact,
     fetch,
-    metadata,
+    metadata
   }
+
+  const [ watch, removeWatcher ] = watchImplementation(internalReferences)
 
   async function environment() { return { ...(await environmentPromise), context: [] } }
 
-  function state(scope) { return stateImplementation(scope, internalReferences) }
+  function state(scope, user) { return stateImplementation(scope, user, internalReferences) }
 
   function download(id) { return downloadImplementation(id, internalReferences) }
 
   function debug() { mode = 'debug' }
 
   function log() { if (mode === 'debug') console.log(...arguments) }
-
-  function removeWatcher(key, fn) {
-    const watcherIndex = watchers[key].findIndex(x => x === fn)
-    if (watcherIndex > -1) watchers[key].splice(watcherIndex, 1)
-    else console.warn('TRIED TO REMOVE WATCHER THAT DOES NOT EXIST')
-  }
 
   function create({ id=uuid(), active_type, active, name }) {
     const patch = [
@@ -87,71 +81,6 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     if (!isUUID(target)) target = (await metadata(target)).id
 
     await tag(tag_type, target)
-  }
-
-  function watchResolution(path, callback) {
-    const id = path[0]
-    const references = path.slice(1)
-    let unwatchDeeper = () => {}
-
-    const unwatch = watch(id, ({ state }) => {
-      if (references.length === 0) {
-        callback(state)
-        return
-      }
-
-      //  TODO: check if value we care about actually changed
-      //        and ignore this update if it has not.
-      unwatchDeeper()
-
-      let value = state
-      for (let index = 0; index < references.length; index += 1) {
-        value = value[references[index]]
-        if (
-          value === null ||
-          value === undefined ||
-          index === references.length - 1
-        ) callback(value)
-        else if (isUUID(value)) {
-          unwatchDeeper = watchResolution([value, ...references.slice(index + 1)], callback)
-          return
-        }
-      }
-    })
-
-    return () => {
-      unwatch()
-      unwatchDeeper()
-    }
-  }
-
-  function watch(scope=DEFAULT_SCOPE_NAME, fn) {
-    if (Array.isArray(scope)) return watchResolution(scope, fn)
-
-    let initialSent = false
-    const queue = []
-    function cb(update) {
-      if (initialSent) fn(update)
-      else queue.push(update)
-    }
-
-    const statePromise = state(scope)
-    if (!watchers[scope]) watchers[scope] = []
-    watchers[scope].push(cb)
-
-    metadata(scope)
-      .then(async ({ ii }) => {
-        fn({
-          scope,
-          state: await statePromise,
-          patch: null,
-          ii
-        })
-        initialSent = true
-        queue.forEach(fn)
-      })
-
-    return () => removeWatcher(scope, cb)
   }
 
   //  TODO: if no data, set up streaming upload
@@ -225,16 +154,15 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     )
   }
 
-  async function metadata(id=DEFAULT_SCOPE_NAME) {
-    // TODO: handle when id is undefined (default like state call?)
-    await state(id)
+  async function metadata(id=DEFAULT_SCOPE_NAME, user) {
+    await state(id, user)
     const md = structuredClone(await states[id])
     delete md.active
     return new MutableProxy(md, patch => {
       const activePatch = structuredClone(patch)
-      activePatch.forEach(entry => {
-        if (!isValidMetadataMutation(entry)) throw new Error('You may only modify the type or name for a scope\'s metadata')
-      })
+      if (!activePatch.every(isValidMetadataMutation)) {
+        throw new Error("You may only modify the type or name for a scope's metadata")
+      }
       interact(id, activePatch)
     })
   }

@@ -12,7 +12,7 @@ function sanitizeJSONPatchPathSegment(s) {
   else return s
 }
 
-export default function initializeMessageQueue(setEnvironment, { token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact }) {
+export default function messageQueue(setEnvironment, { token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact }) {
   let ws
   let user
   let authed = false
