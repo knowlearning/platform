@@ -279,7 +279,6 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   }
 
   function state(scope='[]') {
-    tagIfNotYetTaggedInSession('subscribed', scope)
     return new Promise(async (resolveState, rejectState) => {
       if (!keyToSubscriptionId[scope]) {
         const id = uuid()
@@ -295,8 +294,9 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
           try {
             const state = await lastMessageResponse()
+            tagIfNotYetTaggedInSession('subscribed', state.id)
             interact(id, [
-              { op: 'add', path: ['active', 'ii'], value: 1 }, // TODO: use state.ii when is coming down properly...
+              { op: 'add', path: ['active', 'ii'], value: state.ii }, // TODO: use state.ii when is coming down properly...
               { op: 'add', path: ['active', 'synced'], value: Date.now() }
             ])
 
