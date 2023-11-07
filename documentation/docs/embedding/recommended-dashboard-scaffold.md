@@ -4,14 +4,14 @@ This scaffold outlines our recommendation for how "dashboard type" applications 
 Dashboard applications using this recommendation can show individual user and group level performance.
 
 This recommendation is a small extension of the [recommended application scaffold](/embedding/recommended-app-scaffold/).
-If you haven't reviewed that yet, please check it out.
+If you haven't reviewed that yet, please check it out before reading this.
 
 There are 3 types of uuid referencess relevant to this recommendation:
 
 1.  User ids: These are the uuids for the users you care about
 2.  Content ids: These are the uuids that reference the content that a user played.
     In our [recommended application scaffold](/embedding/recommended-app-scaffold/),
-    these are the ones that were in the path for embedded content.
+    these are the ones that were in the the embedded url's path.
 3.  User Application States:
     These are the uuids that correspond to states returned when an application calls ```await Agent.state()``` on behalf of a user.
 
@@ -45,7 +45,7 @@ The embedding application's hard work is done, now it is up to the embedded appl
 
 ## The Embedded Application
 
-If an embedded application wants to adhere to this dashboard recommendation,
+If an application wants to adhere to this dashboard recommendation to show dashboards when it is embedded,
 it needs to add 1 extra check to the [recommended application scaffold](/embedding/recommended-app-scaffold/).
 If the check for ```isUUID(potentialUUID)``` passes then, after the metadata arrives,
 simply add a check for the dashboard-config type:
