@@ -155,14 +155,14 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   }
 
   async function metadata(id=DEFAULT_SCOPE_NAME, user) {
-    await state(id, user)
-    const md = structuredClone(await states[id])
+    const md = structuredClone(await state(id, user).metadata)
     delete md.active
     return new MutableProxy(md, patch => {
       const activePatch = structuredClone(patch)
       if (!activePatch.every(isValidMetadataMutation)) {
         throw new Error("You may only modify the type or name for a scope's metadata")
       }
+      //  TODO: if user is not active user, reject the metadata update with error
       interact(id, activePatch)
     })
   }
