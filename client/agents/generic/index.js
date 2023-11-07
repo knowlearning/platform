@@ -50,9 +50,13 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     metadata,
   }
 
+  async function environment() { return { ...(await environmentPromise), context: [] } }
+
   function state(scope) { return stateImplementation(scope, internalReferences) }
 
   function download(id) { return downloadImplementation(id, internalReferences) }
+
+  function debug() { mode = 'debug' }
 
   function log() { if (mode === 'debug') console.log(...arguments) }
 
@@ -61,9 +65,8 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     if (watcherIndex > -1) watchers[key].splice(watcherIndex, 1)
     else console.warn('TRIED TO REMOVE WATCHER THAT DOES NOT EXIST')
   }
+
   function create({ id=uuid(), active_type, active, name }) {
-    //  TODO: collapse into 1 patch and 1 interact call
-    //        (requires updating side effects)
     const patch = [
       { op: 'add', path: ['active_type'], value: active_type },
       { op: 'add', path: ['active'], value: active }
@@ -81,7 +84,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
     tagTypeToTargetCache[tag_type][target] = true
 
-      //  always use absolute referene when tagging
+    //  always use absolute referene when tagging
     if (!isUUID(target)) target = (await metadata(target)).id
 
     await tag(tag_type, target)
@@ -121,10 +124,6 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
       unwatch()
       unwatchDeeper()
     }
-  }
-
-  async function environment() {
-    return { ...(await environmentPromise), context: [] }
   }
 
   function watch(scope=DEFAULT_SCOPE_NAME, fn) {
@@ -239,10 +238,6 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
       })
       interact(id, activePatch)
     })
-  }
-
-  function debug() {
-    mode = 'debug'
   }
 
   async function query(query, params, domain) {
