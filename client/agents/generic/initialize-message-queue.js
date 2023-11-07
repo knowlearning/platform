@@ -205,13 +205,9 @@ export default function initializeMessageQueue(setEnvironment, { token, protocol
     checkHeartbeat()
   }
 
-  async function synced() {
-    return isSynced ? null : new Promise(resolve => syncedPromiseResolutions.push(resolve))
-  }
+  async function synced() { return isSynced ? null : new Promise(res => syncedPromiseResolutions.push(res)) }
 
-  function lastMessageResponse() { //  TODO: handle error responses
-    return new Promise((resolve, reject) => responses[si].push([resolve, reject]))
-  }
+  function lastMessageResponse() { return new Promise((res, rej) => responses[si].push([res, rej])) }
 
   function disconnect() {
     log('DISCONNECTED AGENT!!!!!!!!!!!!!!!')
