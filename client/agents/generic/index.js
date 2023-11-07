@@ -6,7 +6,6 @@ import downloadImplementation from '../download.js'
 // TODO: consider using something better than name as mechanism
 //       for resoling default scope in context
 const DEFAULT_SCOPE_NAME = '[]'
-const SESSION_TYPE = 'application/json;type=session'
 const UPLOAD_TYPE = 'application/json;type=upload'
 const POSTGRES_QUERY_TYPE = 'application/json;type=postgres-query'
 const TAG_TYPE = 'application/json;type=tag'
