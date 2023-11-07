@@ -9,7 +9,6 @@ export default function(scope='[]', user, { keyToSubscriptionId, watchers, state
 
   const statePromise = new Promise(async (resolveState, rejectState) => {
     const qualifiedScope = isUUID(scope) ? scope : `${user || ''}/${scope}`
-    console.log('State qualified scope', qualifiedScope)
     if (!keyToSubscriptionId[qualifiedScope]) {
       const id = uuid()
 
@@ -41,7 +40,6 @@ export default function(scope='[]', user, { keyToSubscriptionId, watchers, state
 
     try {
       const data = structuredClone(await states[qualifiedScope])
-      console.log('DATA----------', data)
       const active = data.active
       delete data.active
       resolveMetadataPromise(data)

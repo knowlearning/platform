@@ -105,7 +105,6 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
   //  TODO: addTag option should probably not be exposed
   async function interact(scope=DEFAULT_SCOPE_NAME, patch, addTag=true) {
-    console.log('watchers!', watchers)
     if (addTag) tagIfNotYetTaggedInSession('mutated', scope)
     //  TODO: ensure user is owner of scope
     const response = queueMessage({scope, patch})

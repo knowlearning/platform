@@ -154,7 +154,6 @@ export default function messageQueue(setEnvironment, { token, protocol, host, We
           flushMessageQueue()
         }
         else {
-          console.log('message.si...', message)
           if (message.si !== undefined) {
             if (responses[message.si]) {
               //  TODO: remove "acknowledged" messages from queue and do accounting with si
@@ -172,7 +171,6 @@ export default function messageQueue(setEnvironment, { token, protocol, host, We
           }
           else {
             const qualifiedScope = isUUID(message.scope) ? message.scope : `${ message.user === user ? '' : message.user}/${message.scope}`
-            console.log('QUALIFIED SCOPE', message, qualifiedScope)
             if (watchers[qualifiedScope]) {
               states[qualifiedScope] = await states[qualifiedScope]
 

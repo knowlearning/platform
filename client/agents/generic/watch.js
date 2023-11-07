@@ -8,7 +8,6 @@ export default function({ metadata, state, watchers }) {
     let initialSent = false
     const queue = []
     function cb(update) {
-      console.log('Callback called?', update)
       if (initialSent) fn(update)
       else queue.push(update)
     }
