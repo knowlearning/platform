@@ -105,24 +105,26 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
   //  TODO: addTag option should probably not be exposed
   async function interact(scope=DEFAULT_SCOPE_NAME, patch, addTag=true) {
+    console.log('watchers!', watchers)
     if (addTag) tagIfNotYetTaggedInSession('mutated', scope)
     //  TODO: ensure user is owner of scope
     const response = queueMessage({scope, patch})
 
     //  if we are watching this scope, we want to keep track of last interaction we fired
-    if (states[scope] !== undefined) {
+    const qualifiedScope = isUUID(scope) ? scope : `/${scope}`
+    if (states[qualifiedScope] !== undefined) {
       let resolve
-      lastInteractionResponse[scope] = new Promise(r => resolve = r)
+      lastInteractionResponse[qualifiedScope] = new Promise(r => resolve = r)
 
       const resolveAndUnwatch = async (update) => {
         const { ii } = await response
         if (update.ii === ii) {
           resolve(ii)
-          removeWatcher(scope, resolveAndUnwatch)
+          removeWatcher(qualifiedScope, resolveAndUnwatch)
         }
       }
 
-      watchers[scope].push(resolveAndUnwatch)
+      watchers[qualifiedScope].push(resolveAndUnwatch)
 
       return response
     }

@@ -8,15 +8,18 @@ export default function({ metadata, state, watchers }) {
     let initialSent = false
     const queue = []
     function cb(update) {
+      console.log('Callback called?', update)
       if (initialSent) fn(update)
       else queue.push(update)
     }
 
     const statePromise = state(scope, user)
-    if (!watchers[scope]) watchers[scope] = []
-    watchers[scope].push(cb)
+    const qualifiedScope = isUUID(scope) ? scope : `${user || ''}/${scope}`
 
-    metadata(scope)
+    if (!watchers[qualifiedScope]) watchers[qualifiedScope] = []
+    watchers[qualifiedScope].push(cb)
+
+    metadata(scope, user)
       .then(async ({ ii }) => {
         fn({
           scope,
@@ -28,7 +31,7 @@ export default function({ metadata, state, watchers }) {
         queue.forEach(fn)
       })
 
-    return () => removeWatcher(scope, cb)
+    return () => removeWatcher(qualifiedScope, cb)
   }
 
   function watchResolution(path, callback, user) {

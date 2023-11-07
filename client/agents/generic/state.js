@@ -1,3 +1,4 @@
+import { validate as isUUID } from 'uuid'
 import MutableProxy from '../../persistence/json.js'
 
 const SUBSCRIPTION_TYPE = 'application/json;type=subscription'
@@ -7,17 +8,19 @@ export default function(scope='[]', user, { keyToSubscriptionId, watchers, state
   let metadataPromise = new Promise(resolve => resolveMetadataPromise = resolve)
 
   const statePromise = new Promise(async (resolveState, rejectState) => {
-    if (!keyToSubscriptionId[scope]) {
+    const qualifiedScope = isUUID(scope) ? scope : `${user || ''}/${scope}`
+    console.log('State qualified scope', qualifiedScope)
+    if (!keyToSubscriptionId[qualifiedScope]) {
       const id = uuid()
 
-      keyToSubscriptionId[scope] = id
-      watchers[scope] = []
-      states[scope] = new Promise(async (resolve, reject) => {
+      keyToSubscriptionId[qualifiedScope] = id
+      watchers[qualifiedScope] = []
+      states[qualifiedScope] = new Promise(async (resolve, reject) => {
         const { session } = await environment()
         create({
           id,
           active_type: SUBSCRIPTION_TYPE,
-          active: { session, scope, ii: null, initialized: Date.now() },
+          active: { session, scope, user, ii: null, initialized: Date.now() },
         })
 
         try {
@@ -34,10 +37,11 @@ export default function(scope='[]', user, { keyToSubscriptionId, watchers, state
       })
     }
 
-    await lastInteractionResponse[scope]
+    await lastInteractionResponse[qualifiedScope]
 
     try {
-      const data = structuredClone(await states[scope])
+      const data = structuredClone(await states[qualifiedScope])
+      console.log('DATA----------', data)
       const active = data.active
       delete data.active
       resolveMetadataPromise(data)

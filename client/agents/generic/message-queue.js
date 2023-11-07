@@ -1,3 +1,5 @@
+import { validate as isUUID } from 'uuid'
+
 const HEARTBEAT_TIMEOUT = 10000
 
 //  transform our custom path implementation to the standard JSONPatch path
@@ -152,18 +154,16 @@ export default function messageQueue(setEnvironment, { token, protocol, host, We
           flushMessageQueue()
         }
         else {
+          console.log('message.si...', message)
           if (message.si !== undefined) {
             if (responses[message.si]) {
               //  TODO: remove "acknowledged" messages from queue and do accounting with si
               responses[message.si]
-                .forEach(([resolve, reject]) => {
-                  message.error ? reject(message) : resolve(message)
-                })
+                .forEach(([res, rej]) => message.error ? rej(message) : res(message))
+
               delete responses[message.si]
               ws.send(JSON.stringify({ack: message.si})) //  acknowledgement that we have received the response for this message
-              if (Object.keys(responses).length === 0) {
-                resolveSyncPromises()
-              }
+              if (Object.keys(responses).length === 0) resolveSyncPromises()
             }
             else {
               //  TODO: consider what to do here... probably want to throw error if in dev env
@@ -171,17 +171,19 @@ export default function messageQueue(setEnvironment, { token, protocol, host, We
             }
           }
           else {
-            if (watchers[message.scope]) {
-              states[message.scope] = await states[message.scope]
+            const qualifiedScope = isUUID(message.scope) ? message.scope : `${ message.user === user ? '' : message.user}/${message.scope}`
+            console.log('QUALIFIED SCOPE', message, qualifiedScope)
+            if (watchers[qualifiedScope]) {
+              states[qualifiedScope] = await states[qualifiedScope]
 
               const lastResetPatchIndex = message.patch.findLastIndex(p => p.path.length === 0)
-              if (lastResetPatchIndex > -1) states[message.scope] = message.patch[lastResetPatchIndex].value
+              if (lastResetPatchIndex > -1) states[qualifiedScope] = message.patch[lastResetPatchIndex].value
 
-              if (states[message.scope].active === undefined) states[message.scope].active = {}
-              applyPatch(states[message.scope], standardJSONPatch(message.patch.slice(lastResetPatchIndex + 1)))
-              watchers[message.scope]
+              if (states[qualifiedScope].active === undefined) states[qualifiedScope].active = {}
+              applyPatch(states[qualifiedScope], standardJSONPatch(message.patch.slice(lastResetPatchIndex + 1)))
+              watchers[qualifiedScope]
                 .forEach(fn => {
-                  const state = structuredClone(states[message.scope].active)
+                  const state = structuredClone(states[qualifiedScope].active)
                   fn({ ...message, state })
                 })
             }
