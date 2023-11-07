@@ -3,7 +3,7 @@ import WebSocket from 'ws'
 import { v1 as uuid } from 'uuid'
 import fastJSONPatch from 'fast-json-patch'
 import fetch from 'node-fetch'
-import Agent from './generic.js'
+import Agent from './generic/index.js'
 
 const { SERVE_HOST, SERVICE_ACCOUNT_TOKEN } = process.env
 

@@ -1,3 +1,4 @@
+import { validate as isUUID } from 'uuid'
 import * as redis from '../redis.js'
 import subscribe from '../subscribe.js'
 import configuration from '../configuration.js'
@@ -13,20 +14,20 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
 
     if (op === 'add' && path.length === 1 && path[0] === 'active') {
       //const [id] = path //  TODO: track deletes of id in sessions object to unhook subscriptions
-      const { scope } = value
+      let { scope, user:scopeUser=user } = value
 
       //  TODO: authorization check here
       if (!subscriptions[session]) subscriptions[session] = {}
 
       const ss = subscriptions[session]
-      const id = await scopeToId(domain, user, scope)
+      const id = await scopeToId(domain, scopeUser, scope)
       if (!ss[id]) ss[id] = subscribe(id, send, scope)
       await redis.connected //  TODO: assess if necessary
       let state = await redis.client.json.get(id)
       if (!state) {
         state = initializationState(domain, user, scope)
         //  TODO: ensure set was successful, otherwise just retry get
-        await redis.client.json.set(id, '$', state, { NX: true }) // initialize metadata if does not exist
+        if (scopeUser === user) await redis.client.json.set(id, '$', state, { NX: true }) // initialize metadata if does not exist
       }
       send({ ...state, id, si })
       return
