@@ -58,7 +58,7 @@ export default function initializeMessageQueue(setEnvironment, { token, protocol
   // TODO: clear acknowledged messages
   async function flushMessageQueue() {
     // this makes flushing async, giving time for queue message to combine synchronous updates
-    await new Promise(resolve => resolve())
+    await new Promise(r=>r())
     lastSynchronousScopePatched = null
 
     while (authed && ws.readyState === WebSocket.OPEN && lastSentSI+1 < messageQueue.length) {
@@ -67,7 +67,7 @@ export default function initializeMessageQueue(setEnvironment, { token, protocol
       ws.send(JSON.stringify(messageQueue[lastSentSI]))
 
       //  async so we don't try and push more to a closed connection
-      await new Promise(resolve => resolve())
+      await new Promise(r=>r())
     }
   }
 
