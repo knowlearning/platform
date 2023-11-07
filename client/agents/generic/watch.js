@@ -3,7 +3,7 @@ import { validate as isUUID } from 'uuid'
 export default function({ metadata, state, watchers }) {
 
   function watch(scope=DEFAULT_SCOPE_NAME, fn, user) {
-    if (Array.isArray(scope)) return watchResolution(scope, fn)
+    if (Array.isArray(scope)) return watchResolution(scope, fn, user)
 
     let initialSent = false
     const queue = []
@@ -31,12 +31,12 @@ export default function({ metadata, state, watchers }) {
     return () => removeWatcher(scope, cb)
   }
 
-  function watchResolution(path, callback) {
+  function watchResolution(path, callback, user) {
     const id = path[0]
     const references = path.slice(1)
     let unwatchDeeper = () => {}
 
-    const unwatch = watch(id, ({ state }) => {
+    const watchCallback = ({ state }) => {
       if (references.length === 0) {
         callback(state)
         return
@@ -55,11 +55,13 @@ export default function({ metadata, state, watchers }) {
           index === references.length - 1
         ) callback(value)
         else if (isUUID(value)) {
-          unwatchDeeper = watchResolution([value, ...references.slice(index + 1)], callback)
+          unwatchDeeper = watchResolution([value, ...references.slice(index + 1)], callback, user)
           return
         }
       }
-    })
+    }
+
+    const unwatch = watch(id, watchCallback, user)
 
     return () => {
       unwatch()
