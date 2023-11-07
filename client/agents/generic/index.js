@@ -17,8 +17,6 @@ function isUUID(string) {
 }
 
 export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fetch, applyPatch, login, logout, reboot }) {
-  let user
-  let session
   const states = {}
   const watchers = {}
   const keyToSubscriptionId = {}
@@ -30,22 +28,20 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
   log('INITIALIZING AGENT CONNECTION')
   const messageQueueReferences = { token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact }
-  const setSession = id => session = id
-  const setUser = id => user = id
   const [
     queueMessage,
     lastMessageResponse,
     disconnect,
     reconnect,
     synced
-  ] = initializeMessageQueue(setSession, setUser, resolveEnvironment, messageQueueReferences)
+  ] = initializeMessageQueue(resolveEnvironment, messageQueueReferences)
 
   const internalReferences = {
     keyToSubscriptionId,
     watchers,
     states,
     create,
-    session,
+    environment,
     lastInteractionResponse,
     lastMessageResponse,
     tagIfNotYetTaggedInSession,

@@ -2,7 +2,7 @@ import MutableProxy from '../../persistence/json.js'
 
 const SUBSCRIPTION_TYPE = 'application/json;type=subscription'
 
-export default function(scope='[]', { keyToSubscriptionId, watchers, states, create, session, lastMessageResponse, lastInteractionResponse, tagIfNotYetTaggedInSession, interact }) {
+export default function(scope='[]', { keyToSubscriptionId, watchers, states, create, environment, lastMessageResponse, lastInteractionResponse, tagIfNotYetTaggedInSession, interact }) {
   return new Promise(async (resolveState, rejectState) => {
     if (!keyToSubscriptionId[scope]) {
       const id = uuid()
@@ -10,6 +10,7 @@ export default function(scope='[]', { keyToSubscriptionId, watchers, states, cre
       keyToSubscriptionId[scope] = id
       watchers[scope] = []
       states[scope] = new Promise(async (resolve, reject) => {
+        const { session } = await environment()
         create({
           id,
           active_type: SUBSCRIPTION_TYPE,

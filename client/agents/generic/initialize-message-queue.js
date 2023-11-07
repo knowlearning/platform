@@ -12,7 +12,7 @@ function sanitizeJSONPatchPathSegment(s) {
   else return s
 }
 
-export default function initializeMessageQueue(setSession, setUser, setEnvironment, { token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact }) {
+export default function initializeMessageQueue(setEnvironment, { token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact }) {
   let ws
   let user
   let authed = false
@@ -140,8 +140,6 @@ export default function initializeMessageQueue(setSession, setUser, setEnvironme
               {op: 'add', path: ['active', 'authenticated'], value: sessionMetrics.authenticated },
             ])
 
-            setSession(session)
-            setUser(user)
             setEnvironment(message)
           }
           else if (server !== message.server) {
