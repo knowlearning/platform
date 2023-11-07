@@ -21,7 +21,7 @@ Immediately removes all authentication credentials and reloads the application.
 
 Returned string is a new [UUID](https://developer.mozilla.org/en-US/docs/Glossary/UUID).
 
-## state(id: string, user: OPTIONAL string) &rarr; Promise&lt;Object|Array&gt;
+## state(id: string, user: OPTIONAL string) &rarr; Promise&lt;Object&gt;
 The ```id``` argument can be a string containing one of the following:
 
 * A UUID that uniquely identifies the requested state.
