@@ -1,7 +1,7 @@
 import { v1 as uuid } from 'uuid'
 import { applyPatch } from 'fast-json-patch'
 import { getToken, login, logout } from './auth.js'
-import GenericAgent from '../generic.js'
+import GenericAgent from '../generic/index.js'
 
 const DEVELOPMENT_HOST = 'localhost:32001'
 const REMOTE_HOST = 'api.knowlearning.systems'

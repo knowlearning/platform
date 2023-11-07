@@ -1,5 +1,6 @@
-import MutableProxy from '../persistence/json.js'
-import download from './download.js'
+import MutableProxy from '../../persistence/json.js'
+import stateImplementation from './state.js'
+import downloadImplementation from '../download.js'
 
 // TODO: consider using something better than name as mechanism
 //       for resoling default scope in context
@@ -7,7 +8,6 @@ const DEFAULT_SCOPE_NAME = '[]'
 const HEARTBEAT_TIMEOUT = 10000
 const SESSION_TYPE = 'application/json;type=session'
 const UPLOAD_TYPE = 'application/json;type=upload'
-const SUBSCRIPTION_TYPE = 'application/json;type=subscription'
 const POSTGRES_QUERY_TYPE = 'application/json;type=postgres-query'
 const TAG_TYPE = 'application/json;type=tag'
 const DOMAIN_CLAIM_TYPE = 'application/json;type=domain-claim'
@@ -61,10 +61,30 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   let lastSynchronousScopePatchPromise = null
   const syncedPromiseResolutions = []
 
-  const patches = state('patches')
+  const internalReferences = {
+    keyToSubscriptionId,
+    watchers,
+    states,
+    create,
+    session,
+    lastMessageResponse,
+    lastInteractionResponse,
+    tagIfNotYetTaggedInSession,
+    interact,
+    fetch,
+    metadata
+  }
 
   log('INITIALIZING AGENT CONNECTION')
   initWS()
+
+  function state(scope) {
+    return stateImplementation(scope, internalReferences)
+  }
+
+  function download(id) {
+    return downloadImplementation(id, internalReferences)
+  }
 
   function log() {
     if (mode === 'debug') console.log(...arguments)
@@ -274,55 +294,6 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     await tag(tag_type, target)
   }
 
-  async function environment() {
-    return { ...(await environmentPromise), context: [] }
-  }
-
-  function state(scope='[]') {
-    return new Promise(async (resolveState, rejectState) => {
-      if (!keyToSubscriptionId[scope]) {
-        const id = uuid()
-
-        keyToSubscriptionId[scope] = id
-        watchers[scope] = []
-        states[scope] = new Promise(async (resolve, reject) => {
-          create({
-            id,
-            active_type: SUBSCRIPTION_TYPE,
-            active: { session, scope, ii: null, initialized: Date.now() },
-          })
-
-          try {
-            const state = await lastMessageResponse()
-            tagIfNotYetTaggedInSession('subscribed', state.id)
-            interact(id, [
-              { op: 'add', path: ['active', 'ii'], value: state.ii }, // TODO: use state.ii when is coming down properly...
-              { op: 'add', path: ['active', 'synced'], value: Date.now() }
-            ])
-
-            resolve(state)
-          }
-          catch (error) { reject(error) }
-        })
-      }
-
-      await lastInteractionResponse[scope]
-
-      try {
-        const state = structuredClone(await states[scope])
-
-        resolveState(new MutableProxy(state.active || {}, patch => {
-          const activePatch = structuredClone(patch)
-          activePatch.forEach(entry => entry.path.unshift('active'))
-          interact(scope, activePatch)
-        }))
-      }
-      catch (error) {
-        rejectState(error)
-      }
-    })
-  }
-
   function watchResolution(path, callback) {
     const id = path[0]
     const references = path.slice(1)
@@ -357,6 +328,10 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
       unwatch()
       unwatchDeeper()
     }
+  }
+
+  async function environment() {
+    return { ...(await environmentPromise), context: [] }
   }
 
   function watch(scope=DEFAULT_SCOPE_NAME, fn) {
@@ -406,12 +381,6 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
       if (ok) return id
       else throw new Error(statusText)
     }
-  }
-
-  async function patch(root, scopes) {
-    patches[uuid()] = { root, scopes }
-    const { swaps } = await lastMessageResponse()
-    return { swaps }
   }
 
   //  TODO: addTag option should probably not be exposed
@@ -527,9 +496,8 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     state,
     watch,
     upload,
-    download: id => download(id, { create, lastMessageResponse, fetch, metadata }),
+    download,
     interact,
-    patch,
     claim,
     reset,
     metadata,
