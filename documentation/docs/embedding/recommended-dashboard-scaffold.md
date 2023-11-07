@@ -23,15 +23,10 @@ Once the ids are gathered (more details on how to effectively do so to be writte
 
 ```
 DASHBOARD_CONFIG: {
-  content: String, // root content uuid,
-  states: Object[USER UUID => APPLICATION STATE UUID],   //  fields are user uuids, and the values are the application state uuids
-  embedded: Object[CONTENT => DASHBOARD_EMBEDDED_CONFIG] //  fields are content uuids for content that was embedded in this
-                                                         //  content, DASHBOARD_EMBEDDED_CONFIG described below
-}
-
-DASHBOARD_EMBEDDED_CONFIG: {
-  states: Object[USER UUID => APPLICATION STATE UUID],
-  embedded: Object[CONTENT => DASHBOARD_EMBEDDED_CONFIG]
+  CONTENT_UUID: {
+    states: Object[USER UUID => APPLICATION STATE UUID],
+    embedded: DASHBOARD_CONFIG
+  }
 }
 ```
 
@@ -40,26 +35,27 @@ For a more fleshed out example of what the data might look like:
 ```js
 //  All references in ALL CAPS below represent uuids of the above types
 const dashboard_config_state = {
-  content: ROOT_CONTENT_UUID,
-  states: {
-    USER_UUID_1: null, // See note below about null states
-    USER_UUID_2: USER_APPLICATION_STATE_1,
-    USER_UUID_3: USER_APPLICATION_STATE_2
-  },
-  embedded: {
-    CONTENT_UUID_1: {
-      states: {
-        USER_UUID_3: USER_APPLICATION_STATE_3
-        USER_UUID_2: USER_APPLICATION_STATE_4
-      },
-      embedded: {}
+  ROOT_CONTENT_UUID: {
+    states: {
+      USER_UUID_1: null, // See note below about null states
+      USER_UUID_2: USER_APPLICATION_STATE_1,
+      USER_UUID_3: USER_APPLICATION_STATE_2
     },
-    CONTENT_UUID_2 {
-      states: { USER_UUID_3: USER_APPLICATION_STATE_5 },
-      embedded: {
-        CONTENT_UUUD_3: {
-          states: { USER_UUID_3: USER_APPLICATION_STATE_6 },
-          embedded: {}
+    embedded: {
+      CONTENT_UUID_1: {
+        states: {
+          USER_UUID_3: USER_APPLICATION_STATE_3
+          USER_UUID_2: USER_APPLICATION_STATE_4
+        },
+        embedded: {}
+      },
+      CONTENT_UUID_2 {
+        states: { USER_UUID_3: USER_APPLICATION_STATE_5 },
+        embedded: {
+          CONTENT_UUUD_3: {
+            states: { USER_UUID_3: USER_APPLICATION_STATE_6 },
+            embedded: {}
+          }
         }
       }
     }
@@ -98,5 +94,5 @@ else {
 }
 ```
 
-We recommend the embedded application looks at the type of the data referenced in the root "content" field
+We recommend the embedded application looks at the type of the content referenced in the root fields
 (shown with the example value ROOT_CONTENT_ID above) then set up the appropriate per-user or group level visualizations.
