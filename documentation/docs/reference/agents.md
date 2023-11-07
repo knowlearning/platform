@@ -21,7 +21,7 @@ Immediately removes all authentication credentials and reloads the application.
 
 Returned string is a new [UUID](https://developer.mozilla.org/en-US/docs/Glossary/UUID).
 
-## state(id: string) &rarr; Promise&lt;Object|Array&gt;
+## state(id: string, user: OPTIONAL string) &rarr; Promise&lt;Object|Array&gt;
 The ```id``` argument can be a string containing one of the following:
 
 * A UUID that uniquely identifies the requested state.
@@ -32,8 +32,14 @@ If this method is called with a new UUID, the calling user will become the owner
 
 If this method is called with a name, the Know Learning API will either find and return the last state the user updated with that name, or create a new state for the user and give it the supplied name.
 
+You can supply the optional ```user``` parameter, if you want to watch another user's named state.
 
-## metadata(id: string) &rarr; Promise&lt;Object&gt;
+!!! note
+
+    There is no need to supply the ```user``` parameter if you are using a uuid reference,
+    since the system will already know what user owns the uuid in question.
+
+## metadata(id: string, user: OPTIONAL string) &rarr; Promise&lt;Object&gt;
 The ```id``` argument can be a string containing one of the following:
 
 * A UUID that uniquely identifies the requested state.
@@ -57,9 +63,11 @@ Here is an example metadata object:
 
 The ```ii``` field is the counter for how many updates have been made to the state. It stands for "interaction index."
 
-## watch(id: string, callback: function)
+## watch(id: string, callback: function, user: OPTIONAL string)
 
 The callback function will be called whenever an update is applied to the state for ```id```.
+If you want to set up a watcher for a user's named scope, supply the name for ```id```.
+If you want a user to watch another user's named scope, set the other user's id as ```user```.
 
 Here is an example update object:
 
@@ -79,3 +87,6 @@ Here is an example update object:
   }
 }
 ```
+
+The ```patch``` field is ```null``` in the first update object,
+and ```state``` represents the current state of the scipe at the time of the call.

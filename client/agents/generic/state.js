@@ -1,4 +1,4 @@
-import { validate as isUUID } from 'uuid'
+import { v4 as uuid, validate as isUUID } from 'uuid'
 import MutableProxy from '../../persistence/json.js'
 
 const SUBSCRIPTION_TYPE = 'application/json;type=subscription'
