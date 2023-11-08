@@ -57,9 +57,11 @@ export default function EmbeddedAgent() {
   }
 
   function create({ id=uuid(), active_type, active }) {
-    //  TODO: collapse into 1 patch and 1 interact call
-    interact(id, [{ op: 'add', path: ['active_type'], value: active_type }])
-    interact(id, [{ op: 'add', path: ['active'], value: active }])
+    if (!active_type) active_type = 'application/json'
+    interact(id, [
+      { op: 'add', path: ['active_type'], value: active_type },
+      { op: 'add', path: ['active'], value: active }
+    ])
     return id
   }
 

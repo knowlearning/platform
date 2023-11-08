@@ -68,12 +68,18 @@ export default function () {
 
         //  TODO: figure out how to fix situationwhere 2 of the same expected values will
         //        return if we don't sync here
-        const { auth: { user } } = await Agent.environment()
+        const { auth: { user: user1 } } = await Agent.environment()
+        const { auth: { user: user2 } } = await Agent2.environment()
 
-        expect(user).to.not.equal((await Agent2.environment()).auth.user)
+        expect(user1).to.not.equal(user2)
         await Agent.synced()
 
-        Agent2.watch(scopeName, ({state}) => seenValues.push(state), user)
+        Agent2.watch(scopeName, ({state}) => seenValues.push(state), user1)
+
+        console.log('Agent 1', user1)
+        console.log('Agent 2', user2)
+        console.log('Agent 1 State', await Agent.state(scopeName, user1))
+        console.log('Agent 2 State', await Agent2.state(scopeName, user1))
 
         while (seenValues.length < expectedValues.length) await pause(10)
 

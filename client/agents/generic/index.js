@@ -60,6 +60,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   function log() { if (mode === 'debug') console.log(...arguments) }
 
   function create({ id=uuid(), active_type, active, name }) {
+    if (!active_type) active_type = 'application/json'
     const patch = [
       { op: 'add', path: ['active_type'], value: active_type },
       { op: 'add', path: ['active'], value: active }
