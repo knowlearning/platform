@@ -8,13 +8,13 @@ const REMOTE_HOST = 'api.knowlearning.systems'
 
 function isLocal() { return localStorage.getItem('api') === 'local' }
 
-export default () => {
+export default options => {
   const { host, protocol } = window.location
 
   const agent = GenericAgent({
     host: isLocal() ? DEVELOPMENT_HOST : REMOTE_HOST,
     protocol: protocol === 'https:' ? 'wss' : 'ws',
-    token: getToken,
+    token: options.getToken || getToken,
     WebSocket,
     uuid,
     fetch,

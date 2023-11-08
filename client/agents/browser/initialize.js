@@ -4,15 +4,18 @@ import { v1 as uuid, validate as validateUUID } from 'uuid'
 
 let Agent
 
-export default function browserAgent() {
-  if (Agent) return Agent
+export default function browserAgent(options={}) {
+  console.log(options)
+  if (Agent && !options.unique) return Agent
+
+  console.log('NEW AGENT')
 
   let embedded
 
   try { embedded = window.self !== window.top }
   catch (e) { embedded = true }
 
-  Agent = embedded ? EmbeddedAgent() : RootAgent()
+  Agent = embedded && !options.root ? EmbeddedAgent() : RootAgent(options)
   Agent.embed = embed
 
   return Agent

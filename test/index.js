@@ -16,6 +16,7 @@ import { browserAgent } from '@knowlearning/agents'
 import 'mocha/mocha.css'
 
 window.Agent = browserAgent()
+window.Agent2 = browserAgent({ unique: true, getToken: () => 'anonymous', root: true})
 
 if (!Agent.embedded) Agent.local()
 
@@ -24,7 +25,6 @@ window.expect = chai.expect
 window.uuid = uuid
 
 chai.config.truncateThreshold = 0; // disable truncating
-
 
 mocha
   .setup({
@@ -41,20 +41,16 @@ const container = document.createElement('div')
 container.id = 'mocha'
 document.body.appendChild(container)
 
-Agent
-  .environment()
-  .then(() => {
-    mocha.run()
-    describe('Core API', function () {
-      metadata()
-      mutate()
-      arrays()
-      watch()
-      if (!Agent.embedded) watchDeep()
-      vuex()
-      reconnect()
-      if (!Agent.embedded) postgres()
-      uploads()
-      latestBugfixes()
-    })
-  })
+mocha.run()
+describe('Core API', function () {
+  metadata()
+  mutate()
+  arrays()
+  watch()
+  if (!Agent.embedded) watchDeep()
+  vuex()
+  reconnect()
+  if (!Agent.embedded) postgres()
+  uploads()
+  latestBugfixes()
+})

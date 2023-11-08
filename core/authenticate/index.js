@@ -8,6 +8,19 @@ import { query } from '../postgres.js'
 
 const USER_TYPE = 'application/json;type=user'
 const SESSION_TYPE = 'application/json;type=session'
+const PREVIOUS_SESSION_QUERY = `
+  SELECT
+    sessions.id as id,
+    user_id,
+    provider,
+    created
+  FROM sessions
+  JOIN metadata
+    ON metadata.id = sessions.id
+  WHERE session_credential = $1
+    AND sessions.id = $2
+  ORDER BY created DESC LIMIT 1
+`
 const { ADMIN_DOMAIN, GOOGLE_OAUTH_CLIENT_CREDENTIALS } = process.env
 
 const {
@@ -29,53 +42,24 @@ export default async function authenticate(message, domain, session_credential) 
   let user, provider, session
   if (!message.token) {
     try {
-      const { rows } = await query(domain, `
-        SELECT
-          sessions.id as id,
-          user_id,
-          provider,
-          created
-        FROM sessions
-        JOIN metadata
-          ON metadata.id = sessions.id
-        WHERE session_credential = $1
-        ORDER BY created DESC LIMIT 1`,
-        [session_credential]
-      )
+      const { rows } = await query(domain, PREVIOUS_SESSION_QUERY, [session_credential, message.session])
       if (rows[0]) {
         user = rows[0].user_id
         provider = rows[0].provider
-
-        if (rows[0].id === message.session) {
-          session = rows[0].id
-          console.log('RECONNECTED SESSION FOR USER', user, provider, domain, session, session_credential)
-        }
-        else {
-          session = uuid()
-          await interact(domain, user, session, [
-            { op: 'add', value: SESSION_TYPE, path: ['active_type'] },
-            {
-              op: 'add',
-              value: {
-                session_credential,
-                user_id: user,
-                provider
-              },
-              path: ['active']
-            }
-          ])
-        }
-
-        //  TODO: call this in 1 function rather than repeating below
+        session = message.session
+        console.log('RECONNECTED SESSION FOR USER', user, provider, domain, session, session_credential)
         return { user, provider, session }
       }
+      else session = uuid()
     }
-    catch (error) {
-      console.warn('error reconnecting session', error)
-    }
+    catch (error) { console.warn('error reconnecting session', error) }
   }
+  let authority
 
-  const authority = domain === 'core' ? 'core' : 'JWT'
+  if (message.token === 'anonymous') authority = 'anonymous'
+  else if (domain === 'core') authority = 'core'
+  else authority = 'JWT'
+
   const authResponse = await authenticateToken(message.token, authority)
   user = authResponse.user
   session = uuid()
@@ -120,6 +104,7 @@ function kidFromToken(token) {
 }
 
 const authenticateToken = (token, authority) => new Promise( async (resolve, reject) => {
+  console.log(token, authority)
   if (authority === 'core') {
     coreVerfication(token, resolve, reject)
   }

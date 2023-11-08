@@ -57,6 +57,31 @@ export default function () {
     )
 
     it(
+      "Allows users to watch other user's named states",
+      async function () {
+        const id = uuid()
+        const scopeName =`asdf-${id}`
+        const state = await Agent.state(scopeName)
+        state.x = 100
+        const expectedValues = [{ x: 100 }]
+        const seenValues = []
+
+        //  TODO: figure out how to fix situationwhere 2 of the same expected values will
+        //        return if we don't sync here
+        const { auth: { user } } = await Agent.environment()
+
+        expect(user).to.not.equal((await Agent2.environment()).auth.user)
+        await Agent.synced()
+
+        Agent2.watch(scopeName, ({state}) => seenValues.push(state), user)
+
+        while (seenValues.length < expectedValues.length) await pause(10)
+
+        expect(seenValues).to.deep.equal(expectedValues)
+      }
+    )
+
+    it(
       'Closes a listening connection after a close call',
       async function () {
         this.timeout(5000)
