@@ -38,22 +38,17 @@ export default function EmbeddedAgent() {
   }
 
   addEventListener('message', async ({ data }) => {
-    if (data.type === 'auth') {
-      // TODO: switch to access_token
-      if (localStorage.getItem('state') === data.state) {
-        localStorage.setItem('token', data.token)
-      }
-      send({ type: 'close' })
-    }
-    else if (data.type === 'setup') resolveSession(data.session)
+    if (data.type === 'setup') resolveSession(data.session)
     else if (responses[data.requestId]) {
       const { resolve, reject } = responses[data.requestId]
       if (data.error) reject(data.error)
       else resolve(data.response)
     }
     else if (data.ii !== undefined) {
-      const { scope } = data
-      if (watchers[scope]) watchers[scope].forEach(fn => fn(data))
+      const { scope, user } = data
+      const { auth } = await environment()
+      const key = isUUID(scope) ? scope : `${!user || auth.user === user ? '' : user}/${scope}`
+      if (watchers[key]) watchers[key].forEach(fn => fn(data))
     }
   })
 
@@ -83,12 +78,13 @@ export default function EmbeddedAgent() {
     await tag(tag_type, target)
   }
 
-
-  function watch(id, fn) {
+  function watch(id, fn, user) {
     tagIfNotYetTaggedInSession('subscribed', id)
-    if (!watchers[id]) watchers[id] = []
-    watchers[id].push(fn)
-    return () => removeWatcher(id, fn)
+    const key = isUUID(id) ? id : `${ user || ''}/${id}`
+    if (!watchers[key]) watchers[key] = []
+    watchers[key].push(fn)
+    send({ type: 'state', scope: id, user })
+    return () => removeWatcher(key, fn)
   }
 
   async function patch(root, scopes) {
@@ -108,7 +104,6 @@ export default function EmbeddedAgent() {
       activePatch.forEach(entry => entry.path.unshift('active'))
       interact(scope, activePatch)
     })
-
   }
 
   function reset(scope) {

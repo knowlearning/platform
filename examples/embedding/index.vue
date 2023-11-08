@@ -113,7 +113,7 @@
         this.current = this.current === id ? null : id
       },
       openTest() {
-        this.children.push('https://test.knowlearning.systems')
+        this.children.push('https://localhost:5112/')
       },
       removeTake(index) {
         if (this.children[index] === this.current) this.current = null

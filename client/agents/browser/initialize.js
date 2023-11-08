@@ -71,7 +71,8 @@ function embed(environment, iframe) {
       sendDown({}) // TODO: might want to send down the interaction index
     }
     else if (type === 'metadata') {
-      sendDown(await Agent.metadata(message.scope))
+      const { scope, user } = message
+      sendDown(await Agent.metadata(scope, user))
     }
     else if (type === 'tag') {
       const { tag_type, target, context } = message
@@ -79,11 +80,14 @@ function embed(environment, iframe) {
       sendDown(await Agent.tag(tag_type, target, prependedContext))
     }
     else if (type === 'state') {
-      const { scope } = message
+      const { scope, user } = message
 
-      const statePromise = Agent.state(scope)
+      const statePromise = Agent.state(scope, user)
 
-      if (!watchers[scope]) watchers[scope] = Agent.watch(scope, postMessage)
+      const key = `${user || ''}/${scope}`
+      if (!watchers[key]) {
+        watchers[key] = Agent.watch(scope, postMessage, user)
+      }
 
       if (listeners.state) listeners.state({ scope })
       sendDown(await statePromise)

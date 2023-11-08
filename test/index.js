@@ -3,6 +3,7 @@ import chai from 'chai/chai.js'
 import 'mocha/mocha.js'
 import mutate from './tests/mutate.js'
 import watch from './tests/watch.js'
+import watchDeep from './tests/watch-deep.js'
 import reconnect from './tests/reconnect.js'
 import arrays from './tests/arrays.js'
 import metadata from './tests/metadata.js'
@@ -49,6 +50,7 @@ Agent
       mutate()
       arrays()
       watch()
+      if (!Agent.embedded) watchDeep()
       vuex()
       reconnect()
       if (!Agent.embedded) postgres()
