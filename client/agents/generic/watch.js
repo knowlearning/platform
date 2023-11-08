@@ -22,6 +22,8 @@ export default function({ metadata, state, watchers }) {
       .then(async ({ ii }) => {
         fn({
           scope,
+          user,
+          domain,
           state: await statePromise,
           patch: null,
           ii

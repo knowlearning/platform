@@ -5,10 +5,7 @@ import { v1 as uuid, validate as validateUUID } from 'uuid'
 let Agent
 
 export default function browserAgent(options={}) {
-  console.log(options)
   if (Agent && !options.unique) return Agent
-
-  console.log('NEW AGENT')
 
   let embedded
 
@@ -85,11 +82,11 @@ function embed(environment, iframe) {
     else if (type === 'state') {
       const { scope, user, domain } = message
 
-      const statePromise = Agent.state(scope, user)
+      const statePromise = Agent.state(scope, user, domain)
 
       const key = `${ domain || ''}/${user || ''}/${scope}`
       if (!watchers[key]) {
-        watchers[key] = Agent.watch(scope, postMessage, user)
+        watchers[key] = Agent.watch(scope, postMessage, user, domain)
       }
 
       if (listeners.state) listeners.state({ scope })
