@@ -56,34 +56,31 @@ export default function () {
       }
     )
 
+    async function testMultiAgentWatch(agentA, agentB) {
+      const id = uuid()
+      const scopeName =`asdf-${id}`
+      const state = await agentA.state(scopeName)
+      state.x = 100
+      const expectedValues = [{ x: 100 }]
+      const seenValues = []
+
+      //  TODO: figure out how to fix situation where 2 of the same expected values will
+      //        return if we don't sync here
+      await agentA.synced()
+      const { auth: { user }, domain: domain1 } = await agentA.environment()
+
+      agentB.watch(scopeName, ({state}) => seenValues.push(state), user, domain1)
+
+      while (seenValues.length < expectedValues.length) await pause(10)
+
+      expect(seenValues).to.deep.equal(expectedValues)
+    }
+
     it(
       "Allows users to watch other user's named states",
       async function () {
-        const id = uuid()
-        const scopeName =`asdf-${id}`
-        const state = await Agent.state(scopeName)
-        state.x = 100
-        const expectedValues = [{ x: 100 }]
-        const seenValues = []
-
-        //  TODO: figure out how to fix situationwhere 2 of the same expected values will
-        //        return if we don't sync here
-        const { auth: { user: user1 } } = await Agent.environment()
-        const { auth: { user: user2 } } = await Agent2.environment()
-
-        expect(user1).to.not.equal(user2)
-        await Agent.synced()
-
-        Agent2.watch(scopeName, ({state}) => seenValues.push(state), user1)
-
-        console.log('Agent 1', user1)
-        console.log('Agent 2', user2)
-        console.log('Agent 1 State', await Agent.state(scopeName, user1))
-        console.log('Agent 2 State', await Agent2.state(scopeName, user1))
-
-        while (seenValues.length < expectedValues.length) await pause(10)
-
-        expect(seenValues).to.deep.equal(expectedValues)
+        await testMultiAgentWatch(Agent, Agent2)
+        //await testMultiAgentWatch(Agent2, Agent)
       }
     )
 

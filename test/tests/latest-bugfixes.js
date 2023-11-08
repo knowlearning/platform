@@ -21,6 +21,7 @@ export default function latestBugfixes() {
         reject = rej
       })
       let update = 0
+      const { auth: { user }, domain } = await Agent.environment()
       Agent.watch(name, async u => {
         update += 1
         if (update > 4) reject()

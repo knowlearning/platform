@@ -3,12 +3,12 @@ import MutableProxy from '../../persistence/json.js'
 
 const SUBSCRIPTION_TYPE = 'application/json;type=subscription'
 
-export default function(scope='[]', user, { keyToSubscriptionId, watchers, states, create, environment, lastMessageResponse, lastInteractionResponse, tagIfNotYetTaggedInSession, interact }) {
+export default function(scope='[]', user, domain, { keyToSubscriptionId, watchers, states, create, environment, lastMessageResponse, lastInteractionResponse, tagIfNotYetTaggedInSession, interact }) {
   let resolveMetadataPromise
   let metadataPromise = new Promise(resolve => resolveMetadataPromise = resolve)
 
   const statePromise = new Promise(async (resolveState, rejectState) => {
-    const qualifiedScope = isUUID(scope) ? scope : `${user || ''}/${scope}`
+    const qualifiedScope = isUUID(scope) ? scope : `${domain || ''}/${user || ''}/${scope}`
     if (!keyToSubscriptionId[qualifiedScope]) {
       const id = uuid()
 
@@ -19,7 +19,7 @@ export default function(scope='[]', user, { keyToSubscriptionId, watchers, state
         create({
           id,
           active_type: SUBSCRIPTION_TYPE,
-          active: { session, scope, user, ii: null, initialized: Date.now() },
+          active: { session, scope, user, domain, ii: null, initialized: Date.now() },
         })
 
         try {

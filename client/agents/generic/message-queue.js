@@ -170,7 +170,10 @@ export default function messageQueue(setEnvironment, { token, protocol, host, We
             }
           }
           else {
-            const qualifiedScope = isUUID(message.scope) ? message.scope : `${ message.user === user ? '' : message.user}/${message.scope}`
+            const d = message.domain === window.location.host ? '' : message.domain
+            const u = message.user === user ? '' : message.user
+            const s = message.scope
+            const qualifiedScope = isUUID(s) ? s : `${d}/${u}/${s}`
             if (watchers[qualifiedScope]) {
               states[qualifiedScope] = await states[qualifiedScope]
 

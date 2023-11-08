@@ -14,13 +14,13 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
 
     if (op === 'add' && path.length === 1 && path[0] === 'active') {
       //const [id] = path //  TODO: track deletes of id in sessions object to unhook subscriptions
-      let { scope, user:scopeUser=user } = value
+      let { scope, user:scopeUser=user, domain:scopeDomain=domain } = value
 
       //  TODO: authorization check here
       if (!subscriptions[session]) subscriptions[session] = {}
 
       const ss = subscriptions[session]
-      const id = await scopeToId(domain, scopeUser, scope)
+      const id = await scopeToId(scopeDomain, scopeUser, scope)
       if (!ss[id]) ss[id] = subscribe(id, send, scope)
       await redis.connected //  TODO: assess if necessary
       let state = await redis.client.json.get(id)

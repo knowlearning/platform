@@ -2,8 +2,8 @@ import { validate as isUUID } from 'uuid'
 
 export default function({ metadata, state, watchers }) {
 
-  function watch(scope=DEFAULT_SCOPE_NAME, fn, user) {
-    if (Array.isArray(scope)) return watchResolution(scope, fn, user)
+  function watch(scope=DEFAULT_SCOPE_NAME, fn, user, domain) {
+    if (Array.isArray(scope)) return watchResolution(scope, fn, user, domain)
 
     let initialSent = false
     const queue = []
@@ -12,13 +12,13 @@ export default function({ metadata, state, watchers }) {
       else queue.push(update)
     }
 
-    const statePromise = state(scope, user)
-    const qualifiedScope = isUUID(scope) ? scope : `${user || ''}/${scope}`
+    const statePromise = state(scope, user, domain)
+    const qualifiedScope = isUUID(scope) ? scope : `${domain || ''}/${user || ''}/${scope}`
 
     if (!watchers[qualifiedScope]) watchers[qualifiedScope] = []
     watchers[qualifiedScope].push(cb)
 
-    metadata(scope, user)
+    metadata(scope, user, domain)
       .then(async ({ ii }) => {
         fn({
           scope,
@@ -33,7 +33,7 @@ export default function({ metadata, state, watchers }) {
     return () => removeWatcher(qualifiedScope, cb)
   }
 
-  function watchResolution(path, callback, user) {
+  function watchResolution(path, callback, user, domain) {
     const id = path[0]
     const references = path.slice(1)
     let unwatchDeeper = () => {}
@@ -57,13 +57,13 @@ export default function({ metadata, state, watchers }) {
           index === references.length - 1
         ) callback(value)
         else if (isUUID(value)) {
-          unwatchDeeper = watchResolution([value, ...references.slice(index + 1)], callback, user)
+          unwatchDeeper = watchResolution([value, ...references.slice(index + 1)], callback, user, domain)
           return
         }
       }
     }
 
-    const unwatch = watch(id, watchCallback, user)
+    const unwatch = watch(id, watchCallback, user, domain)
 
     return () => {
       unwatch()

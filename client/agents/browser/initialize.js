@@ -83,11 +83,11 @@ function embed(environment, iframe) {
       sendDown(await Agent.tag(tag_type, target, prependedContext))
     }
     else if (type === 'state') {
-      const { scope, user } = message
+      const { scope, user, domain } = message
 
       const statePromise = Agent.state(scope, user)
 
-      const key = `${user || ''}/${scope}`
+      const key = `${ domain || ''}/${user || ''}/${scope}`
       if (!watchers[key]) {
         watchers[key] = Agent.watch(scope, postMessage, user)
       }

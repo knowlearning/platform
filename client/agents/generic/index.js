@@ -51,7 +51,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
   async function environment() { return { ...(await environmentPromise), context: [] } }
 
-  function state(scope, user) { return stateImplementation(scope, user, internalReferences) }
+  function state(scope, user, domain) { return stateImplementation(scope, user, domain, internalReferences) }
 
   function download(id) { return downloadImplementation(id, internalReferences) }
 
@@ -111,7 +111,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     const response = queueMessage({scope, patch})
 
     //  if we are watching this scope, we want to keep track of last interaction we fired
-    const qualifiedScope = isUUID(scope) ? scope : `/${scope}`
+    const qualifiedScope = isUUID(scope) ? scope : `//${scope}`
     if (states[qualifiedScope] !== undefined) {
       let resolve
       lastInteractionResponse[qualifiedScope] = new Promise(r => resolve = r)

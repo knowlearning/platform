@@ -4,6 +4,7 @@ import 'mocha/mocha.js'
 import mutate from './tests/mutate.js'
 import watch from './tests/watch.js'
 import watchDeep from './tests/watch-deep.js'
+import multiAgent from './tests/multi-agent.js'
 import reconnect from './tests/reconnect.js'
 import arrays from './tests/arrays.js'
 import metadata from './tests/metadata.js'
@@ -53,4 +54,5 @@ describe('Core API', function () {
   if (!Agent.embedded) postgres()
   uploads()
   latestBugfixes()
+  multiAgent()
 })

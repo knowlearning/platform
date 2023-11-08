@@ -45,9 +45,11 @@ export default function EmbeddedAgent() {
       else resolve(data.response)
     }
     else if (data.ii !== undefined) {
-      const { scope, user } = data
-      const { auth } = await environment()
-      const key = isUUID(scope) ? scope : `${!user || auth.user === user ? '' : user}/${scope}`
+      const { scope, user, domain } = data
+      const { auth, domain:rootDomain } = await environment()
+      const d = !domain || domain === rootDomain ? '' : domain
+      const u = !user || auth.user === user ? '' : user
+      const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
       if (watchers[key]) watchers[key].forEach(fn => fn(data))
     }
   })
@@ -80,12 +82,12 @@ export default function EmbeddedAgent() {
     await tag(tag_type, target)
   }
 
-  function watch(id, fn, user) {
-    tagIfNotYetTaggedInSession('subscribed', id)
-    const key = isUUID(id) ? id : `${ user || ''}/${id}`
+  function watch(scope, fn, user, domain) {
+    tagIfNotYetTaggedInSession('subscribed', scope)
+    const key = isUUID(scope) ? scope : `${ domain || ''}/${ user || ''}/${scope}`
     if (!watchers[key]) watchers[key] = []
     watchers[key].push(fn)
-    send({ type: 'state', scope: id, user })
+    send({ type: 'state', scope, user, domain })
     return () => removeWatcher(key, fn)
   }
 
@@ -94,14 +96,15 @@ export default function EmbeddedAgent() {
     return send({ type: 'patch', root, scopes })
   }
 
-  async function state(scope) {
+  async function state(scope, user, domain) {
     if (scope === undefined) {
       const { context } = await environment()
       scope = JSON.stringify(context)
     }
     tagIfNotYetTaggedInSession('subscribed', scope)
-    const startState = await send({ type: 'state', scope })
+    const startState = await send({ type: 'state', scope, user, domain })
     return new MutableProxy(startState, patch => {
+      //  TODO: reject updates if user is not owner
       const activePatch = structuredClone(patch)
       activePatch.forEach(entry => entry.path.unshift('active'))
       interact(scope, activePatch)
