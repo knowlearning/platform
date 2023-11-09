@@ -61,19 +61,17 @@ export default async function authenticate(message, domain, session_credential) 
           user = rows[0].user_id
           provider = rows[0].provider
           session = message.session
-          console.log('RECONNECTED SESSION FOR USER', user, provider, domain, session, session_credential)
           return { user, provider, session }
         }
-        else console.warn('NO MATCHING ROW FOR SESSION!!!!!!!!!!!!!!!!!!!!!!', message)
       }
-      else {
+
+      const { rows } = await query(domain, NEW_SESSION_QUERY, [session_credential])
+      if (rows[0]) {
+        user = rows[0].user_id
+        provider = rows[0].provider
         session = uuid()
-        const { rows } = await query(domain, NEW_SESSION_QUERY, [session_credential])
-        if (rows[0]) {
-          user = rows[0].user_id
-          provider = rows[0].provider
-          return { user, provider, session }
-        }
+        await saveSession(domain, session, session_credential, user, provider)
+        return { user, provider, session }
       }
     }
     catch (error) { console.warn('error reconnecting session', error) }
@@ -99,6 +97,12 @@ export default async function authenticate(message, domain, session_credential) 
   ]
   await interact(ADMIN_DOMAIN, 'users', user, userPatch)
 
+  await saveSession(domain, session, session_credential, user, provider)
+
+  return { user, provider, session }
+}
+
+async function saveSession(domain, session, session_credential, user, provider) {
   const sessionPatch = [
     { op: 'add', value: SESSION_TYPE, path: ['active_type'] },
     {
@@ -112,8 +116,6 @@ export default async function authenticate(message, domain, session_credential) 
     }
   ]
   await interact(domain, user, session, sessionPatch)
-
-  return { user, provider, session }
 }
 
 async function fetchJSON(url) {
@@ -128,7 +130,6 @@ function kidFromToken(token) {
 }
 
 const authenticateToken = (token, authority) => new Promise( async (resolve, reject) => {
-  console.log(token, authority)
   if (authority === 'core') {
     coreVerfication(token, resolve, reject)
   }
@@ -186,7 +187,6 @@ async function fetchGoogleJWKs(retries=0) {
   if (retries > 3) throw new Error('Could not fetch google public keys')
 
   const { jwks_uri } = await fetchJSON(GOOGLE_OPENID_CONFIG)
-  console.log('URL', jwks_uri)
   return (
     fetchJSON(jwks_uri)
       .then(({ keys }) => keys.forEach(k => googleJWKs[k.kid] = k))
