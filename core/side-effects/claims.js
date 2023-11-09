@@ -85,10 +85,10 @@ async function passDNSOrHTTPChallenge(domain, user, token, report) {
     report.attempts += 1
     await Promise.all([
       fetch(wellKnownURL)
-        .then(async r => passed = passed || (await r.text()) === token)
+        .then(async r => passed = (await r.text()) === token || passed)
         .catch(error => console.warn('DNS_OR_HTTP_CHALLENGE http fetch error', domain, user, error)),
       resolveTXT(domain)
-        .then(r => passed = passed || r.includes(token))
+        .then(r => passed = r.includes(token) || passed)
     ])
     const elapsed = Date.now() - started
     if (passed) {
