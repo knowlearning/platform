@@ -81,7 +81,7 @@ async function passDNSOrHTTPChallenge(domain, user, token, report) {
   let passed = null
   const wellKnownURL =`https://${domain}/.well-known/knowlearning-admin-challenge`
   while (passed === null) {
-    let started = Date.now()
+    const started = Date.now()
     report.attempts += 1
     await Promise.all([
       fetch(wellKnownURL)
