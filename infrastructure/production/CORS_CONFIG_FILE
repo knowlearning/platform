@@ -1,25 +1,7 @@
 [
     {
       "origin": [
-        "http://embed.v2.knowlearning.systems",
-        "https://embed.v2.knowlearning.systems",
-        "http://embed.production.knowlearning.systems",
-        "https://embed.production.knowlearning.systems",
-        "http://embed.staging.knowlearning.systems",
-        "https://embed.staging.knowlearning.systems",
-        "http://embed.knowlearning.systems",
-        "https://embed.knowlearning.systems",
-        "https://edit.knowlearning.systems",
-        "http://localhost",
-        "https://localhost",
-        "http://*.localhost",
-        "https://*.localhost",
-        "http://localhost:*",
-        "https://localhost:*",
-        "http://*.localhost:*",
-        "https://*.localhost:*",
-        "http://*.knowlearning.systems",
-        "https://*.knowlearning.systems"
+        "https://*"
       ],
       "method": ["OPTIONS", "GET", "PUT", "POST"],
       "responseHeader": ["*"],

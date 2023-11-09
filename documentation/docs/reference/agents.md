@@ -90,3 +90,24 @@ Here is an example update object:
 
 The ```patch``` field is ```null``` in the first update object,
 and ```state``` represents the current state of the scipe at the time of the call.
+
+## upload(name: string, type: string, data: string, id: OPTIONAL string) &rarr; Promise&lt;String&gt;
+
+This will upload an immutable blob containing the value in ```data``` and return a promise for the id of the blob.
+You can force the ```id``` parameter with your own value, but it must be a new uuid, otherwise an error will be thrown.
+
+## download(id: string) &rarr; Promise&lt;Fetch Response&gt;
+
+This will download an uploaded blob.
+You also have the option do directly download the blob to a user's browser:
+
+```js
+const response = Agent.download(id)
+
+//  You can do what you want with the fetch response:
+response.then(async fetchResponse => console.log("Here's the data!", await fetchResponse.text()))
+
+//  Doing the following will trigger a download directly to the user's computer
+response.direct()
+
+```
