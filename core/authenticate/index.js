@@ -8,7 +8,7 @@ import { query } from '../postgres.js'
 
 const USER_TYPE = 'application/json;type=user'
 const SESSION_TYPE = 'application/json;type=session'
-const PREVIOUS_SESSION_QUERY = `
+const REATTACHING_SESSION_QUERY = `
   SELECT
     sessions.id as id,
     user_id,
@@ -19,6 +19,17 @@ const PREVIOUS_SESSION_QUERY = `
     ON metadata.id = sessions.id
   WHERE session_credential = $1
     AND sessions.id = $2
+  ORDER BY created DESC LIMIT 1
+`
+const NEW_SESSION_QUERY = `
+  SELECT
+    user_id,
+    provider,
+    created
+  FROM sessions
+  JOIN metadata
+    ON metadata.id = sessions.id
+  WHERE session_credential = $1
   ORDER BY created DESC LIMIT 1
 `
 const { ADMIN_DOMAIN, GOOGLE_OAUTH_CLIENT_CREDENTIALS } = process.env
@@ -42,15 +53,28 @@ export default async function authenticate(message, domain, session_credential) 
   let user, provider, session
   if (!message.token) {
     try {
-      const { rows } = await query(domain, PREVIOUS_SESSION_QUERY, [session_credential, message.session])
-      if (rows[0]) {
-        user = rows[0].user_id
-        provider = rows[0].provider
-        session = message.session
-        console.log('RECONNECTED SESSION FOR USER', user, provider, domain, session, session_credential)
-        return { user, provider, session }
+      if (message.session) {
+        //  find session to reattach to
+        const { rows } = await query(domain, REATTACHING_SESSION_QUERY, [session_credential, message.session])
+        //  TODO: throw error if no rows
+        if (rows[0]) {
+          user = rows[0].user_id
+          provider = rows[0].provider
+          session = message.session
+          console.log('RECONNECTED SESSION FOR USER', user, provider, domain, session, session_credential)
+          return { user, provider, session }
+        }
+        else console.warn('NO MATCHING ROW FOR SESSION!!!!!!!!!!!!!!!!!!!!!!', message)
       }
-      else session = uuid()
+      else {
+        session = uuid()
+        const { rows } = await query(domain, NEW_SESSION_QUERY, [session_credential])
+        if (rows[0]) {
+          user = rows[0].user_id
+          provider = rows[0].provider
+          return { user, provider, session }
+        }
+      }
     }
     catch (error) { console.warn('error reconnecting session', error) }
   }
