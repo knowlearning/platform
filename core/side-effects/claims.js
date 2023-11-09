@@ -91,18 +91,18 @@ async function passDNSOrHTTPChallenge(domain, user, token, report) {
         .then(r => passed = r.includes(token) || passed)
     ])
     const elapsed = Date.now() - started
+    const totalElapsed = Date.now() - report.started
     if (passed) {
       delete report.timeout
       break
     }
-    else if (elapsed > CHALLENGE_TIMEOUT_LIMIT) {
+    else if (totalElapsed > CHALLENGE_TIMEOUT_LIMIT) {
       report.timeout = 0
       passed = false
       break
     }
     else {
-      console.log('DNS_OR_HTTP_CHALLENGE trying again', CHALLENGE_TIMEOUT_LIMIT, elapsed)
-      report.timeout = CHALLENGE_TIMEOUT_LIMIT - elapsed
+      report.timeout = CHALLENGE_TIMEOUT_LIMIT - totalElapsed
       await new Promise(r => setTimeout(r, 1000 - elapsed))
     }
   }
