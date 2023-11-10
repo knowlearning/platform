@@ -30,8 +30,10 @@ compressionLoop()
   .catch(error => console.error('COMPRESSION Error', error))
 */
 
-await ensureDomainConfigured(ADMIN_DOMAIN)
-await ensureDomainConfigured('core')
+const initialConfig = Promise.all([
+  ensureDomainConfigured(ADMIN_DOMAIN),
+  ensureDomainConfigured('core')
+])
 
 const httpServer = createServerHTTP(handleHTTP)
 const httpsServer = createServerHTTPS(credentials, handleHTTP)
@@ -72,7 +74,10 @@ function setUpServer(server, port) {
       console.log('creating sid', sid)
     }
   })
-  wsServer.on('connection', handleWS)
+  wsServer.on('connection', async (ws, upgradeReq) => {
+    await initialConfig
+    handleWS(ws, upgradeReq)
+  })
   server.listen(port)
 }
 
