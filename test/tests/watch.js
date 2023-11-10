@@ -72,10 +72,24 @@ export default function () {
     }
 
     it(
+      "Allows users to watch own scopes by id",
+      async function () {
+        await testMultiAgentWatch(Agent, Agent, uuid())
+      }
+    )
+
+    it(
       "Allows users to watch other user's scopes by id",
       async function () {
         await testMultiAgentWatch(Agent, Agent2, uuid())
         await testMultiAgentWatch(Agent2, Agent, uuid())
+      }
+    )
+
+    it(
+      "Allows users to watch own scopes by name",
+      async function () {
+        await testMultiAgentWatch(Agent, Agent, `asdf-${uuid()}`)
       }
     )
 
