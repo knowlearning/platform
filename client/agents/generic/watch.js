@@ -1,22 +1,12 @@
 import { validate as isUUID } from 'uuid'
 
-export default function({ metadata, state, watchers }) {
+export default function({ metadata, state, watchers, synced }) {
 
   function watch(scope=DEFAULT_SCOPE_NAME, fn, user, domain) {
     if (Array.isArray(scope)) return watchResolution(scope, fn, user, domain)
 
-    let initialSent = false
-    const queue = []
-    function cb(update) {
-      if (initialSent) fn(update)
-      else queue.push(update)
-    }
-
     const statePromise = state(scope, user, domain)
     const qualifiedScope = isUUID(scope) ? scope : `${domain || ''}/${user || ''}/${scope}`
-
-    if (!watchers[qualifiedScope]) watchers[qualifiedScope] = []
-    watchers[qualifiedScope].push(cb)
 
     metadata(scope, user, domain)
       .then(async ({ ii }) => {
@@ -28,11 +18,11 @@ export default function({ metadata, state, watchers }) {
           patch: null,
           ii
         })
-        initialSent = true
-        queue.forEach(fn)
+        if (!watchers[qualifiedScope]) watchers[qualifiedScope] = []
+        watchers[qualifiedScope].push(fn)
       })
 
-    return () => removeWatcher(qualifiedScope, cb)
+    return () => removeWatcher(qualifiedScope, fn)
   }
 
   function watchResolution(path, callback, user, domain) {

@@ -44,6 +44,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     tagIfNotYetTaggedInSession,
     interact,
     fetch,
+    synced,
     metadata
   }
 

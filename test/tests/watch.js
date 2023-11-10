@@ -130,31 +130,42 @@ export default function () {
         await pause()
         state.z = 3
 
-        // unwatch after 3 updates
+        // unwatch after 1 update
         await thirdUpdatePromise
         unwatch()
 
         let resolveAfterUnwatchPromise
-        const finalUpdatesPromise = new Promise(r => resolveAfterUnwatchPromise = r)
+        let rejectAfterUnwatchPromise
+        const finalUpdatesPromise = new Promise((res, rej) => {
+          resolveAfterUnwatchPromise = res
+          rejectAfterUnwatchPromise = rej
+        })
 
         const expectedValues = {x:2,y:3,z:4}
         Object.assign(state, expectedValues)
 
         //  set up another watcher
+        const EXPECTED_AFTER_WATCH_UPDATES = 1
         let afterUnwatchUpdates = 0
         const finalStatePromise = Agent.state(id)
-        const unwatch2 = Agent.watch(id, () => {
+        const unwatch2 = Agent.watch(id, update => {
           afterUnwatchUpdates += 1
-          if (afterUnwatchUpdates === 3) resolveAfterUnwatchPromise()
+          if (afterUnwatchUpdates === 1) resolveAfterUnwatchPromise()
         })
+
         await finalUpdatesPromise
         unwatch2()
+        state.a = 101
+
 
         const finalState = await finalStatePromise
         expect(finalState).to.deep.equal(expectedValues)
 
+        await new Promise(r => setTimeout(r, 10))
+
         //  make sure first watcher didn't get any other updates
         expect(updatesSeen).to.equal(EXPECTED_UPDATES)
+        expect(afterUnwatchUpdates).to.equal(EXPECTED_AFTER_WATCH_UPDATES)
       }
     )
 
