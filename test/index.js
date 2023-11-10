@@ -55,6 +55,11 @@ describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, fu
   multiAgent()
 })
 
+if (embedLevel === 0) {
+  document.getElementById('mocha').style.width = '33%'
+  document.getElementById('embedded-wrapper').style.width = '67%'
+}
+
 if (embedLevel < 2) {
   const wrapper = document.getElementById('embedded-wrapper')
   wrapper.style.display = 'block'
