@@ -31,9 +31,10 @@ compressionLoop()
 */
 
 if (MODE === 'local') {
-  ensureDomainConfigured('core')
   ensureDomainConfigured(ADMIN_DOMAIN)
 }
+
+ensureDomainConfigured('core')
 
 const httpServer = createServerHTTP(handleHTTP)
 const httpsServer = createServerHTTPS(credentials, handleHTTP)
