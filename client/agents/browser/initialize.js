@@ -122,6 +122,7 @@ function embed(environment, iframe) {
   }
 
   window.addEventListener('message', ({ data }) => {
+    console.log('GOT SESSION!', session)
     if (data.session === session) {
       embeddedAgentInitialized = true
       //  TODO: ensure message index ordering!!!!!!!!!!!!!!!!!!!! (no order guarantee given in postMessage protocol, so we need to make a little buffer here)
