@@ -91,11 +91,7 @@ export default async function authenticate(message, domain, session_credential) 
   const { provider_id, credential } = authResponse
   provider = authResponse.provider
 
-  const userPatch = [
-    { op: 'add', value: USER_TYPE, path: ['active_type'] },
-    { op: 'add', value: { provider_id, provider, credential }, path: ['active'] }
-  ]
-  await interact(ADMIN_DOMAIN, 'users', user, userPatch)
+  //  TODO: save user info as appropriate
 
   await saveSession(domain, session, session_credential, user, provider)
 

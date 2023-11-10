@@ -11,6 +11,7 @@ import ADMIN_DOMAIN_CONFIG from './admin-domain-config.js'
 import compressionLoop from './compress/loop.js'
 
 const {
+  MODE,
   PORT,
   INSECURE_DEVELOPMENT_CERT,
   INSECURE_DEVELOPMENT_KEY,
@@ -29,11 +30,10 @@ compressionLoop()
   .catch(error => console.error('COMPRESSION Error', error))
 */
 
-// TODO: consider what to do with a real persistent report
-const report = {tasks:{}}
-await applyConfiguration(ADMIN_DOMAIN, ADMIN_DOMAIN_CONFIG, report)
-
-await ensureDomainConfigured('core')
+if (MODE === 'local') {
+  ensureDomainConfigured('core')
+  ensureDomainConfigured(ADMIN_DOMAIN)
+}
 
 const httpServer = createServerHTTP(handleHTTP)
 const httpsServer = createServerHTTPS(credentials, handleHTTP)
