@@ -12,10 +12,12 @@ export default function browserAgent(options={}) {
   try { embedded = window.self !== window.top }
   catch (e) { embedded = true }
 
-  Agent = embedded && !options.root ? EmbeddedAgent() : RootAgent(options)
-  Agent.embed = embed
+  const newAgent = embedded && !options.root ? EmbeddedAgent() : RootAgent(options)
+  newAgent.embed = embed
 
-  return Agent
+  if (!Agent) Agent = newAgent
+
+  return newAgent
 }
 
 const copy = x => JSON.parse(JSON.stringify(x))
@@ -57,10 +59,9 @@ function embed(environment, iframe) {
       if (listeners.close) listeners.close(message.info)
     }
     else if (type === 'environment') {
+      const { context } = message
       const env = await Agent.environment()
-      const context = [...env.context, environment.id]
-      Object.assign(env, { ...env, context })
-      sendDown(env)
+      sendDown({ ...env, context: [...env.context, environment.id] })
     }
     else if (type === 'interact') {
       const { scope, patch } = message
@@ -122,7 +123,6 @@ function embed(environment, iframe) {
   }
 
   window.addEventListener('message', ({ data }) => {
-    console.log('GOT SESSION!', session)
     if (data.session === session) {
       embeddedAgentInitialized = true
       //  TODO: ensure message index ordering!!!!!!!!!!!!!!!!!!!! (no order guarantee given in postMessage protocol, so we need to make a little buffer here)
@@ -155,6 +155,7 @@ function embed(environment, iframe) {
     else iframe.src = id //  TODO: ensure is url
 
     while(!embeddedAgentInitialized) {
+      //  TODO: wait for any other agents that are initializing from other potential root agents
       postMessage({ type: 'setup', session })
       await new Promise(r => setTimeout(r, 100))
     }

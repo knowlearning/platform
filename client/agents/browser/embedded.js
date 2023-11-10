@@ -43,10 +43,7 @@ export default function EmbeddedAgent() {
       sessionResolved = true
       resolveSession(data.session)
     }
-    else if (!sessionResolved) return //  awaiting session resolution
-    else if (data.session !== await session) {
-      console.log('Got a message from a different session', data)
-    }
+    else if (!sessionResolved || data.session !== await session) return
     else if (responses[data.requestId]) {
       const { resolve, reject } = responses[data.requestId]
       if (data.error) reject(data.error)

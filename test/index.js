@@ -55,9 +55,7 @@ describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, fu
   multiAgent()
 })
 
-console.log(await Agent.environment())
-
-if (embedLevel < 2 && Math.random() > 0.5) {
+if (embedLevel < 2) {
   const wrapper = document.getElementById('embedded-wrapper')
   wrapper.style.display = 'block'
   const iframe = document.getElementById('embedded-frame')

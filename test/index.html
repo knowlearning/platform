@@ -10,6 +10,12 @@
         height: 100vh;
         width: 100%;
       }
+      #wrapper
+      {
+        display: flex;
+        align-items: stretch;
+        height: 100vh;
+      }
       #mocha-stats
       {
         position: relative !important;
@@ -34,7 +40,7 @@
     </style>
   </head>
   <body>
-    <div id="wrapper" style="display: flex;">
+    <div id="wrapper">
       <div id="mocha"></div>
       <div  id="embedded-wrapper">
         <iframe id="embedded-frame"></iframe>
