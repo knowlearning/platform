@@ -30,11 +30,8 @@ compressionLoop()
   .catch(error => console.error('COMPRESSION Error', error))
 */
 
-if (MODE === 'local') {
-  ensureDomainConfigured(ADMIN_DOMAIN)
-}
-
-ensureDomainConfigured('core')
+await ensureDomainConfigured(ADMIN_DOMAIN)
+await ensureDomainConfigured('core')
 
 const httpServer = createServerHTTP(handleHTTP)
 const httpsServer = createServerHTTPS(credentials, handleHTTP)
