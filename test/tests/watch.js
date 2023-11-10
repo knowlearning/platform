@@ -17,8 +17,8 @@ export default function () {
         const id = uuid()
         const state = await Agent.state(id)
         Agent
-          .watch(id, async ({ ii }) => {
-            updateOrder.push(ii)
+          .watch(id, async update => {
+            updateOrder.push(update.ii)
             if (updateOrder.length === expectedUpdateOrder.length) {
               await new Promise(r => setTimeout(r, 10))
               resolveExpectedUpdates()
