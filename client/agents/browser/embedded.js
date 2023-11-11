@@ -89,11 +89,22 @@ export default function EmbeddedAgent() {
 
   function watch(scope, fn, user, domain) {
     tagIfNotYetTaggedInSession('subscribed', scope)
-    const key = isUUID(scope) ? scope : `${ domain || ''}/${ user || ''}/${scope}`
-    if (!watchers[key]) watchers[key] = []
-    watchers[key].push(fn)
-    send({ type: 'state', scope, user, domain })
-    return () => removeWatcher(key, fn)
+
+    const key = (
+      environment()
+        .then(async ({ auth, domain:rootDomain }) => {
+          const d = !domain || domain === rootDomain ? '' : domain
+          const u = !user || auth.user === user ? '' : user
+          const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
+
+          if (!watchers[key]) watchers[key] = []
+          watchers[key].push(fn)
+
+          send({ type: 'state', scope, user, domain })
+          return key
+        })
+    )
+    return async () => removeWatcher(await key, fn)
   }
 
   async function patch(root, scopes) {

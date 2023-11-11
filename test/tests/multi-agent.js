@@ -1,7 +1,4 @@
-import { browserAgent } from '@knowlearning/agents'
-
 export default function () {
-  const checkAgent = browserAgent()
   describe('Multi Agent Interactions', function () {
     // TODO: test clearing a runstate
 

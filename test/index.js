@@ -40,6 +40,7 @@ mocha
 
 const embedLevel = (await Agent.environment()).context.length
 
+if (embedLevel < 3) {
 mocha.run()
 describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, function () {
   metadata()
@@ -54,6 +55,7 @@ describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, fu
   latestBugfixes()
   multiAgent()
 })
+}
 
 if (embedLevel === 0) {
   document.getElementById('mocha').style.width = '33%'

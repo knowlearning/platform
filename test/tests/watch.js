@@ -57,6 +57,7 @@ export default function () {
     )
 
     async function testMultiAgentWatch(agentA, agentB, scope) {
+      const start = Date.now()
       const state = await agentA.state(scope)
       state.x = 100
       const expectedValues = [{ x: 100 }]
@@ -64,9 +65,14 @@ export default function () {
 
       const { auth: { user }, domain } = await agentA.environment()
 
-      agentB.watch(scope, ({state}) => seenValues.push(state), user, domain)
+      agentB.watch(scope, update => {
+        seenValues.push(update.state)
+      }, user, domain)
 
-      while (seenValues.length < expectedValues.length) await pause(10)
+      while (seenValues.length < expectedValues.length) {
+        if (Date.now() - start > 1500) throw new Error('Timeout')
+        await pause(10)
+      }
 
       expect(seenValues).to.deep.equal(expectedValues)
     }
@@ -117,7 +123,7 @@ export default function () {
         // set up one watcher
         const unwatch = (
           Agent
-            .watch(id, (update) => {
+            .watch(id, update => {
               updatesSeen += 1
               if (updatesSeen === EXPECTED_UPDATES) resolveThirdUpdate()
             })
