@@ -30,7 +30,7 @@ export default function latestBugfixes() {
           resolve()
         }
       })
-      await pause()
+      await Agent.synced()
       s.x = 1
       await pause()
       s.x = 2

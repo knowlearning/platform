@@ -40,7 +40,7 @@ mocha
 
 const embedLevel = (await Agent.environment()).context.length
 
-if (embedLevel === 1) {
+if (embedLevel < 3) {
 mocha.run()
 describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, function () {
   metadata()

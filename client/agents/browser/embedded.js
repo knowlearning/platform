@@ -108,7 +108,6 @@ export default function EmbeddedAgent() {
 
           const state = await send({ type: 'state', scope, user, domain })
           const metadata = await send({ type: 'metadata', scope, user, domain })
-          //console.log('DONT WORRY, ABOUT A KEY', key)
           fn({ state, patch: null, ii: metadata.ii })
           sentUpdates[key] = metadata.ii
           if (!watchers[key]) watchers[key] = []
