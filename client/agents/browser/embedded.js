@@ -7,6 +7,7 @@ export default function EmbeddedAgent() {
   const session = new Promise(r => resolveSession = r)
   const responses = {}
   const watchers = {}
+  const sentUpdates = {}
 
   function removeWatcher(key, fn) {
     const watcherIndex = watchers[key].findIndex(x => x === fn)
@@ -37,8 +38,13 @@ export default function EmbeddedAgent() {
     }
   }
 
+  let sessionResolved = false
   addEventListener('message', async ({ data }) => {
-    if (data.type === 'setup') resolveSession(data.session)
+    if (data.type === 'setup' && !sessionResolved) {
+      sessionResolved = true
+      resolveSession(data.session)
+    }
+    else if (!sessionResolved || data.session !== await session) return
     else if (responses[data.requestId]) {
       const { resolve, reject } = responses[data.requestId]
       if (data.error) reject(data.error)
@@ -50,7 +56,15 @@ export default function EmbeddedAgent() {
       const d = !domain || domain === rootDomain ? '' : domain
       const u = !user || auth.user === user ? '' : user
       const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
-      if (watchers[key]) watchers[key].forEach(fn => fn(data))
+      if (watchers[key]) {
+        if (sentUpdates[key] + 1 === data.ii) {
+          sentUpdates[key] = data.ii
+          watchers[key].forEach(fn => fn(data))
+        }
+        else if (data.ii !== sentUpdates[key]) {
+          console.warn('Out of order or repeated update for', key, data.ii, sentUpdates[key])
+        }
+      }
     }
   })
 
@@ -84,11 +98,24 @@ export default function EmbeddedAgent() {
 
   function watch(scope, fn, user, domain) {
     tagIfNotYetTaggedInSession('subscribed', scope)
-    const key = isUUID(scope) ? scope : `${ domain || ''}/${ user || ''}/${scope}`
-    if (!watchers[key]) watchers[key] = []
-    watchers[key].push(fn)
-    send({ type: 'state', scope, user, domain })
-    return () => removeWatcher(key, fn)
+
+    const key = (
+      environment()
+        .then(async ({ auth, domain:rootDomain }) => {
+          const d = !domain || domain === rootDomain ? '' : domain
+          const u = !user || auth.user === user ? '' : user
+          const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
+
+          const state = await send({ type: 'state', scope, user, domain })
+          const metadata = await send({ type: 'metadata', scope, user, domain })
+          fn({ state, patch: null, ii: metadata.ii })
+          sentUpdates[key] = metadata.ii
+          if (!watchers[key]) watchers[key] = []
+          watchers[key].push(fn)
+          return key
+        })
+    )
+    return async () => removeWatcher(await key, fn)
   }
 
   async function patch(root, scopes) {

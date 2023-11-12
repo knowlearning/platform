@@ -38,21 +38,39 @@ mocha
     }
   })
 
-const container = document.createElement('div')
-container.id = 'mocha'
-document.body.appendChild(container)
+const embedLevel = (await Agent.environment()).context.length
 
+if (embedLevel < 3) {
 mocha.run()
-describe('Core API', function () {
+describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, function () {
   metadata()
   mutate()
   arrays()
   watch()
   if (!Agent.embedded) watchDeep()
   vuex()
-  reconnect()
+  if (!Agent.embedded) reconnect()
   if (!Agent.embedded) postgres()
   uploads()
   latestBugfixes()
   multiAgent()
 })
+}
+
+if (embedLevel === 0) {
+  document.getElementById('mocha').style.width = '33%'
+  document.getElementById('embedded-wrapper').style.width = '67%'
+}
+
+if (embedLevel < 2) {
+  const wrapper = document.getElementById('embedded-wrapper')
+  wrapper.style.display = 'block'
+  const iframe = document.getElementById('embedded-frame')
+  const id = uuid()
+  await Agent.create({
+    id,
+    active_type: 'application/json',
+    active: { x: 101, y: 'dalmations' }
+  })
+  Agent.embed({ id }, iframe)
+}

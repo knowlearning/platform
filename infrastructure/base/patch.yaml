@@ -26,7 +26,7 @@ spec:
         image: patch
         resources:
           requests:
-            memory: 4096Mi
+            memory: 2048Mi
             cpu: 1000m
         ports:
         - containerPort: 80

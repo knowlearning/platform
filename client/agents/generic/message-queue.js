@@ -18,7 +18,6 @@ export default function messageQueue(setEnvironment, { token, protocol, host, We
   let ws
   let user
   let authed = false
-  let isSynced = false
   let session
   let server
   let si = -1
@@ -30,7 +29,7 @@ export default function messageQueue(setEnvironment, { token, protocol, host, We
   let lastSynchronousScopePatchPromise = null
   let restarting = false
   let disconnected = false
-  const syncedPromiseResolutions = []
+  const outstandingSyncPromises = []
   const responses = {}
 
 
@@ -41,7 +40,6 @@ export default function messageQueue(setEnvironment, { token, protocol, host, We
   }
 
   function queueMessage({ scope, patch }) {
-    isSynced = false
     if (lastSynchronousScopePatched === scope) {
       const i = messageQueue.length - 1
       messageQueue[i].patch = [...messageQueue[i].patch, ...patch]
@@ -74,8 +72,10 @@ export default function messageQueue(setEnvironment, { token, protocol, host, We
   }
 
   function resolveSyncPromises() {
-    while (syncedPromiseResolutions.length) syncedPromiseResolutions.shift()()
-    isSynced = true
+    const lowestOutstandingResponseIndex = Object.keys(responses).map(parseInt).sort()[0] || Infinity
+    while (outstandingSyncPromises[0] && outstandingSyncPromises[0].si < lowestOutstandingResponseIndex) {
+      outstandingSyncPromises.shift().resolve()
+    }
   }
 
   function checkHeartbeat() {
@@ -162,7 +162,7 @@ export default function messageQueue(setEnvironment, { token, protocol, host, We
 
               delete responses[message.si]
               ws.send(JSON.stringify({ack: message.si})) //  acknowledgement that we have received the response for this message
-              if (Object.keys(responses).length === 0) resolveSyncPromises()
+              resolveSyncPromises()
             }
             else {
               //  TODO: consider what to do here... probably want to throw error if in dev env
@@ -208,7 +208,11 @@ export default function messageQueue(setEnvironment, { token, protocol, host, We
     checkHeartbeat()
   }
 
-  async function synced() { return isSynced ? null : new Promise(res => syncedPromiseResolutions.push(res)) }
+  async function synced() {
+    const syncPromise = new Promise(resolve => outstandingSyncPromises.push({ si: lastSentSI, resolve }))
+    resolveSyncPromises()
+    return syncPromise
+  }
 
   function lastMessageResponse() { return new Promise((res, rej) => responses[si].push([res, rej])) }
 

@@ -4,8 +4,48 @@
     <link rel="icon" type="image/png" href="/logo-orange.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Knowlearning Tests</title>
+    <style>
+      #embedded-frame {
+        border: none;
+        height: 100vh;
+        width: 100%;
+      }
+      #wrapper
+      {
+        display: flex;
+        align-items: stretch;
+        height: 100vh;
+      }
+      #mocha-stats
+      {
+        position: relative !important;
+        top: 0 !important;
+        right: 0 !important;
+      }
+      #embedded-wrapper
+      {
+        display: none;
+      }
+      #mocha,
+      #embedded-wrapper
+      {
+        flex-grow: 1;
+        width: 50%;
+      }
+      #mocha {
+        max-height: 100vh;
+        overflow: scroll;
+        margin: 0 !important;
+      }
+    </style>
   </head>
   <body>
+    <div id="wrapper">
+      <div id="mocha"></div>
+      <div  id="embedded-wrapper">
+        <iframe id="embedded-frame"></iframe>
+      </div>
+    </div>
     <script type="module" src="/index.js"></script>
   </body>
 </html>

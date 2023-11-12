@@ -17,15 +17,15 @@ export default function () {
         const id = uuid()
         const state = await Agent.state(id)
         Agent
-          .watch(id, async ({ ii }) => {
-            updateOrder.push(ii)
+          .watch(id, async update => {
+            updateOrder.push(update.ii)
             if (updateOrder.length === expectedUpdateOrder.length) {
               await new Promise(r => setTimeout(r, 10))
               resolveExpectedUpdates()
             }
           })
 
-        await pause()
+        await Agent.synced()
         state.x = 1
         await pause()
         state.y = 2
@@ -56,31 +56,54 @@ export default function () {
       }
     )
 
-    async function testMultiAgentWatch(agentA, agentB) {
-      const id = uuid()
-      const scopeName =`asdf-${id}`
-      const state = await agentA.state(scopeName)
+    async function testMultiAgentWatch(agentA, agentB, scope) {
+      const start = Date.now()
+      const state = await agentA.state(scope)
       state.x = 100
       const expectedValues = [{ x: 100 }]
       const seenValues = []
 
-      //  TODO: figure out how to fix situation where 2 of the same expected values will
-      //        return if we don't sync here
-      await agentA.synced()
       const { auth: { user }, domain } = await agentA.environment()
 
-      agentB.watch(scopeName, ({state}) => seenValues.push(state), user, domain)
+      agentB.watch(scope, update => {
+        seenValues.push(update.state)
+      }, user, domain)
 
-      while (seenValues.length < expectedValues.length) await pause(10)
+      while (seenValues.length < expectedValues.length) {
+        if (Date.now() - start > 1500) throw new Error('Timeout')
+        await pause(10)
+      }
 
       expect(seenValues).to.deep.equal(expectedValues)
     }
 
     it(
-      "Allows users to watch other user's named states",
+      "Allows users to watch own scopes by id",
       async function () {
-        await testMultiAgentWatch(Agent, Agent2)
-        await testMultiAgentWatch(Agent2, Agent)
+        await testMultiAgentWatch(Agent, Agent, uuid())
+      }
+    )
+
+    it(
+      "Allows users to watch other user's scopes by id",
+      async function () {
+        await testMultiAgentWatch(Agent, Agent2, uuid())
+        await testMultiAgentWatch(Agent2, Agent, uuid())
+      }
+    )
+
+    it(
+      "Allows users to watch own scopes by name",
+      async function () {
+        await testMultiAgentWatch(Agent, Agent, `asdf-${uuid()}`)
+      }
+    )
+
+    it(
+      "Allows users to watch other user's scopes by name",
+      async function () {
+        await testMultiAgentWatch(Agent, Agent2, `asdf-${uuid()}`)
+        await testMultiAgentWatch(Agent2, Agent, `asdf-${uuid()}`)
       }
     )
 
@@ -100,44 +123,62 @@ export default function () {
         // set up one watcher
         const unwatch = (
           Agent
-            .watch(id, (update) => {
+            .watch(id, update => {
               updatesSeen += 1
               if (updatesSeen === EXPECTED_UPDATES) resolveThirdUpdate()
             })
         )
 
-        await pause()
+        await Agent.synced()
         state.x = 1
         await pause()
         state.y = 2
         await pause()
         state.z = 3
 
-        // unwatch after 3 updates
+        // unwatch after 1 update
         await thirdUpdatePromise
         unwatch()
 
         let resolveAfterUnwatchPromise
-        const finalUpdatesPromise = new Promise(r => resolveAfterUnwatchPromise = r)
+        let rejectAfterUnwatchPromise
+        const finalUpdatesPromise = new Promise((res, rej) => {
+          resolveAfterUnwatchPromise = res
+          rejectAfterUnwatchPromise = rej
+        })
 
         const expectedValues = {x:2,y:3,z:4}
         Object.assign(state, expectedValues)
 
         //  set up another watcher
+        const EXPECTED_AFTER_WATCH_UPDATES = 1
         let afterUnwatchUpdates = 0
-        const finalStatePromise = Agent.state(id)
-        const unwatch2 = Agent.watch(id, () => {
-          afterUnwatchUpdates += 1
-          if (afterUnwatchUpdates === 3) resolveAfterUnwatchPromise()
+        const finalStatePromise = Agent.state(id).then(s => {
+          console.log('GOT FINAL STATE VALUE', s)
+          return s
         })
-        await finalUpdatesPromise
-        unwatch2()
+        const unwatch2 = Agent.watch(id, update => {
+          console.log('got update', update)
+          afterUnwatchUpdates += 1
+          if (afterUnwatchUpdates === 1) resolveAfterUnwatchPromise()
+        })
 
+        await finalUpdatesPromise
+        console.log('unwatching')
+        unwatch2()
+        state.a = 101
+
+
+        console.log('awaiting final state promise')
         const finalState = await finalStatePromise
+        console.log('got final state promise...')
         expect(finalState).to.deep.equal(expectedValues)
+
+        await new Promise(r => setTimeout(r, 10))
 
         //  make sure first watcher didn't get any other updates
         expect(updatesSeen).to.equal(EXPECTED_UPDATES)
+        expect(afterUnwatchUpdates).to.equal(EXPECTED_AFTER_WATCH_UPDATES)
       }
     )
 
