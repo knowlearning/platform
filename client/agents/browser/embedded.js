@@ -7,6 +7,7 @@ export default function EmbeddedAgent() {
   const session = new Promise(r => resolveSession = r)
   const responses = {}
   const watchers = {}
+  const sentUpdates = {}
 
   function removeWatcher(key, fn) {
     const watcherIndex = watchers[key].findIndex(x => x === fn)
@@ -55,7 +56,15 @@ export default function EmbeddedAgent() {
       const d = !domain || domain === rootDomain ? '' : domain
       const u = !user || auth.user === user ? '' : user
       const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
-      if (watchers[key]) watchers[key].forEach(fn => fn(data))
+      if (watchers[key]) {
+        if (sentUpdates[key] + 1 === data.ii) {
+          sentUpdates[key] = data.ii
+          watchers[key].forEach(fn => fn(data))
+        }
+        else if (data.ii !== sentUpdates[key]) {
+          console.warn('Out of order or repeated update for', key, data.ii, sentUpdates[key])
+        }
+      }
     }
   })
 
@@ -97,10 +106,13 @@ export default function EmbeddedAgent() {
           const u = !user || auth.user === user ? '' : user
           const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
 
+          const state = await send({ type: 'state', scope, user, domain })
+          const metadata = await send({ type: 'metadata', scope, user, domain })
+          //console.log('DONT WORRY, ABOUT A KEY', key)
+          fn({ state, patch: null, ii: metadata.ii })
+          sentUpdates[key] = metadata.ii
           if (!watchers[key]) watchers[key] = []
           watchers[key].push(fn)
-
-          send({ type: 'state', scope, user, domain })
           return key
         })
     )

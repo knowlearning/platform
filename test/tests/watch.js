@@ -25,7 +25,7 @@ export default function () {
             }
           })
 
-        await pause()
+        await Agent.synced()
         state.x = 1
         await pause()
         state.y = 2
@@ -129,7 +129,7 @@ export default function () {
             })
         )
 
-        await pause()
+        await Agent.synced()
         state.x = 1
         await pause()
         state.y = 2
@@ -153,18 +153,25 @@ export default function () {
         //  set up another watcher
         const EXPECTED_AFTER_WATCH_UPDATES = 1
         let afterUnwatchUpdates = 0
-        const finalStatePromise = Agent.state(id)
+        const finalStatePromise = Agent.state(id).then(s => {
+          console.log('GOT FINAL STATE VALUE', s)
+          return s
+        })
         const unwatch2 = Agent.watch(id, update => {
+          console.log('got update', update)
           afterUnwatchUpdates += 1
           if (afterUnwatchUpdates === 1) resolveAfterUnwatchPromise()
         })
 
         await finalUpdatesPromise
+        console.log('unwatching')
         unwatch2()
         state.a = 101
 
 
+        console.log('awaiting final state promise')
         const finalState = await finalStatePromise
+        console.log('got final state promise...')
         expect(finalState).to.deep.equal(expectedValues)
 
         await new Promise(r => setTimeout(r, 10))
