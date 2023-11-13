@@ -97,7 +97,16 @@ export default function EmbeddedAgent() {
   }
 
   function watch(scope, fn, user, domain) {
+    let watchingPath = false
+    if (scope && scope.length === 1) {
+      watchingPath = true
+      scope = scope[0]
+    }
+    //  TODO: actually allow watching at paths in embedded
+
     tagIfNotYetTaggedInSession('subscribed', scope)
+
+    const wrappedFn = update => fn(watchingPath ? update.state : update)
 
     const key = (
       environment()
@@ -108,14 +117,14 @@ export default function EmbeddedAgent() {
 
           const state = await send({ type: 'state', scope, user, domain })
           const metadata = await send({ type: 'metadata', scope, user, domain })
-          fn({ state, patch: null, ii: metadata.ii })
+          wrappedFn({ state, patch: null, ii: metadata.ii })
           sentUpdates[key] = metadata.ii
           if (!watchers[key]) watchers[key] = []
-          watchers[key].push(fn)
+          watchers[key].push(wrappedFn)
           return key
         })
     )
-    return async () => removeWatcher(await key, fn)
+    return async () => removeWatcher(await key, wrappedFn)
   }
 
   async function patch(root, scopes) {
