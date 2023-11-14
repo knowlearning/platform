@@ -2,16 +2,22 @@ import { validate as isUUID } from 'uuid'
 
 const DEFAULT_SCOPE_NAME = '[]'
 
-export default function({ metadata, state, watchers, synced, embedded }) {
+export default function({ metadata, environment, state, watchers, synced, embedded }) {
 
   function watch(scope=DEFAULT_SCOPE_NAME, fn, user, domain) {
     if (Array.isArray(scope)) return watchResolution(scope, fn, user, domain)
 
     const statePromise = state(scope, user, domain)
-    const qualifiedScope = isUUID(scope) ? scope : `${domain || ''}/${user || ''}/${scope}`
 
+    let qualifiedScope
+    let removed = false
     metadata(scope, user, domain)
       .then(async ({ ii }) => {
+        if (removed) return
+
+        const { auth: { user: u }, domain: d } = await environment()
+        qualifiedScope = isUUID(scope) ? scope : `${!domain || domain === d ? '' : domain}/${!user || user === u ? '' : user}/${scope}`
+        console.log('Well, got metadata...', ii, scope, user, domain)
         // Don't need to trigger first push in embedded mode since watcher will be triggered for it
         if (!embedded) {
           fn({
@@ -23,11 +29,16 @@ export default function({ metadata, state, watchers, synced, embedded }) {
             ii
           })
         }
+        if (removed) return
+
         if (!watchers[qualifiedScope]) watchers[qualifiedScope] = []
         watchers[qualifiedScope].push(fn)
       })
 
-    return () => removeWatcher(qualifiedScope, fn)
+    return () => {
+      removed = true
+      return removeWatcher(qualifiedScope, fn)
+    }
   }
 
   function watchResolution(path, callback, user, domain) {

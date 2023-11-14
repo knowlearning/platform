@@ -65,12 +65,12 @@ export default function () {
       const seenValues = []
 
       const { auth: { user }, domain } = await agentA.environment()
-
       agentB.watch(scope, update => {
         seenValues.push(update.state)
       }, user, domain)
 
       while (seenValues.length < expectedValues.length) {
+        console.log(seenValues, user, domain)
         if (Date.now() - start > 1500) throw new Error('Timeout')
         await pause(10)
       }
@@ -107,7 +107,6 @@ export default function () {
         await testMultiAgentWatch(Agent2, Agent, `asdf-${uuid()}`)
       }
     )
-
 
     it(
       'Allows watching paths',
