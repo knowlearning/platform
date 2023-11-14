@@ -72,8 +72,8 @@ function embed(environment, iframe) {
       sendDown({}) // TODO: might want to send down the interaction index
     }
     else if (type === 'metadata') {
-      const { scope, user } = message
-      sendDown(await Agent.metadata(scope, user))
+      const { scope, user, domain } = message
+      sendDown(await Agent.metadata(scope, user, domain))
     }
     else if (type === 'tag') {
       const { tag_type, target, context } = message

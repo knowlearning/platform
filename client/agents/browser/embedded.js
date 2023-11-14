@@ -10,7 +10,7 @@ export default function EmbeddedAgent() {
   const watchers = {}
   const sentUpdates = {}
 
-  const [ watch, removeWatcher ] = watchImplementation({ metadata, state, watchers, synced })
+  const [ watch, removeWatcher ] = watchImplementation({ metadata, state, watchers, synced, embedded: true })
 
   async function send(message) {
     const requestId = message.requestId || uuid()
@@ -54,12 +54,12 @@ export default function EmbeddedAgent() {
       const u = !user || auth.user === user ? '' : user
       const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
       if (watchers[key]) {
-        if (sentUpdates[key] + 1 === data.ii) {
+        if (sentUpdates[key] === undefined || sentUpdates[key] + 1 === data.ii) {
           sentUpdates[key] = data.ii
           watchers[key].forEach(fn => fn(data))
         }
-        else if (data.ii !== sentUpdates[key]) {
-          console.warn('Out of order or repeated update for', key, data.ii, sentUpdates[key])
+        else {
+          console.warn('Out of order or repeated update for', key, data, sentUpdates[key])
         }
       }
     }
@@ -187,8 +187,8 @@ export default function EmbeddedAgent() {
     )
   }
 
-  async function metadata(scope) {
-    const md = await send({ type: 'metadata', scope })
+  async function metadata(scope, user, domain) {
+    const md = await send({ type: 'metadata', scope, user, domain })
     return new MutableProxy(md, patch => {
       const activePatch = structuredClone(patch)
       activePatch.forEach(entry => {

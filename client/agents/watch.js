@@ -1,6 +1,8 @@
 import { validate as isUUID } from 'uuid'
 
-export default function({ metadata, state, watchers, synced }) {
+const DEFAULT_SCOPE_NAME = '[]'
+
+export default function({ metadata, state, watchers, synced, embedded }) {
 
   function watch(scope=DEFAULT_SCOPE_NAME, fn, user, domain) {
     if (Array.isArray(scope)) return watchResolution(scope, fn, user, domain)
@@ -10,14 +12,17 @@ export default function({ metadata, state, watchers, synced }) {
 
     metadata(scope, user, domain)
       .then(async ({ ii }) => {
-        fn({
-          scope,
-          user,
-          domain,
-          state: await statePromise,
-          patch: null,
-          ii
-        })
+        // Don't need to trigger first push in embedded mode since watcher will be triggered for it
+        if (!embedded) {
+          fn({
+            scope,
+            user,
+            domain,
+            state: await statePromise,
+            patch: null,
+            ii
+          })
+        }
         if (!watchers[qualifiedScope]) watchers[qualifiedScope] = []
         watchers[qualifiedScope].push(fn)
       })

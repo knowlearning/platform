@@ -18,6 +18,7 @@ export default function () {
         const state = await Agent.state(id)
         Agent
           .watch(id, async update => {
+            console.log('UPDATE!!!!!!!', update)
             updateOrder.push(update.ii)
             if (updateOrder.length === expectedUpdateOrder.length) {
               await new Promise(r => setTimeout(r, 10))

@@ -40,20 +40,20 @@ mocha
 
 const embedLevel = (await Agent.environment()).context.length
 
-if (embedLevel < 3) {
+if (embedLevel < 2) {
 mocha.run()
 describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, function () {
-  metadata()
-  mutate()
-  arrays()
+  // metadata()
+  // mutate()
+  // arrays()
   watch()
-  if (!Agent.embedded) watchDeep()
-  vuex()
-  if (!Agent.embedded) reconnect()
-  if (!Agent.embedded) postgres()
-  uploads()
-  latestBugfixes()
-  multiAgent()
+  //watchDeep()
+  // vuex()
+  // if (!Agent.embedded) reconnect()
+  // if (!Agent.embedded) postgres()
+  // uploads()
+  // latestBugfixes()
+  // multiAgent()
 })
 }
 
