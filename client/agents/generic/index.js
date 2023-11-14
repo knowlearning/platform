@@ -2,7 +2,7 @@ import { validate as isUUID } from 'uuid'
 import MutableProxy from '../../persistence/json.js'
 import messageQueue from './message-queue.js'
 import stateImplementation from './state.js'
-import watchImplementation from './watch.js'
+import watchImplementation from '../watch.js'
 import downloadImplementation from '../download.js'
 
 // TODO: consider using something better than name as mechanism
