@@ -53,16 +53,18 @@ export default function EmbeddedAgent() {
       const d = !domain || domain === rootDomain ? '' : domain
       const u = !user || auth.user === user ? '' : user
       const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
+
+      const sendUpdate = () => {
+        sentUpdates[key] = data.ii
+        watchers[key].forEach(fn => fn(data))
+      }
+
       if (watchers[key]) {
-        if (sentUpdates[key] === undefined || sentUpdates[key] + 1 === data.ii) {
-          sentUpdates[key] = data.ii
-          watchers[key].forEach(fn => fn(data))
-        }
-        else if (data.ii === sentUpdates[key]) {
-          console.warn('Repeated update for', key, data, sentUpdates[key])
-        }
+        if (sentUpdates[key] === undefined || sentUpdates[key] + 1 === data.ii) sendUpdate()
+        else if (data.ii === sentUpdates[key]) console.warn('Repeated update for', key, data, sentUpdates[key])
         else {
           console.warn('Out of order update for', key, data, sentUpdates[key])
+          if (data.ii > sentUpdates[key]) sendUpdate()
         }
       }
     }

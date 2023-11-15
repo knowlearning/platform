@@ -37,14 +37,15 @@ export default function () {
 
         await Agent.create({ id: id1, active: { id_referencing_other_scope: id2 } })
         await Agent.create({ id: id2, active: { x: 'woooo!' } })
+        const id2State = await Agent.state(id2)
 
         const expectedValues = ['woooo!', 'wooooooooooo!x2']
         const seenValues = []
 
-        Agent.watch([id1, 'id_referencing_other_scope', 'x'], v => seenValues.push(v))
-
-        const id2State = await Agent.state(id2)
-        id2State.x = 'wooooooooooo!x2'
+        Agent.watch([id1, 'id_referencing_other_scope', 'x'], v => {
+          seenValues.push(v)
+          if (seenValues.length === 1) id2State.x = 'wooooooooooo!x2'
+        })
 
         while (seenValues.length < expectedValues.length) await pause(10)
 
