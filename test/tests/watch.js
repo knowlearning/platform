@@ -31,6 +31,7 @@ export default function () {
         state.y = 2
         await pause()
         state.z = 3
+        await pause()
         await expectedUpdatesPromise
 
         expect(updateOrder).to.deep.equal(expectedUpdateOrder)
@@ -48,7 +49,7 @@ export default function () {
         const expectedValues = [{ x: 100 }]
         const seenValues = []
 
-        Agent.watch(id, ({state}) => seenValues.push(state))
+        Agent.watch(id, update => seenValues.push(update.state) )
 
         while (seenValues.length < expectedValues.length) await pause(10)
 
@@ -64,7 +65,6 @@ export default function () {
       const seenValues = []
 
       const { auth: { user }, domain } = await agentA.environment()
-
       agentB.watch(scope, update => {
         seenValues.push(update.state)
       }, user, domain)
@@ -106,7 +106,6 @@ export default function () {
         await testMultiAgentWatch(Agent2, Agent, `asdf-${uuid()}`)
       }
     )
-
 
     it(
       'Allows watching paths',

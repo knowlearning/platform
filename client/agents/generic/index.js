@@ -2,7 +2,7 @@ import { validate as isUUID } from 'uuid'
 import MutableProxy from '../../persistence/json.js'
 import messageQueue from './message-queue.js'
 import stateImplementation from './state.js'
-import watchImplementation from './watch.js'
+import watchImplementation from '../watch.js'
 import downloadImplementation from '../download.js'
 
 // TODO: consider using something better than name as mechanism
@@ -157,7 +157,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     )
   }
 
-  async function metadata(id=DEFAULT_SCOPE_NAME, user) {
+  async function metadata(id=DEFAULT_SCOPE_NAME, user, domain) {
     const md = structuredClone(await state(id, user).metadata)
     delete md.active
     return new MutableProxy(md, patch => {

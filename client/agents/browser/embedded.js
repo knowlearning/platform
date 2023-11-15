@@ -1,4 +1,5 @@
 import { validate as isUUID, v1 as uuid } from 'uuid'
+import watchImplementation from '../watch.js'
 import MutableProxy from '../../persistence/json.js'
 
 export default function EmbeddedAgent() {
@@ -9,11 +10,7 @@ export default function EmbeddedAgent() {
   const watchers = {}
   const sentUpdates = {}
 
-  function removeWatcher(key, fn) {
-    const watcherIndex = watchers[key].findIndex(x => x === fn)
-    if (watcherIndex > -1) watchers[key].splice(watcherIndex, 1)
-    else console.warn('TRIED TO REMOVE WATCHER THAT DOES NOT EXIST')
-  }
+  const [ watch, removeWatcher ] = watchImplementation({ metadata, state, watchers, synced, sentUpdates, environment })
 
   async function send(message) {
     const requestId = message.requestId || uuid()
@@ -57,12 +54,12 @@ export default function EmbeddedAgent() {
       const u = !user || auth.user === user ? '' : user
       const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
       if (watchers[key]) {
-        if (sentUpdates[key] + 1 === data.ii) {
+        if (sentUpdates[key] === undefined || sentUpdates[key] + 1 === data.ii) {
           sentUpdates[key] = data.ii
           watchers[key].forEach(fn => fn(data))
         }
-        else if (data.ii !== sentUpdates[key]) {
-          console.warn('Out of order or repeated update for', key, data.ii, sentUpdates[key])
+        else {
+          console.warn('Out of order or repeated update for', key, data, sentUpdates[key])
         }
       }
     }
@@ -94,37 +91,6 @@ export default function EmbeddedAgent() {
 
     tagTypeToTargetCache[tag_type][target] = true
     await tag(tag_type, target)
-  }
-
-  function watch(scope, fn, user, domain) {
-    let watchingPath = false
-    if (scope && scope.length === 1) {
-      watchingPath = true
-      scope = scope[0]
-    }
-    //  TODO: actually allow watching at paths in embedded
-
-    tagIfNotYetTaggedInSession('subscribed', scope)
-
-    const wrappedFn = update => fn(watchingPath ? update.state : update)
-
-    const key = (
-      environment()
-        .then(async ({ auth, domain:rootDomain }) => {
-          const d = !domain || domain === rootDomain ? '' : domain
-          const u = !user || auth.user === user ? '' : user
-          const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
-
-          const state = await send({ type: 'state', scope, user, domain })
-          const metadata = await send({ type: 'metadata', scope, user, domain })
-          wrappedFn({ state, patch: null, ii: metadata.ii })
-          sentUpdates[key] = metadata.ii
-          if (!watchers[key]) watchers[key] = []
-          watchers[key].push(wrappedFn)
-          return key
-        })
-    )
-    return async () => removeWatcher(await key, wrappedFn)
   }
 
   async function patch(root, scopes) {
@@ -221,8 +187,8 @@ export default function EmbeddedAgent() {
     )
   }
 
-  async function metadata(scope) {
-    const md = await send({ type: 'metadata', scope })
+  async function metadata(scope, user, domain) {
+    const md = await send({ type: 'metadata', scope, user, domain })
     return new MutableProxy(md, patch => {
       const activePatch = structuredClone(patch)
       activePatch.forEach(entry => {
