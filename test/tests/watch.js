@@ -140,6 +140,38 @@ export default function () {
     )
 
     it(
+      'Can make a second watch request to the same scope and get a result',
+      async function () {
+        const id = uuid()
+        const start = Date.now()
+        const state = await Agent.state(id)
+        state.x = 100
+        const expectedValues = [{ x: 100 }]
+        const seenValues1 = []
+        const seenValues2 = []
+
+        const { auth: { user }, domain } = await Agent.environment()
+
+        const unwatch = Agent.watch(id, update => {
+          seenValues1.push(update.state)
+        }, user, domain)
+
+        Agent.watch(id, update => {
+          seenValues2.push(update.state)
+        }, user, domain)
+
+        while (seenValues1.length < expectedValues.length || seenValues2.length < expectedValues.length) {
+          if (Date.now() - start > 1500) throw new Error('Timeout')
+          await pause(10)
+        }
+
+        expect(seenValues1).to.deep.equal(expectedValues)
+        expect(seenValues1).to.deep.equal(seenValues2)
+
+      }
+    )
+
+    it(
       'Closes a listening connection after a close call',
       async function () {
         this.timeout(5000)
