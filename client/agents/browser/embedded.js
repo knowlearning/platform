@@ -10,7 +10,7 @@ export default function EmbeddedAgent() {
   const watchers = {}
   const sentUpdates = {}
 
-  const [ watch, removeWatcher ] = watchImplementation({ metadata, state, watchers, synced, environment, embedded: true })
+  const [ watch, removeWatcher ] = watchImplementation({ metadata, state, watchers, synced, sentUpdates, environment })
 
   async function send(message) {
     const requestId = message.requestId || uuid()

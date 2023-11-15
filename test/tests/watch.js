@@ -18,7 +18,6 @@ export default function () {
         const state = await Agent.state(id)
         Agent
           .watch(id, async update => {
-            console.log('UPDATE!!!!!!!', update)
             updateOrder.push(update.ii)
             if (updateOrder.length === expectedUpdateOrder.length) {
               await new Promise(r => setTimeout(r, 10))
@@ -32,6 +31,7 @@ export default function () {
         state.y = 2
         await pause()
         state.z = 3
+        await pause()
         await expectedUpdatesPromise
 
         expect(updateOrder).to.deep.equal(expectedUpdateOrder)
@@ -49,7 +49,7 @@ export default function () {
         const expectedValues = [{ x: 100 }]
         const seenValues = []
 
-        Agent.watch(id, ({state}) => seenValues.push(state))
+        Agent.watch(id, update => seenValues.push(update.state) )
 
         while (seenValues.length < expectedValues.length) await pause(10)
 
@@ -70,7 +70,6 @@ export default function () {
       }, user, domain)
 
       while (seenValues.length < expectedValues.length) {
-        console.log(seenValues, user, domain)
         if (Date.now() - start > 1500) throw new Error('Timeout')
         await pause(10)
       }
