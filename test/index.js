@@ -25,6 +25,7 @@ const id = window.location.pathname.slice(1)
 if (isUUID(id) && (await Agent.metadata(id)).active_type === 'application/json;embed-watch-test') {
   const states = []
   const unwatch = Agent.watch(id, ({ patch, state }) => {
+    console.log(JSON.stringify(patch, null, 4), JSON.stringify(state, null, 4))
     states.push(state)
     if (state.done) {
       Agent.close(JSON.parse(JSON.stringify(states)))
