@@ -142,7 +142,6 @@ export default function latestBugfixes() {
 
       on2('open', async () => {
         await Agent.synced()
-        console.log('starting update')
         state.x += 1
         await pause()
         state.y += 1

@@ -4,7 +4,7 @@ import { v4 as uuid } from 'uuid'
 import interact from '../interact/index.js'
 import * as redis from '../redis.js'
 import initializationState from '../initialization-state.js'
-import MutableProxy from '../../client/persistence/json.js'
+import MutableProxy from '../../../client/persistence/json.js'
 
 const CHALLENGE_TIMEOUT_LIMIT = 1000 * 60 * 5
 

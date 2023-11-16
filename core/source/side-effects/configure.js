@@ -7,7 +7,7 @@ import { parse as parseYAML } from 'yaml'
 import interact from '../interact/index.js'
 import POSTGRES_DEFAULT_TABLES from '../postgres-default-tables.js'
 import configuration from '../configuration.js'
-import MutableProxy from '../../client/persistence/json.js'
+import MutableProxy from '../../../client/persistence/json.js'
 
 //  TODO: probably want to abstract this and allow different types
 //        to help with removing privaleged named states
