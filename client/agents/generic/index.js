@@ -19,9 +19,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   const keyToSubscriptionId = {}
   const lastInteractionResponse = {}
   const tagTypeToTargetCache = {}
-  let resolveEnvironment
   let mode = 'normal'
-  const environmentPromise = new Promise(r => resolveEnvironment = r)
 
   log('INITIALIZING AGENT CONNECTION')
   const [
@@ -29,8 +27,9 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     lastMessageResponse,
     disconnect,
     reconnect,
-    synced
-  ] = messageQueue(resolveEnvironment, { token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact })
+    synced,
+    environment
+  ] = messageQueue({ token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact })
 
   const internalReferences = {
     keyToSubscriptionId,
@@ -49,8 +48,6 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   }
 
   const [ watch, removeWatcher ] = watchImplementation(internalReferences)
-
-  async function environment() { return { ...(await environmentPromise), context: [] } }
 
   function state(scope, user, domain) { return stateImplementation(scope, user, domain, internalReferences) }
 

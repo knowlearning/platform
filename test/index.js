@@ -22,7 +22,8 @@ window.Agent2 = browserAgent({ unique: true, getToken: () => 'anonymous', root: 
 if (!Agent.embedded) Agent.local()
 
 const id = window.location.pathname.slice(1)
-if (isUUID(id) && (await Agent.metadata(id)).active_type === 'application/json;embed-watch-test') {
+
+if ((await Agent.environment()).mode === 'EMBEDED_WATCHER_TEST_MODE') {
   const states = []
   const unwatch = Agent.watch(id, ({ patch, state }) => {
     states.push(state)

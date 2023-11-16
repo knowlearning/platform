@@ -1,8 +1,8 @@
 <template>
   <iframe
     :v-if="resolvedId"
-    :key="resolvedId"
-    :ref="el => setup(el, resolvedId)"
+    :key="resolvedId + mode"
+    :ref="el => setup(el, resolvedId, mode)"
     style="
       width: 100%;
       height: 100%;
@@ -22,6 +22,10 @@ export default {
     path: {
       type: Array,
       default: []
+    },
+    mode: {
+      type: String,
+      required: false
     }
   },
   data() {
@@ -50,11 +54,11 @@ export default {
       }
       else this.resolvedId = this.id
     },
-    async setup(iframe, id) {
+    async setup(iframe, id, mode) {
       if (!iframe || this.iframe === iframe) return
 
       this.iframe = iframe
-      this.embedding = Agent.embed({ id }, iframe)
+      this.embedding = Agent.embed({ id, mode }, iframe)
       this.embedding.on('state', e => this.$emit('state', e))
       this.embedding.on('mutate', e => this.$emit('mutate', e))
       this.embedding.on('close', e => this.$emit('close', e))
