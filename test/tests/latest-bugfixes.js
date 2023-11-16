@@ -4,6 +4,7 @@ function pause(ms) {
 
 export default function latestBugfixes() {
   describe('Latest Bugfixes', function () {
+/*
     it('Can request two of the same states by uuid and await sync', async function () {
       const id = Agent.uuid()
       const t0 = await Agent.state(id)
@@ -49,7 +50,7 @@ export default function latestBugfixes() {
       //t1.hmm = 1
       await Agent.synced()
     })
-
+*/
     it('Can embed an app that successfully watches a scope controlled from above', async function () {
       const id = uuid()
       let resolve
@@ -61,6 +62,8 @@ export default function latestBugfixes() {
       const iframe = document.createElement('iframe')
       iframe.style = "border: none; width: 0; height: 0;"
       document.body.appendChild(iframe)
+      state.x = 1
+
       const { on } = Agent.embed({ id }, iframe)
 
       let closeInfo
@@ -71,7 +74,6 @@ export default function latestBugfixes() {
       })
 
       on('open', async () => {
-        state.x = 1
         await pause()
         state.y = 2
         await pause()

@@ -125,7 +125,6 @@ function embed(environment, iframe) {
   window.addEventListener('message', ({ data }) => {
     if (data.session === session) {
       embeddedAgentInitialized = true
-      if (listeners.open) listeners.open()
       //  TODO: ensure message index ordering!!!!!!!!!!!!!!!!!!!! (no order guarantee given in postMessage protocol, so we need to make a little buffer here)
       handleMessage(data)
     }
@@ -160,6 +159,7 @@ function embed(environment, iframe) {
       postMessage({ type: 'setup', session })
       await new Promise(r => setTimeout(r, 100))
     }
+    if (listeners.open) listeners.open()
   }
 
   function remove () {
