@@ -1,5 +1,5 @@
 export { default as vuePersistentStore } from './vue/3/persist/vuex.js'
 export { default as vuePersistentComponent } from './vue/3/persist/component.js'
-export { default as vueEmbedComponent } from './vue/3/components/content.vue'
+export { default as vueEmbedComponent } from './vue/3/components/embed.vue'
 export { default as vueNameComponent } from './vue/3/components/name.vue'
 export { default as vueScopeComponent } from './vue/3/components/scope.vue'

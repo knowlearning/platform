@@ -1,3 +1,5 @@
+const EMBEDED_WATCHER_TEST_MODE = 'EMBEDED_WATCHER_TEST_MODE'
+
 function pause(ms) {
   return new Promise(r => setTimeout(r, ms))
 }
@@ -58,13 +60,12 @@ export default function latestBugfixes() {
       const state = await Agent2.state(id)
       const metadata = await Agent2.metadata(id)
       const firstExpectedUpdates = [{x:1}, {x:1, y:2}, {x:1, y:2, z:3}, {x:1, y:2, z:3, done: true}]
-      metadata.active_type = 'application/json;embed-watch-test'
       const iframe = document.createElement('iframe')
       iframe.style = "border: none; width: 0; height: 0;"
       document.body.appendChild(iframe)
       state.x = 1
 
-      const { on } = Agent.embed({ id }, iframe)
+      const { on } = Agent.embed({ id, mode: EMBEDED_WATCHER_TEST_MODE }, iframe)
 
       let closeInfo
       on('close', info => {
@@ -93,13 +94,12 @@ export default function latestBugfixes() {
       const state = await Agent2.state(id)
       const metadata = await Agent2.metadata(id)
       const firstExpectedUpdates = [{x:1}, {x:1, y:2}, {x:1, y:2, z:3}, {x:1, y:2, z:3, done: true}]
-      metadata.active_type = 'application/json;embed-watch-test'
       const iframe = document.createElement('iframe')
       iframe.style = "border: none; width: 0; height: 0;"
       document.body.appendChild(iframe)
       state.x = 1
 
-      const { on } = Agent.embed({ id }, iframe)
+      const { on } = Agent.embed({ id, mode: EMBEDED_WATCHER_TEST_MODE }, iframe)
 
       let closeInfo
       on('close', info => {
@@ -131,7 +131,7 @@ export default function latestBugfixes() {
       iframe2.style = "border: none; width: 0; height: 0;"
       document.body.appendChild(iframe2)
 
-      const { on:on2 } = Agent.embed({ id }, iframe2)
+      const { on:on2 } = Agent.embed({ id, mode: EMBEDED_WATCHER_TEST_MODE }, iframe2)
 
       let closeInfo2
       on2('close', info => {
