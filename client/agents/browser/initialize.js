@@ -22,9 +22,8 @@ export default function browserAgent(options={}) {
 
 const copy = x => JSON.parse(JSON.stringify(x))
 
-const watchers = {}
-
 function embed(environment, iframe) {
+  const watchers = {}
   const postMessageQueue = []
   const listeners = {}
   let frameLoaded = false
@@ -159,6 +158,7 @@ function embed(environment, iframe) {
       postMessage({ type: 'setup', session })
       await new Promise(r => setTimeout(r, 100))
     }
+    if (listeners.open) listeners.open()
   }
 
   function remove () {
