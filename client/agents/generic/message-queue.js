@@ -14,7 +14,7 @@ function sanitizeJSONPatchPathSegment(s) {
   else return s
 }
 
-export default function messageQueue(setEnvironment, { token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact }) {
+export default function messageQueue({ token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact }) {
   let ws
   let user
   let authed = false
@@ -33,11 +33,16 @@ export default function messageQueue(setEnvironment, { token, protocol, host, We
   const responses = {}
 
 
+  let resolveEnvironment
+  const environmentPromise = new Promise(r => resolveEnvironment = r)
+
   const sessionMetrics = {
     loaded: Date.now(),
     connected: null,
     authenticated: null
   }
+
+  async function environment() { return { ...(await environmentPromise), context: [] } }
 
   function queueMessage({ scope, patch }) {
     if (lastSynchronousScopePatched === scope) {
@@ -142,7 +147,7 @@ export default function messageQueue(setEnvironment, { token, protocol, host, We
               {op: 'add', path: ['active', 'authenticated'], value: sessionMetrics.authenticated },
             ])
 
-            setEnvironment(message)
+            resolveEnvironment(message)
           }
           else if (server !== message.server) {
             console.warn(`REBOOTING DUE TO SERVER SWITCH ${server} -> ${message.server}`)
@@ -230,5 +235,5 @@ export default function messageQueue(setEnvironment, { token, protocol, host, We
 
   initWS()
 
-  return [queueMessage, lastMessageResponse, disconnect, reconnect, synced]
+  return [queueMessage, lastMessageResponse, disconnect, reconnect, synced, environment]
 }
