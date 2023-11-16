@@ -4,15 +4,15 @@ kind: Config
 build:
   artifacts:
   - image: gcs
-    context: ./infrastructure/development/
+    context: ./core/infrastructure/development/
     docker:
       dockerfile: ./gcs.Dockerfile
   - image: redis
-    context: ./infrastructure/development/
+    context: ./core/infrastructure/development/
     docker:
       dockerfile: ./redis.Dockerfile
   - image: postgres
-    context: ./infrastructure/development/
+    context: ./core/infrastructure/development/
     docker:
       dockerfile: ./postgres.Dockerfile
   - image: core
@@ -28,7 +28,7 @@ profiles:
   manifests:
     kustomize:
       paths:
-      - ./infrastructure/development
+      - ./core/infrastructure/development
   deploy:
     kubeContext: kind-kl-core
     kubectl: {}
@@ -36,6 +36,6 @@ profiles:
   manifests:
     kustomize:
       paths:
-      - ./infrastructure/production
+      - ./core/infrastructure/production
   deploy:
     kubectl: {}
