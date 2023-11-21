@@ -11,6 +11,7 @@ import metadata from './tests/metadata.js'
 import uploads from './tests/uploads.js'
 import postgres from './tests/postgres.js'
 import vuex from './tests/vuex.js'
+import stateTest from './tests/state.js'
 import latestBugfixes from './tests/latest-bugfixes.js'
 import { browserAgent } from '@knowlearning/agents'
 
@@ -61,6 +62,7 @@ else {
   if (embedLevel < 3) {
     mocha.run()
     describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, function () {
+      stateTest()
       metadata()
       mutate()
       arrays()
