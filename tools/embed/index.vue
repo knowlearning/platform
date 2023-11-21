@@ -17,6 +17,10 @@
         </tr>
       </tbody>
     </table>
+    <div>
+      <input type="text" v-model="urlInput" @keypress.enter="addUrl" />
+      <button @click="addUrl(urlInput)">Add</button>
+    </div>
     <button
       v-for="type in types"
       :key="type"
@@ -25,6 +29,8 @@
       new {{ type }}
     </button>
     <button @click="openTest">test</button>
+    <button @click="addUrl('https://localhost:6060/bb/climate-change/causal-map')">Betty's Brain</button>
+    <button @click="addUrl(`http://localhost:3000/bb-dash/climate-change/OverviewView?dashboard-config=${bbDashboardConfigId}`)">Betty's Brain Dashboard</button>
     <div v-if="creating">
       <div>
         name:
@@ -69,14 +75,29 @@
     data() {
       return {
         current: null,
+        urlInput: '',
         newItemName: 'New Item',
         environment: null,
         creating: null,
-        children: []
+        children: [],
+        bbDashboardConfigId: null
       }
     },
     async created() {
       this.environment = await Agent.environment()
+      const id = uuid()
+      Agent.create({
+        id,
+        active: {
+          'placeholder-id-1': {
+            states: {
+              [this.environment.auth.user]: 'placeholder-id-2'
+            },
+            embedded: {}
+          }
+        }
+      })
+      this.bbDashboardConfigId = id
     },
     computed: {
       types() {
@@ -118,6 +139,9 @@
       removeTake(index) {
         if (this.children[index] === this.current) this.current = null
         this.children.splice(index, 1)
+      },
+      addUrl(url) {
+        this.children.push(url)
       }
     }
   }
