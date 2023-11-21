@@ -17,13 +17,12 @@ import { browserAgent } from '@knowlearning/agents'
 import 'mocha/mocha.css'
 
 window.Agent = browserAgent()
-window.Agent2 = browserAgent({ unique: true, getToken: () => 'anonymous', root: true})
-
 if (!Agent.embedded) Agent.local()
 
 const id = window.location.pathname.slice(1)
+const { mode } = await Agent.environment()
 
-if ((await Agent.environment()).mode === 'EMBEDED_WATCHER_TEST_MODE') {
+if (mode === 'EMBEDED_WATCHER_TEST_MODE') {
   const states = []
   const unwatch = Agent.watch(id, ({ patch, state }) => {
     states.push(state)
@@ -33,10 +32,16 @@ if ((await Agent.environment()).mode === 'EMBEDED_WATCHER_TEST_MODE') {
     }
   })
 }
+else if (mode === 'EMBEDED_QUERY_TEST_MODE') {
+  const result = await Agent.query('my-test-table-entries')
+  Agent.close(result)
+}
 else {
   //  set up some globals for ease of use in test files
   window.expect = chai.expect
   window.uuid = uuid
+  window.pause = ms => new Promise(r => setTimeout(r, ms))
+  window.Agent2 = browserAgent({ unique: true, getToken: () => 'anonymous', root: true})
 
   chai.config.truncateThreshold = 0; // disable truncating
 

@@ -1,3 +1,4 @@
+const EMBEDED_QUERY_TEST_MODE = 'EMBEDED_QUERY_TEST_MODE'
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
 export default function () {
@@ -137,6 +138,27 @@ postgres:
     it('Can retrieve expected record from test table type', async function () {
       expect(await Agent.query('my-test-table-entries'))
       .to.deep.equal([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
+    })
+
+
+    it('Can retrieve expected record from test table type in an embedded context', async function () {
+      let resolve
+      const done = new Promise(r => resolve = r)
+      const iframe = document.createElement('iframe')
+      iframe.style = "border: none; width: 0; height: 0;"
+      document.body.appendChild(iframe)
+
+      const { on } = Agent.embed({ id: TEST_ENTRY_1_ID, mode: EMBEDED_QUERY_TEST_MODE }, iframe)
+
+      let closeInfo
+      on('close', info => {
+        closeInfo = info
+        document.body.removeChild(iframe)
+        resolve()
+      })
+
+      await done
+      expect(closeInfo).to.deep.equal([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
     })
 
     it('Can call functions in special query scopes', async function () {

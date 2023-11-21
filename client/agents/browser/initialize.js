@@ -97,8 +97,8 @@ function embed(environment, iframe) {
       sendDown(await Agent.patch(root, scopes))
     }
     else if (type === 'query') {
-      const { query, params } = message
-      sendDown(await Agent.query(query, params))
+      const { query, params, domain } = message
+      sendDown(await Agent.query(query, params, domain))
     }
     else if (type === 'upload') {
       const { name, contentType, id } = message

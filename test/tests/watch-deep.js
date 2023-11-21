@@ -1,7 +1,3 @@
-function pause(ms) {
-  return new Promise(r => setTimeout(r, ms))
-}
-
 export default function () {
   describe('Deep Watchers', function () {
 
