@@ -1,9 +1,5 @@
 const EMBEDED_WATCHER_TEST_MODE = 'EMBEDED_WATCHER_TEST_MODE'
 
-function pause(ms) {
-  return new Promise(r => setTimeout(r, ms))
-}
-
 export default function latestBugfixes() {
   describe('Latest Bugfixes', function () {
 

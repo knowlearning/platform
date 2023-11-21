@@ -31,6 +31,9 @@
     <button @click="openTest">test</button>
     <button @click="addUrl('https://localhost:6060/bb/climate-change/causal-map')">Betty's Brain</button>
     <button @click="addUrl(`http://localhost:3000/bb-dash/climate-change/OverviewView?dashboard-config=${bbDashboardConfigId}`)">Betty's Brain Dashboard</button>
+    <button @click="addUrl('https://pila.cand.li/pila.html?tutorial')">Candli Tutorial</button>
+    <button @click="addUrl('https://pila.cand.li/pila.html?level1')">Candli Level 1</button>
+    <button @click="addUrl(`https://pila.cand.li/pila.html?dashboard&dashboard-config=${bbDashboardConfigId}`)">Candli Dashboard</button>
     <div v-if="creating">
       <div>
         name:
