@@ -53,17 +53,30 @@
       </div>
     </Pane>
     <Pane v-if="current">
-      <div
-        :class="{
-          noninteractive: resizing
-        }"
-        style="position: relative; height: 100%; width: 100%;"
+      <Splitpanes
+        class="default-theme"
+        @resize="resizing = true"
+        @resized="resizing = false"
+        horizontal
       >
-        <vueEmbedComponent
-          :key="current"
-          :id="current"
-        />
-      </div>
+        <Pane>
+          <div
+            :class="{ noninteractive: resizing }"
+            style="position: relative; height: 100%; width: 100%;"
+          >
+            <vueEmbedComponent
+              :key="current"
+              :id="current"
+              @state="handleCurrentState"
+              @mutate="handleCurrentMutate"
+              @close="handleCurrentClose"
+            />
+          </div>
+        </Pane>
+        <Pane>
+          <pre>{{ currentInfo }}</pre>
+        </Pane>
+      </Splitpanes>
     </Pane>
   </Splitpanes>
 </template>
@@ -100,6 +113,7 @@
       return {
         resizing: false,
         current: null,
+        currentInfo: null,
         urlInput: '',
         newItemName: 'New Item',
         environment: null,
@@ -123,6 +137,19 @@
         }
       })
       this.bbDashboardConfigId = id
+    },
+    watch: {
+      current: {
+        immediate: true,
+        handler () {
+          this.currentInfo = {
+            mutated: {},
+            state: {},
+            closed: false,
+            closeInfo: null
+          }
+        }
+      }
     },
     computed: {
       types() {
@@ -167,6 +194,18 @@
       },
       addUrl(url) {
         this.children.push(url)
+      },
+      handleCurrentState({ scope }) {
+        console.log(event)
+        this.currentInfo.state[scope] = Date.now()
+      },
+      handleCurrentMutate({ scope }) {
+        this.currentInfo.mutated[scope] = Date.now()
+      },
+      handleCurrentClose(info) {
+        console.log('CLOSE INFO', info)
+        this.currentInfo.closed = true
+        if (info !== undefined) this.currentInfo.closeInfo = info
       }
     }
   }
