@@ -87,11 +87,17 @@ export default async function authenticate(message, domain, session_credential) 
   session = uuid()
   console.log('NEW SESSION FOR USER', user, domain, session)
 
-  //  TODO: consider storing at domain instead of core
-  const { provider_id, credential } = authResponse
+  const { provider_id } = authResponse
   provider = authResponse.provider
 
   //  TODO: save user info as appropriate
+
+  //  TODO: consider storing at domain instead of core
+  const userPatch = [
+    { op: 'add', value: USER_TYPE, path: ['active_type'] },
+    { op: 'add', value: { provider_id, provider }, path: ['active'] }
+  ]
+  await interact(ADMIN_DOMAIN, 'users', user, userPatch)
 
   await saveSession(domain, session, session_credential, user, provider)
 
@@ -226,7 +232,10 @@ async function JWTVerification(token, resolve, reject) {
       const user = existingUser ? existingUser.id : uuid()
       resolve({ provider, provider_id, user })
     }
-    else reject('Google JWT Expectation Failed')
+    else {
+      console.warn('JWT Expectation Failed', error)
+      reject('Google JWT Expectation Failed')
+    }
   })
 }
 
