@@ -99,7 +99,10 @@ export default async function authenticate(message, domain, session_credential) 
   ]
   await interact(ADMIN_DOMAIN, 'users', user, userPatch)
 
-  await saveSession(domain, session, session_credential, user, provider)
+  // if message.token is anonymous, then it should be a temporary session
+  if (message.token !== 'anonymous') {
+    await saveSession(domain, session, session_credential, user, provider)
+  }
 
   return { user, provider, session }
 }

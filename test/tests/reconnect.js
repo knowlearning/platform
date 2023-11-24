@@ -1,9 +1,12 @@
 export default function () {
+  let orignalEnv
   describe('Session Reconnections', function () {
     it(
       'Re-establishes connection after disconnection and reconnection to same server',
       async function() {
         this.timeout(5000)
+
+        orignalEnv = await Agent.environment()
 
         const id = uuid()
         const state = await Agent.state(id)
@@ -30,6 +33,9 @@ export default function () {
 
         const finalState = await Agent.state(id)
         expect(finalState).to.deep.equal({x:2,y:3,z:4})
+        const { auth: { user, provider } } = await Agent.environment()
+        expect(orignalEnv.auth.user).to.equal(user)
+        expect(orignalEnv.auth.provider).to.equal(provider)
       }
     )
 
@@ -38,6 +44,10 @@ export default function () {
       'Re-attaches to subscriptions after disconnection and reconnection to same server',
       async function () {
         this.timeout(5000)
+
+        const prevEnv = await Agent.environment()
+        expect(orignalEnv.auth.user).to.equal(prevEnv.auth.user)
+        expect(orignalEnv.auth.provider).to.equal(prevEnv.auth.provider)
 
         const id = uuid()
         const expectedUpdates = 10
@@ -91,6 +101,11 @@ export default function () {
         }
 
         expect(numUpdates).to.equal(expectedUpdates)
+
+        const postEnv = await Agent.environment()
+        console.log('ORIGINAL ENV, POST ENV', orignalEnv, postEnv)
+        expect(orignalEnv.auth.user).to.equal(postEnv.auth.user)
+        expect(orignalEnv.auth.provider).to.equal(postEnv.auth.provider)
       }
     )
   })
