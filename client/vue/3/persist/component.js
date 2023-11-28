@@ -1,8 +1,6 @@
 import { watchEffect, defineAsyncComponent } from 'vue'
 import { browserAgent } from '../../../browser.js'
 
-const Agent = browserAgent()
-
 //  TODO: probably want to make this a util, and better fleshed out (with white instead of blacklist)
 function isScopeSerializable(v) {
   return !(
@@ -11,6 +9,7 @@ function isScopeSerializable(v) {
 }
 
 export default function (module, scope) {
+  const Agent = browserAgent()
   return defineAsyncComponent(async function () {
     const component = module.default ? { ...module.default } : { ...module } //  copy component since we will mess with mounted and data functions
 
