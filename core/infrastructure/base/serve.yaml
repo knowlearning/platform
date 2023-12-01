@@ -55,8 +55,8 @@ spec:
         image: core
         resources:
           requests:
-            memory: 2048Mi
-            cpu: 1000m
+            memory: 4096Mi
+            cpu: 2000m
         ports:
         - containerPort: 8080
         - containerPort: 4443
