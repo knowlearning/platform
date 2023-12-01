@@ -20,6 +20,7 @@ export default {
     type: 'application/json;type=session',
     columns: {
       session_credential: 'TEXT',
+      sid_encrypted_info: 'TEXT',
       user_id: 'TEXT',
       loaded: 'BIGINT',
       connected: 'BIGINT',

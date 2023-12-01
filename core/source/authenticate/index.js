@@ -5,7 +5,10 @@ import jwt from 'jsonwebtoken'
 import https from 'https'
 import interact from '../interact/index.js'
 import { query } from '../postgres.js'
+import { encryptSymmetric, decryptSymmetric } from '../encryption.js'
+import * as hash from './hash.js'
 
+const { ADMIN_DOMAIN, GOOGLE_OAUTH_CLIENT_CREDENTIALS } = process.env
 const USER_TYPE = 'application/json;type=user'
 const SESSION_TYPE = 'application/json;type=session'
 const REATTACHING_SESSION_QUERY = `
@@ -13,6 +16,7 @@ const REATTACHING_SESSION_QUERY = `
     sessions.id as id,
     user_id,
     provider,
+    sid_encrypted_info,
     created
   FROM sessions
   JOIN metadata
@@ -21,10 +25,12 @@ const REATTACHING_SESSION_QUERY = `
     AND sessions.id = $2
   ORDER BY created DESC LIMIT 1
 `
+
 const NEW_SESSION_QUERY = `
   SELECT
     user_id,
     provider,
+    sid_encrypted_info,
     created
   FROM sessions
   JOIN metadata
@@ -32,7 +38,6 @@ const NEW_SESSION_QUERY = `
   WHERE session_credential = $1
   ORDER BY created DESC LIMIT 1
 `
-const { ADMIN_DOMAIN, GOOGLE_OAUTH_CLIENT_CREDENTIALS } = process.env
 
 const {
   web: {
@@ -49,8 +54,19 @@ const ISS_TO_PROVIDER_MAP = {
   'accounts.google.com': 'google'
 }
 
-export default async function authenticate(message, domain, session_credential) {
-  let user, provider, session
+function decryptAndParseSessionInfo(key, encrypted) {
+  try {
+    return JSON.parse(decryptSymmetric(key, encrypted))
+  }
+  catch (error) {
+    console.warn(error)
+    return {}
+  }
+}
+
+export default async function authenticate(message, domain, sid) {
+  const session_credential = await hash.create(sid)
+
   if (!message.token) {
     try {
       if (message.session) {
@@ -58,69 +74,52 @@ export default async function authenticate(message, domain, session_credential) 
         const { rows } = await query(domain, REATTACHING_SESSION_QUERY, [session_credential, message.session])
         //  TODO: throw error if no rows
         if (rows[0]) {
-          user = rows[0].user_id
-          provider = rows[0].provider
-          session = message.session
-          return { user, provider, session }
+          return {
+            user: rows[0].user_id,
+            provider: rows[0].provider,
+            session: message.session,
+            info: decryptAndParseSessionInfo(sid, rows[0].sid_encrypted_info)
+          }
         }
       }
 
       const { rows } = await query(domain, NEW_SESSION_QUERY, [session_credential])
       if (rows[0]) {
-        user = rows[0].user_id
-        provider = rows[0].provider
-        session = uuid()
-        await saveSession(domain, session, session_credential, user, provider)
-        return { user, provider, session }
+        const user = rows[0].user_id
+        const { provider, sid_encrypted_info } = rows[0]
+        const info = decryptAndParseSessionInfo(sid, sid_encrypted_info)
+        const session = uuid()
+        await saveSession(domain, session, session_credential, user, provider, sid_encrypted_info)
+        return { user, provider, session, info }
       }
     }
     catch (error) { console.warn('error reconnecting session', error) }
   }
+
   let authority
 
   if (message.token === 'anonymous') authority = 'anonymous'
   else if (domain === 'core') authority = 'core'
   else authority = 'JWT'
 
-  const authResponse = await authenticateToken(message.token, authority)
-  user = authResponse.user
-  session = uuid()
+  const session = uuid()
+  const { user, provider, provider_id, info } = await authenticateToken(message.token, authority)
   console.log('NEW SESSION FOR USER', user, domain, session)
-
-  const { provider_id } = authResponse
-  provider = authResponse.provider
-
-  //  TODO: if is on PILA Domain, only save public info if account has a role
-  let publicUserInfoEncryptionKeys = []
-  try {
-    //  TODO: need to supply own creadentials
-    //  const { rows: keys } = await query(domain, 'user-info-public-encryption-keys', [ user ])
-    //  publicUserInfoEncryptionKeys = keys
-  }
-  catch (error) {}
-
-  const info = {}
-
-  publicUserInfoEncryptionKeys.forEach(key => {
-    //  TODO: encrypt authResponse.info with key, and add to info with info[key] = encrypted_info
-  })
 
   const userPatch = [
     { op: 'add', value: USER_TYPE, path: ['active_type'] },
-    { op: 'add', value: { provider_id, provider, info }, path: ['active'] }
+    { op: 'add', value: { provider_id, provider }, path: ['active'] }
   ]
 
   await interact(ADMIN_DOMAIN, 'users', user, userPatch)
 
-  // if message.token is anonymous, then it should be a temporary session
-  if (message.token !== 'anonymous') {
-    await saveSession(domain, session, session_credential, user, provider)
-  }
+  const sid_encrypted_info = encryptSymmetric(sid, JSON.stringify(info))
+  await saveSession(domain, session, session_credential, user, provider, sid_encrypted_info)
 
-  return { user, provider, session }
+  return { user, provider, session, info }
 }
 
-async function saveSession(domain, session, session_credential, user, provider) {
+async function saveSession(domain, session, session_credential, user, provider, sid_encrypted_info) {
   const sessionPatch = [
     { op: 'add', value: SESSION_TYPE, path: ['active_type'] },
     {
@@ -128,6 +127,7 @@ async function saveSession(domain, session, session_credential, user, provider) 
       value: {
         session_credential,
         user_id: user,
+        sid_encrypted_info,
         provider
       },
       path: ['active']

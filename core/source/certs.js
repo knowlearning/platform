@@ -4,12 +4,11 @@ import dns from 'dns'
 import acme from 'acme-client'
 import { encrypt, generateKeyPair } from './encryption.js'
 
-const PUBLIC_ENCRYPTION_KEY = '7DZJc/c8HLpvFS1xiEyDqPlv0Oey/OA0mOiLaeNXbg8='
-
 const {
   MODE,
   INSECURE_DEVELOPMENT_CERT,
-  INSECURE_DEVELOPMENT_KEY
+  INSECURE_DEVELOPMENT_KEY,
+  PUBLIC_ENCRYPTION_KEY
 } = process.env
 
 const directoryUrl = MODE === 'local' ? acme.directory.letsencrypt.staging

@@ -5,7 +5,6 @@ import sideEffects from './side-effects/index.js'
 import pingWSConnection from './ping-ws-connection.js'
 import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
-import * as hash from './authenticate/hash.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
 
 const CLIENT_PING_INTERVAL = 10000
@@ -73,9 +72,8 @@ export default async function handleWebsocket(ws, upgradeReq) {
     }
 
     if (!user) {
-      const session_credential = await hash.create(sid)
       try {
-        const authResponse = await authenticate(message, domain, session_credential)
+        const authResponse = await authenticate(message, domain, sid)
         user = authResponse.user
         provider = authResponse.provider
         session = authResponse.session
