@@ -90,13 +90,26 @@ export default async function authenticate(message, domain, session_credential) 
   const { provider_id } = authResponse
   provider = authResponse.provider
 
-  //  TODO: save user info as appropriate
+  //  TODO: if is on PILA Domain, only save public info if account has a role
+  let publicUserInfoEncryptionKeys = []
+  try {
+    //  TODO: need to supply own creadentials
+    //  const { rows: keys } = await query(domain, 'user-info-public-encryption-keys', [ user ])
+    //  publicUserInfoEncryptionKeys = keys
+  }
+  catch (error) {}
 
-  //  TODO: consider storing at domain instead of core
+  const info = {}
+
+  publicUserInfoEncryptionKeys.forEach(key => {
+    //  TODO: encrypt authResponse.info with key, and add to info with info[key] = encrypted_info
+  })
+
   const userPatch = [
     { op: 'add', value: USER_TYPE, path: ['active_type'] },
-    { op: 'add', value: { provider_id, provider }, path: ['active'] }
+    { op: 'add', value: { provider_id, provider, info }, path: ['active'] }
   ]
+
   await interact(ADMIN_DOMAIN, 'users', user, userPatch)
 
   // if message.token is anonymous, then it should be a temporary session
@@ -147,7 +160,8 @@ const authenticateToken = (token, authority) => new Promise( async (resolve, rej
     resolve({
       user: provider_id,
       provider_id,
-      provider: 'anonymous'
+      provider: 'anonymous',
+      info: { name: 'anonymous', picture: null }
     })
   }
 })
@@ -180,7 +194,8 @@ async function coreVerfication(token, resolve, reject) {
           const provider_id = kio.serviceaccount.name
           const { rows: [ existingUser ]} = await query(ADMIN_DOMAIN, `SELECT id FROM users WHERE provider = 'core' AND provider_id = $1`, [provider_id])
           const user = existingUser ? existingUser.id : uuid()
-          resolve({ provider: 'core', provider_id, user })
+          const info = { name: provider_id, picture: null }
+          resolve({ provider: 'core', provider_id, user, info })
         })
       })
     })
@@ -233,7 +248,8 @@ async function JWTVerification(token, resolve, reject) {
       const provider = ISS_TO_PROVIDER_MAP[decoded.iss]
       const { rows: [ existingUser ]} = await query(ADMIN_DOMAIN, `SELECT id FROM users WHERE provider = $1 AND provider_id = $2`, [provider, provider_id])
       const user = existingUser ? existingUser.id : uuid()
-      resolve({ provider, provider_id, user })
+      const { name, picture } = decoded
+      resolve({ provider, provider_id, user, info: { name, picture } })
     }
     else {
       console.warn('JWT Expectation Failed', error)
