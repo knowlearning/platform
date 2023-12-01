@@ -86,7 +86,7 @@ export default async function handleWebsocket(ws, upgradeReq) {
           domain,
           server: SESSION,
           session,
-          auth: { user, provider },
+          auth: { user, provider, info: authResponse.info },
           ack: sessionMessageIndexes[session]
         }))
 
