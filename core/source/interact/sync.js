@@ -40,9 +40,6 @@ async function syncMetadata(scope) {
 
   const values = await redis.client.json.get(scope, { path: columns.map(pathified) })
 
-  //  TODO: better/clearer check to make sure domain is configured
-  await postgres.client(values[pathified('domain')][0])
-
   const orderedValues = (
     columns
       .map(name => {

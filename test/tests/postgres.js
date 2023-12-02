@@ -137,7 +137,7 @@ postgres:
 
     it('Can retrieve expected record from test table type', async function () {
       expect(await Agent.query('my-test-table-entries'))
-      .to.deep.equal([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
+        .to.deep.equal([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
     })
 
 
