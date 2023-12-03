@@ -3,8 +3,8 @@ const EMBEDDED_ENVIRONMENT_TEST_MODE = 'EMBEDDED_ENVIRONMENT_TEST_MODE'
 export default function environmentTest() {
   describe('Environment calls', function () {
 
-    it('Can be made from embedded app', async function () {
-      const passedEnvironmentInfo = uuid()
+    it('Can be proxied for embedded apps', async function () {
+      const passedDownEnvironmentInfo = { auth: { user: uuid(), provider: 'whatever', info: { name: 'anything' } } }
       let resolve, reject
       const done = new Promise((res, rej) => {
         resolve = res
@@ -16,19 +16,27 @@ export default function environmentTest() {
 
       const { on } = Agent.embed({ id: uuid(), mode: EMBEDDED_ENVIRONMENT_TEST_MODE }, iframe)
 
-      let closeInfo
+      let passedBackEnvironmentInfo
+      let environmentCalledFromEmbedded
 
-      on('environment', () => resolve(passedEnvironmentInfo))
+      on('environment', () => {
+        environmentCalledFromEmbedded = true
+        return passedDownEnvironmentInfo
+      })
 
       on('close', info => {
-        closeInfo = info
+        environmentCalledFromEmbedded ? resolve() : reject('Agent.environment() not called before close')
+        passedBackEnvironmentInfo = info
         document.body.removeChild(iframe)
-        reject('Environment not called before close')
       })
 
       await done
 
-      expect(closeInfo).to.equal(passedEnvironmentInfo)
+      //  remove expected additions by middleware
+      delete passedBackEnvironmentInfo.context
+      delete passedBackEnvironmentInfo.mode
+
+      expect(passedBackEnvironmentInfo).to.deep.equal(passedDownEnvironmentInfo)
     })
 
   })
