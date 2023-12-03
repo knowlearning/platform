@@ -70,8 +70,8 @@ export default function EmbeddedAgent() {
     }
   })
 
-  function environment() {
-    return send({ type: 'environment' })
+  function environment(user) {
+    return send({ type: 'environment', user })
   }
 
   function create({ id=uuid(), active_type, active }) {
