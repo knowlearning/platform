@@ -61,6 +61,7 @@ export default {
       this.embedding = Agent.embed({ id, mode }, iframe)
       this.embedding.on('state', e => this.$emit('state', e))
       this.embedding.on('mutate', e => this.$emit('mutate', e))
+      this.embedding.on('environment', e => this.$emit('environment', e))
       this.embedding.on('close', e => this.$emit('close', e))
     }
   }

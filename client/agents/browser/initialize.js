@@ -59,8 +59,8 @@ function embed(environment, iframe) {
     }
     else if (type === 'environment') {
       const { context } = message
-      const env = await Agent.environment()
-      sendDown({ ...env, context: [...env.context, environment.id], mode: environment.mode })
+      const env = await (listeners.environment ? listeners.environment() : Agent.environment())
+      sendDown({ ...env, context: [...(env.context || []), environment.id], mode: environment.mode })
     }
     else if (type === 'interact') {
       const { scope, patch } = message
