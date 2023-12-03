@@ -26,6 +26,10 @@ export default {
     mode: {
       type: String,
       required: false
+    },
+    environmentProxy: {
+      type: Function,
+      required: false
     }
   },
   data() {
@@ -59,9 +63,9 @@ export default {
 
       this.iframe = iframe
       this.embedding = Agent.embed({ id, mode }, iframe)
+      this.embedding.on('environment', e => this.environmentProxy ? this.environmentProxy(e) : Agent.environment(e))
       this.embedding.on('state', e => this.$emit('state', e))
       this.embedding.on('mutate', e => this.$emit('mutate', e))
-      this.embedding.on('environment', e => this.$emit('environment', e))
       this.embedding.on('close', e => this.$emit('close', e))
     }
   }
