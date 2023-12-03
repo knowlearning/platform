@@ -12,6 +12,7 @@ import uploads from './tests/uploads.js'
 import postgres from './tests/postgres.js'
 import vuex from './tests/vuex.js'
 import stateTest from './tests/state.js'
+import environmentTest from './tests/environment.js'
 import latestBugfixes from './tests/latest-bugfixes.js'
 import { browserAgent } from '@knowlearning/agents'
 
@@ -36,6 +37,10 @@ if (mode === 'EMBEDED_WATCHER_TEST_MODE') {
 else if (mode === 'EMBEDED_QUERY_TEST_MODE') {
   const result = await Agent.query('my-test-table-entries')
   Agent.close(result)
+}
+else if (mode === 'EMBEDDED_ENVIRONMENT_TEST_MODE') {
+  const id = uuid()
+  Agent.close(await Agent.environment(id))
 }
 else {
   //  set up some globals for ease of use in test files
@@ -63,6 +68,7 @@ else {
     mocha.run()
     describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, function () {
       stateTest()
+      environmentTest()
       metadata()
       mutate()
       arrays()
