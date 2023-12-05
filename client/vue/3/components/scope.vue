@@ -9,7 +9,8 @@
   	props: {
   	  id: String,
       path: { type: Array, default: [] },
-      placeholder: { type: String, default: '' }
+      placeholder: { type: String, default: '' },
+      metadata: { type: Boolean, default: false }
   	},
   	data() {
   	  return {
@@ -28,9 +29,13 @@
       if (this.stopWatching) this.stopWatching()
     },
     methods: {
-      startWatching() {
+      async startWatching() {
         if (this.stopWatching) this.stopWatching()
-        this.stopWatching = Agent.watch([this.id, ...this.path], value => this.value = value)
+        if (this.metadata) {
+          const metadata = await Agent.metadata(this.id)
+          this.value = this.path.length === 1 ? metadata[this.path[0]] : metadata
+        }
+        else this.stopWatching = Agent.watch([this.id, ...this.path], value => this.value = value)
       }
     }
   }
