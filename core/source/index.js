@@ -4,38 +4,45 @@ import * as redis from './redis.js'
 await redis.connected
 
 // Function to scan keys
-function scanKeys(cursor, pattern, batchSize, callback) {
-  redis.client.scan(cursor, 'MATCH', pattern, 'COUNT', batchSize, async function (err, reply) {
-    if (err) throw err
+let scans = 0
+async function scanKeys(cursor, pattern, batchSize, callback) {
+  const { cursor: nextCursor, keys } = await redis.client.scan(cursor, 'MATCH', pattern, 'COUNT', batchSize)
 
-    const nextCursor = reply[0]
-    const keys = reply[1]
+  await callback(keys)
+  scans += 1
 
-    await callback(keys)
+  if (scans % 100 === 0) console.log('SCAN', scans)
 
-    if (nextCursor !== '0') {
-      scanKeys(nextCursor, pattern, callback);
-    }
-  });
+  if (nextCursor !== 0) scanKeys(nextCursor, pattern, batchSize, callback)
 }
 
 const localhostDomainSizes = {}
+const errors = {}
 const localhostRegex = /^(?:[a-zA-Z0-9-]+\.)*localhost(?::\d+)?$/
 
 function logLoop() {
   console.log(JSON.stringify(localhostDomainSizes, null, 4))
+  console.log(errors)
   setTimeout(logLoop, 3000)
 }
 
 logLoop()
 
-scanKeys('0', '*', 100, function (keys) {
+scanKeys('0', '*', 1000, function (keys) {
   return Promise.all(
     keys.map(async key => {
-      const domain = await redis.client.json.get(key, { path: [`$.domain`] })
-      if (domain && localhostRegex.match(domain)) {
-        if (!localhostDomainSizes[domain]) localhostDomainSizes[domain] = 0
-          localhostDomainSizes[domain] += await client.sendCommand(['JSON.DEBUG', 'MEMORY', key])
+      try {
+        const domain = await redis.client.json.get(key, { path: [`$.domain`] })
+        if (localhostRegex.test(domain)) {
+          if (!localhostDomainSizes[domain]) localhostDomainSizes[domain] = 0
+          localhostDomainSizes[domain] += await redis.client.sendCommand(['JSON.DEBUG', 'MEMORY', key])
+          await redis.client.del(key)
+        }
+      }
+      catch (error) {
+        const s = error.toString()
+        if (errors[s]) errors[s] += 1
+        else errors[s] = 1
       }
     })
   )
