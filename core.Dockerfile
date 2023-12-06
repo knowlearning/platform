@@ -26,4 +26,4 @@ COPY ./client ./client
 RUN echo '{ "type": "module" }' > ./core/source/package.json
 
 # Run the web service on container startup.
-CMD [ "node", "--max-old-space-size=4096", "./core/source/index.js" ]
+CMD [ "node", "--max-old-space-size=5500", "./core/source/index.js" ]
