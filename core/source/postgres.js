@@ -239,7 +239,6 @@ async function setColumn(domain, table, column, id, value) {
 }
 
 export {
-  client,
   createTable,
   createIndex,
   removeTable,

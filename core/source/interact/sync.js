@@ -1,4 +1,4 @@
-import * as postgres from '../postgres.js'
+import { setRow, query } from '../postgres.js'
 import * as redis from '../redis.js'
 import configuration from '../configuration.js'
 
@@ -22,8 +22,8 @@ export default async function sync(domain, active_type, scope) {
   await Promise.all(
     tableNames.map(async table => {
       const { columns } = config.postgres.tables[table]
-      const [query, params] = postgres.setRow(domain, table, columns, scope, state)
-      await postgres.query(domain, query, params)
+      const [query, params] = setRow(domain, table, columns, scope, state)
+      await query(domain, query, params)
     })
   )
 
@@ -64,5 +64,5 @@ async function syncMetadata(scope) {
   `
 
   const domain = values[pathified('domain')][0]
-  await postgres.query(domain, query, [scope, ...orderedValues])
+  await query(domain, query, [scope, ...orderedValues])
 }
