@@ -153,7 +153,12 @@ async function syncTables(domain, tables, report) {
 
         tableTasks.push(`Assembling sync query for ${rows.length} states`)
         states.forEach((state, index) => {
-          if (!state) throw new Error(`TRYING TO ADD ROW FOR NON-EXISTENT SCOPE ${domain} ${table} ${id}`)
+          if (!state) {
+            //  TODO: probably want to add this id to some sort of report
+            const { id } = rows[index]
+            console.warn(`TRYING TO ADD ROW FOR NON-EXISTENT SCOPE ${domain} ${table} ${id}`)
+            return
+          }
           const data = table === 'metadata' ? state : state.active
 
           allParams.push(rows[index].id)
