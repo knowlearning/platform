@@ -39,11 +39,17 @@ scanKeys('0', '*', 1000, function (keys) {
   return Promise.all(
     keys.map(async key => {
       try {
-        const domain = await redis.client.json.get(key, { path: [`$.domain`] })
-        const active_type = await redis.client.json.get(key, { path: [`$.active_type`] })
-        if (!domainTypeSizes[domain]) domainTypeSizes[domain] = {}
-        if (!domainTypeSizes[domain][active_type]) domainTypeSizes[domain][active_type] = 0
-        domainTypeSizes[domain][active_type] += await redis.client.sendCommand(['JSON.DEBUG', 'MEMORY', key])
+        if (key.startsWith('play.knowlearning.systems')) {
+          if (!domainTypeSizes.play) domainTypeSizes.play = { any: 0 }
+          domainTypeSizes.play.any += await redis.client.sendCommand(['MEMORY', 'USAGE', key])
+        }
+        else {
+          const domain = await redis.client.json.get(key, { path: [`$.domain`] })
+          const active_type = await redis.client.json.get(key, { path: [`$.active_type`] })
+          if (!domainTypeSizes[domain]) domainTypeSizes[domain] = {}
+          if (!domainTypeSizes[domain][active_type]) domainTypeSizes[domain][active_type] = 0
+          domainTypeSizes[domain][active_type] += await redis.client.sendCommand(['MEMORY', 'USAGE', key])
+        }
       }
       catch (error) {
         const s = error.toString()
