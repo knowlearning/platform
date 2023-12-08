@@ -118,7 +118,6 @@ async function syncTables(domain, tables, report) {
       .map(async ([table, { type, columns={}, indices={} }]) => {
         const tableTasks = report.tasks.postgres.tables[table]
 
-        const allParams = []
         const orderedColumns = Object.keys(columns)
         tableTasks.push('Creating')
         await postgres.createTable(domain, table, columns)
@@ -152,17 +151,20 @@ async function syncTables(domain, tables, report) {
         const states = await transaction.exec()
 
         tableTasks.push(`Assembling sync query for ${rows.length} states`)
+        const rowsToInsert = []
+        const paramsToInsert = []
         states.forEach((state, index) => {
+          const { id } = rows[index]
           if (!state) {
             //  TODO: probably want to add this id to some sort of report
-            const { id } = rows[index]
             console.warn(`TRYING TO ADD ROW FOR NON-EXISTENT SCOPE ${domain} ${table} ${id}`)
             return
           }
           const data = table === 'metadata' ? state : state.active
 
-          allParams.push(rows[index].id)
-          allParams.push(
+          rowsToInsert.push(rows[index])
+          paramsToInsert.push(
+            id,
             ...orderedColumns
               .map(column => {
                 if (data[column] === undefined) return null
@@ -173,7 +175,7 @@ async function syncTables(domain, tables, report) {
         })
 
         tableTasks.push(`Syncing ${rows.length}/${rows.length} rows`)
-        await batchInsertRows(domain, table, orderedColumns, rows, allParams)
+        await batchInsertRows(domain, table, orderedColumns, rowsToInsert, paramsToInsert)
         tableTasks.push(`Done`)
       })
   )
