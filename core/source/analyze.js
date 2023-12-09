@@ -54,6 +54,14 @@ scanKeys('0', '*', 1000, function (keys) {
       }
       catch (error) {
         const s = error.toString()
+
+        if (s === 'Error: Existing key has wrong Redis type') {
+          const domain = 'OTHER'
+          console.log('OTHER TYPE KEY', key)
+          if (!domainTypeSizes[domain]) domainTypeSizes[domain] = { all: 0 }
+          domainTypeSizes[domain].all += await redis.client.sendCommand(['MEMORY', 'USAGE', key])
+        }
+
         if (errors[s]) errors[s] += 1
         else errors[s] = 1
       }
