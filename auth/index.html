@@ -7,10 +7,9 @@
   </head>
   <body>
     <script>
-      const client_id = '603559646501-i29ma3u7c590ijimgp809vpdhg52jibd.apps.googleusercontent.com'
-      const redirect_uri = window.location.origin + '/'
-      const authEndpoint = 'https://accounts.google.com/o/oauth2/auth'
-
+      function objectToQuerystring(o) {
+        return Object.entries(o).map(([k,v]) => `${k}=${v}`).join('&')
+      }
       if (window.location.pathname !== '/') {
         const [_, provider, state, origin] = window.location.pathname.split('/')
         const info = JSON.stringify({ origin: decodeURIComponent(origin), provider })
@@ -19,23 +18,28 @@
 
         if (provider === 'google') {
           const query = {
-            client_id,
-            redirect_uri,
+            client_id: '603559646501-i29ma3u7c590ijimgp809vpdhg52jibd.apps.googleusercontent.com',
+            redirect_uri: window.location.origin + '/',
             prompt: 'select_account',
             response_type: 'code',
             scope: 'openid profile',
             nonce,
             state
           }
+          window.location.href = `https://accounts.google.com/o/oauth2/auth?${objectToQuerystring(query)}`
+        }
+        else if (provider === 'microsoft') {
+          const query = {
+            client_id: 'c44ceeca-8f9a-49c2-9bea-cc7135da8943',
+            redirect_uri: window.location.origin + '/',
+            prompt: 'select_account',
+            response_type: 'code',
+            scope: 'openid profile',
+            nonce,
+            state
+          }
+          window.location.href = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${objectToQuerystring(query)}`
 
-          const queryString = (
-            Object
-              .entries(query)
-              .map(([k,v]) => `${k}=${v}`)
-              .join('&')
-          )
-
-          window.location.href = `${authEndpoint}?${queryString}`
         }
       }
       else {

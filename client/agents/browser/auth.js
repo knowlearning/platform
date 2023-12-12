@@ -12,8 +12,7 @@ if (window.location.pathname.startsWith('/auth/')) {
   }
 }
 
-function login() {
-  const provider = 'google'
+function login(provider='google') {
   const state = Math.random().toString(36).substring(2)
   window.localStorage.setItem(state, window.location.href)
 
