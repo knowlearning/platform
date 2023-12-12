@@ -8,7 +8,11 @@ import { query } from '../postgres.js'
 import { encryptSymmetric, decryptSymmetric } from '../encryption.js'
 import * as hash from './hash.js'
 
-const { ADMIN_DOMAIN, GOOGLE_OAUTH_CLIENT_CREDENTIALS } = process.env
+const {
+  ADMIN_DOMAIN,
+  GOOGLE_OAUTH_CLIENT_CREDENTIALS,
+  MICROSOFT_OAUTH_CLIENT_CREDENTIALS
+} = process.env
 const USER_TYPE = 'application/json;type=user'
 const SESSION_TYPE = 'application/json;type=session'
 const REATTACHING_SESSION_QUERY = `
@@ -47,7 +51,13 @@ const {
   }
 } = JSON.parse(GOOGLE_OAUTH_CLIENT_CREDENTIALS)
 
-const GOOGLE_OPENID_CONFIG = 'https://accounts.google.com/.well-known/openid-configuration'
+const {
+  web: {
+    client_id: MICROSOFT_OAUTH_CLIENT_ID,
+    client_secret: MICROSOFT_OAUTH_CLIENT_SECRET,
+    token_uri: MICROSOFT_OAUTH_TOKEN_URI
+  }
+} = JSON.parse(MICROSOFT_OAUTH_CLIENT_CREDENTIALS)
 
 const ISS_TO_PROVIDER_MAP = {
   'https://accounts.google.com': 'google',
@@ -152,7 +162,24 @@ const authenticateToken = (token, authority) => new Promise( async (resolve, rej
     coreVerfication(token, resolve, reject)
   }
   else if (token && token.startsWith('google-')) {
-    JWTVerification(token, resolve, reject)
+    JWTVerification(
+      GOOGLE_OAUTH_CLIENT_ID,
+      GOOGLE_OAUTH_CLIENT_SECRET,
+      GOOGLE_OAUTH_TOKEN_URI,
+      token,
+      resolve,
+      reject
+    )
+  }
+  else if (token && token.startsWith('microsoft-')) {
+    JWTVerification(
+      MICROSOFT_OAUTH_CLIENT_ID,
+      MICROSOFT_OAUTH_CLIENT_SECRET,
+      MICROSOFT_OAUTH_TOKEN_URI,
+      token,
+      resolve,
+      reject
+    )
   }
   else {
     //  TODO: allow anonymous accounts to live beyond refresh
@@ -201,35 +228,47 @@ async function coreVerfication(token, resolve, reject) {
     })
 }
 
-const googleJWKs = {}
+const providerJWKs = {
+  google: {},
+  microsoft: {}
+}
 
-async function fetchGoogleJWKs(retries=0) {
-  if (retries > 3) throw new Error('Could not fetch google public keys')
+async function fetchJWKs(provider, retries=0) {
+  if (retries > 3) throw new Error(`Could not fetch ${provider} public keys`)
+    console
 
-  const { jwks_uri } = await fetchJSON(GOOGLE_OPENID_CONFIG)
+  const endpoint = ({
+    google: 'https://accounts.google.com/.well-known/openid-configuration',
+    microsoft: 'https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration'
+  })[provider]
+
+  const { jwks_uri } = await fetchJSON(endpoint)
+
   return (
     fetchJSON(jwks_uri)
-      .then(({ keys }) => keys.forEach(k => googleJWKs[k.kid] = k))
+      .then(({ keys }) => {
+        keys.forEach(k => providerJWKs[provider][k.kid] = k)
+      })
       .catch(error => {
         console.warn(error)
-        fetchGoogleJWKs(retries + 1)
+        fetchJWKs(provider, retries + 1)
       })
   )
 }
 
-async function JWTVerification(token, resolve, reject) {
+async function JWTVerification(client_id, client_secret, token_uri, token, resolve, reject) {
   const i = token.indexOf('-')
   const provider = token.substr(0,i)
   //  TODO: use provider info to differentiate different tokens
   const code = token.substr(i+1)
 
   //  TODO: use access token for refresh and such...
-  const response = await fetch(GOOGLE_OAUTH_TOKEN_URI, {
+  const response = await fetch(token_uri, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
     },
-    body: `client_id=${GOOGLE_OAUTH_CLIENT_ID}&client_secret=${GOOGLE_OAUTH_CLIENT_SECRET}&code=${code}&grant_type=authorization_code&redirect_uri=https://auth.knowlearning.systems/`
+    body: `client_id=${client_id}&client_secret=${client_secret}&code=${code}&grant_type=authorization_code&redirect_uri=https://auth.knowlearning.systems/`
   }).then(r => r.json())
 
   if (response.error) return reject(response.error)
@@ -237,15 +276,14 @@ async function JWTVerification(token, resolve, reject) {
   const { id_token } = response // TODO: probably want to store access token...
   const kid = kidFromToken(id_token)
 
-  if (!googleJWKs[kid]) await fetchGoogleJWKs()
-  if (!googleJWKs[kid]) return reject('Public key not found')
+  if (!providerJWKs[provider][kid]) await fetchJWKs(provider)
+  if (!providerJWKs[provider][kid]) return reject('Public key not found')
 
-  jwt.verify(id_token, jwkToPem(googleJWKs[kid]), async (error, decoded) => {
+  jwt.verify(id_token, jwkToPem(providerJWKs[provider][kid]), async (error, decoded) => {
     if (error) return reject(error)
 
-    if (passGoogleTokenChallenge(decoded)) {
+    if (passTokenChallenge(provider, decoded)) {
       const provider_id = decoded.sub
-      const provider = ISS_TO_PROVIDER_MAP[decoded.iss]
       const { rows: [ existingUser ]} = await query(ADMIN_DOMAIN, `SELECT id FROM users WHERE provider = $1 AND provider_id = $2`, [provider, provider_id])
       const user = existingUser ? existingUser.id : uuid()
       const { name, picture } = decoded
@@ -258,6 +296,12 @@ async function JWTVerification(token, resolve, reject) {
   })
 }
 
+function passTokenChallenge(provider, decoded) {
+  if (provider === 'google') return passGoogleTokenChallenge(decoded)
+  if (provider === 'microsoft') return passMicrosoftTokenChallenge(decoded)
+  else return false
+}
+
 function passGoogleTokenChallenge({ exp, iat, aud, iss }) {
   const now = Math.ceil(Date.now() / 1000)
 
@@ -266,5 +310,17 @@ function passGoogleTokenChallenge({ exp, iat, aud, iss }) {
     iat < now &&
     aud === GOOGLE_OAUTH_CLIENT_ID &&
     ['accounts.google.com', 'https://accounts.google.com'].includes(iss)
+  )
+}
+
+
+function passMicrosoftTokenChallenge({ exp, iat, aud, iss }) {
+  const now = Math.ceil(Date.now() / 1000)
+
+  return (
+    exp > now &&
+    iat < now &&
+    aud === MICROSOFT_OAUTH_CLIENT_ID &&
+    iss === 'https://login.microsoftonline.com/0b6880c6-6e1b-46b5-9918-bad3eb00b24a/v2.0'
   )
 }

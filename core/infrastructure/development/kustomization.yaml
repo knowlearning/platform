@@ -84,9 +84,10 @@ secretGenerator:
 - name: gcs-service-account
   literals:
   - GCS_SERVICE_ACCOUNT_CREDENTIALS={"client_email":"example@example.com","private_key":"-----BEGIN RSA PRIVATE KEY-----\nMIICWwIBAAKBgHLBIr2p6z4uQIH0/UeTaKFoS1P7r6pWJJ8Xu6NoKw90fq/8feyt\n2GSAm9ATjpl0D5JtO1GZdGnL0ZWCiTm0Umwk0uLiv+9TPByEJQGWm0uL76UZdDIq\n+QhJ4vvBkBda+szw1h9g7l9z/Zsf7VwcnsTex2FjkaEsBtkPzRri0BNrAgMBAAEC\ngYBf2j+AmWwr9kpfwxnFLbYaDJnPPs5Ow8G3OgW7yokdUbt4mLk+dz/nQx3jQlK8\njxtqvd7sm/eHX35jGjQxhRPKoteqx7E1mFrw/Rj/IBiRsjf/gZTc07YWs0UuSGpt\nkhbcE7m9eG1nEC8Cje45tQQRHCo+f8ycGa7m3rZVUC2P4QJBAOTpXv4RSKraXPjx\njfEw9cCIMsGb9vqS3OgBZHjZ3Tfy06tSW3RvbK7k3aoVPOL+rPqjgd7t3YmZIMIn\nZ17ANSkCQQCAVX84RQzNspkrGW5Fvs1/3JM66gmPPkSN3mdXte2InJdv0auAn8LK\nh8ZoHqnqFrwvLDGz0fpIUUQAQVWeeuJzAkB4MybjSFYdCO6a9dQv2yKgR6RHT8tf\nhjCjTt/gKZ5k24hURLmrKTsrlxfiUKaZF1vjfGocklCrCRJPgPthoJIJAkBJuFNX\ncJr1QqYoEvi8iemkjIHq8uxA4+UfleXJhdGIi2OWsVwSjDOqgipgP1UeCqdZdcqr\nYHCkwEIO33kei7qvAkEApPxgWNEAe5iv/HoIxkumc/+Xjp/K8nF3Fi9xgHAYc7Oa\nVYD4cO4HhFEhHIGVAwJBCEoupxYLKxrNq1+exW3Tmg==\n-----END RSA PRIVATE KEY-----","public_key":"-----BEGIN PUBLIC KEY-----\nMIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgHLBIr2p6z4uQIH0/UeTaKFoS1P7\nr6pWJJ8Xu6NoKw90fq/8feyt2GSAm9ATjpl0D5JtO1GZdGnL0ZWCiTm0Umwk0uLi\nv+9TPByEJQGWm0uL76UZdDIq+QhJ4vvBkBda+szw1h9g7l9z/Zsf7VwcnsTex2Fj\nkaEsBtkPzRri0BNrAgMBAAE=\n-----END PUBLIC KEY-----"}
-- name: google-oauth-client-credentials
+- name: oauth-client-credentials
   files:
   - .credentials/GOOGLE_OAUTH_CLIENT_CREDENTIALS
+  - .credentials/MICROSOFT_OAUTH_CLIENT_CREDENTIALS
 - name: postgres-service-account
   literals:
   - POSTGRES_PASSWORD=insecure-dev-password

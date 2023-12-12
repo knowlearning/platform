@@ -32,9 +32,10 @@ secretGenerator:
 - name: gcs-service-account
   files:
   - .credentials/GCS_SERVICE_ACCOUNT_CREDENTIALS
-- name: google-oauth-client-credentials
+- name: oauth-client-credentials
   files:
   - .credentials/GOOGLE_OAUTH_CLIENT_CREDENTIALS
+  - .credentials/MICROSOFT_OAUTH_CLIENT_CREDENTIALS
 - name: redis-service-account
   files:
   - .credentials/REDIS_SERVICE_ACCOUNT_CREDENTIALS

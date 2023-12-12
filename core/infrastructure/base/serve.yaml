@@ -68,7 +68,7 @@ spec:
         - secretRef:
             name: gcs-service-account
         - secretRef:
-            name: google-oauth-client-credentials
+            name: oauth-client-credentials
         - secretRef:
             name: core-encryption-keys
         - configMapRef:
