@@ -144,11 +144,19 @@ async function syncTables(domain, tables, report) {
           return
         }
 
-        const transaction = redis.client.multi()
-        //  TODO: limit fetched data to data in table columns
-        rows.forEach(({ id }) => transaction.json.get(id))
-        tableTasks.push(`Fetching ${rows.length} states to sync`)
-        const states = await transaction.exec()
+        const states = []
+        const batchSize = 10000
+        //  too many transactions queued up will trigger a "RangeError: Too many elements passed to Promise.all"
+        for (let batchNum=0; batchNum * batchSize < rows.length; batchNum += 1) {
+          const transaction = redis.client.multi()
+          //  TODO: limit fetched data to data in table columns
+          const start = batchNum * batchSize
+          const end = start + batchSize
+          const batch = rows.slice(start, end)
+          batch.forEach(({ id }) => transaction.json.get(id))
+          tableTasks.push(`Fetching ${end}/${rows.length} states to sync`)
+          states.push(...(await transaction.exec()))
+        }
 
         tableTasks.push(`Assembling sync query for ${rows.length} states`)
         const rowsToInsert = []
