@@ -25,8 +25,11 @@
       }
     },
     created() { this.startWatching() },
-    unmounted() {
-      if (this.stopWatching) this.stopWatching()
+    beforeUnmount() {
+      if (this.stopWatching) {
+        this.stopWatchingAttempted = true
+        this.stopWatching()
+      }
     },
     methods: {
       async startWatching() {
@@ -35,7 +38,10 @@
           const metadata = await Agent.metadata(this.id)
           this.value = this.path.length === 1 ? metadata[this.path[0]] : metadata
         }
-        else this.stopWatching = Agent.watch([this.id, ...this.path], value => this.value = value)
+        else this.stopWatching = Agent.watch([this.id, ...this.path], value => {
+          if (this.stopWatchingAttempted) console.warn('Watcher not stopped for vueScopeComponent')
+          else this.value = value
+        })
       }
     }
   }
