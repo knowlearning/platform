@@ -1,6 +1,8 @@
 <template>
-  <span v-if="value">{{ value === null && placeholder ? placeholder : value }}</span>
-  <span v-else>loading...</span>
+  <span>
+    <span v-if="value">{{ value === null && placeholder ? placeholder : value }}</span>
+    <span v-else>loading...</span>
+  </span>
 </template>
 
 <script>
