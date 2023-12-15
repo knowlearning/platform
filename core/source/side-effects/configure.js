@@ -173,7 +173,7 @@ async function syncTables(domain, tables, report) {
               id,
               ...orderedColumns
                 .map(column => {
-                  if (data[column] === undefined) return null
+                  if (!data || data[column] === undefined) return null
                   else if (columns[column] === 'TIMESTAMP') return new Date(data[column])
                   else return data[column]
                 })
