@@ -145,7 +145,7 @@ async function syncTables(domain, tables, report) {
     }
     else {
 
-      const batchSize = 10000
+      const batchSize = 100_000
       //  too many transactions queued up will trigger a "RangeError: Too many elements passed to Promise.all"
       for (let batchNum=0; batchNum * batchSize < rows.length; batchNum += 1) {
         const transaction = redis.client.multi()
