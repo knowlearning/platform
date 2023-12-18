@@ -2,7 +2,7 @@
   <iframe
     :v-if="resolvedId"
     :key="resolvedId + mode"
-    :ref="el => setup(el, resolvedId, mode)"
+    :ref="el => setup(el, resolvedId, mode, namespace)"
     style="
       width: 100%;
       height: 100%;
@@ -24,6 +24,10 @@ export default {
       default: []
     },
     mode: {
+      type: String,
+      required: false
+    },
+    namespace: {
       type: String,
       required: false
     },
@@ -58,11 +62,11 @@ export default {
       }
       else this.resolvedId = this.id
     },
-    async setup(iframe, id, mode) {
+    async setup(iframe, id, mode, namespace) {
       if (!iframe || this.iframe === iframe) return
 
       this.iframe = iframe
-      this.embedding = Agent.embed({ id, mode }, iframe)
+      this.embedding = Agent.embed({ id, mode, namespace }, iframe)
       this.embedding.on('environment', e => this.environmentProxy ? this.environmentProxy(e) : Agent.environment(e))
       this.embedding.on('state', e => this.$emit('state', e))
       this.embedding.on('mutate', e => this.$emit('mutate', e))

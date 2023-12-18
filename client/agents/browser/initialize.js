@@ -63,7 +63,8 @@ function embed(environment, iframe) {
       sendDown({ ...env, context: [...(env.context || []), environment.id], mode: environment.mode })
     }
     else if (type === 'interact') {
-      const { scope, patch } = message
+      let { scope, patch } = message
+      if (environment.namespace && !validateUUID(scope)) scope = environment.namespace + '/' + scope
       //  TODO: should use a better approach to instruct agent
       //        not to generate a tag from this interaction
       await Agent.interact(scope, patch, false)
@@ -81,12 +82,13 @@ function embed(environment, iframe) {
     }
     else if (type === 'state') {
       const { scope, user, domain } = message
+      const namespacedScope = environment.namespace && !validateUUID(scope) ? `${environment.namespace}/${scope}` : scope
 
-      const statePromise = Agent.state(scope, user, domain)
+      const statePromise = Agent.state(namespacedScope, user, domain)
 
-      const key = `${ domain || ''}/${user || ''}/${scope}`
+      const key = `${ domain || ''}/${user || ''}/${namespacedScope}`
       if (!watchers[key]) {
-        watchers[key] = Agent.watch(scope, postMessage, user, domain)
+        watchers[key] = Agent.watch(namespacedScope, m => postMessage({ ...m, scope }), user, domain)
       }
 
       if (listeners.state) listeners.state({ scope })
