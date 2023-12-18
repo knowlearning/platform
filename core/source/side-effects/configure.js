@@ -111,87 +111,83 @@ async function syncTables(domain, tables, report) {
       })
   )
 
+  await Promise.all(removeTablePromises)
+
   //  create tables and supply columns for column updates
-  const createAndSyncTablePromises = (
-    Object
-      .entries(tables)
-      .map(async ([table, { type, columns={}, indices={} }]) => {
-        const tableTasks = report.tasks.postgres.tables[table]
+  const tableEntries = Object.entries(tables)
+  for (let tableNum = 0; tableNum < tableEntries.length; tableNum += 1) {
+    const [table, { type, columns={}, indices={} }] = tableEntries[tableNum]
+    const tableTasks = report.tasks.postgres.tables[table]
 
-        const orderedColumns = Object.keys(columns)
-        tableTasks.push('Creating')
-        await postgres.createTable(domain, table, columns)
-        //  TODO: streaming, and less front end processing of result is probably
-        //        a low hanging fruit optimization when the time is right
-        tableTasks.push('Fetching syncable states from metadata')
-        const { rows } = await (
-          table === 'metadata'
-            ? postgres.query(domain, 'SELECT id FROM metadata WHERE domain = $1', [domain])
-            : postgres.query(domain, 'SELECT id FROM metadata WHERE domain = $1 AND active_type = $2', [domain, type])
-        )
+    const orderedColumns = Object.keys(columns)
+    tableTasks.push('Creating')
+    await postgres.createTable(domain, table, columns)
+    //  TODO: streaming, and less front end processing of result is probably
+    //        a low hanging fruit optimization when the time is right
+    tableTasks.push('Fetching syncable states from metadata')
+    const { rows } = await (
+      table === 'metadata'
+        ? postgres.query(domain, 'SELECT id FROM metadata WHERE domain = $1', [domain])
+        : postgres.query(domain, 'SELECT id FROM metadata WHERE domain = $1 AND active_type = $2', [domain, type])
+    )
 
-        tableTasks.push(`0/${rows.length} rows synced`)
+    tableTasks.push(`0/${rows.length} rows synced`)
 
-        tableTasks.push(`Creating ${Object.keys(indices).length} indices`)
+    tableTasks.push(`Creating ${Object.keys(indices).length} indices`)
 
-        await Object.entries(indices).map(async ([name, { column }]) =>  {
-          tableTasks.push(`Creating index named ${name} on ${table} for ${column}`)
-          await postgres.createIndex(domain, name, table, column)
+    await Object.entries(indices).map(async ([name, { column }]) =>  {
+      tableTasks.push(`Creating index named ${name} on ${table} for ${column}`)
+      await postgres.createIndex(domain, name, table, column)
+    })
+
+    if (rows.length === 0) {
+      tableTasks.push('Done')
+    }
+    else {
+
+      const batchSize = 100_000
+      //  too many transactions queued up will trigger a "RangeError: Too many elements passed to Promise.all"
+      for (let batchNum=0; batchNum * batchSize < rows.length; batchNum += 1) {
+        const transaction = redis.client.multi()
+        //  TODO: limit fetched data to data in table columns
+        const start = batchNum * batchSize
+        const end = start + batchSize
+        const batch = rows.slice(start, end)
+        batch.forEach(({ id }) => transaction.json.get(id))
+        tableTasks.push(`Fetching ${batch.length} states to sync`)
+        const states = await transaction.exec()
+
+        tableTasks.push(`Assembling sync query for ${states.length} states`)
+        const rowsToInsert = []
+        const paramsToInsert = []
+        states.forEach((state, index) => {
+          const { id } = rows[index]
+          if (!state) {
+            //  TODO: probably want to add this id to some sort of report
+            console.warn(`TRYING TO ADD ROW FOR NON-EXISTENT SCOPE ${domain} ${table} ${id}`)
+            return
+          }
+          const data = table === 'metadata' ? state : state.active
+
+          rowsToInsert.push(rows[index])
+          paramsToInsert.push(
+            id,
+            ...orderedColumns
+              .map(column => {
+                if (!data || data[column] === undefined) return null
+                else if (columns[column] === 'TIMESTAMP') return new Date(data[column])
+                else return data[column]
+              })
+          )
         })
 
-        if (rows.length === 0) {
-          tableTasks.push('Done')
-          return
-        }
-
-        const batchSize = 10000
-        //  too many transactions queued up will trigger a "RangeError: Too many elements passed to Promise.all"
-        for (let batchNum=0; batchNum * batchSize < rows.length; batchNum += 1) {
-          const transaction = redis.client.multi()
-          //  TODO: limit fetched data to data in table columns
-          const start = batchNum * batchSize
-          const end = start + batchSize
-          const batch = rows.slice(start, end)
-          batch.forEach(({ id }) => transaction.json.get(id))
-          tableTasks.push(`Fetching ${batch.length} states to sync`)
-          const states = await transaction.exec()
-
-          tableTasks.push(`Assembling sync query for ${states.length} states`)
-          const rowsToInsert = []
-          const paramsToInsert = []
-          states.forEach((state, index) => {
-            const { id } = rows[index]
-            if (!state) {
-              //  TODO: probably want to add this id to some sort of report
-              console.warn(`TRYING TO ADD ROW FOR NON-EXISTENT SCOPE ${domain} ${table} ${id}`)
-              return
-            }
-            const data = table === 'metadata' ? state : state.active
-
-            rowsToInsert.push(rows[index])
-            paramsToInsert.push(
-              id,
-              ...orderedColumns
-                .map(column => {
-                  if (!data || data[column] === undefined) return null
-                  else if (columns[column] === 'TIMESTAMP') return new Date(data[column])
-                  else return data[column]
-                })
-            )
-          })
-
-          console.log(`Syncing ${start + batch.length}/${rows.length} rows for ${domain} ${table}`)
-          tableTasks.push(`Syncing ${start + batch.length}/${rows.length} rows`)
-          await batchInsertRows(domain, table, orderedColumns, rowsToInsert, paramsToInsert)
-        }
-        tableTasks.push(`Done`)
-      })
-  )
-
-  await Promise.all([
-    ...removeTablePromises,
-    ...createAndSyncTablePromises
-  ])
+        console.log(`Syncing ${start + batch.length}/${rows.length} rows for ${domain} ${table}`)
+        tableTasks.push(`Syncing ${start + batch.length}/${rows.length} rows`)
+        await batchInsertRows(domain, table, orderedColumns, rowsToInsert, paramsToInsert)
+      }
+      tableTasks.push(`Done`)
+    }
+  }
 }
 
 function rowString(start, numEntries) {

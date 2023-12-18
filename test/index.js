@@ -13,6 +13,7 @@ import postgres from './tests/postgres.js'
 import vuex from './tests/vuex.js'
 import stateTest from './tests/state.js'
 import environmentTest from './tests/environment.js'
+import namespacedEmbeddings from './tests/namespaced-embeddings.js'
 import latestBugfixes from './tests/latest-bugfixes.js'
 import { browserAgent } from '@knowlearning/agents'
 
@@ -37,6 +38,14 @@ if (mode === 'EMBEDED_WATCHER_TEST_MODE') {
 else if (mode === 'EMBEDED_QUERY_TEST_MODE') {
   const result = await Agent.query('my-test-table-entries')
   Agent.close(result)
+}
+else if (mode === 'EMBEDED_SCOPE_NAMESPACE_TEST_MODE') {
+  const scope ='some-namespaced-scope-name'
+  Agent.watch(scope, async ({ state }) => {
+    if (state.modified && state.modifiedInEmbed) Agent.close(JSON.parse(JSON.stringify(state)))
+  })
+  const s = await Agent.state(scope)
+  s.modifiedInEmbed = true
 }
 else if (mode === 'EMBEDDED_ENVIRONMENT_TEST_MODE') {
   const id = uuid()
@@ -75,6 +84,7 @@ else {
       watch()
       watchDeep()
       vuex()
+      namespacedEmbeddings()
       if (!Agent.embedded) reconnect()
       if (!Agent.embedded) postgres()
       uploads()
