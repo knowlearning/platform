@@ -2,6 +2,11 @@ import * as redis from '../redis.js'
 import initializationState from '../initialization-state.js'
 import sync from './sync.js'
 
+const activeSizeScript = `
+  local active_size = redis.call('JSON.DEBUG', 'MEMORY', KEYS[1])
+  redis.call('JSON.SET', KEYS[1], 'active_size', active_size)
+`;
+
 export default async function interact( domain, user, scope, patch, timestamp=Date.now() ) {
   //  TODO: validate that patch's paths can only start with "active", "active_type", or "name"
   await redis.connected
@@ -44,6 +49,8 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
       transaction.json.set(scope, JSONPath, value)
     }
   }
+
+  transaction.eval(activeSizeScript, 1, scope)
   transaction.json.get(scope, { path: '$.active_type' })
 
   try {
