@@ -4,7 +4,7 @@ import sync from './sync.js'
 
 const activeSizeScript = `
   local active_size = redis.call('JSON.DEBUG', 'MEMORY', KEYS[1])
-  redis.call('JSON.SET', KEYS[1], 'active_size', active_size)
+  redis.call('JSON.SET', KEYS[1], '$.active_size', active_size)
 `;
 
 export default async function interact( domain, user, scope, patch, timestamp=Date.now() ) {
