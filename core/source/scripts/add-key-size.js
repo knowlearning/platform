@@ -1,4 +1,4 @@
-import * as redis from './redis.js'
+import * as redis from '../redis.js'
 
 // Function to scan keys
 let scans = 0
