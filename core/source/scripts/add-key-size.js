@@ -4,7 +4,7 @@ import * as redis from '../redis.js'
 let scans = 0
 async function scanKeys(cursor, pattern, batchSize, callback) {
   await redis.connected
-  const { cursor: nextCursor, keys } = await redis.client.scan(cursor, 'MATCH', pattern, 'COUNT', batchSize)
+  const { cursor: nextCursor, keys } = await redis.client.scan(cursor, { COUNT: batchSize })
 
   await callback(keys)
   scans += 1
@@ -19,7 +19,7 @@ const localhostDomainSizes = {}
 const errors = {}
 const localhostRegex = /^(?:[a-zA-Z0-9-]+\.)*localhost(?::\d+)?$/
 
-scanKeys('0', '*', 10_000, function (keys) {
+scanKeys('0', '*', 1000, function (keys) {
   return Promise.all(
     keys.map(async key => {
       try {
