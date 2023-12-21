@@ -176,7 +176,7 @@ postgres:
       expect(response[0].domain).to.equal(domain)
       expect(response[0].active_type).to.equal(TEST_TABLE_TYPE)
       expect(response[0].owner).to.equal(user)
-      expect(response[0].active_size).to.equal(0)
+      expect(response[0].active_size).to.equal(701)
       expect(response[0].storage_size).to.equal(0)
     })
 
@@ -190,7 +190,7 @@ postgres:
       expect(response[0].domain).to.equal(domain)
       expect(response[0].active_type).to.equal(TEST_TABLE_TYPE)
       expect(response[0].owner).to.equal(user)
-      expect(response[0].active_size).to.equal(0)
+      expect(response[0].active_size).to.equal(671)
       expect(response[0].storage_size).to.equal(0)
     })
 
