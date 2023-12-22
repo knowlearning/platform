@@ -20,7 +20,10 @@
     Upload
   </button>
   <RelationalQueryInterface :domain="domain" />
-  <DomainQueryPerformance :domain="domain" />
+  <button @click="showPerformance = !showPerformance">
+    {{ showPerformance ? 'hide' : 'show' }} performance
+  </button>
+  <DomainQueryPerformance v-if="showPerformance" :domain="domain" />
 </template>
 
 <script>
