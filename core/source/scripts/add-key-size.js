@@ -33,6 +33,10 @@ scanKeys('0', '*', 1000, function (keys) {
         const s = error.toString()
         if (errors[s]) errors[s] += 1
         else errors[s] = 1
+
+        if (errors[s] === 1 || errors[s] % 10 === 0) {
+          console.log(errors)
+        }
       }
     })
   )
