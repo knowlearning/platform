@@ -13,19 +13,10 @@ const insertRowsQuery = (table, columns, rows) => `
 INSERT INTO ${postgres.purifiedName(table)}
   (id,${columns.map(postgres.purifiedName).join(',')})
   VALUES
-    ${
-      rows
-        .map((_id, index) => rowString(index * (columns.length + 1), columns.length))
-        .join(',\n    ')
-    }
+    ${ rows.map((_id, index) => rowString(index * (columns.length + 1), columns.length)).join(',\n    ') }
   ON CONFLICT (id) DO UPDATE
   SET
-    ${
-      columns
-        .map(postgres.purifiedName)
-        .map(name => `${name} = excluded.${name}`)
-        .join(',\n     ')
-    }
+    ${ columns.map(postgres.purifiedName).map(name => `${name} = excluded.${name}`).join(',\n     ') }
 `
 
 //  TODO: probably want to abstract this and allow different types
