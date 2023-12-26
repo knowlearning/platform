@@ -15,7 +15,7 @@ INSERT INTO ${postgres.purifiedName(table)}
   VALUES
     ${
       rows
-        .map((_, index) => rowString(index * (columns.length + 1), columns.length))
+        .map((_id, index) => rowString(index * (columns.length + 1), columns.length))
         .join(',\n    ')
     }
   ON CONFLICT (id) DO UPDATE
@@ -180,7 +180,7 @@ async function syncTables(domain, tables, report) {
         const rowsToInsert = []
         const paramsToInsert = []
         states.forEach((state, index) => {
-          const { id } = rows[index]
+          const { id } = rows[start + index]
           if (!state) {
             //  TODO: probably want to add this id to some sort of report
             console.warn(`TRYING TO ADD ROW FOR NON-EXISTENT SCOPE ${domain} ${table} ${id}`)
@@ -188,7 +188,7 @@ async function syncTables(domain, tables, report) {
           }
           const data = table === 'metadata' ? state : state.active
 
-          rowsToInsert.push(rows[index])
+          rowsToInsert.push(id)
           paramsToInsert.push(
             id,
             ...orderedColumns
