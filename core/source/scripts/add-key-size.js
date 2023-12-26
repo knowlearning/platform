@@ -25,7 +25,7 @@ scanKeys('0', '*', 1000, function (keys) {
       try {
         const domain = await redis.client.json.get(key, { path: [`$.domain`] })
         if (!localhostDomainSizes[domain]) localhostDomainSizes[domain] = 0
-        const size = await redis.client.sendCommand(['JSON.DEBUG', 'MEMORY', key])
+        const size = parseInt(await redis.client.sendCommand(['JSON.DEBUG', 'MEMORY', key]))
         localhostDomainSizes[domain] += size
         await redis.client.json.set(key, `$.active_size`, size)
       }
