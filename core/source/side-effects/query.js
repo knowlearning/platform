@@ -8,7 +8,7 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
     try {
       const queryStart = Date.now()
       const { rows, fields } = await configuredQuery(domain, targetDomain, query, params, user)
-      const metricsPatch = [{ op: 'add', path: ['active', 'db_latency'], value: Date.now() - queryStart }]
+      const metricsPatch = [{ op: 'add', path: ['active', 'core_latency'], value: Date.now() - queryStart }]
       interact(domain, user, scope, metricsPatch)
       send({ si, ii, rows, columns: fields.map(f => f.name) })
     }

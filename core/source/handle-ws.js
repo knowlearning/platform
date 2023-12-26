@@ -6,6 +6,7 @@ import pingWSConnection from './ping-ws-connection.js'
 import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
+import configuredQuery from './configured-query.js'
 
 const CLIENT_PING_INTERVAL = 10000
 const HEARTBEAT_INTERVAL = 5000
@@ -141,11 +142,29 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
   if (id !== scope) namedScopeCache[scope] = id
 
   const { ii, active_type } = await interact(domain, user, id, patch)
-
-  if (active_type === 'application/json;type=domain-claim') console.log('DOMAIN CLAIM', user, domain, scope, patch)
-
-  const sideEffect = sideEffects[active_type] || (() => send({ si, ii }))
-  await sideEffect({ domain, user, session, scope: id, patch, si, ii, send })
+  if (scope === 'sessions' || namedScopeCache[scope] === 'sessions') {
+    const { op, path } = patch[0]
+    if (op === 'add' && path.length === 4 && path[0] === 'active', path[1] === session && path[2] === 'queries') {
+      try {
+        const { value: { query, params=[], domain:targetDomain=domain } } = patch[0]
+        const queryId = path[3]
+        const queryStart = Date.now()
+        const { rows, fields } = await configuredQuery(domain, targetDomain, query, params, user)
+        const metricsPatch = [{ op: 'add', path: ['active', session, 'query', queryId, 'core_latency'], value: Date.now() - queryStart }]
+        interact(domain, user, scope, metricsPatch)
+        send({ si, ii, rows, columns: fields.map(f => f.name) })
+      }
+      catch (error) {
+        console.log(error)
+        send({ si, ii, error: error.code })
+      }
+    }
+    else send({ si, ii })
+  }
+  else {
+    const sideEffect = sideEffects[active_type] || (() => send({ si, ii }))
+    await sideEffect({ domain, user, session, scope: id, patch, si, ii, send })
+  }
 
 /*
   console.log('DONE PROCESSING', si)

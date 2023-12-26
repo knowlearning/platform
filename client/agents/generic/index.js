@@ -49,6 +49,15 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
   const [ watch, removeWatcher ] = watchImplementation(internalReferences)
 
+  const sessionPromise = new Promise(async resolve => {
+    const { session } = await environment()
+    const sessions = await state('sessions')
+    sessions[session] = {
+      queries: {}
+    }
+    resolve(sessions[session])
+  })
+
   function state(scope, user, domain) { return stateImplementation(scope, user, domain, internalReferences) }
 
   function download(id) { return downloadImplementation(id, internalReferences) }
@@ -168,14 +177,12 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   }
 
   async function query(query, params, domain) {
+    const session = await sessionPromise
     const id = uuid()
-    create({
-      id,
-      active_type: POSTGRES_QUERY_TYPE,
-      active: { query, params, domain, requested: Date.now() },
-    })
+    const requested = Date.now()
+    session.queries[id] = { query, params, domain }
     const { rows } = await lastMessageResponse()
-    interact(id, [{ op: 'add', path: ['active', 'responded'], value: Date.now() }])
+    session.queries[id].agent_latency = Date.now() - requested
     return rows
   }
 

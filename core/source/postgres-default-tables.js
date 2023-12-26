@@ -42,7 +42,7 @@ export default {
       query: 'TEXT',
       domain: 'TEXT',
       requested: 'BIGINT',
-      db_latency: 'INTEGER',
+      core_latency: 'INTEGER',
       responded: 'BIGINT'
     }
   },
