@@ -9,6 +9,25 @@ import POSTGRES_DEFAULT_TABLES from '../postgres-default-tables.js'
 import configuration from '../configuration.js'
 import MutableProxy from '../../../client/persistence/json.js'
 
+const insertRowsQuery = (table, columns, rows) => `
+INSERT INTO ${postgres.purifiedName(table)}
+  (id,${columns.map(postgres.purifiedName).join(',')})
+  VALUES
+    ${
+      rows
+        .map((_, index) => rowString(index * (columns.length + 1), columns.length))
+        .join(',\n    ')
+    }
+  ON CONFLICT (id) DO UPDATE
+  SET
+    ${
+      columns
+        .map(postgres.purifiedName)
+        .map(name => `${name} = excluded.${name}`)
+        .join(',\n     ')
+    }
+`
+
 //  TODO: probably want to abstract this and allow different types
 //        to help with removing privaleged named states
 function coreState(id, domain) {
@@ -224,29 +243,9 @@ async function batchInsertRows(domain, table, columns, rows, params) {
   await Promise.all(batches)
 }
 
-function insertRows(domain, table, columns, rows, params) {
-  return postgres.query(
-    domain,
-    `
-    INSERT INTO ${postgres.purifiedName(table)}
-      (id,${columns.map(postgres.purifiedName).join(',')})
-      VALUES
-        ${
-          rows
-            .map((_, index) => rowString(index * (columns.length + 1), columns.length))
-            .join(',\n')
-        }
-      ON CONFLICT (id) DO UPDATE
-      SET
-        ${
-          columns
-            .map(postgres.purifiedName)
-            .map(name => `${name} = excluded.${name}`)
-            .join(',\n')
-        }
-    `,
-    params
-  )
+async function insertRows(domain, table, columns, rows, params) {
+  const query = insertRowsQuery(table, columns, rows)
+  return postgres.query(domain, query, params)
 }
 
 async function syncFunctions(domain, functions, report) {
