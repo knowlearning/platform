@@ -1,6 +1,8 @@
 const EMBEDED_QUERY_TEST_MODE = 'EMBEDED_QUERY_TEST_MODE'
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
+const endOfReport = id => new Promise(r => Agent.watch(id, u => u.state.end && r()))
+
 export default function () {
   const TEST_TABLE_TYPE = `application/json;type=test-type`
 
@@ -120,7 +122,8 @@ postgres:
         active_type: DOMAIN_CONFIG_TYPE,
         active: { config, report, domain }
       })
-      await Agent.synced()
+
+      await endOfReport(report)
       //  TODO: some way to certify that our user has been set as domain admin
     })
 
@@ -211,11 +214,7 @@ postgres:
         active: { config, report, domain }
       })
 
-      await new Promise(resolve => {
-        Agent.watch(report, ({ state: { end } }) => {
-          if (end) resolve()
-        })
-      })
+      await endOfReport(report)
     })
 
     it('Can get expected result from re-configured table', async function () {
