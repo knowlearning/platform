@@ -25,7 +25,11 @@
             scope: 'openid profile',
             nonce,
             state,
-            claims: `{"domain":"${origin}"}`
+            claims: JSON.stringify({
+              id_token: {
+                domain: origin
+              }
+            })
           }
           window.location.href = `https://accounts.google.com/o/oauth2/auth?${objectToQuerystring(query)}`
         }
@@ -38,7 +42,11 @@
             scope: 'openid profile',
             nonce,
             state,
-            claims: `{"domain":"${origin}"}`
+            claims: JSON.stringify({
+              id_token: {
+                domain: origin
+              }
+            })
           }
           window.location.href = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${objectToQuerystring(query)}`
 
