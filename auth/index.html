@@ -8,7 +8,7 @@
   <body>
     <script>
       function objectToQuerystring(o) {
-        return Object.entries(o).map(([k,v]) => `${k}=${v}`).join('&')
+        return Object.entries(o).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&')
       }
       if (window.location.pathname !== '/') {
         const [_, provider, state, origin] = window.location.pathname.split('/')
