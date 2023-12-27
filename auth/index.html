@@ -27,7 +27,7 @@
             state,
             claims: JSON.stringify({
               id_token: {
-                domain: { origin }
+                [origin]: null
               }
             })
           }
@@ -44,7 +44,7 @@
             state,
             claims: JSON.stringify({
               id_token: {
-                domain: { origin }
+                [origin]: null
               }
             })
           }

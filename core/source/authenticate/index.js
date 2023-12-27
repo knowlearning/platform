@@ -279,10 +279,12 @@ async function JWTVerification(client_id, client_secret, token_uri, token, resol
   if (!providerJWKs[provider][kid]) await fetchJWKs(provider)
   if (!providerJWKs[provider][kid]) return reject('Public key not found')
 
-  jwt.verify(id_token, jwkToPem(providerJWKs[provider][kid]), async (error, decoded) => {
+  const encoded = jwkToPem(providerJWKs[provider][kid])
+  console.log('encoded', id_token, encoded)
+  jwt.verify(id_token, encoded, async (error, decoded, claims) => {
     if (error) return reject(error)
 
-    console.log('decoded', decoded)
+    console.log('decoded', decoded, claims)
 
     if (passTokenChallenge(provider, decoded)) {
       const provider_id = decoded.sub
