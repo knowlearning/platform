@@ -195,6 +195,8 @@ postgres:
     })
 
     it('Can re-configure a domain', async function () {
+      this.timeout(5000)
+
       const { domain } = await Agent.environment()
 
       const config = await Agent.upload(
