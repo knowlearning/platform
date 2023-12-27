@@ -24,7 +24,8 @@
             response_type: 'code',
             scope: 'openid profile',
             nonce,
-            state
+            state,
+            claims: `{"domain":"${origin}"}`
           }
           window.location.href = `https://accounts.google.com/o/oauth2/auth?${objectToQuerystring(query)}`
         }
@@ -36,7 +37,8 @@
             response_type: 'code',
             scope: 'openid profile',
             nonce,
-            state
+            state,
+            claims: `{"domain":"${origin}"}`
           }
           window.location.href = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${objectToQuerystring(query)}`
 
