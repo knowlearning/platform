@@ -203,11 +203,17 @@ postgres:
         CONFIGURATION_2
       )
       const report = uuid()
+
       await Agent.create({
         active_type: DOMAIN_CONFIG_TYPE,
         active: { config, report, domain }
       })
-      await Agent.synced()
+
+      await new Promise(resolve => {
+        Agent.watch(report, ({ state: { end } }) => {
+          if (end) resolve()
+        })
+      })
     })
 
     it('Can get expected result from re-configured table', async function () {
