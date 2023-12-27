@@ -49,6 +49,8 @@
           const { origin, provider } = JSON.parse(localStorage.getItem(state))
 
           const { protocol, host } = new URL(origin)
+          //  TODO: encrypt domain + code with server public key so that server
+          //        can verify that the user of the code is the intended recipient
           window.location.href = `${protocol}//${host}/auth/${state}/${provider}-${code}`
           localStorage.removeItem(state)
         }
