@@ -282,8 +282,6 @@ async function JWTVerification(client_id, client_secret, token_uri, token, resol
   jwt.verify(id_token, jwkToPem(providerJWKs[provider][kid]), async (error, decoded) => {
     if (error) return reject(error)
 
-    console.log('decoded', decoded)
-
     if (passTokenChallenge(provider, decoded)) {
       const provider_id = decoded.sub
       const { rows: [ existingUser ]} = await query(ADMIN_DOMAIN, `SELECT id FROM users WHERE provider = $1 AND provider_id = $2`, [provider, provider_id])
