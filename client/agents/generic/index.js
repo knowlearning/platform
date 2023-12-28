@@ -180,6 +180,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     const session = await sessionPromise
     const id = uuid()
     const requested = Date.now()
+    await new Promise(r => r()) //  ensure next interaction gets sent on its own
     session.queries[id] = { query, params, domain }
     const { rows } = await lastMessageResponse()
     session.queries[id].agent_latency = Date.now() - requested
