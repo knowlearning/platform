@@ -113,8 +113,8 @@ export default {
       const queryData = {}
 
       const round_trip_time_values = this.data.map(({ round_trip_time }) => round_trip_time)
-      const db_latency = this.data.map(({ db_latency }) => db_latency)
-      const { min, max, interval } = histogramParams([...round_trip_time_values, ...db_latency])
+      const core_latency = this.data.map(({ core_latency }) => core_latency)
+      const { min, max, interval } = histogramParams([...round_trip_time_values, ...core_latency])
 
       msBuckets.push(`<${min}ms`)
       for (let ms=min; ms <= max; ms += interval) msBuckets.push(ms)
@@ -122,14 +122,14 @@ export default {
 
       this
         .data
-        .forEach(({ query, round_trip_time, db_latency }) => {
+        .forEach(({ query, round_trip_time, core_latency }) => {
           if (!queryData[query]) queryData[query] = {
             client_latency: new Array(msBuckets.length).fill(0),
-            db_latency: new Array(msBuckets.length).fill(0)
+            core_latency: new Array(msBuckets.length).fill(0)
           }
 
           queryData[query].client_latency[calculateBin(min, max, interval, round_trip_time) + 1] += 1
-          queryData[query].db_latency[calculateBin(min, max, interval, db_latency) + 1] += 1
+          queryData[query].core_latency[calculateBin(min, max, interval, core_latency) + 1] += 1
         })
 
       const labels = (
@@ -150,7 +150,7 @@ export default {
               data: data.client_latency
             },{
               label: 'db latency',
-              data: data.db_latency
+              data: data.core_latency
             }
           ]
         }
@@ -164,17 +164,17 @@ export default {
         SELECT
           query,
           responded - requested AS round_trip_time,
-          db_latency
+          core_latency
         FROM queries
         WHERE responded IS NOT NULL
-          AND db_latency IS NOT NULL
+          AND core_latency IS NOT NULL
           AND requested > $1
           AND requested < $2
       `
       this.data = await Agent.query(queryDataQuery, [this.startTS, this.endTS], this.domain)
       this.data.forEach((entry) => {
         entry.round_trip_time = parseInt(entry.round_trip_time)
-        entry.db_latency = parseInt(entry.db_latency)
+        entry.core_latency = parseInt(entry.core_latency)
       })
       this.loaded = true
     }
