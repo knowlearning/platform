@@ -1,3 +1,4 @@
+import * as redis from '../redis.js'
 import scanRedis from './scan-redis.js'
 
 const localhostRegex = /^(?:[a-zA-Z0-9-]+\.)*localhost(?::\d+)?$/
