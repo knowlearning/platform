@@ -4,6 +4,13 @@ X Fix claiming domains (http challenge doesnt seem to work)
 X Embedded agent watch can take array of references as id
 X Download archive of entire domain's data (so we can reliably delete live)
   Don't rely on postgres for uuid list for uuid resync
+    script to construct set named domain -> uuid
+    update sync script to work off of that set
+    be able to delete and re-create postgres databases easily
+    Take postgres out of managed service and use deployable instance
+  Dont' rely on redis for base representation of data
+    stream all uuids into stored file named domain (stream into gcs as well)
+    stream all updates to uuids into file named uuid (stream into gcs as well)
   Auth service needs to associate 1 time use auth token with a domain, so that only auth requests with a token from that domain are treated as valid
     (great redis expiring key use case)
   Throw error instead of returning undefined when cross domain query fails (fails when points at wrong domain/no query configured)
