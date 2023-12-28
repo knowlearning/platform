@@ -9,6 +9,19 @@ import POSTGRES_DEFAULT_TABLES from '../postgres-default-tables.js'
 import configuration from '../configuration.js'
 import MutableProxy from '../../../client/persistence/json.js'
 
+const EXISTING_TABLES_QUERY = `
+  SELECT tablename
+  FROM pg_catalog.pg_tables
+  WHERE schemaname != 'pg_catalog'
+    AND schemaname != 'information_schema'
+`
+
+const EXISTING_FUNCTIONS_QUERY = `
+  SELECT proname
+  FROM pg_proc
+  WHERE pronamespace = 'public'::regnamespace
+`
+
 const insertRowsQuery = (table, columns, rows) => `
 INSERT INTO ${postgres.purifiedName(table)}
   (id,${columns.map(postgres.purifiedName).join(',')})
@@ -89,12 +102,7 @@ async function configurePostgres(domain, { tables={}, functions={} }, report) {
 async function syncTables(domain, tables, report) {
   report.tasks.postgres.tables = {}
 
-  const { rows: existingTables } = await postgres.query(domain, `
-    SELECT tablename
-    FROM pg_catalog.pg_tables
-    WHERE schemaname != 'pg_catalog'
-      AND schemaname != 'information_schema'
-  `)
+  const { rows: existingTables } = await postgres.query(domain, EXISTING_TABLES_QUERY)
 
   const existingTableNames = existingTables.map(({tablename}) => tablename)
   const removedTables = existingTableNames.filter(name => !tables[name])
@@ -132,9 +140,11 @@ async function syncTables(domain, tables, report) {
     const orderedColumns = Object.keys(columns)
     tableTasks.push('Creating')
     await postgres.createTable(domain, table, columns)
-    //  TODO: streaming, and less front end processing of result is probably
-    //        a low hanging fruit optimization when the time is right
     tableTasks.push('Fetching syncable states from metadata')
+
+    //  TODO: replace this with a redis based scan for keys in domain
+    //        key that is domain should be a set of ids that are in it
+    //        key that is domain/type should be set of ids that are of a type in that domain
     const { rows } = await (
       table === 'metadata'
         ? postgres.query(domain, 'SELECT id FROM metadata WHERE domain = $1', [domain])
@@ -242,11 +252,7 @@ async function insertRows(domain, table, columns, rows, params) {
 async function syncFunctions(domain, functions, report) {
   report.tasks.postgres.functions = {}
 
-  const { rows: existingFunctions } = await postgres.query(domain, `
-    SELECT proname
-    FROM pg_proc
-    WHERE pronamespace = 'public'::regnamespace
-  `)
+  const { rows: existingFunctions } = await postgres.query(domain, EXISTING_FUNCTIONS_QUERY)
 
   const functionNames = existingFunctions.map(f => f.proname)
   const removedFunctions = functionNames.filter(name => !functions[name])
