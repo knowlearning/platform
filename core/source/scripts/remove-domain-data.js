@@ -22,7 +22,7 @@ const errors = {}
 
 function logLoop() {
   console.log(errors)
-  cancelTimeout = setTimeout(logLoop, 3000)
+  setTimeout(logLoop, 3000)
 }
 
 logLoop()
