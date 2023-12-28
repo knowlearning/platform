@@ -8,9 +8,8 @@ const isValidDomain = d => localhostRegex.test(d) || domainRegex.test(d)
 scanRedis('0', '*', 1000, async key => {
   const domain = await redis.client.json.get(key, { path: [`$.domain`] })
   if (isValidDomain(domain)) {
-    const multi = redis.client.multi()
-    multi.sadd(domain, key)
-    multi.sadd('domains', domain)
+    redis.client.sadd(domain, key)
+    redis.client.sadd('domains', domain)
     await multi.exec()
   }
   else console.warn('INVALID DOMAIN', key, domain)
