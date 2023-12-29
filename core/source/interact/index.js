@@ -2,10 +2,10 @@ import * as redis from '../redis.js'
 import initializationState from '../initialization-state.js'
 import sync from './sync.js'
 
-const activeSizeScript = id => `
-  local key = '${id.replaceAll("'", '')}'
-  local active_size = redis.call('JSON.DEBUG', 'MEMORY', key)
-  redis.call('JSON.SET', key, '$.active_size', tonumber(active_size))
+const MAINTENANCE_SCRIPT = `
+  local active_size = redis.call('JSON.DEBUG', 'MEMORY', KEYS[1])
+  redis.call('JSON.SET', KEYS[1], '$.active_size', tonumber(active_size))
+  redis.call('SADD', KEYS[2], KEYS[1])
 `;
 
 export default async function interact( domain, user, scope, patch, timestamp=Date.now() ) {
@@ -51,7 +51,7 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
     }
   }
 
-  transaction.eval(activeSizeScript(scope))
+  transaction.eval(MAINTENANCE_SCRIPT, { keys: [scope, domain] })
   transaction.json.get(scope, { path: '$.active_type' })
 
   try {
