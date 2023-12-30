@@ -6,7 +6,7 @@ X Download archive of entire domain's data (so we can reliably delete live)
   Don't rely on postgres for uuid list for uuid resync
 X   script to construct set named domain -> uuid
 X   make new uuids get added to that set
-    update sync script to work off of that set
+X   update sync script to work off of that set
     be able to delete and re-create postgres databases easily
     Take postgres out of managed service and use deployable instance
   Dont' rely on redis for base representation of data
