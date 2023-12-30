@@ -131,6 +131,18 @@ async function syncTables(domain, tables, report) {
 
   await Promise.all(removeTablePromises)
 
+  const typeGroups = {}
+
+  const allIds = await redis.client.sendCommand(['smembers', domain])
+
+  //  TODO: do in chunks...
+  for (let idNum = 0; idNum < allIds.length; idNum += 1) {
+    const id = allIds[idNum]
+    const active_type = await redis.client.json.get(id, { path: [`$.active_type`] })
+    if (!typeGroups[active_type]) typeGroups[active_type] = []
+    typeGroups[active_type].push(id)
+  }
+
   //  create tables and supply columns for column updates
   const tableEntries = Object.entries(tables)
   for (let tableNum = 0; tableNum < tableEntries.length; tableNum += 1) {
@@ -142,14 +154,7 @@ async function syncTables(domain, tables, report) {
     await postgres.createTable(domain, table, columns)
     tableTasks.push('Fetching syncable states from metadata')
 
-    //  TODO: replace this with a redis based scan for keys in domain
-    //        key that is domain should be a set of ids that are in it
-    //        key that is domain/type should be set of ids that are of a type in that domain
-    const { rows } = await (
-      table === 'metadata'
-        ? postgres.query(domain, 'SELECT id FROM metadata WHERE domain = $1', [domain])
-        : postgres.query(domain, 'SELECT id FROM metadata WHERE domain = $1 AND active_type = $2', [domain, type])
-    )
+    const rows = table === 'metadata' ? allIds : typeGroups[type] || []
 
     tableTasks.push(`0/${rows.length} rows synced`)
 
@@ -173,7 +178,7 @@ async function syncTables(domain, tables, report) {
         const start = batchNum * batchSize
         const end = start + batchSize
         const batch = rows.slice(start, end)
-        batch.forEach(({ id }) => transaction.json.get(id))
+        batch.forEach( id => transaction.json.get(id) )
         tableTasks.push(`Fetching ${batch.length} states to sync`)
         const states = await transaction.exec()
 
@@ -181,7 +186,7 @@ async function syncTables(domain, tables, report) {
         const rowsToInsert = []
         const paramsToInsert = []
         states.forEach((state, index) => {
-          const { id } = rows[start + index]
+          const id = rows[start + index]
           if (!state) {
             //  TODO: probably want to add this id to some sort of report
             console.warn(`TRYING TO ADD ROW FOR NON-EXISTENT SCOPE ${domain} ${table} ${id}`)
