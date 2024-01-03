@@ -1,4 +1,4 @@
-import * as redis from './redis.js'
+import * as redis from '../redis.js'
 
 
 await redis.connected
