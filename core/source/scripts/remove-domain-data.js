@@ -37,7 +37,7 @@ scanKeys('0', '*', 1000, function (keys) {
   return Promise.all(
     keys.map(async key => {
       try {
-        const domain = await redis.client.json.get(key, { path: [`$.domain`] })
+        const [ domain ] = await redis.client.json.get(key, { path: [`$.domain`] })
         if (domain === DOMAIN_TO_DELETE) await redis.client.del(key)
       }
       catch (error) {
