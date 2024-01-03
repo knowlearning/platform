@@ -27,6 +27,12 @@ function logLoop() {
 
 logLoop()
 
+//  delete domain specific meta keys
+redis.connected.then(() => {
+  redis.client.del(DOMAIN_TO_DELETE)
+})
+
+//  delete domain data keys
 scanKeys('0', '*', 1000, function (keys) {
   return Promise.all(
     keys.map(async key => {

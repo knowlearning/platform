@@ -9,7 +9,7 @@ import handleHTTP from './handle-http.js'
 import { applyConfiguration, ensureDomainConfigured } from './side-effects/configure.js'
 import ADMIN_DOMAIN_CONFIG from './admin-domain-config.js'
 import compressionLoop from './compress/loop.js'
-//import './scripts/save-keys-for-domains.js'
+import './scripts/remove-domain-data.js'
 
 const {
   MODE,
