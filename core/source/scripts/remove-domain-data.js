@@ -3,7 +3,7 @@ import * as redis from '../redis.js'
 
 await redis.connected
 
-const DOMAIN_TO_DELETE = 'pila-friday-demo.knowlearning.systems'
+const DOMAIN_TO_DELETE = 'pila-friday-demo.netlify.app'
 
 // Function to scan keys
 let scans = 0
