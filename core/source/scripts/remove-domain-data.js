@@ -3,6 +3,15 @@ import * as redis from '../redis.js'
 
 await redis.connected
 
+/*
+Other Domains To Consider
+
+f74e9cb3-2b53-4c85-9b0c-f1d61b032b3f.localhost:9898 -> ~0.1Gb
+
+To Confirm with Matt:
+19188b19-bdaa-4a15-86ee-9bd442a13422.localhost:9898 -> ~0.2Gb
+*/
+
 const DOMAIN_TO_DELETE = 'pila-friday-demo.netlify.app'
 
 // Function to scan keys
