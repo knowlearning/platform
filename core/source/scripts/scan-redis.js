@@ -5,7 +5,7 @@ let scans = 0
 let stopLogLoop
 const errors = {}
 
-async function scanRedis(cursor, pattern, batchSize, callback) {
+async function scanRedis(cursor, pattern, batchSize, callback, done) {
   await redis.connected
   const { cursor: nextCursor, keys } = await redis.client.scan(cursor, { COUNT: batchSize })
 
@@ -30,8 +30,9 @@ async function scanRedis(cursor, pattern, batchSize, callback) {
   if (nextCursor === 0) {
     console.log('SCAN COMPLETE', scans)
     clearTimeout(stopLogLoop)
+    done()
   }
-  else scanRedis(nextCursor, pattern, batchSize, callback)
+  else scanRedis(nextCursor, pattern, batchSize, callback, done)
 }
 
 function logLoop() {
@@ -39,4 +40,6 @@ function logLoop() {
   stopLogLoop = setTimeout(logLoop, 3000)
 }
 
-export default scanRedis
+export default function(cursor, pattern, batchSize, callback) {
+  return new Promise (r => scanRedis(cursor, pattern, batchSize, callback, r))
+}
