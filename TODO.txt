@@ -3,12 +3,12 @@ X Cross domain queries
 X Fix claiming domains (http challenge doesnt seem to work)
 X Embedded agent watch can take array of references as id
 X Download archive of entire domain's data (so we can reliably delete live)
-  Don't rely on postgres for uuid list for uuid resync
+X Don't rely on postgres for uuid list for uuid resync
 X   script to construct set named domain -> uuid
 X   make new uuids get added to that set
 X   update sync script to work off of that set
-    be able to delete and re-create postgres databases easily
-    Take postgres out of managed service and use deployable instance
+X   be able to delete and re-create postgres databases easily
+  Take postgres out of managed service and use deployable instance
   Dont' rely on redis for base representation of data
     stream all uuids into stored file named domain (stream into gcs as well)
     stream all updates to uuids into file named uuid (stream into gcs as well)

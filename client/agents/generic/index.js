@@ -184,6 +184,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     session.queries[id] = { query, params, domain }
     const { rows } = await lastMessageResponse()
     session.queries[id].agent_latency = Date.now() - requested
+    delete session.queries[id]
     return rows
   }
 
