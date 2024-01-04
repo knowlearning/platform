@@ -142,7 +142,7 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
   if (id !== scope) namedScopeCache[scope] = id
 
   const { ii, active_type } = await interact(domain, user, id, patch)
-  if (scope === 'sessions' || namedScopeCache[scope] === 'sessions') {
+  if (scope === 'sessions') {
     const { op, path } = patch[0]
     if (op === 'add' && path.length === 4 && path[0] === 'active', path[1] === session && path[2] === 'queries') {
       try {
