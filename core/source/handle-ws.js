@@ -156,7 +156,7 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
       }
       catch (error) {
         console.warn(error)
-        console.warn(patch)
+        console.warn(path, patch)
         send({ si, ii, error: error.code })
       }
     }
