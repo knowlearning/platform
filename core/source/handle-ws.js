@@ -155,7 +155,8 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
         send({ si, ii, rows, columns: fields.map(f => f.name) })
       }
       catch (error) {
-        console.log(error)
+        console.warn(error)
+        console.warn(patch)
         send({ si, ii, error: error.code })
       }
     }
