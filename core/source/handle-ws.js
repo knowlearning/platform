@@ -151,7 +151,7 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
         const queryStart = Date.now()
         const { rows, fields } = await configuredQuery(domain, targetDomain, query, params, user)
         const metricsPatch = [{ op: 'add', path: ['active', session, 'query', queryId, 'core_latency'], value: Date.now() - queryStart }]
-        interact(domain, user, scope, metricsPatch)
+        interact(domain, user, id, metricsPatch)
         send({ si, ii, rows, columns: fields.map(f => f.name) })
       }
       catch (error) {
