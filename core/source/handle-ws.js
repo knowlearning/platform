@@ -144,7 +144,7 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
   const { ii, active_type } = await interact(domain, user, id, patch)
   if (scope === 'sessions') {
     const { op, path } = patch[0]
-    if (op === 'add' && path.length === 4 && path[0] === 'active', path[1] === session && path[2] === 'queries') {
+    if (op === 'add' && path.length === 4 && path[0] === 'active' && path[1] === session && path[2] === 'queries') {
       try {
         const { value: { query, params=[], domain:targetDomain=domain } } = patch[0]
         const queryId = path[3]
