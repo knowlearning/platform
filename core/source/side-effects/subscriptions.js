@@ -4,8 +4,7 @@ import subscribe from '../subscribe.js'
 import configuration from '../configuration.js'
 import initializationState from '../initialization-state.js'
 import scopeToId from '../scope-to-id.js'
-
-const subscriptions = {}
+import subscriptions from '../subscriptions.js'
 
 export default async function ({ domain, user, session, scope, patch, si, ii, send }) {
   const config = await configuration(domain)

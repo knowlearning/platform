@@ -16,20 +16,19 @@ export default function(scope='[]', user, domain, { keyToSubscriptionId, watcher
       watchers[qualifiedScope] = []
       states[qualifiedScope] = new Promise(async (resolve, reject) => {
         const { session } = await environment()
-        create({
-          id,
-          active_type: SUBSCRIPTION_TYPE,
-          active: { session, scope, user, domain, ii: null, initialized: Date.now() },
-        })
-
+        await new Promise(r => setTimeout(r, 1))
+        interact('sessions', [{
+          op: 'add',
+          path: ['active', session, 'subscriptions', id],
+          value: { session, scope, user, domain, ii: null }
+        }])
         try {
           const state = await lastMessageResponse()
-          tagIfNotYetTaggedInSession('subscribed', state.id)
-          interact(id, [
-            { op: 'add', path: ['active', 'ii'], value: state.ii }, // TODO: use state.ii when is coming down properly...
-            { op: 'add', path: ['active', 'synced'], value: Date.now() }
-          ])
-
+          interact('sessions', [{
+            op: 'add',
+            path: ['active', session, 'subscriptions', id, 'ii'],
+            value: state.ii
+          }])
           resolve(state)
         }
         catch (error) { reject(error) }

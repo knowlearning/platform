@@ -31,6 +31,16 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     environment
   ] = messageQueue({ token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact })
 
+  const sessionPromise = new Promise(async resolve => {
+    const { session } = await environment()
+    const sessions = new MutableProxy({}, patch => interact('sessions', patch))
+    sessions[session] = {
+      queries: {},
+      subscriptions: {}
+    }
+    resolve(sessions[session])
+  })
+
   const internalReferences = {
     keyToSubscriptionId,
     watchers,
@@ -44,19 +54,11 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     interact,
     fetch,
     synced,
+    sessionPromise,
     metadata
   }
 
   const [ watch, removeWatcher ] = watchImplementation(internalReferences)
-
-  const sessionPromise = new Promise(async resolve => {
-    const { session } = await environment()
-    const sessions = await state('sessions')
-    sessions[session] = {
-      queries: {}
-    }
-    resolve(sessions[session])
-  })
 
   function state(scope, user, domain) { return stateImplementation(scope, user, domain, internalReferences) }
 
@@ -177,14 +179,29 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   }
 
   async function query(query, params, domain) {
-    const session = await sessionPromise
     const id = uuid()
     const requested = Date.now()
+    const { session } = await environment()
     await new Promise(r => setTimeout(r)) //  ensure next interaction gets sent on its own
-    session.queries[id] = { query, params, domain }
+    interact('sessions', [
+      {
+        op: 'add',
+        path: ['active', session, 'queries', id],
+        value: { query, params, domain }
+      }
+    ])
     const { rows } = await lastMessageResponse()
-    session.queries[id].agent_latency = Date.now() - requested
-    delete session.queries[id]
+    interact('sessions', [
+      {
+        op: 'add',
+        path: ['active', session, 'queries', id, 'agent_latency'],
+        value: Date.now() - requested
+      },
+      {
+        op: 'remove',
+        path: ['active', session, 'queries', id]
+      }
+    ])
     return rows
   }
 

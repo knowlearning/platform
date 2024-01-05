@@ -7,6 +7,10 @@ import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
 import configuredQuery from './configured-query.js'
+import * as redis from './redis.js'
+import initializationState from './initialization-state.js'
+import subscriptions from './subscriptions.js'
+import subscribe from './subscribe.js'
 
 const CLIENT_PING_INTERVAL = 10000
 const HEARTBEAT_INTERVAL = 5000
@@ -143,16 +147,35 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
 
   const { ii, active_type } = await interact(domain, user, id, patch)
   if (scope === 'sessions') {
-    const { op, path } = patch[0]
-    if (op === 'add' && path.length === 4 && path[0] === 'active' && path[1] === session && path[2] === 'queries') {
+    const { op, path, value } = patch[0]
+    if (op === 'add' && path.length === 4 && path[0] === 'active' && path[1] === session) {
       try {
-        const { value: { query, params=[], domain:targetDomain=domain } } = patch[0]
-        const queryId = path[3]
-        const queryStart = Date.now()
-        const { rows, fields } = await configuredQuery(domain, targetDomain, query, params, user)
-        const metricsPatch = [{ op: 'add', path: ['active', session, 'query', queryId, 'core_latency'], value: Date.now() - queryStart }]
-        interact(domain, user, id, metricsPatch)
-        send({ si, ii, rows, columns: fields.map(f => f.name) })
+        if (path[2] === 'queries') {
+          const { query, params=[], domain:targetDomain=domain } = value
+          const queryId = path[3]
+          const queryStart = Date.now()
+          const { rows, fields } = await configuredQuery(domain, targetDomain, query, params, user)
+          const metricsPatch = [{ op: 'add', path: ['active', session, 'query', queryId, 'core_latency'], value: Date.now() - queryStart }]
+          interact(domain, user, id, metricsPatch)
+          send({ si, ii, rows, columns: fields.map(f => f.name) })
+        }
+        else if (path[2] === 'subscriptions') {
+          const { scope: subscribedScope, user:scopeUser=user, domain:scopeDomain=domain } = value
+          //  TODO: authorization check here
+          if (!subscriptions[session]) subscriptions[session] = {}
+
+          const ss = subscriptions[session]
+          const id = await scopeToId(scopeDomain, scopeUser, subscribedScope)
+          if (!ss[id]) ss[id] = subscribe(id, send, subscribedScope)
+          let state = await redis.client.json.get(id)
+          if (!state) {
+            state = initializationState(domain, user, subscribedScope)
+            //  TODO: ensure set was successful, otherwise just retry get
+            if (scopeUser === user) await redis.client.json.set(id, '$', state, { NX: true }) // initialize metadata if does not exist
+          }
+          send({ ...state, id, si })
+        }
+        else send({ si, ii })
       }
       catch (error) {
         console.warn(error)
