@@ -1,8 +1,6 @@
 import { v4 as uuid, validate as isUUID } from 'uuid'
 import MutableProxy from '../../persistence/json.js'
 
-const SUBSCRIPTION_TYPE = 'application/json;type=subscription'
-
 export default function(scope='[]', user, domain, { keyToSubscriptionId, watchers, states, create, environment, lastMessageResponse, lastInteractionResponse, tagIfNotYetTaggedInSession, interact }) {
   let resolveMetadataPromise
   let metadataPromise = new Promise(resolve => resolveMetadataPromise = resolve)
