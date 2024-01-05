@@ -31,15 +31,11 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     environment
   ] = messageQueue({ token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact })
 
-  const sessionPromise = new Promise(async resolve => {
-    const { session } = await environment()
-    const sessions = new MutableProxy({}, patch => interact('sessions', patch))
-    sessions[session] = {
-      queries: {},
-      subscriptions: {}
-    }
-    resolve(sessions[session])
-  })
+  // initialize session
+  environment()
+    .then(({ session }) => {
+      interact('sessions', [{ op: 'add', path: [session], value: { queries: {}, subscriptions: {} } }])
+    })
 
   const internalReferences = {
     keyToSubscriptionId,
@@ -54,7 +50,6 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     interact,
     fetch,
     synced,
-    sessionPromise,
     metadata
   }
 
