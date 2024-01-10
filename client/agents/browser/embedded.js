@@ -147,7 +147,7 @@ export default function EmbeddedAgent() {
     const promise = new Promise(async (resolve, reject) => {
       const url = await send({ type: 'download', id })
 
-      await new Promise(r => setTimeout(r))
+//      await new Promise(r => setTimeout(r))
       if (mode === 'url') resolve(url)
       else if (mode === 'fetch') {
         const response = await fetch(url)
