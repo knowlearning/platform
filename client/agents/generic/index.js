@@ -177,7 +177,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     const id = uuid()
     const requested = Date.now()
     const { session } = await environment()
-    await new Promise(r => setTimeout(r)) //  ensure next interaction gets sent on its own
+    await new Promise(r => setTimeout(r, 1)) //  ensure next interaction gets sent on its own
     interact('sessions', [
       {
         op: 'add',
