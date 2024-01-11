@@ -1,4 +1,5 @@
 const EMBEDED_QUERY_TEST_MODE = 'EMBEDED_QUERY_TEST_MODE'
+const EMBEDED_PARALLEL_QUERY_TEST_MODE = 'EMBEDED_PARALLEL_QUERY_TEST_MODE'
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
 const endOfReport = id => new Promise(r => Agent.watch(id, u => u.state.end && r()))
@@ -162,6 +163,26 @@ postgres:
 
       await done
       expect(closeInfo).to.deep.equal([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
+    })
+
+    it('Can resolve many parallel queries at once', async function () {
+      let resolve
+      const done = new Promise(r => resolve = r)
+      const iframe = document.createElement('iframe')
+      iframe.style = "border: none; width: 0; height: 0;"
+      document.body.appendChild(iframe)
+
+      const { on } = Agent.embed({ id: TEST_ENTRY_1_ID, mode: EMBEDED_PARALLEL_QUERY_TEST_MODE }, iframe)
+
+      let closeInfo
+      on('close', info => {
+        closeInfo = info
+        document.body.removeChild(iframe)
+        resolve()
+      })
+
+      await done
+      expect(closeInfo).to.deep.equal(null)
     })
 
     it('Can call functions in special query scopes', async function () {

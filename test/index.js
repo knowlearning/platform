@@ -39,6 +39,15 @@ else if (mode === 'EMBEDED_QUERY_TEST_MODE') {
   const result = await Agent.query('my-test-table-entries')
   Agent.close(result)
 }
+else if (mode === 'EMBEDED_PARALLEL_QUERY_TEST_MODE') {
+  const numParallelQueries = 200
+  const queries = []
+  for (let i=0; i<numParallelQueries; i++) {
+    queries.push(Agent.query('my-test-table-entries'))
+  }
+  const results = await Promise.all(queries)
+  Agent.close(result)
+}
 else if (mode === 'EMBEDED_SCOPE_NAMESPACE_TEST_MODE') {
   const scope ='some-namespaced-scope-name'
   Agent.watch(scope, async ({ state }) => {
