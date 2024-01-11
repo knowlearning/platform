@@ -176,8 +176,10 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   async function query(query, params, domain) {
     const id = uuid()
     const requested = Date.now()
+    console.log('>>>> getting env for query')
     const { session } = await environment()
     await new Promise(r => setTimeout(r)) //  ensure next interaction gets sent on its own
+    console.log('>>>> after promise timeout')
     interact('sessions', [
       {
         op: 'add',
@@ -185,7 +187,9 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
         value: { query, params, domain }
       }
     ])
+    console.log('>>>> awaiting last message response')
     const { rows } = await lastMessageResponse()
+    console.log('>>>> last message-response received', rows)
     interact('sessions', [
       {
         op: 'add',

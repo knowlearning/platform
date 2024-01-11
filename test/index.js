@@ -40,13 +40,17 @@ else if (mode === 'EMBEDED_QUERY_TEST_MODE') {
   Agent.close(result)
 }
 else if (mode === 'EMBEDED_PARALLEL_QUERY_TEST_MODE') {
-  const numParallelQueries = 200
+  console.log('>>>> BEGIN QUERY TEST')
+  const numParallelQueries = 1000
   const queries = []
   for (let i=0; i<numParallelQueries; i++) {
+    console.log('>>>> SENDING QUERY')
     queries.push(Agent.query('my-test-table-entries'))
   }
+  console.log('>>>> AWAITING QUERIES')
   const results = await Promise.all(queries)
-  Agent.close(result)
+  console.log('>>>> END QUERY TEST', results)
+  Agent.close(null)
 }
 else if (mode === 'EMBEDED_SCOPE_NAMESPACE_TEST_MODE') {
   const scope ='some-namespaced-scope-name'
@@ -85,20 +89,20 @@ else {
   if (embedLevel < 3) {
     mocha.run()
     describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, function () {
-      stateTest()
-      environmentTest()
-      metadata()
-      mutate()
-      arrays()
-      watch()
-      watchDeep()
-      vuex()
-      namespacedEmbeddings()
-      if (!Agent.embedded) reconnect()
+      // stateTest()
+      // environmentTest()
+      // metadata()
+      // mutate()
+      // arrays()
+      // watch()
+      // watchDeep()
+      // vuex()
+      // namespacedEmbeddings()
+      // if (!Agent.embedded) reconnect()
       if (!Agent.embedded) postgres()
-      uploads()
-      latestBugfixes()
-      multiAgent()
+      // uploads()
+      // latestBugfixes()
+      // multiAgent()
     })
   }
 

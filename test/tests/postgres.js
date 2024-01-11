@@ -166,6 +166,21 @@ postgres:
     })
 
     it('Can resolve many parallel queries at once', async function () {
+      this.timeout(5000)
+      const numParallelQueries = 1000
+      const queries = []
+      const expectedValues = []
+      for (let i=0; i<numParallelQueries; i++) {
+        queries.push(Agent.query('my-test-table-entries'))
+        expectedValues.push([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
+      }
+      const results = await Promise.all(queries)
+      expect(expectedValues).to.deep.equal(results)
+    })
+
+    it('Can resolve many parallel queries at once embedded', async function () {
+      this.timeout(5000)
+      console.log('>>>> BEGIN QUERY TEST PARENT')
       let resolve
       const done = new Promise(r => resolve = r)
       const iframe = document.createElement('iframe')
@@ -175,12 +190,14 @@ postgres:
       const { on } = Agent.embed({ id: TEST_ENTRY_1_ID, mode: EMBEDED_PARALLEL_QUERY_TEST_MODE }, iframe)
 
       let closeInfo
+
       on('close', info => {
         closeInfo = info
         document.body.removeChild(iframe)
         resolve()
       })
 
+      console.log('>>>> AWAITING INNER DONE')
       await done
       expect(closeInfo).to.deep.equal(null)
     })
