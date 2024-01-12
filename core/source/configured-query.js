@@ -35,5 +35,9 @@ export default async function (requestingDomain, targetDomain, queryName, params
 
     return postgres.query(targetDomain, queryBody, queryParams, true)
   }
-  else throw new Error(`No query named "${queryName}" in ${targetDomain}`)
+  else {
+    const error = new Error(`No query named "${queryName}" in ${targetDomain}`)
+    error.code = `INVALID QUERY '${queryName}'`
+    throw error
+  }
 }

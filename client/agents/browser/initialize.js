@@ -48,7 +48,7 @@ function embed(environment, iframe) {
   const handleMessage = async message => {
     const { requestId, type } = message
 
-    const sendDown = response => postMessage({ requestId, response })
+    const sendDown = (response, error) => postMessage({ requestId, response, error })
 
     if (type === 'error') {
       console.error(message)
@@ -100,7 +100,10 @@ function embed(environment, iframe) {
     }
     else if (type === 'query') {
       const { query, params, domain } = message
-      sendDown(await Agent.query(query, params, domain))
+      Agent
+        .query(query, params, domain)
+        .then(sendDown)
+        .catch(error => sendDown(null, error.error))
     }
     else if (type === 'upload') {
       const { name, contentType, id } = message
