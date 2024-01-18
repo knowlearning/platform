@@ -58,12 +58,12 @@ export default function EmbeddedAgent() {
         sentUpdates[key] = data.ii
         watchers[key].forEach(fn => fn(data))
       }
-
+      console.log(key, JSON.stringify(data, null, 4), sentUpdates[key])
       if (watchers[key]) {
         if (sentUpdates[key] === undefined || sentUpdates[key] + 1 === data.ii) sendUpdate()
         else if (data.ii === sentUpdates[key]) console.warn('Repeated update for', key, data, sentUpdates[key])
         else {
-          console.warn('Out of order update for', key, data, sentUpdates[key])
+          console.warn('Out of order update for', key, JSON.stringify(data, null, 4), sentUpdates[key])
           if (data.ii > sentUpdates[key]) sendUpdate()
         }
       }

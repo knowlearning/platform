@@ -14,7 +14,7 @@ function sanitizeJSONPatchPathSegment(s) {
   else return s
 }
 
-export default function messageQueue({ token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact }) {
+export default function messageQueue({ token, protocol, host, WebSocket, watchers, states, applyPatch, log, login }) {
   let ws
   let user
   let authed = false
@@ -140,12 +140,7 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
             session = message.session
             server = message.server
 
-            // save session metrics
-            interact(session, [
-              {op: 'add', path: ['active', 'loaded'], value: sessionMetrics.loaded },
-              {op: 'add', path: ['active', 'connected'], value: sessionMetrics.connected },
-              {op: 'add', path: ['active', 'authenticated'], value: sessionMetrics.authenticated },
-            ])
+            //  TODO: save session metrics on session
 
             resolveEnvironment(message)
           }

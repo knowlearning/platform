@@ -34,7 +34,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   // initialize session
   environment()
     .then(({ session }) => {
-      interact('sessions', [{ op: 'add', path: [session], value: { queries: {}, subscriptions: {} } }])
+      interact('sessions', [{ op: 'add', path: [session], value: { queries: {}, subscriptions: {} } }], false, false)
     })
 
   const internalReferences = {
@@ -109,14 +109,14 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
   }
 
   //  TODO: addTag option should probably not be exposed
-  async function interact(scope=DEFAULT_SCOPE_NAME, patch, addTag=true) {
+  async function interact(scope=DEFAULT_SCOPE_NAME, patch, addTag=true, manageLocalState=true) {
     if (addTag) tagIfNotYetTaggedInSession('mutated', scope)
     //  TODO: ensure user is owner of scope
     const response = queueMessage({scope, patch})
 
     //  if we are watching this scope, we want to keep track of last interaction we fired
     const qualifiedScope = isUUID(scope) ? scope : `//${scope}`
-    if (states[qualifiedScope] !== undefined) {
+    if (manageLocalState && states[qualifiedScope] !== undefined) {
       let resolve
       lastInteractionResponse[qualifiedScope] = new Promise(r => resolve = r)
 
@@ -184,7 +184,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
         path: ['active', session, 'queries', id],
         value: { query, params, domain }
       }
-    ])
+    ], false, false)
     try {
       const response = await lastMessageResponse()
       const { rows } = response
@@ -199,7 +199,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
           op: 'remove',
           path: ['active', session, 'queries', id]
         }
-      ])
+      ], false, false)
       return rows
     }
     catch (error) {

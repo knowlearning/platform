@@ -19,14 +19,14 @@ export default function(scope='[]', user, domain, { keyToSubscriptionId, watcher
           op: 'add',
           path: ['active', session, 'subscriptions', id],
           value: { session, scope, user, domain, ii: null }
-        }])
+        }], false, false)
         try {
           const state = await lastMessageResponse()
           interact('sessions', [{
             op: 'add',
             path: ['active', session, 'subscriptions', id, 'ii'],
             value: state.ii
-          }])
+          }], false, false)
           resolve(state)
         }
         catch (error) { reject(error) }
