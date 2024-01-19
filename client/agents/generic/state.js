@@ -14,20 +14,14 @@ export default function(scope='[]', user, domain, { keyToSubscriptionId, watcher
       watchers[qualifiedScope] = []
       states[qualifiedScope] = new Promise(async (resolve, reject) => {
         const { session } = await environment()
-        await new Promise(r => setTimeout(r, 1))
+        await new Promise(r => setTimeout(r))
         interact('sessions', [{
           op: 'add',
           path: ['active', session, 'subscriptions', id],
-          value: { session, scope, user, domain, ii: null }
-        }])
+          value: { scope, user, domain, ii: null }
+        }], false, false)
         try {
-          const state = await lastMessageResponse()
-          interact('sessions', [{
-            op: 'add',
-            path: ['active', session, 'subscriptions', id, 'ii'],
-            value: state.ii
-          }])
-          resolve(state)
+          resolve(await lastMessageResponse())
         }
         catch (error) { reject(error) }
       })

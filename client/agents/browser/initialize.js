@@ -73,7 +73,9 @@ function embed(environment, iframe) {
     }
     else if (type === 'metadata') {
       const { scope, user, domain } = message
-      sendDown(await Agent.metadata(scope, user, domain))
+      const namespacedScope = environment.namespace && !validateUUID(scope) ? `${environment.namespace}/${scope}` : scope
+
+      sendDown(await Agent.metadata(namespacedScope, user, domain))
     }
     else if (type === 'tag') {
       const { tag_type, target, context } = message
