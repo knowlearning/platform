@@ -90,7 +90,8 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     await tag(tag_type, target)
   }
 
-  async function upload({ name, type, data, id=uuid() }) {
+  async function upload(info) {
+    const { name, type, data, id=uuid() } = info || {}
     create({
       active_type: UPLOAD_TYPE,
       active: { id, type, name },
