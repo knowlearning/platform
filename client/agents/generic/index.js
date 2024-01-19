@@ -122,7 +122,6 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
       const resolveAndUnwatch = async (update) => {
         const { ii } = await response
-        console.log('RESOLVE LAST INTERACTION....', ii, update, scope)
         if (update.ii === ii) {
           resolve(ii)
           removeWatcher(qualifiedScope, resolveAndUnwatch)
