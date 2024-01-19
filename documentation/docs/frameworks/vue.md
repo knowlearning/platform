@@ -5,26 +5,30 @@
 <script setup>
   import { reactive } from 'vue'
 
-  const reactiveData = reactive({ loaded: false })
+  const reactiveData = reactive({})
 
-  asyncSetup()
+  Agent
+    .state('my-count-state')
+    .then(state => {
+      // Initialize state if it hasn't been initialized yet.
+      if (isNaN(state.count)) state.count = 0
 
-  async function asyncSetup() {
-    reactiveData.myLoadedPersistentData = await Agent.state('my-count-state')
-    reactiveData.loaded = true
-  }
+      //  Add the persistent state to reactiveData so that
+      //  it can be accessed and modified in the template.
+      reactiveData.persistentState = state
+    })
+
 </script>
 
 <template>
   <h1>Hello Vue 3</h1>
   <button
-    v-if="reactiveData.loaded"
-    @click="reactiveData.myLoadedPersistentData.count++"
+    v-if="reactiveData.persistentState"
+    @click="reactiveData.persistentState.count++"
   >
-    Count is:
-    {{ reactiveData.myLoadedPersistentData.count }}
+    The current count is: {{ reactiveData.persistentState.count }}
   </button>
-  <div v-else>Loading...</div>
+  <div v-else>Loading the current count</div>
 </template>
 ```
 
