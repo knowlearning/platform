@@ -91,10 +91,29 @@ Here is an example update object:
 The ```patch``` field is ```null``` in the first update object,
 and ```state``` represents the current state of the scipe at the time of the call.
 
-## upload(name: string, type: string, data: string, id: OPTIONAL string) &rarr; Promise&lt;String&gt;
+## upload(info OPTIONAL) &rarr; Promise&lt;String&gt;
+
+The ```info``` parameter has the form:
+
+```
+{
+  name: name for the uploaded data
+  type: a MIME type like "text/plain" or "img/png"
+  data: can be a String or ArrayBuffer
+  id: UUID you want to use,
+  browser:
+    If in the browser environment you can set this to true
+    to automatically prompt the user to select a file through
+    the browser's built-in file selection interface.
+}
+```
 
 This will upload an immutable blob containing the value in ```data``` and return a promise for the id of the blob.
 You can force the ```id``` parameter with your own value, but it must be a new uuid, otherwise an error will be thrown.
+
+All fields in the ```info``` parameter are optional.
+If you supply no fields or no ```info``` parameter,
+an upload url will be returned that can be used to PUT data to.
 
 ## download(id: string) &rarr; Promise&lt;Fetch Response&gt;
 

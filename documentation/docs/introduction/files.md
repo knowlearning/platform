@@ -10,20 +10,20 @@ const type = "application/json"
 const data = JSON.stringify({ data: 'for later' })
 const id = Agent.uuid()
 
-await Agent.upload({ name, type, id }, data)
+await Agent.upload({ name, type, id, data })
 ```
 
-To prompt the user to select a file to upload:
+To prompt the user to select a file to upload using the browser's file picker:
 
 ```js
 const id = Agent.uuid()
-await Agent.upload({ id })
+await Agent.upload({ id, browser: true })
 ```
 
 !!! tip
 
     Whenever you upload, ```id``` is optional.
-    The resolved value of ```await Agent.upload()``` or ```await Agent.upload({ name, type })``` will be the id of the upload.
+    The value of ```await Agent.upload({ browser: true })``` or ```await Agent.upload({ data: 'Some text data to upload' })``` will be the id of the upload.
 
 ## Downloads
 
