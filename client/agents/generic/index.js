@@ -69,6 +69,8 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
       { op: 'add', path: ['active_type'], value: active_type },
       { op: 'add', path: ['active'], value: active }
     ]
+    if (name) patch.push({ op: 'add', path: ['name'], value: name })
+
     interact(id, patch, false)
     return id
   }
@@ -88,12 +90,11 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     await tag(tag_type, target)
   }
 
-  //  TODO: if no data, set up streaming upload
-  async function upload(name, type, data, id=uuid()) {
-    //  TODO: include data size info...
+  async function upload({ name, type, data, id=uuid() }) {
     create({
       active_type: UPLOAD_TYPE,
-      active: { id, type }
+      active: { id, type, name },
+      name
     })
     const { url } = await lastMessageResponse()
 

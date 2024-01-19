@@ -131,8 +131,10 @@ export default function EmbeddedAgent() {
     return send({ type: 'interact', scope, patch })
   }
 
-  async function upload(name, type, data, id=uuid()) {
-    const url = await send({ type: 'upload', name, contentType: type, id })
+  async function upload(info) {
+    let { name, type, data, id=uuid() } = info || {}
+
+    const url = await send({ type: 'upload', info: { name, type, id } })
 
     if (data === undefined) return url
     else {

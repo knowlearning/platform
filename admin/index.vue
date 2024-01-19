@@ -82,7 +82,8 @@ export default {
     },
     async uploadConfig(e) {
       const file = e.target.files[0]
-      const id = await Agent.upload(file.name, file.type, file)
+      const uploadInfo = { name: file.name, type: file.type, data: file }
+      const id = await Agent.upload(uploadInfo)
       e.target.value = ''
 
       const report = uuid()

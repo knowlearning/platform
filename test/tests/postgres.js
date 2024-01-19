@@ -114,11 +114,11 @@ postgres:
       const { domain } = await Agent.environment()
       await Agent.claim(domain)
 
-      const config = await Agent.upload(
-        'test domain config',
-        'application/yaml',
-        CONFIGURATION_1
-      )
+      const config = await Agent.upload({
+        name: 'test domain config',
+        type: 'application/yaml',
+        data: CONFIGURATION_1
+      })
       const report = uuid()
       await Agent.create({
         active_type: DOMAIN_CONFIG_TYPE,
@@ -263,11 +263,11 @@ postgres:
 
       const { domain } = await Agent.environment()
 
-      const config = await Agent.upload(
-        'test domain config 2',
-        'application/yaml',
-        CONFIGURATION_2
-      )
+      const config = await Agent.upload({
+        name: 'test domain config 2',
+        type: 'application/yaml',
+        data: CONFIGURATION_2
+      })
       const report = uuid()
 
       await Agent.create({

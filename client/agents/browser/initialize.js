@@ -1,6 +1,7 @@
 import RootAgent from './root.js'
 import EmbeddedAgent from './embedded.js'
 import { v1 as uuid, validate as validateUUID } from 'uuid'
+import selectFile from './select-file.js'
 
 let Agent
 
@@ -14,6 +15,20 @@ export default function browserAgent(options={}) {
 
   const newAgent = embedded && !options.root ? EmbeddedAgent() : RootAgent(options)
   newAgent.embed = embed
+
+  const originalUpload = newAgent.upload
+  newAgent.upload = async info => {
+    if (info.browser) {
+      const file = await selectFile()
+      if (!file) return
+
+      info.data = await file.arrayBuffer()
+      if (!info.name) info.name = file.name
+      if (!info.type) info.type = file.type
+    }
+
+    return originalUpload(info)
+  }
 
   if (!Agent) Agent = newAgent
 
@@ -108,8 +123,8 @@ function embed(environment, iframe) {
         .catch(error => sendDown(null, error.error))
     }
     else if (type === 'upload') {
-      const { name, contentType, id } = message
-      sendDown(await Agent.upload(name, contentType, undefined, id))
+      const { info } = message
+      sendDown(await Agent.upload(info))
     }
     else if (type === 'download') {
       sendDown(await Agent.download(message.id).url())

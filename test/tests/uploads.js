@@ -3,7 +3,12 @@ export default function () {
     const id = uuid()
     it('Can upload and download', async function () {
       const testData = '{"test":"data"}'
-      await Agent.upload('Upload name', 'application/json', testData, id)
+      await Agent.upload({
+        name: 'Upload name',
+        type: 'application/json',
+        data: testData,
+        id
+      })
       const downloadedData = await Agent.download(id).then(r => r.text())
       expect(testData).to.equal(downloadedData)
     })
