@@ -76,6 +76,23 @@ A persistent component does not have to be used as the application root. You are
 </script>
 ```
 
+## Persistent State for a Vuex Store
+
+You can set up an app with a persistent store.
+
+```js
+import App from './app.vue'
+import store from './store.js'
+
+const store = createStore(await vuePersistentStore(store, 'name-for-store-state'))
+const app = createApp(App)
+app.use(store)
+app.mount('#app')
+```
+
+Any time a user loads an app configured like this,
+their store will reconnect to their persistent state.
+
 ## Embedded Content Component
 
 You can embed other sites that use @knowlearning/agents like so:
