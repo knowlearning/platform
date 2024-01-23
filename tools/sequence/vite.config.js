@@ -21,7 +21,7 @@ export default defineConfig({
         replacement: __dirname + '/../../client/vue.js'
       },
       {
-        find: '@knowlearning/agents',
+        find: '@knowlearning/agents/browser.js',
         replacement: __dirname + '/../../client/browser.js'
       }
     ]

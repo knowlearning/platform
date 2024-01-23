@@ -16,7 +16,7 @@ All communication with our infrastructure runs through this "Agent" connection.
 Rather than just say we have a small set of useful tools, we'll show them. Here's a quick summary of our API:
 
 ```js
-import { browserAgent } from '@knowlearning/agents'
+import Agent from '@knowlearning/agents/browser.js'
 
 //  Create an agent to use
 const Agent = browserAgent()

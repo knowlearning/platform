@@ -10,20 +10,10 @@ pnpm install @knowlearning/agents
 yarn install @knowlearning/agents
 ```
 
-We recommend making ```Agent``` a global variable in your app:
+If you are developing an browser based application, here is how you can import the agent wherever you need.
 
 ```js
-import { browserAgent } from '@knowlearning/agents'
-
-window.Agent = browserAgent()
+import Agent from '@knowlearning/agents/browser.js'
 ```
 
-If you are not a fan of global variables, then you can access the browser agent any time, like so:
-
-```js
-import { browserAgent } from '@knowlearning/agents'
-
-const Agent = browserAgent()
-```
-
-After the first time an agent is created, the ```browserAgent()``` call will return the same agent instance for you to use.
+All interactions with the know learning core run through ```Agent```.

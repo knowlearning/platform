@@ -13,16 +13,7 @@ All API operations can be accessed through an "Agent" instance.
 ### Create an Agent
 
 ```js
-import { browserAgent } from '@knowlearning/agents'
-
-//  We recommend adding the browser agent as a global variable
-window.Agent = browserAgent()
+import Agent from '@knowlearning/agents/browser.js'
 ```
 
-If you don't want to set a global variable, you can import and call ```browserAgent``` in any file. Only one Agent will be created, and additional calls to browserAgent will return that Agent.
-
-```js
-import { browserAgent } from '@knowlearning/agents'
-
-const Agent = browserAgent()
-```
+This ```Agent``` instance is used to do all communication with the KnowLearning core.

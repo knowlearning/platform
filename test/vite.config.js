@@ -21,8 +21,12 @@ export default defineConfig({
         replacement: __dirname + '/../client/vue.js'
       },
       {
-        find: '@knowlearning/agents',
+        find: '@knowlearning/agents/browser.js',
         replacement: __dirname + '/../client/browser.js'
+      },
+      {
+        find: '@knowlearning/agents/browser/initialize.js',
+        replacement: __dirname + '/../client/agents/browser/initialize.js'
       },
       {
         find: 'fast-json-patch',

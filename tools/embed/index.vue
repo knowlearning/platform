@@ -86,7 +86,6 @@
   import { Splitpanes, Pane } from 'splitpanes'
   import 'splitpanes/dist/splitpanes.css'
 
-  import { browserAgent } from '@knowlearning/agents'
   import { vueEmbedComponent, vueNameComponent } from '@knowlearning/agents/vue.js'
 
   import MultipleChoiceEditor from './editors/multiple-choice.vue'

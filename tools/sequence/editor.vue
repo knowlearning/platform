@@ -50,8 +50,6 @@
 
 <script>
   import { validate as isUUID } from 'uuid'
-  //  TODO: separate vue into different package. ie: @knowlearning/frameworks/vue.js
-  import { browserAgent } from '@knowlearning/agents'
   import { vueEmbedComponent, vueNameComponent } from '@knowlearning/agents/vue.js'
 
   export default {

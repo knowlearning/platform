@@ -1,10 +1,10 @@
 import { createApp } from 'vue'
-import { browserAgent } from '@knowlearning/agents'
+import Agent from '@knowlearning/agents/browser.js'
 import { vuePersistentComponent } from '@knowlearning/agents/vue.js'
 import component from './index.vue'
 import './third-party-setup.js'
 
-window.Agent = browserAgent()
+window.Agent = Agent
 
 const { auth: { user, provider } } = await Agent.environment()
 

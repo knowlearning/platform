@@ -1,12 +1,12 @@
 import { validate as isUUID } from 'uuid'
-import { browserAgent } from '@knowlearning/agents'
+import Agent from '@knowlearning/agents/browser.js'
 import { vuePersistentComponent } from '@knowlearning/agents/vue.js'
 import { createApp } from 'vue'
 import editor from './editor.vue'
 import player from './player.vue'
 import previewer from './previewer.vue'
 
-window.Agent = browserAgent()
+window.Agent = Agent
 
 const url = new URL(window.location.href)
 const { pathname } = url

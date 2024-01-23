@@ -1,5 +1,5 @@
 import { watchEffect, defineAsyncComponent } from 'vue'
-import { browserAgent } from '../../../browser.js'
+import browserAgent from '../../../agents/browser/initialize.js'
 
 //  TODO: probably want to make this a util, and better fleshed out (with white instead of blacklist)
 function isScopeSerializable(v) {

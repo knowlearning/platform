@@ -15,11 +15,12 @@ import stateTest from './tests/state.js'
 import environmentTest from './tests/environment.js'
 import namespacedEmbeddings from './tests/namespaced-embeddings.js'
 import latestBugfixes from './tests/latest-bugfixes.js'
-import { browserAgent } from '@knowlearning/agents'
+import Agent from '@knowlearning/agents/browser.js'
+import browserAgent from '@knowlearning/agents/browser/initialize.js'
 
 import 'mocha/mocha.css'
 
-window.Agent = browserAgent()
+window.Agent = Agent
 if (!Agent.embedded) Agent.local()
 
 const id = window.location.pathname.slice(1)
