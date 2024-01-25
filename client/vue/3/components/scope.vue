@@ -6,46 +6,38 @@
 </template>
 
 <script>
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 
-  export default {
-  	props: {
-  	  id: String,
-      path: { type: Array, default: [] },
-      placeholder: { type: String, default: '' },
-      metadata: { type: Boolean, default: false }
-  	},
-  	data() {
-  	  return {
-  	  	value: undefined
-  	  }
-  	},
-    watch: {
-      id() { this.startWatching() },
-      path: { 
-        deep: true,
-        handler() { this.startWatching() }
-      }
-    },
-    created() { this.startWatching() },
-    beforeUnmount() {
-      if (this.stopWatching) {
-        this.stopWatchingAttempted = true
-        this.stopWatching()
-      }
-    },
-    methods: {
-      async startWatching() {
-        if (this.stopWatching) this.stopWatching()
-        if (this.metadata) {
-          const metadata = await Agent.metadata(this.id)
-          this.value = this.path.length === 1 ? metadata[this.path[0]] : metadata
-        }
-        else this.stopWatching = Agent.watch([this.id, ...this.path], value => {
-          if (this.stopWatchingAttempted) console.warn('Watcher not stopped for vueScopeComponent')
-          else this.value = value
+export default {
+  props: {
+    id: String,
+    path: { type: Array, default: [] },
+    placeholder: { type: String, default: '' },
+    metadata: { type: Boolean, default: false }
+  },
+  setup(props) {
+    const value = ref(undefined)
+    let stopWatching
+    let stopWatchingAttempted = false
+
+    const startWatching = async () => {
+      if (stopWatching) stopWatching()
+      if (props.metadata) {
+        const metadata = await Agent.metadata(props.id)
+        value.value = props.path.length === 1 ? metadata[props.path[0]] : metadata
+      } else {
+        stopWatching = Agent.watch([props.id, ...props.path], val => {
+          if (stopWatchingAttempted) console.warn('Watcher not stopped for vueScopeComponent')
+          else  value.value = val
         })
       }
     }
-  }
 
+    watch( [() => props.id, () => props.path], startWatching, { deep: true })
+    onMounted(() => startWatching())
+    onBeforeUnmount(() => stopWatching && stopWatching())
+
+    return { value }
+  }
+};
 </script>
