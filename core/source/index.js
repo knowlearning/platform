@@ -8,7 +8,6 @@ import handleWS from './handle-ws.js'
 import { applyConfiguration, ensureDomainConfigured } from './side-effects/configure.js'
 import ADMIN_DOMAIN_CONFIG from './admin-domain-config.js'
 import compressionLoop from './compress/loop.js'
-//import './scripts/remove-data-by-type.js'
 
 const {
   MODE,
@@ -24,11 +23,6 @@ const credentials = {
   cert: INSECURE_DEVELOPMENT_CERT,
   key: INSECURE_DEVELOPMENT_KEY
 }
-
-/*
-compressionLoop()
-  .catch(error => console.error('COMPRESSION Error', error))
-*/
 
 const initialConfig = Promise.all([
   ensureDomainConfigured(ADMIN_DOMAIN),
