@@ -11,7 +11,8 @@ import * as hash from './hash.js'
 const {
   ADMIN_DOMAIN,
   GOOGLE_OAUTH_CLIENT_CREDENTIALS,
-  MICROSOFT_OAUTH_CLIENT_CREDENTIALS
+  MICROSOFT_OAUTH_CLIENT_CREDENTIALS,
+  CLASSLINK_OAUTH_CLIENT_CREDENTIALS
 } = process.env
 const USER_TYPE = 'application/json;type=user'
 const SESSION_TYPE = 'application/json;type=session'
@@ -58,6 +59,14 @@ const {
     token_uri: MICROSOFT_OAUTH_TOKEN_URI
   }
 } = JSON.parse(MICROSOFT_OAUTH_CLIENT_CREDENTIALS)
+
+const {
+  web: {
+    client_id: CLASSLINK_OAUTH_CLIENT_ID,
+    client_secret: CLASSLINK_OAUTH_CLIENT_SECRET,
+    token_uri: CLASSLINK_OAUTH_TOKEN_URI
+  }
+} = JSON.parse(CLASSLINK_OAUTH_CLIENT_CREDENTIALS)
 
 const ISS_TO_PROVIDER_MAP = {
   'https://accounts.google.com': 'google',
@@ -176,6 +185,16 @@ const authenticateToken = (token, authority) => new Promise( async (resolve, rej
       MICROSOFT_OAUTH_CLIENT_ID,
       MICROSOFT_OAUTH_CLIENT_SECRET,
       MICROSOFT_OAUTH_TOKEN_URI,
+      token,
+      resolve,
+      reject
+    )
+  }
+  else if (token && token.startsWith('classlink-')) {
+    JWTVerification(
+      CLASSLINK_OAUTH_CLIENT_ID,
+      CLASSLINK_OAUTH_CLIENT_SECRET,
+      CLASSLINK_OAUTH_TOKEN_URI,
       token,
       resolve,
       reject

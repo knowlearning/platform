@@ -88,6 +88,7 @@ secretGenerator:
   files:
   - .credentials/GOOGLE_OAUTH_CLIENT_CREDENTIALS
   - .credentials/MICROSOFT_OAUTH_CLIENT_CREDENTIALS
+  - .credentials/CLASSLINK_OAUTH_CLIENT_CREDENTIALS
 - name: postgres-service-account
   literals:
   - POSTGRES_PASSWORD=insecure-dev-password
