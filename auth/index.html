@@ -7,40 +7,51 @@
   </head>
   <body>
     <script>
+      const GOOGLE_CLIENT_ID = '603559646501-i29ma3u7c590ijimgp809vpdhg52jibd.apps.googleusercontent.com'
+      const GOOGLE_OAUTH2_URL = 'https://accounts.google.com/o/oauth2/auth'
+
+      const MICROSOFT_CLIENT_ID = 'c44ceeca-8f9a-49c2-9bea-cc7135da8943'
+      const MICROSOFT_OAUTH2_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'
+
+      const CLASSLINK_CLIENT_ID = 'c1706733647085981b14312680c41d2efd0c5f18ac3f'
+      const CLASSLINK_OAUTH2_URL = 'https://launchpad.classlink.com/oauth2/v2/auth'
+
       function objectToQuerystring(o) {
         return Object.entries(o).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&')
       }
       if (window.location.pathname !== '/') {
         const [_, provider, state, origin] = window.location.pathname.split('/')
-        const info = JSON.stringify({ origin: decodeURIComponent(origin), provider })
-        localStorage.setItem(state, info)
-        const nonce = Math.random().toString(36).substring(2)
+        const info = { origin: decodeURIComponent(origin), provider }
+        localStorage.setItem(state, JSON.stringify(info))
+
+        const query = {
+          redirect_uri: window.location.origin + '/',
+          response_type: 'code',
+          nonce: Math.random().toString(36).substring(2),
+          state
+        }
+
+        let url
 
         if (provider === 'google') {
-          const query = {
-            client_id: '603559646501-i29ma3u7c590ijimgp809vpdhg52jibd.apps.googleusercontent.com',
-            redirect_uri: window.location.origin + '/',
-            prompt: 'select_account',
-            response_type: 'code',
-            scope: 'openid profile',
-            nonce,
-            state
-          }
-          window.location.href = `https://accounts.google.com/o/oauth2/auth?${objectToQuerystring(query)}`
+          query.client_id = GOOGLE_CLIENT_ID
+          query.prompt = 'select_account'
+          query.scope = 'openid profile'
+          url = GOOGLE_OAUTH2_URL
         }
         else if (provider === 'microsoft') {
-          const query = {
-            client_id: 'c44ceeca-8f9a-49c2-9bea-cc7135da8943',
-            redirect_uri: window.location.origin + '/',
-            prompt: 'select_account',
-            response_type: 'code',
-            scope: 'openid profile',
-            nonce,
-            state
-          }
-          window.location.href = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${objectToQuerystring(query)}`
-
+          query.client_id = MICROSOFT_CLIENT_ID
+          query.prompt = 'select_account'
+          query.scope = 'openid profile'
+          url = MICROSOFT_OAUTH2_URL
         }
+        else if (provider === 'classlink') {
+          query.client_id = CLASSLINK_CLIENT_ID
+          query.scope = 'openid,profile'
+          url = CLASSLINK_OAUTH2_URL
+        }
+
+        window.location.href = `${url}?${objectToQuerystring(query)}`
       }
       else {
         const { state, code } = Object.fromEntries(new URLSearchParams(window.location.search).entries())
