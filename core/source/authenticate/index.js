@@ -15,7 +15,7 @@ const {
   CLASSLINK_OAUTH_CLIENT_CREDENTIALS
 } = process.env
 
-const JWK_ENDPOINTS = {
+const JWKS_ENDPOINTS = {
   google: 'https://accounts.google.com/.well-known/openid-configuration',
   microsoft: 'https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration',
   classlink: 'https://launchpad.classlink.com/.well-known/openid-configuration'
@@ -249,10 +249,10 @@ async function coreVerfication(token, resolve, reject) {
     })
 }
 
-// set up providerJWKs entry for all providers in JWK_ENDPOINTS
+// set up providerJWKs entry for all providers in JWKS_ENDPOINTS
 const providerJWKs = Object.fromEntries(
   Object
-    .keys(JWK_ENDPOINTS)
+    .keys(JWKS_ENDPOINTS)
     .map(provider => [provider, {}])
 )
 
@@ -261,7 +261,7 @@ async function fetchJWKs(provider, retries=0) {
   if (retries > 3) throw new Error(`Could not fetch ${provider} public keys`)
     console
 
-  const endpoint = JWK_ENDPOINTS[provider]
+  const endpoint = JWKS_ENDPOINTS[provider]
 
   const { jwks_uri } = await fetchJSON(endpoint)
 
