@@ -331,8 +331,6 @@ function passTokenChallenge(provider, decoded) {
 function passClassLinkTokenChallenge({ exp, iat, aud, iss }) {
   const now = Math.ceil(Date.now() / 1000)
 
-  console.log('GOT CLASSLINK CRED FROM ISS TO AUD', iss, aud)
-
   return (
     exp > now &&
     iat < now &&
@@ -356,13 +354,10 @@ function passGoogleTokenChallenge({ exp, iat, aud, iss }) {
 function passMicrosoftTokenChallenge({ exp, iat, aud, iss }) {
   const now = Math.ceil(Date.now() / 1000)
 
-  console.log('GOT MICROSOFT CRED FROM ISS TO AUD', iss, aud)
-
+  // iss is different based on the microsoft users organization
   return (
     exp > now &&
     iat < now &&
     aud === MICROSOFT_OAUTH_CLIENT_ID
-// TODO: consider if we want to limit issuers
-//  iss === 'https://login.microsoftonline.com/0b6880c6-6e1b-46b5-9918-bad3eb00b24a/v2.0'
   )
 }
