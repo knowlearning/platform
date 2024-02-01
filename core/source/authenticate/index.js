@@ -14,6 +14,13 @@ const {
   MICROSOFT_OAUTH_CLIENT_CREDENTIALS,
   CLASSLINK_OAUTH_CLIENT_CREDENTIALS
 } = process.env
+
+const JWK_ENDPOINTS = {
+  google: 'https://accounts.google.com/.well-known/openid-configuration',
+  microsoft: 'https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration',
+  classlink: 'https://launchpad.classlink.com/.well-known/openid-configuration'
+}
+
 const USER_TYPE = 'application/json;type=user'
 const SESSION_TYPE = 'application/json;type=session'
 const REATTACHING_SESSION_QUERY = `
@@ -67,11 +74,6 @@ const {
     token_uri: CLASSLINK_OAUTH_TOKEN_URI
   }
 } = JSON.parse(CLASSLINK_OAUTH_CLIENT_CREDENTIALS)
-
-const ISS_TO_PROVIDER_MAP = {
-  'https://accounts.google.com': 'google',
-  'accounts.google.com': 'google'
-}
 
 function decryptAndParseSessionInfo(key, encrypted) {
   try {
@@ -247,19 +249,19 @@ async function coreVerfication(token, resolve, reject) {
     })
 }
 
-const providerJWKs = {
-  google: {},
-  microsoft: {}
-}
+// set up providerJWKs entry for all providers in JWK_ENDPOINTS
+const providerJWKs = Object.fromEntries(
+  Object
+    .keys(JWK_ENDPOINTS)
+    .map(provider => [provider, {}])
+)
+
 
 async function fetchJWKs(provider, retries=0) {
   if (retries > 3) throw new Error(`Could not fetch ${provider} public keys`)
     console
 
-  const endpoint = ({
-    google: 'https://accounts.google.com/.well-known/openid-configuration',
-    microsoft: 'https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration'
-  })[provider]
+  const endpoint = JWK_ENDPOINTS[provider]
 
   const { jwks_uri } = await fetchJSON(endpoint)
 
@@ -322,7 +324,21 @@ async function JWTVerification(client_id, client_secret, token_uri, token, resol
 function passTokenChallenge(provider, decoded) {
   if (provider === 'google') return passGoogleTokenChallenge(decoded)
   if (provider === 'microsoft') return passMicrosoftTokenChallenge(decoded)
+  if (provider === 'classlink') return passClassLinkTokenChallenge(decoded)
   else return false
+}
+
+function passClassLinkTokenChallenge({ exp, iat, aud, iss }) {
+  const now = Math.ceil(Date.now() / 1000)
+
+  console.log('GOT CLASSLINK CRED FROM ISS TO AUD', iss, aud)
+
+  return (
+    exp > now &&
+    iat < now &&
+    aud === CLASSLINK_OAUTH_CLIENT_ID &&
+    'https://launchpad.classlink.com' === iss
+  )
 }
 
 function passGoogleTokenChallenge({ exp, iat, aud, iss }) {
@@ -346,6 +362,7 @@ function passMicrosoftTokenChallenge({ exp, iat, aud, iss }) {
     exp > now &&
     iat < now &&
     aud === MICROSOFT_OAUTH_CLIENT_ID
-// TODO: consider if we want to limit issuers    iss === 'https://login.microsoftonline.com/0b6880c6-6e1b-46b5-9918-bad3eb00b24a/v2.0'
+// TODO: consider if we want to limit issuers
+//  iss === 'https://login.microsoftonline.com/0b6880c6-6e1b-46b5-9918-bad3eb00b24a/v2.0'
   )
 }
