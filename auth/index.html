@@ -49,6 +49,9 @@
           query.client_id = CLASSLINK_CLIENT_ID
           query.prompt = 'select_account'
           query.scope = 'profile'
+          //  TODO: confirm that these can't be used with classlink...
+          delete query.state
+          delete query.nonce
           url = CLASSLINK_OAUTH2_URL
         }
 
