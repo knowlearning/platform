@@ -1,5 +1,6 @@
 import { validate as isUUID, v4 as uuid } from 'uuid'
 import authenticate from './authenticate/index.js'
+import authorize from './authorize.js'
 import interact from './interact/index.js'
 import sideEffects from './side-effects/index.js'
 import pingWSConnection from './ping-ws-connection.js'
@@ -161,19 +162,26 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
         }
         else if (path[2] === 'subscriptions') {
           const { scope: subscribedScope, user:scopeUser=user, domain:scopeDomain=domain } = value
-          //  TODO: authorization check here
-          if (!subscriptions[session]) subscriptions[session] = {}
 
-          const ss = subscriptions[session]
-          const id = await scopeToId(scopeDomain, scopeUser, subscribedScope)
-          if (!ss[id]) ss[id] = subscribe(id, send, subscribedScope)
-          let state = await redis.client.json.get(id)
-          if (!state) {
-            state = initializationState(domain, user, subscribedScope)
-            //  TODO: ensure set was successful, otherwise just retry get
-            if (scopeUser === user) await redis.client.json.set(id, '$', state, { NX: true }) // initialize metadata if does not exist
+          if (await authorize(user, domain, subscribedScope, scopeDomain)) {
+            if (!subscriptions[session]) subscriptions[session] = {}
+
+            const ss = subscriptions[session]
+            const id = await scopeToId(scopeDomain, scopeUser, subscribedScope)
+            if (!ss[id]) ss[id] = subscribe(id, send, subscribedScope)
+            let state = await redis.client.json.get(id)
+            if (!state) {
+              state = initializationState(domain, user, subscribedScope)
+              //  TODO: ensure set was successful, otherwise just retry get
+              if (scopeUser === user) await redis.client.json.set(id, '$', state, { NX: true }) // initialize metadata if does not exist
+            }
+            send({ ...state, id, si })
           }
-          send({ ...state, id, si })
+          else {
+            let error = `User ${user} Not Autorized To Access ${subscribedScope}`
+            if (scopeDomain !== domain) error += ` in ${scopeDomain}`
+            send({ si, ii, error })
+          }
         }
         else send({ si, ii })
       }
