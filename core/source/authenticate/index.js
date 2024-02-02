@@ -119,7 +119,9 @@ export default async function authenticate(message, domain, sid) {
 
   let authority
 
-  if (message.token === 'anonymous') authority = 'anonymous'
+  if (message.token === 'anonymous' || message.token === 'anonymous-ephemeral') {
+    authority = 'anonymous'
+  }
   else if (domain === 'core') authority = 'core'
   else authority = 'JWT'
 
@@ -134,8 +136,14 @@ export default async function authenticate(message, domain, sid) {
 
   await interact(ADMIN_DOMAIN, 'users', user, userPatch)
 
-  const sid_encrypted_info = encryptSymmetric(sid, JSON.stringify(info))
-  await saveSession(domain, session, session_credential, user, provider, sid_encrypted_info)
+  if (message.token !== 'anonymous-ephemeral') {
+    //  TODO: consider leaving a record of the ephemeral user session, but
+    //        just not associating with session_credential
+    //        'anonymous-ephemeral' tokens are used in tests to create multiple agents in the
+    //        same browser tab
+    const sid_encrypted_info = encryptSymmetric(sid, JSON.stringify(info))
+    await saveSession(domain, session, session_credential, user, provider, sid_encrypted_info)
+  }
 
   return { user, provider, session, info }
 }
