@@ -34,8 +34,7 @@ INSERT INTO ${postgres.purifiedName(table)}
 
 //  TODO: probably want to abstract this and allow different types
 //        to help with removing privaleged named states
-function coreState(id, domain) {
-  const user = 'core'
+function coreState(user, id, domain) {
   interact(domain, user, id, [{ op: 'add', value: 'application/json', path: ['active_type'] }])
   return new MutableProxy({}, async patch => {
     patch.forEach(({ path }) => path.unshift('active'))
@@ -69,7 +68,7 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
         throw new Error('Error getting config')
       }
 
-      const reportState = coreState(report, domain)
+      const reportState = coreState(user, report, domain)
 
       reportState.tasks = {}
       reportState.start = Date.now()

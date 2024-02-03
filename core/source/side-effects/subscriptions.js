@@ -22,12 +22,7 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
       const id = await scopeToId(scopeDomain, scopeUser, scope)
       if (!ss[id]) ss[id] = subscribe(id, send, scope)
       await redis.connected //  TODO: assess if necessary
-      let state = await redis.client.json.get(id)
-      if (!state) {
-        state = initializationState(domain, user, scope)
-        //  TODO: ensure set was successful, otherwise just retry get
-        if (scopeUser === user) await redis.client.json.set(id, '$', state, { NX: true }) // initialize metadata if does not exist
-      }
+      const state = await redis.client.json.get(id)
       send({ ...state, id, si })
       return
     }

@@ -40,6 +40,11 @@ export default function () {
   }
 
   const CONFIGURATION_1 = `
+authorize:
+  sameDomain:
+    postgresFunction: same_domain_authorization
+  crossDomain:
+    postgresFunction: cross_domain_authorization
 postgres:
   tables:
     test_table:
@@ -59,6 +64,9 @@ postgres:
     test-function-call:
       SELECT * FROM test_fn('${TEST_ENTRY_0_ID}')
   functions:
+    same_domain_authorization:
+      returns: BOOLEAN
+      language: PLpgSQL
     test_fn:
       returns:
         id: TEXT

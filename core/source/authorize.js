@@ -1,24 +1,34 @@
-import scopeToId from './scope-to-id.js'
-import redis from './redis.js'
+import * as redis from './redis.js'
 import configuration from './configuration.js'
+import * as postgres from './postgres.js'
 
-export default function authorize(user, domain, scope, scopeUser, scopeDomain) {
-  const id = await scopeToId(scopeDomain, scopeUser, scope)
-  const md = await redis.client.json.get(id)
+export default async function authorize(requestingUser, requestingDomain, scope) {
+  const md = await redis.client.json.get(scope)
+  const { owner: targetUser, domain: targetDomain } = md
 
-  const sameDomain = domain === md.domain
-  const sameUser = user === md.user
+  const sameDomain = requestingDomain === targetDomain
+  const sameUser = requestingUser === targetUser
 
   if (sameDomain && sameUser) return true
   else if (sameDomain) {
-    const config = await configuration(domain)
+    const config = await configuration(requestingDomain)
     if (config?.authorize?.postgres) {
-      // TODO: run the authorize function for postgres with user domain id variables
+      const result = await postgres.query(targetDomain, `SELECT ${postgres.purifiedName(config.authorize.postgres)}($1, $2) AS result`, [requestingUser, scope], true)
+      // TODO: run the authorize function for postgres with
+      //       requestingUser and scope variables
+      console.log('result from test query!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', result)
+      return true
     }
-    else return false
   }
-  else if (!sameDomain) {
-    //  TODO: return true if scopeDomain cross domain authorizer passes
-    return false
+  else {
+    const config = await configuration(targetDomain)
+    if (config?.authorize?.crossDomain?.postgres) {
+      // TODO: run the authorize function for postgres with
+      //       requestingUser, requestingDomain, and scope
+      //       variables
+    }
   }
+
+  console.log('WE WILL BE RETURNING FAAAAAAAALSEEEEEEEEEEEEEEEEEEEE!!!!!!!!!! from here...')
+  return true
 }
