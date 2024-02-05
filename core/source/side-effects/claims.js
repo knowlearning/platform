@@ -19,8 +19,7 @@ redis.connected.then(() => {
 
 //  TODO: probably want to abstract this and allow different types
 //        to help with removing privaleged named states
-function coreState(id, domain) {
-  const user = 'core'
+function coreState(user, id, domain) {
   interact(domain, user, id, [{ op: 'add', value: 'application/json', path: ['active_type'] }])
   return new MutableProxy({}, async patch => {
     patch.forEach(({ path }) => path.unshift('active'))
@@ -43,7 +42,7 @@ export default function claims({ domain, user, session, scope, patch, si, ii, se
         const report = uuid()
         send({ si, ii, token, report })
 
-        const reportState = coreState(report, domain)
+        const reportState = coreState(user, report, domain)
 
         return (
           passDNSOrHTTPChallenge(claimedDomain, user, token, reportState)
