@@ -95,6 +95,7 @@ else {
   if (embedLevel < 3) {
     mocha.run()
     describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, function () {
+      if (!Agent.embedded) postgres()
       stateTest()
       environmentTest()
       metadata()
@@ -105,7 +106,6 @@ else {
       vuex()
       namespacedEmbeddings()
       if (!Agent.embedded) reconnect()
-      if (!Agent.embedded) postgres()
       uploads()
       latestBugfixes()
       multiAgent()

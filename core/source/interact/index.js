@@ -15,7 +15,7 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
   const info = await redis.client.json.get(scope, { path: ['$.domain', '$.owner' ]})
 
   if (info !== null && (domain !== info?.['$.domain'][0] || user !== info?.['$.owner'][0])) {
-    console.log('DOMAIN OR USER MISMATCH FOR PATCH', domain, user, scope)
+    console.log('DOMAIN OR USER MISMATCH FOR PATCH', info, domain, user, scope, patch)
     return {}
   }
 

@@ -7,7 +7,14 @@ import sync from './interact/sync.js'
 const { ADMIN_DOMAIN } = process.env
 
 export default async function (domain, user, scope) {
-  if (isUUID(scope)) return scope
+  if (isUUID(scope)) {
+    if (await redis.client.exists(scope)) return scope
+
+    const state = initializationState(domain, user, scope)
+    await redis.client.json.set(scope, '$', state, { NX: true })
+    await sync(domain, user, scope)
+    return scope
+  }
 
   const mostRecentNamedScope = 'SELECT id FROM metadata WHERE domain = $1 AND name = $2 AND owner = $3 ORDER BY created DESC'
   let { rows: [response] } = await postgres.query(domain, mostRecentNamedScope, [domain, scope, user])
