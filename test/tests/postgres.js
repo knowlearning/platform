@@ -42,9 +42,9 @@ export default function () {
   const CONFIGURATION_1 = `
 authorize:
   sameDomain:
-    postgresFunction: same_domain_authorization
+    postgres: same_domain_authorization
   crossDomain:
-    postgresFunction: cross_domain_authorization
+    postgres: cross_domain_authorization
 postgres:
   tables:
     test_table:
@@ -67,6 +67,29 @@ postgres:
     same_domain_authorization:
       returns: BOOLEAN
       language: PLpgSQL
+      body: |
+        BEGIN
+          RETURN TRUE;
+        END;
+      arguments:
+      - name: requestingUser
+        type: TEXT
+      - name: requestedScope
+        type: TEXT
+    cross_domain_authorization:
+      returns: BOOLEAN
+      language: PLpgSQL
+      body: |
+        BEGIN
+          RETURN TRUE;
+        END;
+      arguments:
+      - name: requestingDomain
+        type: TEXT
+      - name: requestingUser
+        type: TEXT
+      - name: requestedScope
+        type: TEXT
     test_fn:
       returns:
         id: TEXT
@@ -84,6 +107,11 @@ postgres:
 `
 
 const CONFIGURATION_2 = `
+authorize:
+  sameDomain:
+    postgres: same_domain_authorization
+  crossDomain:
+    postgres: cross_domain_authorization
 postgres:
   tables:
     test_table_2:
@@ -106,7 +134,33 @@ postgres:
       SELECT * FROM test_table_2 WHERE id = '${TEST_ENTRY_3_ID}'
     my-old-test-table: |
       SELECT * FROM test_table
-  functions: {}
+  functions:
+    same_domain_authorization:
+      returns: BOOLEAN
+      language: PLpgSQL
+      body: |
+        BEGIN
+          RETURN TRUE;
+        END;
+      arguments:
+      - name: requestingUser
+        type: TEXT
+      - name: requestedScope
+        type: TEXT
+    cross_domain_authorization:
+      returns: BOOLEAN
+      language: PLpgSQL
+      body: |
+        BEGIN
+          RETURN TRUE;
+        END;
+      arguments:
+      - name: requestingDomain
+        type: TEXT
+      - name: requestingUser
+        type: TEXT
+      - name: requestedScope
+        type: TEXT
 `
 
   describe('Postgres configuration', function () {

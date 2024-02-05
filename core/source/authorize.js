@@ -2,33 +2,43 @@ import * as redis from './redis.js'
 import configuration from './configuration.js'
 import * as postgres from './postgres.js'
 
-export default async function authorize(requestingUser, requestingDomain, scope) {
-  const md = await redis.client.json.get(scope)
-  const { owner: targetUser, domain: targetDomain } = md
+export default async function authorize(requestingUser, requestingDomain, requestedScope) {
+  const { owner: targetUser, domain: targetDomain } = await redis.client.json.get(requestedScope)
 
   const sameDomain = requestingDomain === targetDomain
   const sameUser = requestingUser === targetUser
 
-  if (sameDomain && sameUser) return true
-  else if (sameDomain) {
-    const config = await configuration(requestingDomain)
-    if (config?.authorize?.postgres) {
-      const result = await postgres.query(targetDomain, `SELECT ${postgres.purifiedName(config.authorize.postgres)}($1, $2) AS result`, [requestingUser, scope], true)
-      // TODO: run the authorize function for postgres with
-      //       requestingUser and scope variables
-      console.log('result from test query!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', result)
-      return true
+  if (sameDomain) {
+    if (sameUser) return true
+    else {
+      const config = await configuration(requestingDomain)
+      if (config?.authorize?.sameDomain?.postgres) {
+        try {
+          const query = `SELECT ${postgres.purifiedName(config.authorize.sameDomain.postgres)}($1, $2) AS result`
+          const { rows: [{ result }] } = await postgres.query(targetDomain, query, [requestingUser, requestedScope], true)
+          return result
+        }
+        catch (error) {
+          console.warn('Error in same domain, cross user authorization', error)
+          return false
+        }
+      }
     }
   }
   else {
     const config = await configuration(targetDomain)
     if (config?.authorize?.crossDomain?.postgres) {
-      // TODO: run the authorize function for postgres with
-      //       requestingUser, requestingDomain, and scope
-      //       variables
+      try {
+        const query = `SELECT ${postgres.purifiedName(config.authorize.crossDomain.postgres)}($1, $2, $3) AS result`
+        const { rows: [{ result }] } = await postgres.query(targetDomain, query, [requestingDomain, requestingUser, requestedScope], true)
+        return result
+      }
+      catch (error) {
+        console.warn('Error in cross domain authorization', error)
+        return false
+      }
     }
   }
 
-  console.log('WE WILL BE RETURNING FAAAAAAAALSEEEEEEEEEEEEEEEEEEEE!!!!!!!!!! from here...')
-  return true
+  return false
 }
