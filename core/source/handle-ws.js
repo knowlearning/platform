@@ -3,7 +3,7 @@ import authenticate from './authenticate/index.js'
 import authorize from './authorize.js'
 import interact from './interact/index.js'
 import sideEffects from './side-effects/index.js'
-import pingWSConnection from './ping-ws-connection.js'
+import monitorWsConnection from './monitor-ws-connection.js'
 import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
@@ -12,9 +12,6 @@ import * as redis from './redis.js'
 import initializationState from './initialization-state.js'
 import subscriptions from './subscriptions.js'
 import subscribe from './subscribe.js'
-
-const CLIENT_PING_INTERVAL = 10000
-const HEARTBEAT_INTERVAL = 5000
 
 const sessionMessageIndexes = {}
 const responseBuffers = {}
@@ -42,28 +39,13 @@ export default async function handleWebsocket(ws, upgradeReq) {
     ws.close()
   }
 
-  let heartbeatTimeout
-  function heartbeat() {
-    clearTimeout(heartbeatTimeout)
-    heartbeatTimeout = setTimeout(
-      () => {
-        if (ws.readyState === 1) {
-          ws.send('')
-          heartbeat()
-        }
-      },
-      HEARTBEAT_INTERVAL
-    )
-  }
-  heartbeat()
+  const heartbeat = monitorWsConnection(ws)
 
   function send(message) {
     responseBuffers[session].push(message)
     activeWebsockets[session].send(JSON.stringify(message))
     heartbeat()
   }
-
-  pingWSConnection(ws, CLIENT_PING_INTERVAL)
 
   ws.on('message', async messageBuffer => {
     let message
