@@ -165,25 +165,37 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
     await sideEffect({ domain, user, session, scope: id, patch, si, ii, send })
   }
 
-  const config = configuration(domain)
-  const sideEffectScript = SIDE_EFFECT_SCRIPT //config?.sideEffects?.filter(({ type }) => type === active_type)
-  const hash = calculateSHA256(sideEffectScript)
-  const filename = `./${hash}.js`
-  const exists = (
-    await fs
-      .access(filename, fs.constants.F_OK)
-      .then(() => true)
-      .catch(() => false)
-  )
-  if (!exists) await fs.writeFile(filename, sideEffectScript)
-  if (sideEffectScript) exec(`deno run --allow-env=SERVE_HOST,SERVICE_ACCOUNT_TOKEN ${filename}`, logResults)
+  const config = await configuration(domain)
+  const sideEffect = config?.sideEffects?.filter(({ type }) => type === active_type)
+  if (sideEffect && sideEffect.length) {
+    //  TODO: run all the side effects
+    const { script } = sideEffect[0]
+    console.log('SIDE EFFECT?', sideEffect[0])
+    if (!scriptCache[script]) {
+      scriptCache[script] = new Promise(async resolve => {
+        const filename = `./${uuid()}.js`
+        const exists = (
+          await fs
+            .access(filename, fs.constants.F_OK)
+            .then(() => true)
+            .catch(() => false)
+        )
+        if (!exists) await fs.writeFile(filename, script)
+        await new Promise((resolve, reject) => {
+          exec(`deno cache ${filename}`, (error, stdout, stderr) => {
+            if (error) console.warn('ERROR CACHING SCRIPT')
+            resolve()
+          })
+        })
+        resolve(filename)
+      })
+    }
+    const filename = await scriptCache[sideEffect[0].script]
+    exec(`deno run --allow-env=SERVE_HOST,SERVICE_ACCOUNT_TOKEN ${filename}`, logResults)
+  }
 }
 
-function calculateSHA256(inputString) {
-  const hash = crypto.createHash('sha256');
-  hash.update(inputString);
-  return hash.digest('hex');
-}
+const scriptCache = {}
 
 function logResults(error, stdout, stderr) {
   if (error) {
@@ -196,10 +208,3 @@ function logResults(error, stdout, stderr) {
   }
   console.log(`Command output: ${stdout}`)
 }
-
-const SIDE_EFFECT_SCRIPT = `import Agent from "npm:@knowlearning/agents@0.9.66/agents/deno.js"
-  console.log('LOADED DENO SCRIPT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-  const state = await Agent.state('some-state-in-a-parent-domain')
-  console.log('GOT STATE!!!!!!!!!!!!!!!!!')
-  state.last_updated = Date.now()
-`

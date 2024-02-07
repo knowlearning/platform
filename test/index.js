@@ -10,6 +10,7 @@ import arrays from './tests/arrays.js'
 import metadata from './tests/metadata.js'
 import uploads from './tests/uploads.js'
 import postgres from './tests/postgres.js'
+import sideEffects from './tests/side-effects.js'
 import vuex from './tests/vuex.js'
 import stateTest from './tests/state.js'
 import environmentTest from './tests/environment.js'
@@ -96,6 +97,7 @@ else {
     mocha.run()
     describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, function () {
       if (!Agent.embedded) postgres()
+      if (!Agent.embedded) sideEffects()
       stateTest()
       environmentTest()
       metadata()

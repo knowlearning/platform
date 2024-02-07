@@ -7,10 +7,10 @@ if [ -z $1 ]; then
   npm --prefix admin run dev &
   npm --prefix tools/embed run dev &
   npm --prefix tools/sequence run dev &
-  google-chrome https://localhost:5111/localhost:5112
-  google-chrome https://localhost:5112/
-  google-chrome https://localhost:5113/
-  google-chrome https://localhost:5114/
+  # google-chrome https://localhost:5111/localhost:5112
+  # google-chrome https://localhost:5112/
+  # google-chrome https://localhost:5113/
+  # google-chrome https://localhost:5114/
 
   skaffold dev \
     --profile development \
