@@ -1,10 +1,10 @@
-import { createRedisClient } from './utils.js'
+import { createRedisClient, environment } from './utils.js'
 
 const {
   REDIS_HOST,
   REDIS_PORT,
   REDIS_SERVICE_ACCOUNT_CREDENTIALS
-} = process.env
+} = environment
 
 const clientConnectionInfo = {
   socket: {
@@ -17,6 +17,7 @@ const clientConnectionInfo = {
 const client = createRedisClient(clientConnectionInfo)
 const subscriptions = createRedisClient(clientConnectionInfo)
 
+console.log(client)
 client.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
 subscriptions.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
 

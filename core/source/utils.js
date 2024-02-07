@@ -1,18 +1,22 @@
-import jwkToPem from 'jwk-to-pem'
-import jwt from 'jsonwebtoken'
-import { parse as parseYAML } from 'yaml'
-import { validate as isUUID, v4 as uuid } from 'uuid'
-import nacl from 'tweetnacl'
-import pg from 'pg'
-import { Storage as createGCSClient } from '@google-cloud/storage'
-import { createClient as createRedisClient } from 'redis'
-import crypto from 'crypto'
+import { parse as parseYAML } from 'https://deno.land/std@0.207.0/yaml/mod.ts'
+import { validate as isUUID } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
+import { createCipheriv, createDecipheriv } from "https://deno.land/std@0.173.0/node/crypto.ts";
+import { connect as createRedisClient } from 'https://deno.land/x/redis/mod.ts'
+import * as pg from 'https://deno.land/x/pg@v0.6.1/mod.ts'
+import jwkToPem from 'npm:jwk-to-pem'
+import jwt from 'npm:jsonwebtoken'
+import nacl from 'npm:tweetnacl'
+import { Storage as createGCSClient } from 'npm:@google-cloud/storage'
+import { exists as fileExists } from "https://deno.land/std/fs/mod.ts"
+import { getCookies, setCookie } from 'https://deno.land/std@0.214.0/http/cookie.ts'
+
 
 const { box } = nacl
+const uuid = crypto.randomUUID
 const randomBytes = crypto.randomBytes
-const environment = process.env
+const environment = Deno.env.toObject()
+const writeFile = Deno.writeFile
 const cryptoDigest = (algorithm, data) => crypto.subtle.digest(algorithm, data)
-const { createCipheriv, createDecipheriv } = crypto
 
 export {
   pg,
@@ -28,37 +32,8 @@ export {
   cryptoDigest,
   createCipheriv,
   createDecipheriv,
+  writeFile,
+  getCookies,
+  setCookie,
   environment
 }
-
-/* Deno
-import jwkToPem from 'npm:jwk-to-pem'
-import jwt from 'npm:jsonwebtoken'
-import { parse as parseYAML } from 'https://deno.land/std@0.207.0/yaml/mod.ts'
-import { validate as isUUID } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
-import nacl from 'npm:tweetnacl'
-import * as pg from "https://deno.land/x/pg@v0.6.1/mod.ts";
-import { Storage as createGCSClient } from 'npm:@google-cloud/storage'
-import { createClient as createRedisClient } from 'redis'
-
-const { box } = nacl
-const randomBytes = crypto.randomBytes
-const uuid = crypto.randomUUID
-const environment = Deno.env.get()
-const cryptoDigest = crypto.subtle.digest
-
-export {
-  pg,
-  jwt,
-  jwkToPem,
-  isUUID,
-  parseYAML,
-  uuid,
-  box,
-  randomBytes,
-  createRedisClient,
-  createGCSClient,
-  cryptoDigest,
-  environment
-}
-*/

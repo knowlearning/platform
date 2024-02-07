@@ -24,8 +24,7 @@ RUN npm install \
 COPY ./core/source ./core/source
 COPY ./client ./client
 
-# required for janky nodejs module support
-RUN echo '{ "type": "module" }' > ./core/source/package.json
+RUN deno cache ./core/source/index.js
 
 # Run the web service on container startup.
-CMD [ "node", "--max-old-space-size=8000", "./core/source/index.js" ]
+CMD [ "deno", "run", "--allow-net", "--allow-env", "--v8-flags=--max-old-space-size=8000", "./core/source/index.js" ]

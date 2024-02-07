@@ -1,7 +1,4 @@
-import { environment } from './utils.js'
-import { createServer as createServerHTTP } from 'http'
-import { createServer as createServerHTTPS } from 'https'
-import { WebSocketServer } from 'ws'
+import { environment, randomBytes, getCookies, setCookie } from './utils.js'
 import * as redis from './redis.js'
 import { decrypt } from './encryption.js'
 import handleWS from './handle-ws.js'
@@ -18,40 +15,37 @@ const {
   ADMIN_DOMAIN
 } = environment
 
-const credentials = {
-  cert: INSECURE_DEVELOPMENT_CERT,
-  key: INSECURE_DEVELOPMENT_KEY
-}
-
 const initialConfig = Promise.all([
   ensureDomainConfigured(ADMIN_DOMAIN),
   ensureDomainConfigured('core')
 ])
 
-function handleHTTP(req, res) {
-  res.writeHead(200)
-  res.end()
+function generateSid() {
+  return randomBytes(16).toString('hex')
 }
 
-const httpServer = createServerHTTP(handleHTTP)
-const httpsServer = createServerHTTPS(credentials, handleHTTP)
+Deno.serve({
+  port: TLS_PORT,
+  cert: INSECURE_DEVELOPMENT_CERT,
+  key: INSECURE_DEVELOPMENT_KEY,
+}, request => {
+  if (request.method === 'HEADERS') {
+    const responseHeaders = new Headers()
+    if (!getCookies(request.headers)['sid']) {
+      setCookie(responseHeaders, { name: 'sid', value: generateSid(), secure: true, httpOnly: true })
+    }
+    return new Response('', { headers: responseHeaders })
+  }
+  else if (request.headers.get("upgrade") != "websocket") {
+    return new Response(null, { status: 501 });
+  }
 
-setUpServer(httpServer, PORT)
-setUpServer(httpsServer, TLS_PORT)
+  const { socket, response } = Deno.upgradeWebSocket(request);
+  
+  handleWS(socket, request)
 
-// TODO: use scope watching of core2 scopes for this instead of piggy-backing off of core creds
-await redis.connected
-
-const certs = await redis.client.json.get('internal/certs/tls-certs/state')
-
-if (certs) {
-  Object
-    .entries(certs)
-    .forEach(([host, certInfo]) => {
-      console.log('SETTING UP HTTPS HOST', host)
-      setUpHTTPSContext(httpsServer, host, certInfo)
-    })
-}
+  return response
+})
 
 function parseCookies(s) {
   return Object.fromEntries(s.split(';').map(p => p.split('=')))
@@ -77,19 +71,4 @@ function setUpServer(server, port) {
     handleWS(ws, upgradeReq)
   })
   server.listen(port)
-}
-
-function setUpHTTPSContext(server, host, { cert, key, publicKey}) {
-  try {
-    const mySecretKey = Buffer.from(SECRET_ENCRYPTION_KEY, 'base64')
-    const theirPublicKey = Buffer.from(publicKey, 'base64')
-    const encryptedMessageBuffer = Buffer.from(key, 'base64')
-    console.log('SECRET KEY LENGTH!!!!!!!!!!!!!', mySecretKey.length, SECRET_ENCRYPTION_KEY.length)
-    const decryptedKey = decrypt(mySecretKey, theirPublicKey, encryptedMessageBuffer)
-
-    server.addContext(host, { cert, key: decryptedKey })
-  }
-  catch (error) {
-    console.log('ERROR INITIALIZING TLS HOST', error)
-  }
 }

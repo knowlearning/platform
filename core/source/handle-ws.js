@@ -1,4 +1,4 @@
-import { uuid, isUUID } from './utils.js'
+import { uuid, isUUID, writeFile } from './utils.js'
 import authenticate from './authenticate/index.js'
 import authorize from './authorize.js'
 import interact from './interact/index.js'
@@ -13,8 +13,6 @@ import * as redis from './redis.js'
 import initializationState from './initialization-state.js'
 import subscriptions from './subscriptions.js'
 import subscribe from './subscribe.js'
-import { exec } from 'child_process'
-import { promises as fs } from 'fs'
 
 const sessionMessageIndexes = {}
 const responseBuffers = {}
@@ -173,13 +171,7 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
     if (!scriptCache[script]) {
       scriptCache[script] = new Promise(async resolve => {
         const filename = `./${uuid()}.js`
-        const exists = (
-          await fs
-            .access(filename, fs.constants.F_OK)
-            .then(() => true)
-            .catch(() => false)
-        )
-        if (!exists) await fs.writeFile(filename, script)
+        await writeFile(filename, script)
         await new Promise((resolve, reject) => {
           exec(`deno cache ${filename}`, (error, stdout, stderr) => {
             if (error) console.warn('ERROR CACHING SCRIPT')
