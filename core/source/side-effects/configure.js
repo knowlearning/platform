@@ -1,4 +1,4 @@
-import { uuid, parseYAML } from '../utils.js'
+import { uuid, parseYAML, environment } from '../utils.js'
 import { domainAdmin } from '../configuration.js'
 import * as redis from '../redis.js'
 import * as postgres from '../postgres.js'
@@ -43,7 +43,7 @@ function coreState(user, id, domain) {
 
 const MAX_PARAMS_IN_BATCH = 10_000
 
-const { ADMIN_DOMAIN, MODE } = process.env
+const { ADMIN_DOMAIN, MODE } = environment
 
 async function isAdmin(user, requestingDomain, requestedDomain) {
   return (

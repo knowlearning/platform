@@ -1,4 +1,4 @@
-import { createGCSClient, uuid } from './utils.js'
+import { createGCSClient, uuid, environment } from './utils.js'
 import * as redis from './redis.js'
 
 const DOWNLOAD_RETRY_INTERVAL = 1000
@@ -8,7 +8,7 @@ const {
   EXTERNAL_GCS_API_ENDPOINT,
   GCS_BUCKET_NAME,
   MODE
-} = process.env
+} = environment
 
 //  need to redirect url because of quirk in how apiEndpoint is used for constructing signed urls
 const directedURL = (url, internal) => {
@@ -26,8 +26,8 @@ const directedURL = (url, internal) => {
 
 const storage = new createGCSClient({
   apiEndpoint: INTERNAL_GCS_API_ENDPOINT,
-  projectId: process.env.GC_PROJECT_ID,
-  credentials: JSON.parse(process.env.GCS_SERVICE_ACCOUNT_CREDENTIALS)
+  projectId: environment.GC_PROJECT_ID,
+  credentials: JSON.parse(environment.GCS_SERVICE_ACCOUNT_CREDENTIALS)
 })
 
 const bucket = storage.bucket(GCS_BUCKET_NAME)

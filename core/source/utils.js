@@ -12,8 +12,8 @@ import { getCookies, setCookie } from 'https://deno.land/std@0.214.0/http/cookie
 
 
 const { box } = nacl
-const uuid = crypto.randomUUID
-const randomBytes = crypto.randomBytes
+const uuid = () => crypto.randomUUID()
+const randomBytes = size => crypto.randomBytes(size)
 const environment = Deno.env.toObject()
 const writeFile = Deno.writeFile
 const cryptoDigest = (algorithm, data) => crypto.subtle.digest(algorithm, data)

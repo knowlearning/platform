@@ -40,35 +40,9 @@ Deno.serve({
     return new Response(null, { status: 501 });
   }
 
-  const { socket, response } = Deno.upgradeWebSocket(request);
+  const { socket, response } = Deno.upgradeWebSocket(request, { idleTimeout: 10 })
   
   handleWS(socket, request)
 
   return response
 })
-
-function parseCookies(s) {
-  return Object.fromEntries(s.split(';').map(p => p.split('=')))
-}
-
-function setUpServer(server, port) {
-  const wsServer = new WebSocketServer({ server })
-  wsServer.on('headers', (headers, request) => {
-    const cookieIndex = request.rawHeaders.indexOf('Cookie') + 1
-    let sid
-    if (cookieIndex > 0) {
-      const cookies = parseCookies(request.rawHeaders[cookieIndex])
-      sid = cookies['sid']
-    }
-    if (!sid) {
-      sid =  crypto.randomBytes(16).toString('hex')
-      headers.push(`Set-Cookie: sid=${sid}; SameSite=None; Secure; HttpOnly`)
-      console.log('creating sid', sid)
-    }
-  })
-  wsServer.on('connection', async (ws, upgradeReq) => {
-    await initialConfig
-    handleWS(ws, upgradeReq)
-  })
-  server.listen(port)
-}

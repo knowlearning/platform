@@ -1,4 +1,4 @@
-import { uuid, isUUID, writeFile } from './utils.js'
+import { uuid, isUUID, writeFile, getCookies } from './utils.js'
 import authenticate from './authenticate/index.js'
 import authorize from './authorize.js'
 import interact from './interact/index.js'
@@ -18,16 +18,9 @@ const sessionMessageIndexes = {}
 const responseBuffers = {}
 const activeWebsockets = {}
 
-function parseCookies(s) {
-  return Object.fromEntries(
-    s.split(';').map(p => p.split('='))
-  )
-}
-
 export default async function handleWebsocket(ws, upgradeReq) {
   let user, session, provider
-  const cookies = parseCookies(upgradeReq.headers.cookie || '=')
-  const sid = cookies.sid
+  const sid = getCookies(upgradeReq.headers).sid
 
   const namedScopeCache = {}
   const origin = upgradeReq.headers.origin || 'https://core'  //  TODO: domain should probably be "development", "staging" or "production" based on mode...
@@ -48,12 +41,10 @@ export default async function handleWebsocket(ws, upgradeReq) {
     heartbeat()
   }
 
-  ws.on('message', async messageBuffer => {
+  ws.addEventListener('message', async ({ data }) => {
     let message
 
-    try {
-      message = JSON.parse(messageBuffer)
-    }
+    try { message = JSON.parse(data) }
     catch (error) {
       console.warn(error)
       send({ error: 'Error Parsing Message' })

@@ -1,3 +1,4 @@
+import { environment } from '../utils.js'
 import * as postgres from '../postgres.js'
 import * as redis from '../redis.js'
 import configuration from '../configuration.js'
@@ -32,7 +33,7 @@ export default async function sync(domain, active_type, scope) {
   await syncMetadata(scope)
 }
 
-const { ADMIN_DOMAIN } = process.env
+const { ADMIN_DOMAIN } = environment
 
 async function syncMetadata(scope) {
   const pathified = name => `$.${name}`

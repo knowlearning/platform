@@ -17,13 +17,17 @@ const clientConnectionInfo = {
 const client = createRedisClient(clientConnectionInfo)
 const subscriptions = createRedisClient(clientConnectionInfo)
 
-console.log(client)
-client.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
-subscriptions.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
+//client.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
+//subscriptions.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
 
 const connected = Promise.all([
-  client.connect(),
-  subscriptions.connect()
+  client,
+  subscriptions
 ]).then(() => console.log('CONNECTED!'))
 
-export { client, subscriptions, connected }
+async function getJSON(key) {
+  const c = await client
+  return c.json.get(key)
+}
+
+export { client, subscriptions, connected, getJSON }

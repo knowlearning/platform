@@ -1,9 +1,9 @@
-import * as redis from './redis.js'
+import { getJSON } from './redis.js'
 import configuration from './configuration.js'
 import * as postgres from './postgres.js'
 
 export default async function authorize(requestingUser, requestingDomain, requestedScope) {
-  const { owner: targetUser, domain: targetDomain } = await redis.client.json.get(requestedScope)
+  const { owner: targetUser, domain: targetDomain } = await getJSON(requestedScope)
 
   const sameDomain = requestingDomain === targetDomain
   const sameUser = requestingUser === targetUser
