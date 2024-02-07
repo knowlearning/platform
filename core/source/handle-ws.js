@@ -176,7 +176,7 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
       .catch(() => false)
   )
   if (!exists) await fs.writeFile(filename, sideEffectScript)
-  if (sideEffectScript) exec(`deno run ${filename}`, logResults)
+  if (sideEffectScript) exec(`deno run --allow-env=SERVE_HOST,SERVICE_ACCOUNT_TOKEN ${filename}`, logResults)
 }
 
 function calculateSHA256(inputString) {
