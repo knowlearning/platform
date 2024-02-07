@@ -1,5 +1,4 @@
-import crypto from 'crypto'
-import { validate as isUUID, v4 as uuid } from 'uuid'
+import { uuid, isUUID } from './utils.js'
 import authenticate from './authenticate/index.js'
 import authorize from './authorize.js'
 import interact from './interact/index.js'

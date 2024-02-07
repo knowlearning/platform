@@ -1,4 +1,4 @@
-import { validate as isUUID } from 'uuid'
+import { isUUID } from '../utils.js'
 import * as redis from '../redis.js'
 import subscribe from '../subscribe.js'
 import configuration from '../configuration.js'
