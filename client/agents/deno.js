@@ -1,4 +1,4 @@
-import { applyPatch } from 'fast-json-patch'
+import fastJSONPatch from 'fast-json-patch'
 import Agent from './generic/index.js'
 
 const SERVE_HOST = Deno.env.get("SERVE_HOST")
@@ -10,6 +10,6 @@ export default new Agent({
   WebSocket,
   uuid: () => crypto.randomUUID(),
   fetch,
-  applyPatch,
+  applyPatch: fastJSONPatch.applyPatch,
   reboot: () => Deno.exit(1)
 })

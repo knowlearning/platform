@@ -197,7 +197,7 @@ function logResults(error, stdout, stderr) {
   console.log(`Command output: ${stdout}`)
 }
 
-const SIDE_EFFECT_SCRIPT = `import Agent from "npm:@knowlearning/agents@0.9.65/agents/deno.js"
+const SIDE_EFFECT_SCRIPT = `import Agent from "npm:@knowlearning/agents@0.9.66/agents/deno.js"
   console.log('LOADED DENO SCRIPT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
   const state = await Agent.state('some-state-in-a-parent-domain')
   console.log('GOT STATE!!!!!!!!!!!!!!!!!')
