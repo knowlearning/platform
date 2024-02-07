@@ -1,5 +1,7 @@
 FROM node:18.12.1
 
+RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/ sh
+
 WORKDIR /app
 
 RUN npm install \

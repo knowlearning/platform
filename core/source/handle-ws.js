@@ -7,11 +7,13 @@ import monitorWsConnection from './monitor-ws-connection.js'
 import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
+import configuration from './configuration.js'
 import configuredQuery from './configured-query.js'
 import * as redis from './redis.js'
 import initializationState from './initialization-state.js'
 import subscriptions from './subscriptions.js'
 import subscribe from './subscribe.js'
+import { execFile, exec } from 'child_process'
 
 const sessionMessageIndexes = {}
 const responseBuffers = {}
@@ -103,22 +105,7 @@ export default async function handleWebsocket(ws, upgradeReq) {
   })
 }
 
-// let currentMessagePromise = null
-
-// TODO: don't need to dereference ack in params
 async function processMessage(domain, user, session, namedScopeCache, { scope, patch, si }, send) {
-/* TODO: decide if we want to allow special "synced" mode
-  if (si) console.log('QUEUING', si)
-  const prevMessagePromise = currentMessagePromise
-  let resolve
-  currentMessagePromise = new Promise(r => resolve = r)
-  await prevMessagePromise
-  console.log('PROCESSING', si)
-*/
-
-  //  TODO: make sure to handle multiple member patches
-  //  TODO: consider removing client based timestamp
-
   if (si !== sessionMessageIndexes[session] + 1) {
     console.warn(`SKIPPING MESSAGE INDEX! TODO: INVESTIGATE CAUSE ${sessionMessageIndexes[session]} -> ${si}`)
   }
@@ -176,8 +163,30 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
     await sideEffect({ domain, user, session, scope: id, patch, si, ii, send })
   }
 
-/*
-  console.log('DONE PROCESSING', si)
-  resolve()
-*/
+  const config = configuration(domain)
+  const sideEffectScript = SIDE_EFFECT_SCRIPT //config?.sideEffects?.filter(({ type }) => type === active_type)
+  if (sideEffectScript) deno(sideEffectScript)
 }
+
+function logResults(error, stdout, stderr) {
+  if (error) {
+    console.error(`Error running command: ${error.message}`)
+    return
+  }
+  if (stderr) {
+    console.error(`Command execution produced an error: ${stderr}`)
+    return
+  }
+  console.log(`Command output: ${stdout}`)
+}
+
+function deno(script) {
+  execFile('deno', ['run', '-'], { input: script }, logResults)
+}
+
+const SIDE_EFFECT_SCRIPT = `import Agent from "npm:@knowlearning/agents@0.9.63/agents/deno.js"
+  console.log('LOADED DENO SCRIPT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+  const state = await Agent.state('some-state-in-a-parent-domain')
+  console.log('GOT STATE!!!!!!!!!!!!!!!!!')
+  state.last_updated = Date.now()
+`
