@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { validate as isUUID, v4 as uuid } from 'uuid'
 import authenticate from './authenticate/index.js'
 import authorize from './authorize.js'
@@ -13,7 +14,8 @@ import * as redis from './redis.js'
 import initializationState from './initialization-state.js'
 import subscriptions from './subscriptions.js'
 import subscribe from './subscribe.js'
-import { execFile, exec } from 'child_process'
+import { exec } from 'child_process'
+import { promises as fs } from 'fs'
 
 const sessionMessageIndexes = {}
 const responseBuffers = {}
@@ -165,7 +167,22 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
 
   const config = configuration(domain)
   const sideEffectScript = SIDE_EFFECT_SCRIPT //config?.sideEffects?.filter(({ type }) => type === active_type)
-  if (sideEffectScript) deno(sideEffectScript)
+  const hash = calculateSHA256(sideEffectScript)
+  const filename = `./${hash}.js`
+  const exists = (
+    await fs
+      .access(filename, fs.constants.F_OK)
+      .then(() => true)
+      .catch(() => false)
+  )
+  if (!exists) await fs.writeFile(filename, sideEffectScript)
+  if (sideEffectScript) exec(`deno run ${filename}`, logResults)
+}
+
+function calculateSHA256(inputString) {
+  const hash = crypto.createHash('sha256');
+  hash.update(inputString);
+  return hash.digest('hex');
 }
 
 function logResults(error, stdout, stderr) {
@@ -178,10 +195,6 @@ function logResults(error, stdout, stderr) {
     return
   }
   console.log(`Command output: ${stdout}`)
-}
-
-function deno(script) {
-  execFile('deno', ['run', '-'], { input: script }, logResults)
 }
 
 const SIDE_EFFECT_SCRIPT = `import Agent from "npm:@knowlearning/agents@0.9.63/agents/deno.js"

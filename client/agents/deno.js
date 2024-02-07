@@ -1,4 +1,4 @@
-import { applyPatch } from 'npm:fast-json-patch@3.1.1'
+import { applyPatch } from 'fast-json-patch@3.1.1'
 import Agent from './generic/index.js'
 
 const SERVE_HOST = Deno.env.get("SERVE_HOST")
