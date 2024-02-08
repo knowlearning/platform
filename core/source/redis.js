@@ -25,7 +25,7 @@ async function getJSON(key, path='$') {
   const c = await client
   const reply = JSON.parse(await c.sendCommand('JSON.get', [key, path]))
   console.log('GET JSON REPLY', key, path, reply)
-  return reply[0]
+  return reply ? reply[0] : reply
 }
 
 
@@ -67,9 +67,20 @@ async function setJSON(key, path, value, condition) {
     return await c.sendCommand('JSON.SET', args)
   }
   catch (error) {
-    console.log('Error setting JSON', command)
+    console.log('Error setting JSON', key, path, value, condition)
     throw error
   }
 }
 
-export { client, subscriptions, subscribe, connected, getJSON, setJSON }
+async function getSet(key) {
+  try {
+    const c = await client
+    return await c.sendCommand('SMEMBERS', [key])
+  }
+  catch (error) {
+    console.log('Error getting Set', key)
+    throw error
+  }
+}
+
+export { client, subscriptions, subscribe, connected, getJSON, setJSON, getSet }

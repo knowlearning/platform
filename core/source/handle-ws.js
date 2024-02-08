@@ -52,7 +52,9 @@ export default async function handleWebsocket(ws, upgradeReq) {
 
     if (!user) {
       try {
+        console.log('authenticating...')
         const authResponse = await authenticate(message, domain, sid)
+        console.log('authenticated...')
         user = authResponse.user
         provider = authResponse.provider
         session = authResponse.session

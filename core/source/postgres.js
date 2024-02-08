@@ -35,7 +35,7 @@ const ignorableErrors = {
 }
 
 const config = {
-  host: POSTGRES_HOST,
+  hostname: POSTGRES_HOST,
   port: POSTGRES_PORT,
   user: 'postgres',
   password: POSTGRES_PASSWORD
@@ -44,6 +44,7 @@ const config = {
 const clients = {}
 
 async function client(domain) {
+  console.log('GETTING POSTGRES CLIENT', domain, clients[domain])
   if (clients[domain]) return clients[domain]
 
   const database = domain === 'postgres' ? 'postgres' : domainToDbName(domain)
@@ -52,7 +53,8 @@ async function client(domain) {
     //  Create database for domain on-demand
     const c = await client('postgres')
     try {
-      await c.query(`CREATE DATABASE "${database}"`)  //  TODO: track report (third arument)
+      console.log('CREATING DATABASE FOR', domain)
+      await c.queryArray(`CREATE DATABASE "${database}"`)  //  TODO: track report (third arument)
     }
     catch (error) {
       if (!ignorableErrors[error.code]) {
@@ -64,14 +66,20 @@ async function client(domain) {
   clients[domain] = new Promise(resolve => {
     const retry = error => {
       if (error) console.log('error connecting to postgres', error)
+      console.log('SETTING UP CLIENT')
       const client = new pg.Client({ ...config, database })
+      console.log('GOT CLIENT')
       client
         .connect()
         .then(() => {
-          client.query('CREATE EXTENSION IF NOT EXISTS plpgsql')
+          console.log('CLIENT CONNECTED', domain)
+          client.queryArray('CREATE EXTENSION IF NOT EXISTS plpgsql')
           resolve(client)
         })
-        .catch(async () => setTimeout(retry, 1000))
+        .catch(async error => {
+          console.warn('ERROR CONNECTING TO POSTGRES', domain, error)
+          setTimeout(retry, 1000)
+        })
     }
     retry()
   })
@@ -81,7 +89,7 @@ async function client(domain) {
 
 async function query(database, text, values, rowMode) {
   const c = await client(database)
-  return c.query({ text, values, rowMode })
+  return c.queryArray({ text, values, rowMode })
 }
 
 async function createTable(domain, table, columns) {

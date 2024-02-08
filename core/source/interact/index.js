@@ -12,10 +12,13 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
   //  TODO: validate that patch's paths can only start with "active", "active_type", or "name"
   await redis.connected
 
-  const info = await redis.client.json.get(scope, { path: ['$.domain', '$.owner' ]})
+  const [scopeDomain, scopeOwner] = await Promise.all([
+    redis.getJSON(scope, '$.domain'),
+    redis.getJSON(scope, '$.owner')
+  ])
 
-  if (info !== null && (domain !== info?.['$.domain'][0] || user !== info?.['$.owner'][0])) {
-    console.log('DOMAIN OR USER MISMATCH FOR PATCH', info, domain, user, scope, patch)
+  if (domain !== scopeDomain || user !== scopeOwner) {
+    console.log('DOMAIN OR USER MISMATCH FOR PATCH', scopeDomain, scopeOwner, domain, user, scope, patch)
     return {}
   }
 

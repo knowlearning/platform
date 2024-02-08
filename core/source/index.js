@@ -1,6 +1,6 @@
 import { environment, randomBytes, getCookies, setCookie } from './utils.js'
 import * as redis from './redis.js'
-import { decrypt } from './encryption.js'
+import { decrypt } from './utils.js'
 import handleWS from './handle-ws.js'
 import { applyConfiguration, ensureDomainConfigured } from './side-effects/configure.js'
 import ADMIN_DOMAIN_CONFIG from './admin-domain-config.js'

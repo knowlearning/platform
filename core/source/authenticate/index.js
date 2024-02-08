@@ -1,7 +1,7 @@
 import { jwt, jwkToPem, uuid, environment } from '../utils.js'
 import interact from '../interact/index.js'
 import { query } from '../postgres.js'
-import { encryptSymmetric, decryptSymmetric } from '../encryption.js'
+import { encryptSymmetric, decryptSymmetric } from '../utils.js'
 import * as hash from './hash.js'
 
 const {
@@ -44,7 +44,7 @@ const NEW_SESSION_QUERY = `
   JOIN metadata
     ON metadata.id = sessions.id
   WHERE session_credential = $1
-  ORDER BY created DESC LIMIT 1
+  ORDER BY created DESC LIMIT 1;
 `
 
 const {
@@ -71,9 +71,9 @@ const {
   }
 } = JSON.parse(CLASSLINK_OAUTH_CLIENT_CREDENTIALS)
 
-function decryptAndParseSessionInfo(key, encrypted) {
+async function decryptAndParseSessionInfo(key, encrypted) {
   try {
-    return JSON.parse(decryptSymmetric(key, encrypted))
+    return JSON.parse(await decryptSymmetric(key, encrypted))
   }
   catch (error) {
     console.warn(error)
@@ -82,7 +82,9 @@ function decryptAndParseSessionInfo(key, encrypted) {
 }
 
 export default async function authenticate(message, domain, sid) {
+  console.log('AWAITING HASH')
   const session_credential = await hash.create(sid)
+  console.log('GOT HASH')
 
   if (!message.token) {
     try {
@@ -95,12 +97,14 @@ export default async function authenticate(message, domain, sid) {
             user: rows[0].user_id,
             provider: rows[0].provider,
             session: message.session,
-            info: decryptAndParseSessionInfo(sid, rows[0].sid_encrypted_info)
+            info: await decryptAndParseSessionInfo(sid, rows[0].sid_encrypted_info)
           }
         }
       }
 
+      console.log('QUERYING POSTGRES!!!!!!!!!!!!!!')
       const { rows } = await query(domain, NEW_SESSION_QUERY, [session_credential])
+      console.log('ROWS???', rows)
       if (rows[0]) {
         const user = rows[0].user_id
         const { provider, sid_encrypted_info } = rows[0]
@@ -122,6 +126,7 @@ export default async function authenticate(message, domain, sid) {
   else authority = 'JWT'
 
   const session = uuid()
+  console.log('AUTHENTICATING TOKEN...', message)
   const { user, provider, provider_id, info } = await authenticateToken(message.token, authority)
   console.log('NEW SESSION FOR USER', user, domain, session)
 
@@ -137,7 +142,7 @@ export default async function authenticate(message, domain, sid) {
     //        just not associating with session_credential
     //        'anonymous-ephemeral' tokens are used in tests to create multiple agents in the
     //        same browser tab
-    const sid_encrypted_info = encryptSymmetric(sid, JSON.stringify(info))
+    const sid_encrypted_info = await encryptSymmetric(sid, JSON.stringify(info))
     await saveSession(domain, session, session_credential, user, provider, sid_encrypted_info)
   }
 

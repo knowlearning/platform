@@ -131,7 +131,7 @@ async function syncTables(domain, tables, report) {
 
   const typeGroups = {}
 
-  const allIds = await redis.client.sendCommand(['smembers', domain])
+  const allIds = await redis.getSet(domain)
 
   //  TODO: do in chunks...
   for (let idNum = 0; idNum < allIds.length; idNum += 1) {
