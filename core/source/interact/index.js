@@ -22,56 +22,55 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
     return {}
   }
 
-  const transaction = redis.client.multi()
+  const transaction = await redis.transaction()
   const isInitializationPatch = patch[0].path.length === 1 && patch[0].path[0] === 'active_type'
   if (isInitializationPatch) {
     //  initialize scope (if DNE)
     const state = initializationState(domain, user)
-    transaction.json.set(scope, '$', state, { NX: true })
+    transaction.sendCommand('JSON.SET', [scope, '$', JSON.stringify(state), 'NX'])
   }
-  transaction.json.set(scope, '$.active', {}, { NX: true }) // initialize state to empty object if does not exist
-  //  TODO: hook this back in when we have a compaction strategy in place
-  //  transaction.json.arrAppend(scope, '$["history"]', { session, patch, timestamp })
-
-  transaction.json.numIncrBy(scope, '$.ii', 1)
+  transaction.sendCommand('JSON.SET',[scope, '$.active', '{}', 'NX']) // initialize state to empty object if does not exist
+  transaction.sendCommand('JSON.NUMINCRBY', [scope, '$.ii', 1])
 
   for (let i=0; i<patch.length; i++) {
     const { op, path, value } = patch[i]
     const JSONPath = path.length ? `$[${path.map(JSON.stringify).join('][')}]` : '$'
     if (op === 'add') {
       if (JSONPath.match(/\[\-1\]$/)) { // if is to end of array then append
-        transaction.json.arrAppend(scope, JSONPath.slice(0,-2), value)
+        transaction.sendCommand('JSON.ARRAPPEND', [scope, JSONPath.slice(0,-2), JSON.stringify(value)])
       }
       else if (JSONPath.match(/\[\d+\]$/)) {
         const index = JSONPath.match(/\[(\d+)\]$/)[1]
-        transaction.json.arrInsert(scope, JSONPath.slice(0, -index.length-2), index, value)
+        transaction.sendCommand('JSON.ARRINSERT', [scope, JSONPath.slice(0, -index.length-2), index, JSON.stringify(value)])
       }
-      else transaction.json.set(scope, JSONPath, value)
+      else transaction.sendCommand('JSON.SET', [scope, JSONPath, JSON.stringify(value)])
     }
     else if (op === 'remove') {
       if (JSONPath.match(/\[\d+\]$/)) {
         const index = JSONPath.match(/\[(\d+)\]$/)[1]
-        transaction.json.arrPop(scope, JSONPath.slice(0, -index.length-2), index)
+        transaction.sendCommand('JSON.ARRPOP', [scope, JSONPath.slice(0, -index.length-2), index])
       }
-      else transaction.json.del(scope, JSONPath)
+      else transaction.sendCommand('JSON.DEL', [scope, JSONPath])
     }
     else if (op === 'replace') {
       // simple set should do for array and object
-      transaction.json.set(scope, JSONPath, value)
+      transaction.sendCommand('JSON.SET', [scope, JSONPath, JSON.stringify(value)])
     }
   }
 
-  transaction.eval(MAINTENANCE_SCRIPT, { keys: [scope, domain] })
-  transaction.json.get(scope, { path: '$.active_type' })
+  transaction.sendCommand('EVAL', [MAINTENANCE_SCRIPT, 2, scope, domain])
+  transaction.sendCommand('JSON.GET', [scope, '$.active_type'])
 
   try {
-    const response = await transaction.exec()
-    const ii = response[isInitializationPatch ? 2 : 1][0]
+    const response = await transaction.flush()
+    console.log(response)
+    const ii = JSON.parse(response[isInitializationPatch ? 2 : 1])[0]
     //  TODO: cache active_types so as not to require fetch on each interaction
-    const active_type = response[response.length-1][0]
+    const active_type = JSON.parse(response[response.length-1])[0]
+
+    console.log('GOT ACTIVE TYPE!!!!!!!!!!!!!!!!!!!!!!!!!!!', response, active_type)
 
     redis
-      .client
       .publish(scope, JSON.stringify({ domain, user, scope, patch, ii }))
       .catch(error => console.log('ERROR PUBLISHING!!!!!!!!', scope, error))
 

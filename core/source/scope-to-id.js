@@ -8,7 +8,7 @@ const { ADMIN_DOMAIN } = environment
 
 export default async function (domain, user, scope) {
   if (isUUID(scope)) {
-    if (await redis.client.exists(scope)) return scope
+    if (await redis.exists(scope)) return scope
 
     const state = initializationState(domain, user, scope)
     await redis.setJSON(scope, '$', state, 'NX')

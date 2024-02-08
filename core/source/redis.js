@@ -83,4 +83,31 @@ async function getSet(key) {
   }
 }
 
-export { client, subscriptions, subscribe, connected, getJSON, setJSON, getSet }
+async function transaction() {
+  const c = await client
+  return c.pipeline()
+}
+
+async function publish(channel, message) {
+  const c = await client
+  return c.sendCommand('PUBLISH', [message])
+}
+
+async function exists(key) {
+  const c = await client
+  console.log('EXISSSSSSSSSSSSSSSSSSSSSSTS??????????????????', await c.sendCommand('EXISTS', [key]))
+  return c.sendCommand('EXISTS', [key])
+}
+
+export {
+  client,
+  publish,
+  subscribe,
+  subscriptions,
+  connected,
+  getJSON,
+  setJSON,
+  getSet,
+  transaction,
+  exists
+}
