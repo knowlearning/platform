@@ -36,22 +36,16 @@ export default async function sync(domain, active_type, scope) {
 const { ADMIN_DOMAIN } = environment
 
 async function syncMetadata(scope) {
-  const pathified = name => `$.${name}`
   const columns = ['active_type', 'domain', 'name', 'updated', 'created', 'owner', 'ii', 'active_size', 'storage_size']
 
-  const values = await redis.client.json.get(scope, { path: columns.map(pathified) })
-
-  const orderedValues = (
-    columns
-      .map(name => {
-        const value = values[pathified(name)][0]
-        return value === undefined ? null : value
-      })
+  //  TODO: multiple gets in one redis command
+  const values = await Promise.all(
+    columns.map(name => redis.getJSON(scope, `$.${name}`))
   )
 
   // use date format for created and updated
-  orderedValues[3] = new Date(orderedValues[3])
-  orderedValues[4] = new Date(orderedValues[4])
+  values[3] = new Date(values[3])
+  values[4] = new Date(values[4])
 
   const columnNames = columns.join(',')
   const query = `
@@ -64,6 +58,6 @@ async function syncMetadata(scope) {
         (${columnNames}) = ROW ($2,$3,$4,$5,$6,$7,$8,$9,$10)
   `
 
-  const domain = values[pathified('domain')][0]
-  await postgres.query(domain, query, [scope, ...orderedValues])
+  const domain = values[1]
+  await postgres.query(domain, query, [scope, ...values])
 }

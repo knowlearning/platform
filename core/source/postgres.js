@@ -87,9 +87,9 @@ async function client(domain) {
   return clients[domain]
 }
 
-async function query(database, text, values, rowMode) {
+async function query(database, text, values) {
   const c = await client(database)
-  return c.queryArray({ text, values, rowMode })
+  return c.queryArray(text, values)
 }
 
 async function createTable(domain, table, columns) {
