@@ -10,15 +10,19 @@ const MAINTENANCE_SCRIPT = `
 
 export default async function interact( domain, user, scope, patch, timestamp=Date.now() ) {
   //  TODO: validate that patch's paths can only start with "active", "active_type", or "name"
+  console.log('INTERACTING TO HERE...', domain, user, scope, patch)
   const [scopeDomain, scopeOwner] = await Promise.all([
     redis.getJSON(scope, '$.domain'),
     redis.getJSON(scope, '$.owner')
   ])
+  console.log('ABLE TO GET REDIS JSON STUFF????', domain, user, scope, patch, scopeDomain, scopeOwner)
 
-  if (domain !== scopeDomain || user !== scopeOwner) {
+  if (scopeDomain !== null && user !== null && (domain !== scopeDomain || user !== scopeOwner)) {
     console.log('DOMAIN OR USER MISMATCH FOR PATCH', scopeDomain, scopeOwner, domain, user, scope, patch)
     return {}
   }
+
+  console.log('STILL INTERACTING....', domain, user, scope, patch)
 
   const transaction = await redis.transaction()
   const isInitializationPatch = patch[0].path.length === 1 && patch[0].path[0] === 'active_type'

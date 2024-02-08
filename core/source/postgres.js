@@ -49,11 +49,20 @@ async function client(domain) {
 
   const database = domain === 'postgres' ? 'postgres' : domainToDbName(domain)
 
+  let ensureDomainCreated
+
   if (domain !== 'postgres') {
     //  Create database for domain on-demand
     try {
       console.log('CREATING DATABASE FOR', domain)
-      client('postgres').then(c => c.queryArray(`CREATE DATABASE "${database}"`))
+      ensureDomainCreated = (
+        client('postgres')
+          .then(c => c.queryArray(`CREATE DATABASE "${database}"`))
+          .catch(error => {
+            //  TODO: make sure the error is ignorable
+            console.log('IGNORABLE DB ERROR?', error)
+          })
+      )
     }
     catch (error) {
       if (!ignorableErrors[error.code]) {
@@ -62,12 +71,13 @@ async function client(domain) {
     }
   }
 
-  clients[domain] = new Promise(resolve => {
+  clients[domain] = new Promise(async resolve => {
+    await ensureDomainCreated
     const retry = error => {
       if (error) console.log('error connecting to postgres', error)
-      console.log('SETTING UP CLIENT')
+      console.log('SETTING UP CLIENT', database)
       const client = new pg.Client({ ...config, database })
-      console.log('GOT CLIENT')
+      console.log('GOT CLIENT', database)
       client
         .connect()
         .then(() => {

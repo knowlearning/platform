@@ -24,7 +24,7 @@ Promise.all([ client, subscriptions ]).then(() => console.log('REDIS CONNECTED!'
 async function getJSON(key, path='$') {
   const c = await client
   const reply = JSON.parse(await c.sendCommand('JSON.get', [key, path]))
-  console.log('GET JSON REPLY', key, path, reply)
+  console.log('GET JSON REPLY', key, path, reply, typeof reply)
   return reply ? reply[0] : reply
 }
 
@@ -90,7 +90,7 @@ async function transaction() {
 
 async function publish(channel, message) {
   const c = await client
-  return c.sendCommand('PUBLISH', [message])
+  return c.sendCommand('PUBLISH', [channel, message])
 }
 
 async function exists(key) {
