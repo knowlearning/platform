@@ -12,7 +12,7 @@ const { MODE, ADMIN_DOMAIN } = environment
 //        side effects for individual application/json;type=claim scopes
 redis.connected.then(() => {
   const state = initializationState('core', 'core')
-  redis.client.json.set('domain-config', '$', state, { NX: true })
+  redis.setJSON('domain-config', '$', state, 'NX')
 })
 
 //  TODO: probably want to abstract this and allow different types
@@ -35,7 +35,7 @@ export default function claims({ domain, user, session, scope, patch, si, ii, se
         const claimedDomain = value.domain //  TODO: graceful fail
 
         //  Make sure the domain config is initialized
-        redis.client.json.set('domain-config', `$["active"][${JSON.stringify(claimedDomain)}]`, {}, { NX: true })
+        redis.JSONset('domain-config', `$["active"][${JSON.stringify(claimedDomain)}]`, {}, 'NX')
 
         const report = uuid()
         send({ si, ii, token, report })

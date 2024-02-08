@@ -11,7 +11,7 @@ export default async function (domain, user, scope) {
     if (await redis.client.exists(scope)) return scope
 
     const state = initializationState(domain, user, scope)
-    await redis.client.json.set(scope, '$', state, { NX: true })
+    await redis.setJSON(scope, '$', state, 'NX')
     await sync(domain, user, scope)
     return scope
   }
@@ -23,7 +23,7 @@ export default async function (domain, user, scope) {
 
   const id = uuid()
   const state = initializationState(domain, user, scope)
-  await redis.client.json.set(id, '$', state)
+  await redis.setJSON(id, '$', state)
   await sync(domain, user, id)
 
   return id
