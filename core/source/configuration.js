@@ -1,7 +1,6 @@
 import { parseYAML, environment } from './utils.js';
 import * as redis from './redis.js'
 import { download } from './storage.js'
-import subscribe from './subscribe.js'
 import ADMIN_DOMAIN_CONFIG from './admin-domain-config.js'
 import POSTGRES_DEFAULT_TABLES from './postgres-default-tables.js'
 
@@ -11,7 +10,7 @@ const DOMAIN_CONFIG_SCOPE = 'domain-config'
 const cache = {}
 
 //  invalidate cached domain config on claim change
-subscribe(DOMAIN_CONFIG_SCOPE, ({ patch: [{ path }] }) => {
+redis.subscribe(DOMAIN_CONFIG_SCOPE, ({ patch: [{ path }] }) => {
   const domain = path[1]
   console.log('invalidating cache...', domain, path)
   delete cache[domain]
@@ -26,10 +25,9 @@ export async function domainAdmin(domain) {
     if (parts.length === 2) return parts[0]
   }
 
-  const path = [`$.active["${domain}"]`]
-  const res = await redis.client.json.get(DOMAIN_CONFIG_SCOPE, { path })
-  if (res && res[0]) return res[0].admin
-  else return null
+  const path = `$.active["${domain}"]`
+  const res = await redis.getJSON(DOMAIN_CONFIG_SCOPE, path)
+  return res ? res.admin : null
 }
 
 export default async function configuration(domain) {
@@ -40,8 +38,8 @@ export default async function configuration(domain) {
   await redis.connected
 
   try {
-    const path = [`$.active["${domain}"]`]
-    const [domainConfig] = await redis.client.json.get('domain-config', { path })
+    const path = `$.active["${domain}"]`
+    const domainConfig = await redis.getJSON('domain-config', path)
 
     if (domainConfig) {
       const { admin, config } = domainConfig

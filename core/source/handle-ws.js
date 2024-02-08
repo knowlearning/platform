@@ -12,7 +12,6 @@ import configuredQuery from './configured-query.js'
 import * as redis from './redis.js'
 import initializationState from './initialization-state.js'
 import subscriptions from './subscriptions.js'
-import subscribe from './subscribe.js'
 
 const sessionMessageIndexes = {}
 const responseBuffers = {}
@@ -127,7 +126,7 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
             if (!subscriptions[session]) subscriptions[session] = {}
 
             const ss = subscriptions[session]
-            if (!ss[id]) ss[id] = subscribe(id, send, subscribedScope)
+            if (!ss[id]) ss[id] = redis.subscribe(id, send, subscribedScope)
 
             const state = await redis.client.json.get(id)
             send({ ...state, id, si })

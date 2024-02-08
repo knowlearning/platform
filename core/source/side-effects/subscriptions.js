@@ -1,6 +1,5 @@
 import { isUUID } from '../utils.js'
 import * as redis from '../redis.js'
-import subscribe from '../subscribe.js'
 import configuration from '../configuration.js'
 import initializationState from '../initialization-state.js'
 import scopeToId from '../scope-to-id.js'
@@ -20,7 +19,7 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
 
       const ss = subscriptions[session]
       const id = await scopeToId(scopeDomain, scopeUser, scope)
-      if (!ss[id]) ss[id] = subscribe(id, send, scope)
+      if (!ss[id]) ss[id] = redis.subscribe(id, send, scope)
       await redis.connected //  TODO: assess if necessary
       const state = await redis.client.json.get(id)
       send({ ...state, id, si })
