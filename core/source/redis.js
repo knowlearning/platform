@@ -19,7 +19,7 @@ const subscriptions = createRedisClient(clientConnectionInfo)
 //client.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
 //subscriptions.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
 
-const connected = Promise.all([ client, subscriptions ]).then(() => console.log('CONNECTED!'))
+Promise.all([ client, subscriptions ]).then(() => console.log('REDIS CONNECTED!'))
 
 async function getJSON(key, path='$') {
   const c = await client
@@ -104,7 +104,6 @@ export {
   publish,
   subscribe,
   subscriptions,
-  connected,
   getJSON,
   setJSON,
   getSet,

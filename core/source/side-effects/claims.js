@@ -10,10 +10,8 @@ const { MODE, ADMIN_DOMAIN } = environment
 
 //  TODO: remove need for core to have initialization state and rely on
 //        side effects for individual application/json;type=claim scopes
-redis.connected.then(() => {
-  const state = initializationState('core', 'core')
-  redis.setJSON('domain-config', '$', state, 'NX')
-})
+const state = initializationState('core', 'core')
+redis.setJSON('domain-config', '$', state, 'NX')
 
 //  TODO: probably want to abstract this and allow different types
 //        to help with removing privaleged named states

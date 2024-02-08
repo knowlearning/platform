@@ -1,8 +1,6 @@
 import * as redis from '../redis.js'
 
 
-await redis.connected
-
 /*
 Other Domains To Consider
 

@@ -51,10 +51,9 @@ async function client(domain) {
 
   if (domain !== 'postgres') {
     //  Create database for domain on-demand
-    const c = await client('postgres')
     try {
       console.log('CREATING DATABASE FOR', domain)
-      await c.queryArray(`CREATE DATABASE "${database}"`)  //  TODO: track report (third arument)
+      client('postgres').then(c => c.queryArray(`CREATE DATABASE "${database}"`))
     }
     catch (error) {
       if (!ignorableErrors[error.code]) {

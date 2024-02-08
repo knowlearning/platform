@@ -135,7 +135,9 @@ export default async function authenticate(message, domain, sid) {
     { op: 'add', value: { provider_id, provider }, path: ['active'] }
   ]
 
+  console.log('INTERACTING WITH ADMIN DOMAIN TO SET USER')
   await interact(ADMIN_DOMAIN, 'users', user, userPatch)
+  console.log('INTERACTED!!!!!!!!!!!!!!!! WITH ADMIN DOMAIN TO SET USER')
 
   if (message.token !== 'anonymous-ephemeral') {
     //  TODO: consider leaving a record of the ephemeral user session, but

@@ -28,7 +28,7 @@ export default async function handleWebsocket(ws, upgradeReq) {
   ensureDomainConfigured(domain)
 
   if (!sid) {
-    console.warn(`Closing websocket due to missing sid for connection in domain: ${domain}`)
+    console.warn(`Closing websocket due to missing sid for connection in domain: ${domain}`, origin)
     ws.close()
   }
 
@@ -89,7 +89,7 @@ export default async function handleWebsocket(ws, upgradeReq) {
         else await processMessage(domain, user, session, namedScopeCache, message, send)
       }
       catch (error) {
-        console.warn('ERROR PROCESSING MESSAGE', error)
+        console.warn('ERROR PROCESSING MESSAGE', message, error)
         send({ si: message.si, error: `ERROR PROCESSING MESSAGE` })
       }
     }

@@ -3,7 +3,6 @@ import * as redis from '../redis.js'
 // Function to scan keys
 let scans = 0
 async function scanKeys(cursor, pattern, batchSize, callback) {
-  await redis.connected
   const { cursor: nextCursor, keys } = await redis.client.scan(cursor, { COUNT: batchSize })
 
   await callback(keys)

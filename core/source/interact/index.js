@@ -10,8 +10,6 @@ const MAINTENANCE_SCRIPT = `
 
 export default async function interact( domain, user, scope, patch, timestamp=Date.now() ) {
   //  TODO: validate that patch's paths can only start with "active", "active_type", or "name"
-  await redis.connected
-
   const [scopeDomain, scopeOwner] = await Promise.all([
     redis.getJSON(scope, '$.domain'),
     redis.getJSON(scope, '$.owner')

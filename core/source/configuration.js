@@ -17,8 +17,6 @@ redis.subscribe(DOMAIN_CONFIG_SCOPE, ({ patch: [{ path }] }) => {
 })
 
 export async function domainAdmin(domain) {
-  await redis.connected
-
   //  the admin for X.localhost domains is always userid = X
   if (domain.endsWith('.localhost')) {
     const parts = domain.split('.')
@@ -34,8 +32,6 @@ export default async function configuration(domain) {
   if (domain === ADMIN_DOMAIN) return ADMIN_DOMAIN_CONFIG
 
   if (cache[domain]) return cache[domain]
-
-  await redis.connected
 
   try {
     const path = `$.active["${domain}"]`
