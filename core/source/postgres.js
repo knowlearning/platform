@@ -35,7 +35,7 @@ const ignorableErrors = {
 }
 
 const config = {
-  host: POSTGRES_HOST,
+  hostname: POSTGRES_HOST,
   port: POSTGRES_PORT,
   user: 'postgres',
   password: POSTGRES_PASSWORD
@@ -50,9 +50,8 @@ async function client(domain) {
 
   if (domain !== 'postgres') {
     //  Create database for domain on-demand
-    const c = await client('postgres')
     try {
-      await c.query(`CREATE DATABASE "${database}"`)  //  TODO: track report (third arument)
+      await query('postgres', `CREATE DATABASE "${database}"`)
     }
     catch (error) {
       if (!ignorableErrors[error.code]) {
@@ -69,8 +68,8 @@ async function client(domain) {
         .connect()
         .then(() => {
           console.log('GOT POSTGRES CLIENT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', domain)
-          client.query('CREATE EXTENSION IF NOT EXISTS plpgsql')
           resolve(client)
+          query(domain, 'CREATE EXTENSION IF NOT EXISTS plpgsql')
         })
         .catch(async () => setTimeout(retry, 1000))
     }
@@ -82,7 +81,7 @@ async function client(domain) {
 
 async function query(database, text, values, rowMode) {
   const c = await client(database)
-  return c.query({ text, values, rowMode })
+  return c.queryObject(text, values)
 }
 
 async function createTable(domain, table, columns) {
@@ -239,7 +238,6 @@ async function setColumn(domain, table, column, id, value) {
 }
 
 export {
-  client,
   createTable,
   createIndex,
   removeTable,
