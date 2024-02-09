@@ -25,7 +25,8 @@ export default async function handleWebsocket(ws, upgradeReq) {
   const origin = upgradeReq.headers.origin || 'https://core'  //  TODO: domain should probably be "development", "staging" or "production" based on mode...
   const { host: domain } = new URL(upgradeReq.url, origin)
 
-  ensureDomainConfigured(domain)
+  // TODO: ensure tables are set up... don't do full sync...
+  await ensureDomainConfigured(domain)
 
   if (!sid) {
     console.warn(`Closing websocket due to missing sid for connection in domain: ${domain}`, origin)

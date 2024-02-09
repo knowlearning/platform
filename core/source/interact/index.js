@@ -4,7 +4,7 @@ import sync from './sync.js'
 
 const MAINTENANCE_SCRIPT = `
   local active_size = redis.call('JSON.DEBUG', 'MEMORY', KEYS[1])
-  redis.call('JSON.SET', KEYS[1], '$.active_size', tonumber(active_size))
+  redis.call('JSON.SET', KEYS[1], '$["active_size"]', tonumber(active_size))
   redis.call('SADD', KEYS[2], KEYS[1])
 `;
 
@@ -12,8 +12,8 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
   //  TODO: validate that patch's paths can only start with "active", "active_type", or "name"
   console.log('INTERACTING TO HERE...', domain, user, scope, patch)
   const [scopeDomain, scopeOwner] = await Promise.all([
-    redis.getJSON(scope, '$.domain'),
-    redis.getJSON(scope, '$.owner')
+    redis.getJSON(scope, '$["domain"]'),
+    redis.getJSON(scope, '$["owner"]')
   ])
   console.log('ABLE TO GET REDIS JSON STUFF????', domain, user, scope, patch, scopeDomain, scopeOwner)
 
@@ -31,8 +31,8 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
     const state = initializationState(domain, user)
     transaction.sendCommand('JSON.SET', [scope, '$', JSON.stringify(state), 'NX'])
   }
-  transaction.sendCommand('JSON.SET',[scope, '$.active', '{}', 'NX']) // initialize state to empty object if does not exist
-  transaction.sendCommand('JSON.NUMINCRBY', [scope, '$.ii', 1])
+  transaction.sendCommand('JSON.SET',[scope, '$["active"]', '{}', 'NX']) // initialize state to empty object if does not exist
+  transaction.sendCommand('JSON.NUMINCRBY', [scope, '$["ii"]', 1])
 
   for (let i=0; i<patch.length; i++) {
     const { op, path, value } = patch[i]
@@ -61,7 +61,7 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
   }
 
   transaction.sendCommand('EVAL', [MAINTENANCE_SCRIPT, 2, scope, domain])
-  transaction.sendCommand('JSON.GET', [scope, '$.active_type'])
+  transaction.sendCommand('JSON.GET', [scope, '$["active_type"]'])
 
   try {
     const response = await transaction.flush()
@@ -77,6 +77,8 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
       .catch(error => console.log('ERROR PUBLISHING!!!!!!!!', scope, error))
 
     await sync(domain, active_type, scope)
+
+    console.log('SYNCED AFTER INTERACTION!!!!!!!!!', domain, scope, patch)
 
     return { ii, active_type }
   }

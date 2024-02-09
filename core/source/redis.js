@@ -21,9 +21,12 @@ const subscriptions = createRedisClient(clientConnectionInfo)
 
 Promise.all([ client, subscriptions ]).then(() => console.log('REDIS CONNECTED!'))
 
-async function getJSON(key, path='$') {
+async function getJSON(key, path) {
+  if (!path) path = '$'
+
   const c = await client
-  const reply = JSON.parse(await c.sendCommand('JSON.get', [key, path]))
+  console.log('GET JSON PRE', key, path)
+  const reply = JSON.parse(await c.sendCommand('JSON.GET', [key, path]))
   console.log('GET JSON REPLY', key, path, reply, typeof reply)
   return reply ? reply[0] : reply
 }

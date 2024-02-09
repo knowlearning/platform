@@ -136,7 +136,7 @@ async function syncTables(domain, tables, report) {
   //  TODO: do in chunks...
   for (let idNum = 0; idNum < allIds.length; idNum += 1) {
     const id = allIds[idNum]
-    const active_type = await redis.client.json.get(id, { path: [`$.active_type`] })
+    const active_type = await redis.getJSON(id, `$["active_type"]`)
     if (!typeGroups[active_type]) typeGroups[active_type] = []
     typeGroups[active_type].push(id)
   }

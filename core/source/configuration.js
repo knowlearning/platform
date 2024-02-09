@@ -23,7 +23,7 @@ export async function domainAdmin(domain) {
     if (parts.length === 2) return parts[0]
   }
 
-  const path = `$.active["${domain}"]`
+  const path = `$["active"]["${domain}"]`
   const res = await redis.getJSON(DOMAIN_CONFIG_SCOPE, path)
   return res ? res.admin : null
 }
@@ -34,7 +34,7 @@ export default async function configuration(domain) {
   if (cache[domain]) return cache[domain]
 
   try {
-    const path = `$.active["${domain}"]`
+    const path = `$["active"]["${domain}"]`
     const domainConfig = await redis.getJSON('domain-config', path)
 
     if (domainConfig) {

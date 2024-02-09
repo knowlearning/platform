@@ -16,7 +16,8 @@ export default async function sync(domain, active_type, scope) {
 
   if (tableNames.length === 0) return syncMetadata(scope)
 
-  const state = await redis.client.json.get(scope)
+  const state = await redis.getJSON(scope)
+  console.log('Syncing state.............', domain, active_type, scope)
 
   if (!state) throw new Error(`TRYING TO ADD ROW FOR NON-EXISTENT SCOPE ${domain} ${table} ${id}`)
 
@@ -40,7 +41,7 @@ async function syncMetadata(scope) {
 
   //  TODO: multiple gets in one redis command
   const values = await Promise.all(
-    columns.map(name => redis.getJSON(scope, `$.${name}`))
+    columns.map(name => redis.getJSON(scope, `$[${JSON.stringify(name)}]`))
   )
 
   // use date format for created and updated
