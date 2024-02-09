@@ -133,7 +133,7 @@ async function createFunction(domain, name, definition) {
   //  TODO: handle args
 
   //  use random delimiter to prevent injection
-  const delimiter = randomBytes(32).toString('hex')
+  const delimiter = randomBytes(32, 'hex')
   const args = (
     definition
       .arguments

@@ -21,7 +21,7 @@ const initialConfig = Promise.all([
 ])
 
 function generateSid() {
-  return randomBytes(16).toString('hex')
+  return randomBytes(16, 'hex')
 }
 
 Deno.serve({
@@ -39,6 +39,8 @@ Deno.serve({
   else if (request.headers.get("upgrade") != "websocket") {
     return new Response(null, { status: 501 })
   }
+
+  console.log('UPGRADING WEBSOCKET!')
 
   const { socket, response } = Deno.upgradeWebSocket(request, { idleTimeout: 10 })
   

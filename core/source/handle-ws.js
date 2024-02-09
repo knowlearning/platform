@@ -37,8 +37,10 @@ export default async function handleWebsocket(ws, upgradeReq) {
 
   function send(message) {
     responseBuffers[session].push(message)
-    activeWebsockets[session].send(JSON.stringify(message))
-    heartbeat()
+    if (activeWebsockets[session].readyState === 1) {
+      activeWebsockets[session].send(JSON.stringify(message))
+      heartbeat()
+    }
   }
 
   ws.addEventListener('message', async ({ data }) => {

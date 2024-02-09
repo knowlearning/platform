@@ -8,10 +8,15 @@ import nacl from 'npm:tweetnacl'
 import { Storage as createGCSClient } from 'npm:@google-cloud/storage'
 import { exists as fileExists } from "https://deno.land/std/fs/mod.ts"
 import { getCookies, setCookie } from 'https://deno.land/std@0.214.0/http/cookie.ts'
+import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
 
 const { box } = nacl
 const uuid = () => crypto.randomUUID()
-const randomBytes = size => crypto.getRandomValues(new Uint8Array(size))
+const randomBytes = (size, encoding) => {
+  const bytes = crypto.getRandomValues(new Uint8Array(size))
+  if (encoding === 'hex') return encodeToString(bytes)
+  else return bytes
+}
 const environment = Deno.env.toObject()
 const writeFile = Deno.writeFile
 const cryptoDigest = (algorithm, data) => crypto.subtle.digest(algorithm, data)
