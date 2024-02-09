@@ -1,7 +1,7 @@
 import { jwt, jwkToPem, uuid, environment } from '../utils.js'
 import interact from '../interact/index.js'
 import { query } from '../postgres.js'
-import { encryptSymmetric, decryptSymmetric } from '../encryption.js'
+import { encryptSymmetric, decryptSymmetric } from '../utils.js'
 import * as hash from './hash.js'
 
 const {
@@ -71,9 +71,9 @@ const {
   }
 } = JSON.parse(CLASSLINK_OAUTH_CLIENT_CREDENTIALS)
 
-function decryptAndParseSessionInfo(key, encrypted) {
+async function decryptAndParseSessionInfo(key, encrypted) {
   try {
-    return JSON.parse(decryptSymmetric(key, encrypted))
+    return JSON.parse(await decryptSymmetric(key, encrypted))
   }
   catch (error) {
     console.warn(error)
@@ -95,7 +95,7 @@ export default async function authenticate(message, domain, sid) {
             user: rows[0].user_id,
             provider: rows[0].provider,
             session: message.session,
-            info: decryptAndParseSessionInfo(sid, rows[0].sid_encrypted_info)
+            info: await decryptAndParseSessionInfo(sid, rows[0].sid_encrypted_info)
           }
         }
       }
@@ -137,7 +137,7 @@ export default async function authenticate(message, domain, sid) {
     //        just not associating with session_credential
     //        'anonymous-ephemeral' tokens are used in tests to create multiple agents in the
     //        same browser tab
-    const sid_encrypted_info = encryptSymmetric(sid, JSON.stringify(info))
+    const sid_encrypted_info = await encryptSymmetric(sid, JSON.stringify(info))
     await saveSession(domain, session, session_credential, user, provider, sid_encrypted_info)
   }
 

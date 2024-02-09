@@ -32,8 +32,6 @@ export default async function sync(domain, active_type, scope) {
   await syncMetadata(scope)
 }
 
-const { ADMIN_DOMAIN } = process.env
-
 async function syncMetadata(scope) {
   const pathified = name => `$.${name}`
   const columns = ['active_type', 'domain', 'name', 'updated', 'created', 'owner', 'ii', 'active_size', 'storage_size']

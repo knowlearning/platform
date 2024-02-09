@@ -4,19 +4,7 @@ const HEARTBEAT_INTERVAL = 5000
 export default function monitorWsConnetion(ws) {
   // Listen for pong messages from the client
   let isAlive, heartbeatTimeout
-  ws.on('pong', () => isAlive = true)
-  ws.on('close', () => isAlive = false)
-
-  function ping() {
-    if (isAlive === false) return
-
-    ws.ping()
-    isAlive = null
-    setTimeout(
-      () => isAlive ? ping() : ws.terminate(),
-      PING_INTERVAL
-    )
-  }
+  ws.addEventListener('close', () => isAlive = false)
 
   function heartbeat() {
     clearTimeout(heartbeatTimeout)
@@ -32,7 +20,6 @@ export default function monitorWsConnetion(ws) {
   }
 
   heartbeat()
-  ping()
 
   return heartbeat
 }

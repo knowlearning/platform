@@ -1,4 +1,4 @@
-import { randomBytes, pg } from './utils.js'
+import { randomBytes, pg, environment } from './utils.js'
 
 // necessary to ensure that
 function purifiedName(name) {
@@ -16,7 +16,7 @@ const {
   POSTGRES_HOST,
   POSTGRES_PORT,
   POSTGRES_PASSWORD
-} = process.env
+} = environment
 
 const constantMap = {
   PLpgSQL: 'PLpgSQL',

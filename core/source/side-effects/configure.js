@@ -1,4 +1,4 @@
-import { uuid, parseYAML } from '../utils.js'
+import { uuid, parseYAML, environment } from '../utils.js'
 import { domainAdmin } from '../configuration.js'
 import * as redis from '../redis.js'
 import * as postgres from '../postgres.js'
@@ -31,6 +31,10 @@ INSERT INTO ${postgres.purifiedName(table)}
     ${ columns.map(postgres.purifiedName).map(name => `${name} = excluded.${name}`).join(',\n     ') }
 `
 
+const MAX_PARAMS_IN_BATCH = 10_000
+
+const { ADMIN_DOMAIN, MODE } = environment
+
 //  TODO: probably want to abstract this and allow different types
 //        to help with removing privaleged named states
 function coreState(user, id, domain) {
@@ -40,10 +44,6 @@ function coreState(user, id, domain) {
     interact(domain, user, id, patch)
   })
 }
-
-const MAX_PARAMS_IN_BATCH = 10_000
-
-const { ADMIN_DOMAIN, MODE } = process.env
 
 async function isAdmin(user, requestingDomain, requestedDomain) {
   return (

@@ -21,6 +21,9 @@ RUN npm install \
   acme-client@5.0.0
 
 # Copy local code to the container image.
+COPY ./core/source/utils.js ./core/source/utils.js
+RUN deno cache ./core/source/utils.js
+
 COPY ./core/source ./core/source
 COPY ./client ./client
 
