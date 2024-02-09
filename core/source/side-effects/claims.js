@@ -1,6 +1,4 @@
-import { promises as dnsPromises } from 'dns'
-import crypto from 'crypto'
-import { v4 as uuid } from 'uuid'
+import { environment, uuid, randomBytes } from '../utils.js'
 import interact from '../interact/index.js'
 import * as redis from '../redis.js'
 import initializationState from '../initialization-state.js'
@@ -8,7 +6,7 @@ import MutableProxy from '../../../client/persistence/json.js'
 
 const CHALLENGE_TIMEOUT_LIMIT = 1000 * 60 * 5
 
-const { MODE, ADMIN_DOMAIN } = process.env
+const { MODE, ADMIN_DOMAIN } = environment
 
 //  TODO: remove need for core to have initialization state and rely on
 //        side effects for individual application/json;type=claim scopes
@@ -33,7 +31,7 @@ export default function claims({ domain, user, session, scope, patch, si, ii, se
       const { path, value } = patch[index]
       console.log('CHECKING CLAIM PATCH', domain, user, patch[index])
       if (path.length === 1 && path[0] === 'active') {
-        const token = crypto.randomBytes(64).toString('hex')
+        const token = randomBytes(64).toString('hex')
         const claimedDomain = value.domain //  TODO: graceful fail
 
         //  Make sure the domain config is initialized
@@ -111,6 +109,6 @@ async function passDNSOrHTTPChallenge(domain, user, token, report) {
 }
 
 async function resolveTXT(domain) {
-  try { return await dnsPromises.resolveTxt(domain).then(r => r.flat()) }
+  try { return await Deno.resolveDns(domain, 'TXT').then(r => r.flat()) }
   catch (err) { return [] }
 }

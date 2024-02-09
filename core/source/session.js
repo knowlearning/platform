@@ -1,3 +1,3 @@
-import { v1 as uuid } from 'uuid'
+import { uuid } from './utils.js'
 
 export default uuid()

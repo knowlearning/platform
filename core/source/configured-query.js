@@ -1,7 +1,8 @@
+import { environment } from './utils.js'
 import * as postgres from './postgres.js'
 import configuration, { domainAdmin } from './configuration.js'
 
-const { MODE, ADMIN_DOMAIN } = process.env
+const { MODE, ADMIN_DOMAIN } = environment
 
 export default async function (requestingDomain, targetDomain, queryName, params, user) {
   if (requestingDomain === ADMIN_DOMAIN && targetDomain !== requestingDomain && ( MODE === 'local' || user === await domainAdmin(targetDomain))) {

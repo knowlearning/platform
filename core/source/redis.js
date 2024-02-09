@@ -1,4 +1,4 @@
-import { createClient } from 'redis'
+import { createRedisClient } from './utils.js'
 
 const {
   REDIS_HOST,
@@ -14,8 +14,8 @@ const clientConnectionInfo = {
   password: REDIS_SERVICE_ACCOUNT_CREDENTIALS
 }
 
-const client = createClient(clientConnectionInfo)
-const subscriptions = createClient(clientConnectionInfo)
+const client = createRedisClient(clientConnectionInfo)
+const subscriptions = createRedisClient(clientConnectionInfo)
 
 client.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
 subscriptions.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))

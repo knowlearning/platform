@@ -1,5 +1,4 @@
-import { Storage } from '@google-cloud/storage'
-import { v4 as uuid } from 'uuid'
+import { createGCSClient, uuid } from './utils.js'
 import * as redis from './redis.js'
 
 const DOWNLOAD_RETRY_INTERVAL = 1000
@@ -25,7 +24,7 @@ const directedURL = (url, internal) => {
   else return url
 }
 
-const storage = new Storage({
+const storage = new createGCSClient({
   apiEndpoint: INTERNAL_GCS_API_ENDPOINT,
   projectId: process.env.GC_PROJECT_ID,
   credentials: JSON.parse(process.env.GCS_SERVICE_ACCOUNT_CREDENTIALS)

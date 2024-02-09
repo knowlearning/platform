@@ -1,10 +1,10 @@
-import { validate as isUUID, v4 as uuid } from 'uuid'
+import { isUUID, uuid, environment } from './utils.js'
 import initializationState from './initialization-state.js'
 import * as redis from './redis.js'
 import * as postgres from './postgres.js'
 import sync from './interact/sync.js'
 
-const { ADMIN_DOMAIN } = process.env
+const { ADMIN_DOMAIN } = environment
 
 export default async function (domain, user, scope) {
   if (isUUID(scope)) {

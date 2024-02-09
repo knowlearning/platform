@@ -1,8 +1,4 @@
-import fs from 'fs'
-import { v4 as uuid } from 'uuid'
-import jwkToPem from 'jwk-to-pem'
-import jwt from 'jsonwebtoken'
-import https from 'https'
+import { jwt, jwkToPem, uuid, environment } from '../utils.js'
 import interact from '../interact/index.js'
 import { query } from '../postgres.js'
 import { encryptSymmetric, decryptSymmetric } from '../encryption.js'
@@ -13,7 +9,7 @@ const {
   GOOGLE_OAUTH_CLIENT_CREDENTIALS,
   MICROSOFT_OAUTH_CLIENT_CREDENTIALS,
   CLASSLINK_OAUTH_CLIENT_CREDENTIALS
-} = process.env
+} = environment
 
 const JWKS_ENDPOINTS = {
   google: 'https://accounts.google.com/.well-known/openid-configuration',
@@ -223,6 +219,7 @@ const authenticateToken = (token, authority) => new Promise( async (resolve, rej
 })
 
 async function coreVerfication(token, resolve, reject) {
+  throw new Error('TODO: consider core verification')
   const kid = kidFromToken(token)
 
   const ownToken = await fs.promises.readFile('/var/run/secrets/kubernetes.io/serviceaccount/token')

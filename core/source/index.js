@@ -1,13 +1,12 @@
+import { environment } from './utils.js'
 import { createServer as createServerHTTP } from 'http'
 import { createServer as createServerHTTPS } from 'https'
-import crypto from 'crypto'
 import { WebSocketServer } from 'ws'
 import * as redis from './redis.js'
 import { decrypt } from './encryption.js'
 import handleWS from './handle-ws.js'
 import { applyConfiguration, ensureDomainConfigured } from './side-effects/configure.js'
 import ADMIN_DOMAIN_CONFIG from './admin-domain-config.js'
-import compressionLoop from './compress/loop.js'
 
 const {
   MODE,
@@ -17,7 +16,7 @@ const {
   SECRET_ENCRYPTION_KEY,
   TLS_PORT,
   ADMIN_DOMAIN
-} = process.env
+} = environment
 
 const credentials = {
   cert: INSECURE_DEVELOPMENT_CERT,

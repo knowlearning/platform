@@ -1,5 +1,4 @@
-import crypto from 'crypto'
-import pg from 'pg'
+import { randomBytes, pg } from './utils.js'
 
 // necessary to ensure that
 function purifiedName(name) {
@@ -134,7 +133,7 @@ async function createFunction(domain, name, definition) {
   //  TODO: handle args
 
   //  use random delimiter to prevent injection
-  const delimiter = crypto.randomBytes(32).toString('hex')
+  const delimiter = randomBytes(32).toString('hex')
   const args = (
     definition
       .arguments

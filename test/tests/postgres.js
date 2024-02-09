@@ -112,6 +112,10 @@ authorize:
     postgres: same_domain_authorization
   crossDomain:
     postgres: cross_domain_authorization
+sideEffects:
+- type: application/json;type=side-effect-test
+  script: |
+    console.log('HELLO DENO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 postgres:
   tables:
     test_table_2:

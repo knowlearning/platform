@@ -1,4 +1,4 @@
-import { validate as isUUID, v4 as uuid } from 'uuid'
+import { uuid, isUUID } from './utils.js'
 import authenticate from './authenticate/index.js'
 import authorize from './authorize.js'
 import interact from './interact/index.js'
@@ -7,11 +7,14 @@ import monitorWsConnection from './monitor-ws-connection.js'
 import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
+import configuration from './configuration.js'
 import configuredQuery from './configured-query.js'
 import * as redis from './redis.js'
 import initializationState from './initialization-state.js'
 import subscriptions from './subscriptions.js'
 import subscribe from './subscribe.js'
+import { exec } from 'child_process'
+import { promises as fs } from 'fs'
 
 const sessionMessageIndexes = {}
 const responseBuffers = {}
@@ -103,22 +106,7 @@ export default async function handleWebsocket(ws, upgradeReq) {
   })
 }
 
-// let currentMessagePromise = null
-
-// TODO: don't need to dereference ack in params
 async function processMessage(domain, user, session, namedScopeCache, { scope, patch, si }, send) {
-/* TODO: decide if we want to allow special "synced" mode
-  if (si) console.log('QUEUING', si)
-  const prevMessagePromise = currentMessagePromise
-  let resolve
-  currentMessagePromise = new Promise(r => resolve = r)
-  await prevMessagePromise
-  console.log('PROCESSING', si)
-*/
-
-  //  TODO: make sure to handle multiple member patches
-  //  TODO: consider removing client based timestamp
-
   if (si !== sessionMessageIndexes[session] + 1) {
     console.warn(`SKIPPING MESSAGE INDEX! TODO: INVESTIGATE CAUSE ${sessionMessageIndexes[session]} -> ${si}`)
   }
@@ -176,8 +164,46 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
     await sideEffect({ domain, user, session, scope: id, patch, si, ii, send })
   }
 
-/*
-  console.log('DONE PROCESSING', si)
-  resolve()
-*/
+  const config = await configuration(domain)
+  const sideEffect = config?.sideEffects?.filter(({ type }) => type === active_type)
+  if (sideEffect && sideEffect.length) {
+    //  TODO: run all the side effects
+    const { script } = sideEffect[0]
+    console.log('SIDE EFFECT?', sideEffect[0])
+    if (!scriptCache[script]) {
+      scriptCache[script] = new Promise(async resolve => {
+        const filename = `./${uuid()}.js`
+        const exists = (
+          await fs
+            .access(filename, fs.constants.F_OK)
+            .then(() => true)
+            .catch(() => false)
+        )
+        if (!exists) await fs.writeFile(filename, script)
+        await new Promise((resolve, reject) => {
+          exec(`deno cache ${filename}`, (error, stdout, stderr) => {
+            if (error) console.warn('ERROR CACHING SCRIPT')
+            resolve()
+          })
+        })
+        resolve(filename)
+      })
+    }
+    const filename = await scriptCache[sideEffect[0].script]
+    exec(`deno run --allow-env=SERVE_HOST,SERVICE_ACCOUNT_TOKEN ${filename}`, logResults)
+  }
+}
+
+const scriptCache = {}
+
+function logResults(error, stdout, stderr) {
+  if (error) {
+    console.error(`Error running command: ${error.message}`)
+    return
+  }
+  if (stderr) {
+    console.error(`Command execution produced an error: ${stderr}`)
+    return
+  }
+  console.log(`Command output: ${stdout}`)
 }
