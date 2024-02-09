@@ -23,8 +23,8 @@ export default async function handleWebsocket(ws, upgradeReq) {
   const sid = getCookies(upgradeReq.headers).sid
 
   const namedScopeCache = {}
-  const origin = upgradeReq.headers.origin || 'https://core'  //  TODO: domain should probably be "development", "staging" or "production" based on mode...
-  const { host: domain } = new URL(upgradeReq.url, origin)
+  const origin = upgradeReq.headers.get('origin') || 'https://core'  //  TODO: domain should probably be "development", "staging" or "production" based on mode...
+  const { host: domain } = new URL(origin)
 
   ensureDomainConfigured(domain)
 
