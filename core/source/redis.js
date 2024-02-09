@@ -17,7 +17,6 @@ const clientConnectionInfo = {
 const client = createRedisClient(clientConnectionInfo)
 const subscriptions = createRedisClient(clientConnectionInfo)
 
-console.log(client)
 client.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
 subscriptions.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
 

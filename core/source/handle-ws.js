@@ -18,20 +18,13 @@ const sessionMessageIndexes = {}
 const responseBuffers = {}
 const activeWebsockets = {}
 
-export default async function handleWebsocket(ws, upgradeReq) {
+export default async function handleWebsocket(ws, domain, sid) {
   let user, session, provider
-  const sid = getCookies(upgradeReq.headers).sid
 
   const namedScopeCache = {}
-  const origin = upgradeReq.headers.get('origin') || 'https://core'  //  TODO: domain should probably be "development", "staging" or "production" based on mode...
-  const { host: domain } = new URL(origin)
-
-  ensureDomainConfigured(domain)
-
-  if (!sid) {
-    console.warn(`Closing websocket due to missing sid for connection in domain: ${domain}`)
-    ws.close()
-  }
+  console.log('ENSURING DOMAIN CONFIGURED', domain)
+  await ensureDomainConfigured(domain)
+  console.log('DOMAIN CONFIGURED!!!', domain)
 
   const heartbeat = monitorWsConnection(ws)
 
@@ -53,9 +46,13 @@ export default async function handleWebsocket(ws, upgradeReq) {
       return
     }
 
+    console.log('GOT MESSAGE', message)
+
     if (!user) {
       try {
+        console.log('AUTHENTICATING USER', domain)
         const authResponse = await authenticate(message, domain, sid)
+        console.log('AUTHENTICATED', authResponse, domain)
         user = authResponse.user
         provider = authResponse.provider
         session = authResponse.session
@@ -76,7 +73,7 @@ export default async function handleWebsocket(ws, upgradeReq) {
         responseBuffers[session].forEach(r => ws.send(JSON.stringify(r)))
       }
       catch (error) {
-        console.log(error)
+        console.log('Error Authorizing Agent', error)
         ws.send(JSON.stringify({ error: 'First Message Must Be A Valid Auth Message' }))
         ws.close()
       }
@@ -125,6 +122,7 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
           const { scope: subscribedScope, user:scopeUser=user, domain:scopeDomain=domain } = value
 
           const id = await scopeToId(scopeDomain, scopeUser, subscribedScope)
+          console.log('AUTHORIZING', domain, user, scope)
           if (await authorize(user, domain, id)) {
             if (!subscriptions[session]) subscriptions[session] = {}
 

@@ -96,7 +96,7 @@ else {
   if (embedLevel < 3) {
     mocha.run()
     describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, function () {
-//      if (!Agent.embedded) postgres()
+      if (!Agent.embedded) postgres()
       if (!Agent.embedded) sideEffects()
       stateTest()
       environmentTest()

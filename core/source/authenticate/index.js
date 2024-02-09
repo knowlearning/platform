@@ -110,7 +110,7 @@ export default async function authenticate(message, domain, sid) {
         return { user, provider, session, info }
       }
     }
-    catch (error) { console.warn('error reconnecting session', error) }
+    catch (error) { console.warn('error reconnecting session', domain, message, error) }
   }
 
   let authority
