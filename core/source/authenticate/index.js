@@ -122,6 +122,7 @@ export default async function authenticate(message, domain, sid) {
   else authority = 'JWT'
 
   const session = uuid()
+  console.log('Authenticating token', message.token)
   const { user, provider, provider_id, info } = await authenticateToken(message.token, authority)
   console.log('NEW SESSION FOR USER', user, domain, session)
 

@@ -95,12 +95,22 @@ export default async function handleWebsocket(ws, domain, sid) {
 }
 
 async function processMessage(domain, user, session, namedScopeCache, { scope, patch, si }, send) {
+  await redis.connected
+
+  const originalSend = send
+  send = message => {
+    console.log('DONE PROCESSING MESSAGE', domain, user, si, message)
+    originalSend(message)
+  }
+  console.log('PROCESSING MESSAGE', domain, user, si)
   if (si !== sessionMessageIndexes[session] + 1) {
     console.warn(`SKIPPING MESSAGE INDEX! TODO: INVESTIGATE CAUSE ${sessionMessageIndexes[session]} -> ${si}`)
   }
   sessionMessageIndexes[session] = si
 
+  console.log('RESOLVING SCOPE TO ID', domain, user, si, scope, patch)
   const id = namedScopeCache[scope] || await scopeToId(domain, user, scope)
+  console.log('RESOLVEED SCOPE TO ID', domain, user, si, scope, patch)
 
   if (id !== scope) namedScopeCache[scope] = id
 
@@ -120,7 +130,7 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
         }
         else if (path[2] === 'subscriptions') {
           const { scope: subscribedScope, user:scopeUser=user, domain:scopeDomain=domain } = value
-
+          console.log('RESOLVING SCOPE TO ID 2', domain, user)
           const id = await scopeToId(scopeDomain, scopeUser, subscribedScope)
           console.log('AUTHORIZING', domain, user, scope)
           if (await authorize(user, domain, id)) {
@@ -150,7 +160,9 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
   }
   else {
     const sideEffect = sideEffects[active_type] || (() => send({ si, ii }))
+    console.log('awaiting side effect.....', si)
     await sideEffect({ domain, user, session, scope: id, patch, si, ii, send })
+    console.log('did side effect..........', si)
   }
 
   const config = await configuration(domain)
