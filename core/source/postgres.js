@@ -67,7 +67,6 @@ async function client(domain) {
       client
         .connect()
         .then(() => {
-          console.log('GOT POSTGRES CLIENT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', domain)
           resolve(client)
           query(domain, 'CREATE EXTENSION IF NOT EXISTS plpgsql')
         })

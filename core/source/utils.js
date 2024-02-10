@@ -19,7 +19,7 @@ const randomBytes = (size, encoding) => {
   else return bytes
 }
 const environment = Deno.env.toObject()
-const writeFile = Deno.writeFile
+const writeFile = (filename, data) => Deno.writeFile(filename, (new TextEncoder()).encode(data))
 const cryptoDigest = (algorithm, data) => crypto.subtle.digest(algorithm, data)
 
 async function getKey(password) {

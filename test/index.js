@@ -97,7 +97,7 @@ else {
     mocha.run()
     describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, function () {
       if (!Agent.embedded) postgres()
-//      if (!Agent.embedded) sideEffects()
+      if (!Agent.embedded) sideEffects()
       stateTest()
       environmentTest()
       metadata()

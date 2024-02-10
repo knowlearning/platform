@@ -154,32 +154,23 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
     const { script } = sideEffect[0]
     if (!scriptCache[script]) {
       scriptCache[script] = new Promise(async resolve => {
-        const filename = `./${uuid()}.js`
+        const filename = `/core/source/${uuid()}.js`
         await writeFile(filename, script)
-        await new Promise((resolve, reject) => {
-          exec(`deno cache ${filename}`, (error, stdout, stderr) => {
-            if (error) console.warn('ERROR CACHING SCRIPT')
-            resolve()
-          })
-        })
         resolve(filename)
       })
     }
     const filename = await scriptCache[sideEffect[0].script]
-    exec(`deno run --allow-env=SERVE_HOST,SERVICE_ACCOUNT_TOKEN ${filename}`, logResults)
+    startWorker(filename, domain)
   }
 }
 
 const scriptCache = {}
 
-function logResults(error, stdout, stderr) {
-  if (error) {
-    console.error(`Error running command: ${error.message}`)
-    return
-  }
-  if (stderr) {
-    console.error(`Command execution produced an error: ${stderr}`)
-    return
-  }
-  console.log(`Command output: ${stdout}`)
+function startWorker(filename, domain) {
+  const workerUrl = new URL(filename, import.meta.url).href
+  console.log('RUNNING WORKER!!!!!!!!!!!!!!!!', workerUrl)
+  const worker = new Worker(workerUrl, { type: "module", })
+  worker.onerror = event => console.log('Worker ERROR', event)
+  worker.onmessage = event => console.log("RECEIVED FROM DOMAIN AGENT", domain, event)
+  worker.postMessage({ data: "hello from parent!" })
 }

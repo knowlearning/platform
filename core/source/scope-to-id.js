@@ -19,8 +19,6 @@ export default async function (domain, user, scope) {
   const mostRecentNamedScope = 'SELECT id FROM metadata WHERE domain = $1 AND name = $2 AND owner = $3 ORDER BY created DESC'
   let { rows: [response] } = await postgres.query(domain, mostRecentNamedScope, [domain, scope, user])
 
-  console.log('ID FOR SCOPE!!!!!!!!!!!!!', scope, response, typeof response, domain, user)
-
   if (response) return response.id
 
   const id = uuid()
