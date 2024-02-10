@@ -1,4 +1,4 @@
-import { randomBytes, pg, environment } from './utils.js'
+import { randomBytes, pg, environment, escapePostgresLiteral } from './utils.js'
 
 // necessary to ensure that
 function purifiedName(name) {
@@ -54,7 +54,7 @@ async function client(domain) {
       await query('postgres', `CREATE DATABASE "${database}"`)
     }
     catch (error) {
-      if (!ignorableErrors[error.code]) {
+      if (!ignorableErrors[error.fields.code]) {
         console.log('ERROR CREATING DATABASE!!!!!', error)
       }
     }
@@ -167,12 +167,12 @@ async function deleteFunction(domain, name) {
   //  This ensures all previously declared functions will be removed
   const q = `DO $$
     DECLARE
-      function_id TEXT;
+      function_id    TEXT;
     BEGIN
       FOR function_id IN
         SELECT oid::regprocedure
         FROM pg_proc
-        WHERE proname = ${pg.escapeLiteral(name)}
+        WHERE proname = ${escapePostgresLiteral(name)}
         AND pg_function_is_visible(oid)
       LOOP
         EXECUTE 'DROP FUNCTION IF EXISTS ' || function_id || ';';

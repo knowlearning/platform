@@ -34,7 +34,11 @@ export default async function (requestingDomain, targetDomain, queryName, params
         }
       })
 
-    return postgres.query(targetDomain, queryBody, queryParams, true)
+    return postgres.query(targetDomain, queryBody, queryParams, true).catch(error => {
+      const e = new Error(error.fields.message)
+      e.code = error.fields.code
+      throw e
+    })
   }
   else {
     const error = new Error(`No query named "${queryName}" in ${targetDomain}`)

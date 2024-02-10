@@ -22,9 +22,7 @@ export default async function handleWebsocket(ws, domain, sid) {
   let user, session, provider
 
   const namedScopeCache = {}
-  console.log('ENSURING DOMAIN CONFIGURED', domain)
   await ensureDomainConfigured(domain)
-  console.log('DOMAIN CONFIGURED!!!', domain)
 
   const heartbeat = monitorWsConnection(ws)
 
@@ -46,13 +44,9 @@ export default async function handleWebsocket(ws, domain, sid) {
       return
     }
 
-    console.log('GOT MESSAGE', message)
-
     if (!user) {
       try {
-        console.log('AUTHENTICATING USER', domain)
         const authResponse = await authenticate(message, domain, sid)
-        console.log('AUTHENTICATED', authResponse, domain)
         user = authResponse.user
         provider = authResponse.provider
         session = authResponse.session
@@ -97,20 +91,12 @@ export default async function handleWebsocket(ws, domain, sid) {
 async function processMessage(domain, user, session, namedScopeCache, { scope, patch, si }, send) {
   await redis.connected
 
-  const originalSend = send
-  send = message => {
-    console.log('DONE PROCESSING MESSAGE', domain, user, si, message)
-    originalSend(message)
-  }
-  console.log('PROCESSING MESSAGE', domain, user, si)
   if (si !== sessionMessageIndexes[session] + 1) {
     console.warn(`SKIPPING MESSAGE INDEX! TODO: INVESTIGATE CAUSE ${sessionMessageIndexes[session]} -> ${si}`)
   }
   sessionMessageIndexes[session] = si
 
-  console.log('RESOLVING SCOPE TO ID', domain, user, si, scope, patch)
   const id = namedScopeCache[scope] || await scopeToId(domain, user, scope)
-  console.log('RESOLVEED SCOPE TO ID', domain, user, si, scope, patch)
 
   if (id !== scope) namedScopeCache[scope] = id
 
@@ -123,16 +109,14 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
           const { query, params=[], domain:targetDomain=domain } = value
           const queryId = path[3]
           const queryStart = Date.now()
-          const { rows, fields } = await configuredQuery(domain, targetDomain, query, params, user)
+          const { rows } = await configuredQuery(domain, targetDomain, query, params, user)
           const metricsPatch = [{ op: 'add', path: ['active', session, 'query', queryId, 'core_latency'], value: Date.now() - queryStart }]
           interact(domain, user, id, metricsPatch)
-          send({ si, ii, rows, columns: fields.map(f => f.name) })
+          send({ si, ii, rows })
         }
         else if (path[2] === 'subscriptions') {
           const { scope: subscribedScope, user:scopeUser=user, domain:scopeDomain=domain } = value
-          console.log('RESOLVING SCOPE TO ID 2', domain, user)
           const id = await scopeToId(scopeDomain, scopeUser, subscribedScope)
-          console.log('AUTHORIZING', domain, user, scope)
           if (await authorize(user, domain, id)) {
             if (!subscriptions[session]) subscriptions[session] = {}
 
@@ -160,9 +144,7 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
   }
   else {
     const sideEffect = sideEffects[active_type] || (() => send({ si, ii }))
-    console.log('awaiting side effect.....', si)
     await sideEffect({ domain, user, session, scope: id, patch, si, ii, send })
-    console.log('did side effect..........', si)
   }
 
   const config = await configuration(domain)
@@ -170,7 +152,6 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
   if (sideEffect && sideEffect.length) {
     //  TODO: run all the side effects
     const { script } = sideEffect[0]
-    console.log('SIDE EFFECT?', sideEffect[0])
     if (!scriptCache[script]) {
       scriptCache[script] = new Promise(async resolve => {
         const filename = `./${uuid()}.js`
