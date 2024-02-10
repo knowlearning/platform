@@ -1,4 +1,3 @@
-import { uuid, isUUID, writeFile, getCookies } from './utils.js'
 import authenticate from './authenticate/index.js'
 import authorize from './authorize.js'
 import interact from './interact/index.js'
@@ -7,12 +6,12 @@ import monitorWsConnection from './monitor-ws-connection.js'
 import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
-import configuration from './configuration.js'
 import configuredQuery from './configured-query.js'
 import * as redis from './redis.js'
 import initializationState from './initialization-state.js'
 import subscriptions from './subscriptions.js'
 import subscribe from './subscribe.js'
+import domainSideEffects from './domain-side-effects.js'
 
 const sessionMessageIndexes = {}
 const responseBuffers = {}
@@ -147,30 +146,5 @@ async function processMessage(domain, user, session, namedScopeCache, { scope, p
     await sideEffect({ domain, user, session, scope: id, patch, si, ii, send })
   }
 
-  const config = await configuration(domain)
-  const sideEffect = config?.sideEffects?.filter(({ type }) => type === active_type)
-  if (sideEffect && sideEffect.length) {
-    //  TODO: run all the side effects
-    const { script } = sideEffect[0]
-    if (!scriptCache[script]) {
-      scriptCache[script] = new Promise(async resolve => {
-        const filename = `/core/source/${uuid()}.js`
-        await writeFile(filename, script)
-        resolve(filename)
-      })
-    }
-    const filename = await scriptCache[sideEffect[0].script]
-    startWorker(filename, domain)
-  }
-}
-
-const scriptCache = {}
-
-function startWorker(filename, domain) {
-  const workerUrl = new URL(filename, import.meta.url).href
-  console.log('RUNNING WORKER!!!!!!!!!!!!!!!!', workerUrl)
-  const worker = new Worker(workerUrl, { type: "module", })
-  worker.onerror = event => console.log('Worker ERROR', event)
-  worker.onmessage = event => console.log("RECEIVED FROM DOMAIN AGENT", domain, event)
-  worker.postMessage({ data: "hello from parent!" })
+  await domainSideEffects(domain, active_type)
 }
