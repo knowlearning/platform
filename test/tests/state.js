@@ -23,8 +23,6 @@ export default function () {
 
       const agent1Env = await Agent.environment()
 
-      const secondAgentRetrievedState1 = await Agent2.state(name, agent1Env.auth.user)
-
       const state = await Agent.state(name)
       state.x = 100
       state.y = 200
