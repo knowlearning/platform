@@ -6,25 +6,46 @@ import sync from './interact/sync.js'
 
 const { ADMIN_DOMAIN } = environment
 
-export default async function (domain, user, scope) {
-  if (isUUID(scope)) {
+const MOST_RECENT_NAMED_SCOPE_QUERY = `
+  SELECT id
+  FROM metadata
+  WHERE domain = $1
+    AND name = $2
+    AND owner = $3
+  ORDER BY created
+  DESC
+`
+const cache = {}
+
+function cacheScope(domain, user, scope, id) {
+  if (!cache[domain]) cache[domain] = {[user]:{[scope]:id}}
+  else if (!cache[domain][user]) cache[domain][user] = {[scope]:id}
+  else if (!cache[domain][user][scope]) cache[domain][user][scope] = id
+}
+
+export default async function scopeToId(domain, user, scope) {
+  if (cache?.[domain]?.[user]?.[scope]) return cache[domain][user][scope]
+  else if (isUUID(scope)) {
     if (await redis.client.exists(scope)) return scope
 
     const state = initializationState(domain, user, scope)
     await redis.client.json.set(scope, '$', state, { NX: true })
-    await sync(domain, user, scope)
+    await sync(domain, user, state.active_type, scope)
     return scope
   }
 
-  const mostRecentNamedScope = 'SELECT id FROM metadata WHERE domain = $1 AND name = $2 AND owner = $3 ORDER BY created DESC'
-  let { rows: [response] } = await postgres.query(domain, mostRecentNamedScope, [domain, scope, user])
+  const { rows: [response] } = await postgres.query(domain, MOST_RECENT_NAMED_SCOPE_QUERY, [domain, scope, user])
 
-  if (response) return response.id
-
-  const id = uuid()
-  const state = initializationState(domain, user, scope)
-  await redis.client.json.set(id, '$', state)
-  await sync(domain, user, id)
-
-  return id
+  if (response) {
+    cacheScope(domain, user, scope, response.id)
+    return response.id
+  }
+  else {
+    const id = uuid()
+    cacheScope(domain, user, scope, id)
+    const state = initializationState(domain, user, scope)
+    await redis.client.json.set(id, '$', state)
+    await sync(domain, user, state.active_type, id)
+    return id
+  }
 }

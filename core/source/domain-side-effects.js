@@ -12,7 +12,7 @@ function startWorker(filename, domain) {
   worker.postMessage({ data: "hello from parent!" })
 }
 
-export default async function domainSideEffects(domain, active_type) { 
+export default async function domainSideEffects({ domain, active_type }) {
   const config = await configuration(domain)
   const sideEffect = config?.sideEffects?.filter(({ type }) => type === active_type)
   if (sideEffect && sideEffect.length) {

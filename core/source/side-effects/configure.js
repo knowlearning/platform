@@ -53,7 +53,7 @@ async function isAdmin(user, requestingDomain, requestedDomain) {
   )
 }
 
-export default async function ({ domain, user, session, scope, patch, si, ii, send }) {
+export default async function ({ domain, user, session, patch, si, ii, send }) {
   for (let index = 0; index < patch.length; index ++) {
     const { op, path, value } = patch[index]
     if (op === 'add' && path.length === 1 && path[0] === 'active' && await isAdmin(user, domain, value.domain)) {
@@ -61,6 +61,7 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
       await interact('core', 'core', 'domain-config', [
         { op: 'add', path: ['active', value.domain], value: { config, admin: user } }
       ])
+      console.log('AAAAAAAAAAAAAAAAAAADDING CONFIG', value.domain, config)
       const url = await download(config, 3, true)
       const response = await fetch(url)
       if (response.status !== 200) {
@@ -72,6 +73,7 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
       reportState.tasks = {}
       reportState.start = Date.now()
       const configuration = parseYAML(await response.text())
+      console.log('APPLYING CONFIGURATION!!!!!!!!!!', value.domain, configuration)
       applyConfiguration(value.domain, configuration, reportState)
         .then(() => reportState.end = Date.now())
         .catch(error => reportState.error = error.toString())

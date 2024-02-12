@@ -1,9 +1,11 @@
 import * as postgres from '../postgres.js'
 import * as redis from '../redis.js'
 import configuration from '../configuration.js'
+import scopeToId from '../scope-to-id.js'
 
-export default async function sync(domain, active_type, scope) {
+export default async function sync(domain, user, active_type, scope) {
   const config = await configuration(domain)
+  const id = await scopeToId(domain, user, scope)
   const { tables } = config.postgres
 
   const tableNames = (
@@ -13,30 +15,30 @@ export default async function sync(domain, active_type, scope) {
       .map(([name]) => name)
   )
 
-  if (tableNames.length === 0) return syncMetadata(scope)
+  if (tableNames.length === 0) return syncMetadata(id)
 
-  const state = await redis.client.json.get(scope)
+  const state = await redis.client.json.get(id)
 
   if (!state) throw new Error(`TRYING TO ADD ROW FOR NON-EXISTENT SCOPE ${domain} ${table} ${id}`)
 
   await Promise.all(
     tableNames.map(async table => {
       const { columns } = config.postgres.tables[table]
-      const [query, params] = postgres.setRow(domain, table, columns, scope, state)
+      const [query, params] = postgres.setRow(domain, table, columns, id, state)
       await postgres.query(domain, query, params)
     })
   )
 
   //  TODO: once we're sure the metadata table is set up, we can parallelize this sync
   //        with the above
-  await syncMetadata(scope)
+  await syncMetadata(id)
 }
 
-async function syncMetadata(scope) {
+async function syncMetadata(id) {
   const pathified = name => `$.${name}`
   const columns = ['active_type', 'domain', 'name', 'updated', 'created', 'owner', 'ii', 'active_size', 'storage_size']
 
-  const values = await redis.client.json.get(scope, { path: columns.map(pathified) })
+  const values = await redis.client.json.get(id, { path: columns.map(pathified) })
 
   const orderedValues = (
     columns
@@ -62,5 +64,5 @@ async function syncMetadata(scope) {
   `
 
   const domain = values[pathified('domain')][0]
-  await postgres.query(domain, query, [scope, ...orderedValues])
+  await postgres.query(domain, query, [id, ...orderedValues])
 }

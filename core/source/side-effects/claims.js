@@ -25,7 +25,7 @@ function coreState(user, id, domain) {
   })
 }
 
-export default function claims({ domain, user, session, scope, patch, si, ii, send }) {
+export default function claims({ domain, user, session, patch, si, ii, send }) {
   if (domain === ADMIN_DOMAIN || MODE === 'local') { //  can claim from any domain on local
     for (let index = 0; index < patch.length; index ++) {
       const { path, value } = patch[index]
