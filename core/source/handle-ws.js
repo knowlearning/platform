@@ -10,6 +10,7 @@ import domainSideEffects from './domain-side-effects.js'
 const sessionMessageIndexes = {}
 const responseBuffers = {}
 const activeWebsockets = {}
+const outstandingSideEffects = {}
 
 export default async function handleWebsocket(ws, domain, sid) {
   let user, session, provider
@@ -60,8 +61,10 @@ export default async function handleWebsocket(ws, domain, sid) {
       }
       catch (error) {
         console.log('Error Authorizing Agent', error)
-        ws.send(JSON.stringify({ error: 'First Message Must Be A Valid Auth Message' }))
-        ws.close()
+        if (ws.readyState === 1) {
+          ws.send(JSON.stringify({ error: 'First Message Must Be A Valid Auth Message' }))
+          ws.close()
+        }
       }
     }
     else {
@@ -71,16 +74,21 @@ export default async function handleWebsocket(ws, domain, sid) {
           responseBuffers[session].splice(0, responseIndex + 1)
         }
         else {
+
           const { scope, patch, si } = message
 
           if (si !== sessionMessageIndexes[session] + 1) console.warn(`SKIPPING MESSAGE INDEX! TODO: INVESTIGATE CAUSE ${sessionMessageIndexes[session]} -> ${si}`)
 
           sessionMessageIndexes[session] = si
 
+          const resolveCurrentSideEffects = await resolvePreviousSideEffects(domain, user, scope, session)
+
           const { ii, active_type } = await interact(domain, user, scope, patch)
+
           const sideEffectEnvironment = { session, domain, user, scope, active_type, patch, si, ii, send }
           await coreSideEffects(sideEffectEnvironment)
           await domainSideEffects(sideEffectEnvironment)
+          resolveCurrentSideEffects()
         }
       }
       catch (error) {
@@ -89,4 +97,16 @@ export default async function handleWebsocket(ws, domain, sid) {
       }
     }
   })
+}
+
+async function resolvePreviousSideEffects(domain, user, scope, session) {
+  const id = await scopeToId(domain, user, scope)
+
+  await Promise.all(outstandingSideEffects?.[session]?.[id] || [])
+
+  if (!outstandingSideEffects[session]) outstandingSideEffects[session] = {}
+  if (!outstandingSideEffects[session][id]) outstandingSideEffects[session][id] = []
+  let resolveSideEffects
+  outstandingSideEffects[session][id].push(new Promise(resolve => resolveSideEffects = resolve))
+  return resolveSideEffects
 }
