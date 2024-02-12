@@ -40,7 +40,7 @@ export default function () {
 
       await Agent.synced()
       const thirdAgentRetrievedState = await Agent3.state(name, agent1Env.auth.user)
-      expect(state).to.deep.equal(thirdAgentRetrievedState)
+      expect(thirdAgentRetrievedState).to.deep.equal(state)
     })
   })
 }
