@@ -9,6 +9,8 @@ export default function () {
         const expectedValues = [100, 200, 300, 400]
         const seenValues = []
 
+        await Agent.synced()
+        await pause()
         Agent.watch([id, 'x', 'y', 'z'], v => seenValues.push(v))
 
         const state = await Agent.state(id)

@@ -1,6 +1,6 @@
 export default function () {
   describe('Watchers', function () {
-/*
+
     it(
       'Gets the expected number of updates',
       async function () {
@@ -33,7 +33,7 @@ export default function () {
         expect(updateOrder).to.deep.equal(expectedUpdateOrder)
       }
     )
-*/
+
     it(
       'Triggers callback for initial watch once',
       async function () {
@@ -53,7 +53,7 @@ export default function () {
         expect(seenValues).to.deep.equal(expectedValues)
       }
     )
-/*
+
     async function testMultiAgentWatch(agentA, agentB, scope) {
       const start = Date.now()
       const state = await agentA.state(scope)
@@ -235,6 +235,6 @@ export default function () {
         expect(afterUnwatchUpdates).to.equal(EXPECTED_AFTER_WATCH_UPDATES)
       }
     )
-*/
+
   })
 }

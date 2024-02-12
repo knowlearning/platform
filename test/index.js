@@ -77,6 +77,7 @@ else {
   window.uuid = uuid
   window.pause = ms => new Promise(r => setTimeout(r, ms))
   window.Agent2 = browserAgent({ unique: true, getToken: () => 'anonymous', root: true})
+  window.Agent3 = browserAgent({ unique: true, getToken: () => 'anonymous', root: true})
 
   chai.config.truncateThreshold = 0; // disable truncating
 

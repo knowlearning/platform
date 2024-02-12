@@ -10,6 +10,7 @@ export default function () {
       state.y = 200
 
       const firstAgentRetrievedState = await Agent.state(id)
+      await Agent.synced()
       const secondAgentRetrievedState = await Agent2.state(id)
 
       expect(firstAgentRetrievedState).to.deep.equal(state)
@@ -31,14 +32,14 @@ export default function () {
       const firstAgentRetrievedState = await Agent.state(name)
       expect(firstAgentRetrievedState).to.deep.equal(state)
 
+      await Agent.synced()
       const secondAgentRetrievedState = await Agent2.state(name, agent1Env.auth.user)
       expect(secondAgentRetrievedState).to.deep.equal(state)
 
       state.z = 1000
-      await pause(100)
 
-      const thirdAgentRetrievedState = await Agent2.state(name, agent1Env.auth.user)
-
+      await Agent.synced()
+      const thirdAgentRetrievedState = await Agent3.state(name, agent1Env.auth.user)
       expect(state).to.deep.equal(thirdAgentRetrievedState)
     })
   })

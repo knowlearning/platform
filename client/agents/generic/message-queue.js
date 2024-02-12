@@ -177,6 +177,14 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
             if (watchers[qualifiedScope]) {
               states[qualifiedScope] = await states[qualifiedScope]
 
+              if (states[qualifiedScope].ii + 1 !== message.ii) {
+                console.warn('OUT OF ORDER WATCHER RECEIVED', qualifiedScope, states[qualifiedScope], message)
+                return
+              }
+
+              //  TODO: this should come down with patch...
+              states[qualifiedScope].ii = message.ii
+
               const lastResetPatchIndex = message.patch.findLastIndex(p => p.path.length === 0)
               if (lastResetPatchIndex > -1) states[qualifiedScope] = message.patch[lastResetPatchIndex].value
 
