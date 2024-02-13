@@ -11,11 +11,21 @@ function isLocal() { return localStorage.getItem('api') === 'local' }
 export default options => {
   const { host, protocol } = window.location
 
+  const Connection = function () {
+    const ws = new WebSocket(`${protocol === 'https:' ? 'wss' : 'ws'}://${isLocal() ? DEVELOPMENT_HOST : REMOTE_HOST}`)
+
+    this.send = message => ws.send(message)
+    ws.onopen = () => this.onopen && this.onopen()
+    ws.onmessage = ({ data }) => this.onmessage && this.onmessage(data)
+    ws.onerror = error => this.onerror && this.onerror(error)
+    ws.onclose = error => this.onclose && this.onclose(error)
+
+    return this
+  }
+
   const agent = GenericAgent({
-    host: isLocal() ? DEVELOPMENT_HOST : REMOTE_HOST,
-    protocol: protocol === 'https:' ? 'wss' : 'ws',
     token: options.getToken || getToken,
-    WebSocket,
+    Connection,
     uuid,
     fetch,
     applyPatch,

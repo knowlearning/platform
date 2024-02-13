@@ -8,6 +8,8 @@ X   script to construct set named domain -> uuid
 X   make new uuids get added to that set
 X   update sync script to work off of that set
 X   be able to delete and re-create postgres databases easily
+X Admin specifies access rule queries
+X Check for passing access rule query on cross-user state request (later handle cross domain requests with special queries)
   Take postgres out of managed service and use deployable instance
   Dont' rely on redis for base representation of data
     stream all uuids into stored file named domain (stream into gcs as well)
@@ -32,6 +34,4 @@ X   be able to delete and re-create postgres databases easily
   Compaction
   Throttle naughty clients (protect against infinite loops on the client)
   Use create-folder-content in agent upload to handle upload of items and return one piece of content that is the content-graph
-  Admin specifies access rule queries
-  Check for passing access rule query on cross-user state request (later handle cross domain requests with special queries)
   Allow parent to reset child default state

@@ -32,7 +32,7 @@ export default async function handleWebsocket(ws, domain, sid) {
 
     try { message = JSON.parse(data) }
     catch (error) {
-      console.warn(error)
+      console.warn('ERROR PARSING MESSAGE', error)
       send({ error: 'Error Parsing Message' })
       return
     }

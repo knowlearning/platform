@@ -14,8 +14,8 @@ function sanitizeJSONPatchPathSegment(s) {
   else return s
 }
 
-export default function messageQueue({ token, protocol, host, WebSocket, watchers, states, applyPatch, log, login }) {
-  let ws
+export default function messageQueue({ token, Connection, watchers, states, applyPatch, log, login, reboot }) {
+  let connection
   let user
   let authed = false
   let session
@@ -66,13 +66,19 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
     await new Promise(r=>r())
     lastSynchronousScopePatched = null
 
-    while (authed && ws.readyState === WebSocket.OPEN && lastSentSI+1 < messageQueue.length) {
+    while (authed && lastSentSI+1 < messageQueue.length) {
       lastSynchronousScopePatched = null
-      lastSentSI += 1
-      ws.send(JSON.stringify(messageQueue[lastSentSI]))
-
-      //  async so we don't try and push more to a closed connection
-      await new Promise(r=>r())
+      try {
+        connection.send(JSON.stringify(messageQueue[lastSentSI + 1]))
+        lastSentSI += 1
+        //  async so we don't try and push more to a closed connection
+        await new Promise(r=>r())
+      }
+      catch (error) {
+        console.warn('ERROR SENDING OVER CONNECTION', error)
+        restartConnection()
+        break
+      }
     }
   }
 
@@ -100,25 +106,25 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
     authed = false
     if (!disconnected) {
       await new Promise(r => setTimeout(r, Math.min(1000, failedConnections * 100)))
-      ws.onmessage = () => {} // needs to be a no-op since a closing ws can still get messages
+      connection.onmessage = () => {} // needs to be a no-op since a closing connection can still get messages
       restarting = true
       failedConnections += 1
-      initWS() // TODO: don't do this if we are purposefully unloading...
+      initConnection() // TODO: don't do this if we are purposefully unloading...
       restarting = false
     }
   }
 
-  function initWS() {
-    ws = new WebSocket(`${protocol}://${host}`)
+  function initConnection() {
+    connection = new Connection()
 
-    ws.onopen = async () => {
+    connection.onopen = async () => {
       if (!sessionMetrics.connected) sessionMetrics.connected = Date.now()
-      log('AUTHORIZING NEWLY OPENED WS FOR SESSION:', session)
+      log('AUTHORIZING NEWLY OPENED CONNECTION FOR SESSION:', session)
       failedConnections = 0
-      ws.send(JSON.stringify({ token: await token(), session }))
+      connection.send(JSON.stringify({ token: await token(), session }))
     }
 
-    ws.onmessage = async ({ data }) => {
+    connection.onmessage = async data => {
       checkHeartbeat()
       if (data.length === 0) return // heartbeat
 
@@ -161,7 +167,7 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
                 .forEach(([res, rej]) => message.error ? rej(message) : res(message))
 
               delete responses[message.si]
-              ws.send(JSON.stringify({ack: message.si})) //  acknowledgement that we have received the response for this message
+              connection.send(JSON.stringify({ack: message.si})) //  acknowledgement that we have received the response for this message
               resolveSyncPromises()
             }
             else {
@@ -200,16 +206,16 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
         }
       }
       catch (error) {
-        console.error('ERROR HANDLING WS MESSAGE', error)
+        console.error('ERROR HANDLING CONNECTION MESSAGE', error)
       }
     }
 
-    ws.onerror = async error => {
-      log('WS CONNECTION ERROR', error.message)
+    connection.onerror = async error => {
+      log('CONNECTION ERROR', error.message)
     }
 
-    ws.onclose = async error => {
-      log('WS CLOSURE', error.message)
+    connection.onclose = async error => {
+      log('CONNECTION CLOSURE', error.message)
       restartConnection()
     }
 
@@ -227,7 +233,7 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
   function disconnect() {
     log('DISCONNECTED AGENT!!!!!!!!!!!!!!!')
     disconnected = true
-    ws.close()
+    connection.close()
   }
 
   function reconnect() {
@@ -236,7 +242,7 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
     restartConnection()
   }
 
-  initWS()
+  initConnection()
 
   return [queueMessage, lastMessageResponse, disconnect, reconnect, synced, environment]
 }

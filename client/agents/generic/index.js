@@ -13,7 +13,7 @@ const POSTGRES_QUERY_TYPE = 'application/json;type=postgres-query'
 const TAG_TYPE = 'application/json;type=tag'
 const DOMAIN_CLAIM_TYPE = 'application/json;type=domain-claim'
 
-export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fetch, applyPatch, login, logout, reboot }) {
+export default function Agent({ Connection, token, uuid, fetch, applyPatch, login, logout, reboot }) {
   const states = {}
   const watchers = {}
   const keyToSubscriptionId = {}
@@ -29,7 +29,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     reconnect,
     synced,
     environment
-  ] = messageQueue({ token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact })
+  ] = messageQueue({ token, Connection, watchers, states, applyPatch, log, login, interact, reboot })
 
   // initialize session
   environment()
