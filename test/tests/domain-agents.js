@@ -11,6 +11,7 @@ authorize:
     postgres: cross_domain_authorization
 agent: |
   import Agent from 'npm:@knowlearning/agents/deno.js'
+  Agent.debug()
   console.log('LOADED DENO AGENT')
   console.log('AWAITING DENO ENVIRONMENT')
   console.log('DENO ENVIRONMENT:', await Agent.environment())

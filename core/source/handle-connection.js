@@ -49,6 +49,7 @@ export default async function handleConnection(connection, domain, sid) {
   connection.onmessage = async message => {
 
     if (!user) {
+      console.log('GOT MESSAGE FOR CONNECTION WITHOUT USER!!!!!!!!!!!', message)
       try {
         const authResponse = await authenticate(message, domain, sid)
         user = authResponse.user

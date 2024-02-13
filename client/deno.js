@@ -12,7 +12,7 @@ function Connection() {
   thisConnection.send = message => denoProcess.postMessage(message)
 
   (async function () {
-    await new Promise(r => setTimeout(r))
+    await new Promise(r => setTimeout(r, 1))
     thisConnection.onopen && thisConnection.onopen()
   })()
 
