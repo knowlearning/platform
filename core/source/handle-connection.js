@@ -1,33 +1,51 @@
 import authenticate from './authenticate/index.js'
 import interact from './interact/index.js'
-import monitorWsConnection from './monitor-ws-connection.js'
 import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
-import { ensureDomainConfigured } from './side-effects/configure.js'
 import coreSideEffects from './core-side-effects.js'
 import domainSideEffects from './domain-side-effects.js'
 
+const HEARTBEAT_INTERVAL = 5000
+
 const sessionMessageIndexes = {}
 const responseBuffers = {}
-const activeWebsockets = {}
+const activeConnections = {}
 const outstandingSideEffects = {}
 
-export default async function handleWebsocket(ws, domain, sid) {
-  let user, session, provider
+export default async function handleConnection(connection, domain, sid) {
+  let user, session, provider, heartbeatTimeout
 
-  await ensureDomainConfigured(domain)
+  function heartbeat() {
+    clearTimeout(heartbeatTimeout)
+    heartbeatTimeout = setTimeout(
+      () => {
+        try {
+          connection.send('')
+          heartbeat()
+        }
+        catch (error) {
+          console.warn('Error sending heartbeat', error)
+        }
+      },
+      HEARTBEAT_INTERVAL
+    )
+  }
 
-  const heartbeat = monitorWsConnection(ws)
+  heartbeat()
 
   function send(message) {
     responseBuffers[session].push(message)
-    if (activeWebsockets[session].readyState === 1) {
-      activeWebsockets[session].send(JSON.stringify(message))
+    try {
+      activeConnections[session].send(JSON.stringify(message))
       heartbeat()
+    }
+    catch (error) {
+      console.warn('ERROR SENDING OVER ACTIVE CONNECTION')
+      activeConnections[session].close()
     }
   }
 
-  ws.addEventListener('message', async ({ data }) => {
+  connection.onmessage = async data => {
     let message
 
     try { message = JSON.parse(data) }
@@ -48,7 +66,7 @@ export default async function handleWebsocket(ws, domain, sid) {
         if (sessionMessageIndexes[session] === undefined) sessionMessageIndexes[session] = -1
         if (!responseBuffers[session]) responseBuffers[session] = []
 
-        ws.send(JSON.stringify({
+        connection.send(JSON.stringify({
           domain,
           server: SESSION,
           session,
@@ -56,14 +74,17 @@ export default async function handleWebsocket(ws, domain, sid) {
           ack: sessionMessageIndexes[session]
         }))
 
-        activeWebsockets[session] = ws
-        responseBuffers[session].forEach(r => ws.send(JSON.stringify(r)))
+        activeConnections[session] = connection
+        responseBuffers[session].forEach(r => connection.send(JSON.stringify(r)))
       }
       catch (error) {
         console.log('Error Authorizing Agent', error)
-        if (ws.readyState === 1) {
-          ws.send(JSON.stringify({ error: 'First Message Must Be A Valid Auth Message' }))
-          ws.close()
+        try {
+          connection.send(JSON.stringify({ error: 'First Message Must Be A Valid Auth Message' }))
+          connection.close()
+        }
+        catch (error) {
+          console.warn('Error closing connection', error)
         }
       }
     }
@@ -96,7 +117,7 @@ export default async function handleWebsocket(ws, domain, sid) {
         send({ si: message.si, error: `ERROR PROCESSING MESSAGE` })
       }
     }
-  })
+  }
 }
 
 async function resolvePreviousSideEffects(domain, user, scope, session) {

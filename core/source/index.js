@@ -1,7 +1,7 @@
 import { environment, randomBytes, getCookies, setCookie } from './utils.js'
 import * as redis from './redis.js'
 import { decrypt } from './utils.js'
-import handleWS from './handle-ws.js'
+import handleConnection from './handle-connection.js'
 import { applyConfiguration, ensureDomainConfigured } from './side-effects/configure.js'
 import ADMIN_DOMAIN_CONFIG from './admin-domain-config.js'
 
@@ -43,6 +43,16 @@ Deno.serve({
   //  TODO: domain should probably be "development", "staging" or "production" based on mode...
   const { host: domain } = new URL(request.headers.get('origin') || 'https://core')
 
-  handleWS(socket, domain, sid)
+  const connection = {
+    send(message) { socket.send(message) },
+    close() { socket.close() }
+  }
+
+  ensureDomainConfigured(domain)
+
+  socket.addEventListener('message', ({ data }) => connection.onmessage(data))
+
+  handleConnection(connection, domain, sid)
+
   return response
 })
