@@ -25,6 +25,7 @@ export default async function handleConnection(connection, domain, sid) {
         }
         catch (error) {
           console.warn('Error sending heartbeat', error)
+          console.log(connection, domain, sid)
         }
       },
       HEARTBEAT_INTERVAL
@@ -45,15 +46,7 @@ export default async function handleConnection(connection, domain, sid) {
     }
   }
 
-  connection.onmessage = async data => {
-    let message
-
-    try { message = JSON.parse(data) }
-    catch (error) {
-      console.warn('ERROR PARSING MESSAGE', error)
-      send({ error: 'Error Parsing Message' })
-      return
-    }
+  connection.onmessage = async message => {
 
     if (!user) {
       try {

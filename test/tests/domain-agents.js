@@ -11,14 +11,15 @@ authorize:
     postgres: cross_domain_authorization
 agent: |
   import Agent from 'npm:@knowlearning/agents/deno.js'
+  console.log('LOADED DENO AGENT')
+  console.log('AWAITING DENO ENVIRONMENT')
+  console.log('DENO ENVIRONMENT:', await Agent.environment())
   /* FUTURE INTERFACE
-  
   Agent.on('child', child => {
     child.on('mutate', mutation => {})
     child.on('close', info => {})
   })
   */
-  self.onmessage = (evt) => self.postMessage({ pong: true })
 postgres:
   tables: {}
   scopes: {}

@@ -50,7 +50,15 @@ Deno.serve({
 
   ensureDomainConfigured(domain)
 
-  socket.addEventListener('message', ({ data }) => connection.onmessage(data))
+  socket.addEventListener('message', ({ data }) => {
+    try {
+      connection.onmessage(JSON.parse(data))
+    }
+    catch (error) {
+      console.warn('ERROR PARSING MESSAGE', error)
+      socket.send(JSON.stringify({ error: 'Error Parsing Message' }))
+    }
+  })
 
   handleConnection(connection, domain, sid)
 
