@@ -105,7 +105,7 @@ export default async function authenticate(message, domain, sid) {
         const { provider, sid_encrypted_info } = rows[0]
         const info = decryptAndParseSessionInfo(sid, sid_encrypted_info)
         const session = uuid()
-        await saveSession(domain, session, sid, session_credential, user, provider, info)
+        await saveSession(domain, session, sid, user, provider, info)
         return { user, provider, session, info }
       }
     }
@@ -137,7 +137,7 @@ export default async function authenticate(message, domain, sid) {
     //        just not associating with session_credential
     //        'anonymous-ephemeral' tokens are used in tests to create multiple agents in the
     //        same browser tab
-    await saveSession(domain, session, sid, session_credential, user, provider, info)
+    await saveSession(domain, session, sid, user, provider, info)
   }
 
   return { user, provider, session, info }
