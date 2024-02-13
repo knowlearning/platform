@@ -112,16 +112,6 @@ authorize:
     postgres: same_domain_authorization
   crossDomain:
     postgres: cross_domain_authorization
-sideEffects:
-- type: application/json;type=side-effect-test
-  script: |
-    self.onmessage = (evt) => {
-      const uuids = []
-      for (let i = 0; i < 10; i++) {
-        uuids.push(crypto.randomUUID())
-      }
-      self.postMessage({ uuids })
-    };
 postgres:
   tables:
     test_table_2:

@@ -1,5 +1,5 @@
-import fastJSONPatch from 'fast-json-patch'
-import Agent from './generic/index.js'
+import fastJSONPatch from 'npm:fast-json-patch@3.1.1'
+import Agent from './agents/generic/index.js'
 
 const SERVE_HOST = Deno.env.get("SERVE_HOST")
 const SERVICE_ACCOUNT_TOKEN = Deno.env.get("SERVICE_ACCOUNT_TOKEN")

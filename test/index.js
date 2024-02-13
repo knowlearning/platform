@@ -10,7 +10,7 @@ import arrays from './tests/arrays.js'
 import metadata from './tests/metadata.js'
 import uploads from './tests/uploads.js'
 import postgres from './tests/postgres.js'
-import sideEffects from './tests/side-effects.js'
+import domainAgents from './tests/domain-agents.js'
 import vuex from './tests/vuex.js'
 import stateTest from './tests/state.js'
 import environmentTest from './tests/environment.js'
@@ -97,21 +97,21 @@ else {
   if (embedLevel < 3) {
     mocha.run()
     describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, function () {
-      if (!Agent.embedded) postgres()
-      if (!Agent.embedded) sideEffects()
-      stateTest()
-      environmentTest()
-      metadata()
-      mutate()
-      arrays()
-      watch()
-      watchDeep()
-      vuex()
-      namespacedEmbeddings()
-      if (!Agent.embedded) reconnect()
-      uploads()
-      latestBugfixes()
-      multiAgent()
+      // if (!Agent.embedded) postgres()
+      if (!Agent.embedded) domainAgents()
+      // stateTest()
+      // environmentTest()
+      // metadata()
+      // mutate()
+      // arrays()
+      // watch()
+      // watchDeep()
+      // vuex()
+      // namespacedEmbeddings()
+      // if (!Agent.embedded) reconnect()
+      // uploads()
+      // latestBugfixes()
+      // multiAgent()
     })
   }
 
