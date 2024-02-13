@@ -1,8 +1,8 @@
-import { jwt, jwkToPem, uuid, environment } from '../utils.js'
+import { jwt, jwkToPem, uuid, environment, decryptSymmetric } from '../utils.js'
+import saveSession from './save-session.js'
+import * as hash from './hash.js'
 import interact from '../interact/index.js'
 import { query } from '../postgres.js'
-import { encryptSymmetric, decryptSymmetric } from '../utils.js'
-import * as hash from './hash.js'
 
 const {
   ADMIN_DOMAIN,
@@ -18,7 +18,6 @@ const JWKS_ENDPOINTS = {
 }
 
 const USER_TYPE = 'application/json;type=user'
-const SESSION_TYPE = 'application/json;type=session'
 const REATTACHING_SESSION_QUERY = `
   SELECT
     sessions.id as id,
@@ -106,7 +105,7 @@ export default async function authenticate(message, domain, sid) {
         const { provider, sid_encrypted_info } = rows[0]
         const info = decryptAndParseSessionInfo(sid, sid_encrypted_info)
         const session = uuid()
-        await saveSession(domain, session, session_credential, user, provider, sid_encrypted_info)
+        await saveSession(domain, session, sid, session_credential, user, provider, info)
         return { user, provider, session, info }
       }
     }
@@ -138,28 +137,10 @@ export default async function authenticate(message, domain, sid) {
     //        just not associating with session_credential
     //        'anonymous-ephemeral' tokens are used in tests to create multiple agents in the
     //        same browser tab
-    const sid_encrypted_info = await encryptSymmetric(sid, JSON.stringify(info))
-    await saveSession(domain, session, session_credential, user, provider, sid_encrypted_info)
+    await saveSession(domain, session, sid, session_credential, user, provider, info)
   }
 
   return { user, provider, session, info }
-}
-
-async function saveSession(domain, session, session_credential, user, provider, sid_encrypted_info) {
-  const sessionPatch = [
-    { op: 'add', value: SESSION_TYPE, path: ['active_type'] },
-    {
-      op: 'add',
-      value: {
-        session_credential,
-        user_id: user,
-        sid_encrypted_info,
-        provider
-      },
-      path: ['active']
-    }
-  ]
-  await interact(domain, user, session, sessionPatch)
 }
 
 async function fetchJSON(url) {
