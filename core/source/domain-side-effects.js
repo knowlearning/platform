@@ -15,7 +15,7 @@ function getAgent(domain) {
       console.log('RUNNING WORKER!!!!!!!!!!!!!!!!', workerUrl)
       const worker = new Worker(workerUrl, { type: "module", })
       worker.onerror = event => console.log('DOMAIN AGENT ERROR', event)
-      worker.onmessage = event => console.log('DOMAIN AGENT MESSAGE', domain, event)
+      worker.onmessage = event => console.log('DOMAIN AGENT MESSAGE', domain, event.data)
       resolve(worker)
     }
     else {

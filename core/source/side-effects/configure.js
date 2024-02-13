@@ -61,7 +61,6 @@ export default async function ({ domain, user, session, patch, si, ii, send }) {
       await interact('core', 'core', 'domain-config', [
         { op: 'add', path: ['active', value.domain], value: { config, admin: user } }
       ])
-      console.log('AAAAAAAAAAAAAAAAAAADDING CONFIG', value.domain, config)
       const url = await download(config, 3, true)
       const response = await fetch(url)
       if (response.status !== 200) {
@@ -73,7 +72,7 @@ export default async function ({ domain, user, session, patch, si, ii, send }) {
       reportState.tasks = {}
       reportState.start = Date.now()
       const configuration = parseYAML(await response.text())
-      console.log('APPLYING CONFIGURATION!!!!!!!!!!', value.domain, configuration)
+
       applyConfiguration(value.domain, configuration, reportState)
         .then(() => reportState.end = Date.now())
         .catch(error => reportState.error = error.toString())

@@ -25,7 +25,6 @@ Deno.serve({
   cert: INSECURE_DEVELOPMENT_CERT,
   key: INSECURE_DEVELOPMENT_KEY,
 }, request => {
-  console.log('REQUEST!!!!', request.method)
   if (request.headers.get("upgrade") != "websocket") {
     return new Response(null, { status: 501 })
   }
@@ -38,8 +37,6 @@ Deno.serve({
     sid = randomBytes(16, 'hex')
     setCookie(headers, { name: 'sid', value: sid, secure: true, httpOnly: true })
   }
-
-  console.log('UPGRADING WEBSOCKET!')
 
   const { socket, response } = Deno.upgradeWebSocket(request, { idleTimeout: 10, headers })
 

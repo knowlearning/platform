@@ -42,7 +42,6 @@ export default async function configuration(domain) {
   try {
     const path = [`$.active["${domain}"]`]
     const [domainConfig] = await redis.client.json.get(DOMAIN_CONFIG_SCOPE, { path })
-    console.log('DOMAIN CONFIG!!!!!!!!!!!!!!!!!!!', domainConfig)
 
     if (domainConfig) {
       const { admin, config } = domainConfig
@@ -56,7 +55,6 @@ export default async function configuration(domain) {
         }
 
         cache[domain] = parseYAML(await response.text())
-        console.log('CONFIGURED DOMAIN CONFIG!!!!!!!!!!!!!!!!!!', cache)
       }
       else cache[domain] = {}
 
