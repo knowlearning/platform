@@ -13,7 +13,7 @@ const POSTGRES_QUERY_TYPE = 'application/json;type=postgres-query'
 const TAG_TYPE = 'application/json;type=tag'
 const DOMAIN_CLAIM_TYPE = 'application/json;type=domain-claim'
 
-export default function Agent({ Connection, token, uuid, fetch, applyPatch, login, logout, reboot }) {
+export default function Agent({ Connection, token, uuid, fetch, applyPatch, login, logout, reboot, handleDomainInteraction }) {
   const states = {}
   const watchers = {}
   const keyToSubscriptionId = {}
@@ -29,7 +29,7 @@ export default function Agent({ Connection, token, uuid, fetch, applyPatch, logi
     reconnect,
     synced,
     environment
-  ] = messageQueue({ token, Connection, watchers, states, applyPatch, log, login, interact, reboot })
+  ] = messageQueue({ token, Connection, watchers, states, applyPatch, log, login, interact, reboot, trigger })
 
   // initialize session
   environment()
@@ -216,6 +216,17 @@ export default function Agent({ Connection, token, uuid, fetch, applyPatch, logi
     })
   }
 
+  const reactions = { child: [] }
+
+  function on(event, reaction) {
+    if (!reactions[event]) throw new Error('Agent can only listen to events of "child"')
+    reactions[event].push(reaction)
+  }
+
+  function trigger(event, data) {
+    reactions[event].forEach(f => f(data))
+  }
+
   return {
     uuid,
     environment,
@@ -235,6 +246,7 @@ export default function Agent({ Connection, token, uuid, fetch, applyPatch, logi
     disconnect,
     reconnect,
     tag,
-    debug
+    debug,
+    on
   }
 }

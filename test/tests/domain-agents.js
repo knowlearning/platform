@@ -15,12 +15,12 @@ agent: |
   console.log('LOADED DENO AGENT')
   console.log('AWAITING DENO ENVIRONMENT')
   console.log('DENO ENVIRONMENT:', await Agent.environment())
-  /* FUTURE INTERFACE
+  
   Agent.on('child', child => {
-    child.on('mutate', mutation => {})
-    child.on('close', info => {})
+    console.log('GOT CHILD!!!', child)
+    child.on('mutate', mutation => console.log('GOT MUTATION!!!', mutation))
+    child.on('close', info => console.log('GOT CLOSE!!!', info))
   })
-  */
 postgres:
   tables: {}
   scopes: {}

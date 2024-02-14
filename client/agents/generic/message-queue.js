@@ -1,6 +1,7 @@
 import { validate as isUUID } from 'uuid'
 
 const HEARTBEAT_TIMEOUT = 10000
+const DOMAIN_MESSAGES = { open: true, mutate: true, close: true }
 
 //  transform our custom path implementation to the standard JSONPatch path
 function standardJSONPatch(patch) {
@@ -14,7 +15,7 @@ function sanitizeJSONPatchPathSegment(s) {
   else return s
 }
 
-export default function messageQueue({ token, Connection, watchers, states, applyPatch, log, login, reboot }) {
+export default function messageQueue({ token, Connection, watchers, states, applyPatch, log, login, reboot, handleDomainMessage, trigger }) {
   let connection
   let user
   let authed = false
@@ -159,7 +160,10 @@ export default function messageQueue({ token, Connection, watchers, states, appl
           flushMessageQueue()
         }
         else {
-          if (message.si !== undefined) {
+          if (DOMAIN_MESSAGES[message.type]) {
+            handleDomainMessage && handleDomainMessage(message, trigger)
+          }
+          else if (message.si !== undefined) {
             if (responses[message.si]) {
               //  TODO: remove "acknowledged" messages from queue and do accounting with si
               responses[message.si]
