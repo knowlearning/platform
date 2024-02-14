@@ -31,9 +31,9 @@ function getAgent(domain) {
       })
 
       const connection = {
-        send(data) {
-          console.log('SENDING TO WORKER!!!!!!!!!!', data)
-          worker.postMessage({ data })
+        send(message) {
+          console.log('SENDING TO WORKER!!!!!!!!!!', message)
+          worker.postMessage(message)
         },
         close() {
           delete domainAgents[domain]
