@@ -124,13 +124,12 @@ export default function messageQueue({ token, Connection, watchers, states, appl
       connection.send({ token: await token(), session })
     }
 
-    connection.onmessage = async data => {
+    connection.onmessage = async message => {
       checkHeartbeat()
-      if (data.length === 0) return // heartbeat
+      if (!message) return // heartbeat
 
       try {
         log('handling message', disconnected, authed)
-        const message = JSON.parse(data)
         log('message', JSON.stringify(message))
 
         if (message.error) console.warn('ERROR RESPONSE', message)

@@ -18,7 +18,7 @@ export default options => {
     this.close = () => ws.close()
 
     ws.onopen = () => this.onopen()
-    ws.onmessage = ({ data }) => this.onmessage(data)
+    ws.onmessage = ({ data }) => this.onmessage(data.length === 0 ? null : JSON.parse(data))
     ws.onerror = error => this.onerror && this.onerror(error)
     ws.onclose = error => this.onclose && this.onclose(error)
 
