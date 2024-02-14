@@ -14,7 +14,7 @@ export default options => {
   const Connection = function () {
     const ws = new WebSocket(`${protocol === 'https:' ? 'wss' : 'ws'}://${isLocal() ? DEVELOPMENT_HOST : REMOTE_HOST}`)
 
-    this.send = message => ws.send(message)
+    this.send = message => ws.send(JSON.stringify(message))
     this.close = () => ws.close()
 
     ws.onopen = () => this.onopen()

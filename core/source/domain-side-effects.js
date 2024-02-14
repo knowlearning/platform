@@ -59,7 +59,6 @@ function getAgent(domain) {
         info: { name: `${domain} Agent`, picture: null }
       })
 
-      await sessionSave
       handleConnection(connection, domain, sid)
       resolve(connection)
     }

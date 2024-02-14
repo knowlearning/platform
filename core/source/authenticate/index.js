@@ -103,7 +103,7 @@ export default async function authenticate(message, domain, sid) {
       if (rows[0]) {
         const user = rows[0].user_id
         const { provider, sid_encrypted_info } = rows[0]
-        const info = decryptAndParseSessionInfo(sid, sid_encrypted_info)
+        const info = await decryptAndParseSessionInfo(sid, sid_encrypted_info)
         const session = uuid()
         await saveSession(domain, session, sid, user, provider, info)
         return { user, provider, session, info }

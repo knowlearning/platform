@@ -69,7 +69,7 @@ export default function messageQueue({ token, Connection, watchers, states, appl
     while (authed && lastSentSI+1 < messageQueue.length) {
       lastSynchronousScopePatched = null
       try {
-        connection.send(JSON.stringify(messageQueue[lastSentSI + 1]))
+        connection.send(messageQueue[lastSentSI + 1])
         lastSentSI += 1
         //  async so we don't try and push more to a closed connection
         await new Promise(r=>r())
@@ -121,7 +121,7 @@ export default function messageQueue({ token, Connection, watchers, states, appl
       if (!sessionMetrics.connected) sessionMetrics.connected = Date.now()
       log('AUTHORIZING NEWLY OPENED CONNECTION FOR SESSION:', session)
       failedConnections = 0
-      connection.send(JSON.stringify({ token: await token(), session }))
+      connection.send({ token: await token(), session })
     }
 
     connection.onmessage = async data => {
@@ -167,7 +167,7 @@ export default function messageQueue({ token, Connection, watchers, states, appl
                 .forEach(([res, rej]) => message.error ? rej(message) : res(message))
 
               delete responses[message.si]
-              connection.send(JSON.stringify({ack: message.si})) //  acknowledgement that we have received the response for this message
+              connection.send({ack: message.si}) //  acknowledgement that we have received the response for this message
               resolveSyncPromises()
             }
             else {
