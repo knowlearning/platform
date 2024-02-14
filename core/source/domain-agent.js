@@ -3,12 +3,12 @@ import configuration from './configuration.js'
 import saveSession from './authenticate/save-session.js'
 import handleConnection from './handle-connection.js'
 
-const domainAgents = {}
+const Agents = {}
 
-function getAgent(domain) {
-  if (domainAgents[domain]) return domainAgents[domain]
+export default function domainAgent(domain) {
+  if (Agents[domain]) return Agents[domain]
 
-  domainAgents[domain] = new Promise(async resolve => {
+  Agents[domain] = new Promise(async resolve => {
     const config = await configuration(domain)
     if (config.agent) {
       const filename = `/core/source/${uuid()}.js`
@@ -36,7 +36,7 @@ function getAgent(domain) {
           worker.postMessage(message)
         },
         close() {
-          delete domainAgents[domain]
+          delete Agents[domain]
           // TODO: clean up worker
           console.warn('WORKER CLOSED THROUGH CONNECTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         }
@@ -63,14 +63,10 @@ function getAgent(domain) {
       resolve(connection)
     }
     else {
-      delete domainAgents[domain]
+      delete Agents[domain]
       resolve()
     }
   })
 
-  return domainAgents[domain]
-}
-
-export default async function domainSideEffects({ domain, active_type }) {
-  const domainAgent = await getAgent(domain)
+  return Agents[domain]
 }

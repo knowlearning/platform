@@ -3,7 +3,7 @@ import interact from './interact/index.js'
 import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
 import coreSideEffects from './core-side-effects.js'
-import domainSideEffects from './domain-side-effects.js'
+import domainAgent from './domain-agent.js'
 
 const HEARTBEAT_INTERVAL = 5000
 
@@ -100,9 +100,10 @@ export default async function handleConnection(connection, domain, sid) {
 
           const { ii, active_type } = await interact(domain, user, scope, patch)
 
-          const sideEffectEnvironment = { session, domain, user, scope, active_type, patch, si, ii, send }
-          await coreSideEffects(sideEffectEnvironment)
-          await domainSideEffects(sideEffectEnvironment)
+          await coreSideEffects({ session, domain, user, scope, active_type, patch, si, ii, send })
+
+          const agent = await domainAgent(domain)
+
           resolveCurrentSideEffects()
         }
       }
