@@ -17,8 +17,8 @@ export default options => {
     this.send = message => ws.send(message)
     this.close = () => ws.close()
 
-    ws.onopen = () => this.onopen && this.onopen()
-    ws.onmessage = ({ data }) => this.onmessage && this.onmessage(data)
+    ws.onopen = () => this.onopen()
+    ws.onmessage = ({ data }) => this.onmessage(data)
     ws.onerror = error => this.onerror && this.onerror(error)
     ws.onclose = error => this.onclose && this.onclose(error)
 

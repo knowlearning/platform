@@ -37,7 +37,7 @@ export default async function handleConnection(connection, domain, sid) {
   function send(message) {
     responseBuffers[session].push(message)
     try {
-      activeConnections[session].send(JSON.stringify(message))
+      activeConnections[session].send(message)
       heartbeat()
     }
     catch (error) {
@@ -60,21 +60,21 @@ export default async function handleConnection(connection, domain, sid) {
         if (sessionMessageIndexes[session] === undefined) sessionMessageIndexes[session] = -1
         if (!responseBuffers[session]) responseBuffers[session] = []
 
-        connection.send(JSON.stringify({
+        connection.send({
           domain,
           server: SESSION,
           session,
           auth: { user, provider, info: authResponse.info },
           ack: sessionMessageIndexes[session]
-        }))
+        })
 
         activeConnections[session] = connection
-        responseBuffers[session].forEach(r => connection.send(JSON.stringify(r)))
+        responseBuffers[session].forEach(r => connection.send(r))
       }
       catch (error) {
         console.log('Error Authorizing Agent', error)
         try {
-          connection.send(JSON.stringify({ error: 'First Message Must Be A Valid Auth Message' }))
+          connection.send({ error: 'First Message Must Be A Valid Auth Message' })
           connection.close()
         }
         catch (error) {

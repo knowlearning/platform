@@ -44,7 +44,7 @@ Deno.serve({
   const { host: domain } = new URL(request.headers.get('origin') || 'https://core')
 
   const connection = {
-    send(message) { socket.send(message) },
+    send(message) { socket.send(JSON.stringify(message)) },
     close() { socket.close() }
   }
 

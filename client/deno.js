@@ -1,8 +1,7 @@
 import fastJSONPatch from 'fast-json-patch'
 import Agent from './agents/generic/index.js'
 
-const SERVE_HOST = Deno.env.get("SERVE_HOST")
-const SERVICE_ACCOUNT_TOKEN = Deno.env.get("SERVICE_ACCOUNT_TOKEN")
+const AGENT_TOKEN = Deno.env.get('AGENT_TOKEN')
 
 const denoProcess = self
 
@@ -11,10 +10,9 @@ function Connection() {
 
   thisConnection.send = message => denoProcess.postMessage(message)
 
-  (async function () {
-    await new Promise(r => setTimeout(r, 1))
-    thisConnection.onopen && thisConnection.onopen()
-  })()
+  const delay = new Promise(r => setTimeout(r))
+  delay.then(() => thisConnection.onopen())
+  denoProcess.onmessage = ({ data }) => thisConnection.onmessage(data)
 
   //  TODO: consider what onclose and onerror mean in this case
   return thisConnection
@@ -22,7 +20,7 @@ function Connection() {
 
 export default new Agent({
   Connection,
-  token: () => Deno.readTextFile(SERVICE_ACCOUNT_TOKEN),
+  token: () => AGENT_TOKEN,
   uuid: () => crypto.randomUUID(),
   fetch,
   applyPatch: fastJSONPatch.applyPatch,

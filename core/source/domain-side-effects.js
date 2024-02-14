@@ -14,10 +14,27 @@ function getAgent(domain) {
       const filename = `/core/source/${uuid()}.js`
       await writeFile(filename, config.agent)
       const workerUrl = new URL(filename, import.meta.url).href
-      const worker = new Worker(workerUrl, { type: "module", })
+
+      const worker = new Worker(workerUrl, {
+        type: "module",
+        deno: {
+          permissions: {
+            env: ['AGENT_TOKEN'],
+            hrtime: false,
+            net: false,
+            ffi: false,
+            read: false,
+            run: false,
+            write: false,
+          },
+        }
+      })
 
       const connection = {
-        send(data) { worker.postMessage({ data }) },
+        send(data) {
+          console.log('SENDING TO WORKER!!!!!!!!!!', data)
+          worker.postMessage({ data })
+        },
         close() {
           delete domainAgents[domain]
           // TODO: clean up worker
@@ -26,15 +43,24 @@ function getAgent(domain) {
       }
 
       worker.onerror = event => console.log('DOMAIN AGENT ERROR', event)
-      worker.onmessage = ({ data }) => {
+      worker.onmessage = async ({ data }) => {
         console.log('MESSAGE FROM WORKER!!!!!!!!!!!!!!!', data, typeof data)
+        await sessionSave
         connection.onmessage(data)
       }
 
-      const sid = randomBytes(128)
       //  TODO: use sid to create session for domain agent using saveSession
-      handleConnection(connection, domain, sid)
+      const sid = randomBytes(32, 'hex')
 
+      const sessionSave = saveSession(domain, uuid(), sid, domain, 'core', {
+        user: domain,
+        provider_id: domain,
+        provider: 'core',
+        info: { name: `${domain} Agent`, picture: null }
+      })
+
+      await sessionSave
+      handleConnection(connection, domain, sid)
       resolve(connection)
     }
     else {
