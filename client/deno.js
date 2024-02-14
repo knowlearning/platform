@@ -21,7 +21,7 @@ function Connection() {
 const children = {}
 const listeners = {}
 
-const agent new Agent({
+const agent = new Agent({
   Connection,
   token: () => AGENT_TOKEN,
   uuid: () => crypto.randomUUID(),
