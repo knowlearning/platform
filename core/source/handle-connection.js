@@ -16,7 +16,7 @@ export default async function handleConnection(connection, domain, sid) {
   let user, session, provider, heartbeatTimeout
 
   // TODO: centralize 'close' method for child
-  const agent = await domainAgent(domain)
+  const agentPromise = domainAgent(domain)
 
   function heartbeat() {
     clearTimeout(heartbeatTimeout)
@@ -50,6 +50,7 @@ export default async function handleConnection(connection, domain, sid) {
   }
 
   connection.onmessage = async message => {
+    const agent = await agentPromise
 
     if (!user) {
       console.log('GOT MESSAGE FOR CONNECTION WITHOUT USER!!!!!!!!!!!', message)

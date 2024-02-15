@@ -32,7 +32,6 @@ const agent = new Agent({
     //  this functionality is only implemented for the deno
     //  agent for now, but this central management of children
     //  concept probably has a place in the generic agent
-    console.log('DOMAIN AGENT RECEIVED MESSAGE!!!!!!!!!!!!!!!!!!', type, session, data)
     if (type === 'open') {
       const child = {
         on: (eventType, reaction) => {

@@ -30,13 +30,10 @@ export default function domainAgent(domain) {
         }
       })
 
-      const postAuthMessageQueue = []
+      const postAuthenticationMessageQueue = []
       let connectionAuthenticated
 
-      const postMessage = message => {
-        console.log('SENDING MESSAGE DOWN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', message)
-        worker.postMessage(message)
-      }
+      const postMessage = message => worker.postMessage(message)
 
       const connection = {
         async send(message) {
@@ -44,12 +41,12 @@ export default function domainAgent(domain) {
           if (message.server) {
             connectionAuthenticated = true
             postMessage(message)
-            while (postAuthMessageQueue.length) {
-              postMessage(postAuthMessageQueue.shift())
+            while (postAuthenticationMessageQueue.length) {
+              postMessage(postAuthenticationMessageQueue.shift())
             }
           }
           else if (connectionAuthenticated) postMessage(message)
-          else postAuthMessageQueue.push(message)
+          else postAuthenticationMessageQueue.push(message)
         },
         close() {
           delete Agents[domain]
