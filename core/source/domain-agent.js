@@ -30,10 +30,26 @@ export default function domainAgent(domain) {
         }
       })
 
+      const postAuthMessageQueue = []
+      let connectionAuthenticated
+
+      const postMessage = message => {
+        console.log('SENDING MESSAGE DOWN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', message)
+        worker.postMessage(message)
+      }
+
       const connection = {
-        send(message) {
-          console.log('SENDING TO WORKER!!!!!!!!!!', message)
-          worker.postMessage(message)
+        async send(message) {
+          // TODO: consider more reliable/explicit recognintion of auth response method
+          if (message.server) {
+            connectionAuthenticated = true
+            postMessage(message)
+            while (postAuthMessageQueue.length) {
+              postMessage(postAuthMessageQueue.shift())
+            }
+          }
+          else if (connectionAuthenticated) postMessage(message)
+          else postAuthMessageQueue.push(message)
         },
         close() {
           delete Agents[domain]
