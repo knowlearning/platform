@@ -46,8 +46,6 @@ const agent = new Agent({
     }
     else if (type === 'mutate') {
       listeners[session].mutate.forEach(f => f(data))
-      delete listeners[session]
-      delete children[session]
     }
     else if (type === 'close') {
       listeners[session].close.forEach(f => f(data))

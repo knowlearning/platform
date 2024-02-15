@@ -70,6 +70,10 @@ export default async function handleConnection(connection, domain, sid) {
 
         activeConnections[session] = connection
         responseBuffers[session].forEach(r => connection.send(r))
+
+        // TODO: centralize 'close' method for child
+        const agent = await domainAgent(domain)
+        agent?.send({ type: 'open', session })
       }
       catch (error) {
         console.log('Error Authorizing Agent', error)
@@ -103,6 +107,7 @@ export default async function handleConnection(connection, domain, sid) {
           await coreSideEffects({ session, domain, user, scope, active_type, patch, si, ii, send })
 
           const agent = await domainAgent(domain)
+          agent?.send({ type: 'mutate', session, data: message })
 
           resolveCurrentSideEffects()
         }
