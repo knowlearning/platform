@@ -15,6 +15,9 @@ const outstandingSideEffects = {}
 export default async function handleConnection(connection, domain, sid) {
   let user, session, provider, heartbeatTimeout
 
+  // TODO: centralize 'close' method for child
+  const agent = await domainAgent(domain)
+
   function heartbeat() {
     clearTimeout(heartbeatTimeout)
     heartbeatTimeout = setTimeout(
@@ -71,8 +74,6 @@ export default async function handleConnection(connection, domain, sid) {
         activeConnections[session] = connection
         responseBuffers[session].forEach(r => connection.send(r))
 
-        // TODO: centralize 'close' method for child
-        const agent = await domainAgent(domain)
         agent?.send({ type: 'open', session })
       }
       catch (error) {
@@ -103,11 +104,8 @@ export default async function handleConnection(connection, domain, sid) {
           const resolveCurrentSideEffects = await resolvePreviousSideEffects(domain, user, scope, session)
 
           const { ii, active_type } = await interact(domain, user, scope, patch)
-
           await coreSideEffects({ session, domain, user, scope, active_type, patch, si, ii, send })
-
-          const agent = await domainAgent(domain)
-          agent?.send({ type: 'mutate', session, data: message })
+          agent?.send({ type: 'mutate', session, data: { user, scope, patch, ii } })
 
           resolveCurrentSideEffects()
         }
