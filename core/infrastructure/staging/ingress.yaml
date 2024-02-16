@@ -2,6 +2,8 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: core-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: "core-staging-ingress-ip"
 spec:
   rules:
   - host: api.staging.knowlearning.systems
