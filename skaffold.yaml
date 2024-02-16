@@ -15,14 +15,10 @@ build:
     context: ./core/infrastructure/development/
     docker:
       dockerfile: ./postgres.Dockerfile
-  - image: core
+  - image: core-deno
     context: ./
     docker:
-      dockerfile: ./core.Dockerfile
-  - image: patch
-    context: ./
-    docker:
-      dockerfile: ./patch.Dockerfile
+      dockerfile: ./core-deno.Dockerfile
 profiles:
 - name: development
   manifests:
@@ -31,6 +27,13 @@ profiles:
       - ./core/infrastructure/development
   deploy:
     kubeContext: kind-kl-core
+    kubectl: {}
+- name: staging
+  manifests:
+    kustomize:
+      paths:
+      - ./core/infrastructure/staging
+  deploy:
     kubectl: {}
 - name: production
   manifests:

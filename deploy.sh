@@ -28,6 +28,22 @@ elif [ $1 = npm ]; then
     echo 'NPM update deployment aborted'
     exit 1
   fi
+elif [ $1 = staging ]; then
+  read -p 'Are you sure you want to deploy to STAGING? (y/N): ' choice
+  if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
+    echo 'Deploying To Live Staging Cluster'
+    # old job must be removed before adding new one
+    KUBE_CONTEXT=gke_opensourcelearningplatform_us-central1_skaffold-deployed
+    skaffold run \
+      --profile staging \
+      --filename ./skaffold.yaml \
+      --kube-context=$KUBE_CONTEXT \
+      --default-repo=gcr.io/opensourcelearningplatform
+    echo 'Done!'
+  else
+    echo 'Deployment aborted'
+    exit 1
+  fi
 elif [ $1 = production ]; then
   read -p 'Are you sure you want to deploy to PRODUCTION? (y/N): ' choice
   if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
