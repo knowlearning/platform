@@ -75,7 +75,10 @@ export default async function handleConnection(connection, domain, sid) {
         activeConnections[session] = connection
         responseBuffers[session].forEach(r => connection.send(r))
 
-        agent?.send({ type: 'open', session })
+        //  Only send open on initial session auth
+        if (sessionMessageIndexes[session] === -1) {
+          agent?.send({ type: 'open', session, data: { user } })
+        }
       }
       catch (error) {
         console.log('Error Authorizing Agent', error)
@@ -106,7 +109,7 @@ export default async function handleConnection(connection, domain, sid) {
 
           const { ii, active_type } = await interact(domain, user, scope, patch)
           await coreSideEffects({ session, domain, user, scope, active_type, patch, si, ii, send })
-          agent?.send({ type: 'mutate', session, data: { user, scope, patch, ii } })
+          agent?.send({ type: 'mutate', session, data: { scope, patch, ii } })
 
           resolveCurrentSideEffects()
         }

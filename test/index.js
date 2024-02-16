@@ -85,6 +85,7 @@ else {
     .setup({
       ui: 'bdd',
       reporter: 'HTML',
+      slow: 1000,
       rootHooks: {
         beforeEach(done) {
           done()
