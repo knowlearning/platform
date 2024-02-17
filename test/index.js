@@ -22,7 +22,7 @@ import browserAgent from '@knowlearning/agents/browser/initialize.js'
 import 'mocha/mocha.css'
 
 window.Agent = Agent
-if (!Agent.embedded) Agent.local()
+// if (!Agent.embedded) Agent.local()
 
 const id = window.location.pathname.slice(1)
 const { mode } = await Agent.environment()

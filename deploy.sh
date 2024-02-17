@@ -16,6 +16,7 @@ if [ -z $1 ]; then
     --profile development \
     --filename ./skaffold.yaml \
     --default-repo localhost:5000 \
+    --kube-context=kind-kl-core \
     --status-check=false \
     --force # forces updates to spec by replacing old objects (used so same job can be depoyed each time)
 elif [ $1 = npm ]; then

@@ -4,15 +4,21 @@ import { getToken, login, logout } from './auth.js'
 import GenericAgent from '../generic/index.js'
 
 const DEVELOPMENT_HOST = 'localhost:32001'
-const REMOTE_HOST = 'api.knowlearning.systems'
+const REMOTE_HOST = localStorage.getItem('mode') === 'staging' ? 'api.staging.knowlearning.systems' : 'api.knowlearning.systems'
+
+console.log('>>>>>>>>>>>>>>>>', REMOTE_HOST, localStorage.getItem('api'))
 
 function isLocal() { return localStorage.getItem('api') === 'local' }
+
+const API_HOST = isLocal() ? DEVELOPMENT_HOST : REMOTE_HOST
+
+console.log('>>>>>>>>>>>>>>>> API_HOST', API_HOST)
 
 export default options => {
   const { host, protocol } = window.location
 
   const Connection = function () {
-    const ws = new WebSocket(`${protocol === 'https:' ? 'wss' : 'ws'}://${isLocal() ? DEVELOPMENT_HOST : REMOTE_HOST}`)
+    const ws = new WebSocket(`${protocol === 'https:' ? 'wss' : 'ws'}://${API_HOST}`)
 
     this.send = message => ws.send(JSON.stringify(message))
     this.close = () => ws.close()
@@ -37,15 +43,12 @@ export default options => {
   })
 
   agent.local = () => {
-    if (isLocal()) return
-
     localStorage.setItem('api', 'local')
     location.reload()
   }
-  agent.remote = () => {
-    if (!isLocal()) return
-
-    localStorage.removeItem('api')
+  agent.remote = (mode='production') => {
+    localStorage.setItem('api', 'remote')
+    localStorage.setItem('mode', mode)
     location.reload()
   }
   agent.close = () => {

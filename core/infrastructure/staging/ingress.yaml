@@ -8,7 +8,7 @@ metadata:
 spec:
   rules:
   - host: api.staging.knowlearning.systems
-    http:
+    https:
       paths:
       - path: /
         pathType: ImplementationSpecific
