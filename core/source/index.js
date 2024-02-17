@@ -15,16 +15,20 @@ const {
   ADMIN_DOMAIN
 } = environment
 
+const LOCAL_SERVE_CONFIG = {
+  port: TLS_PORT,
+  cert: INSECURE_DEVELOPMENT_CERT,
+  key: INSECURE_DEVELOPMENT_KEY,
+}
+
 const initialConfig = Promise.all([
   ensureDomainConfigured(ADMIN_DOMAIN),
   ensureDomainConfigured('core')
 ])
 
-Deno.serve({
-  port: TLS_PORT,
-  cert: INSECURE_DEVELOPMENT_CERT,
-  key: INSECURE_DEVELOPMENT_KEY,
-}, request => {
+const serveConfig = MODE === 'local' ? LOCAL_SERVE_CONFIG : { port: PORT }
+
+Deno.serve(serveConfig, request => {
   if (request.headers.get("upgrade") != "websocket") {
     return new Response(null, { status: 501 })
   }

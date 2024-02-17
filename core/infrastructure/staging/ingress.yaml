@@ -3,7 +3,8 @@ kind: Ingress
 metadata:
   name: core-ingress
   annotations:
-    kubernetes.io/ingress.global-static-ip-name: "core-staging-ingress-ip"
+    kubernetes.io/ingress.global-static-ip-name: core-staging-ingress-ip
+    networking.gke.io/managed-certificates: core-staging-ingress-managed-cert
 spec:
   rules:
   - host: api.staging.knowlearning.systems
@@ -15,4 +16,13 @@ spec:
           service:
             name: core-deno
             port:
-              number: 4443
+              number: 8080
+---
+# TODO: separate deployment procedure for managed certs and document
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: core-staging-ingress-managed-cert
+spec:
+  domains:
+    - api.staging.knowlearning.systems
