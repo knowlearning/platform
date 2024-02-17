@@ -30,7 +30,7 @@ const serveConfig = MODE === 'local' ? LOCAL_SERVE_CONFIG : { port: PORT }
 
 Deno.serve(serveConfig, request => {
   if (request.headers.get("upgrade") != "websocket") {
-    return new Response(null, { status: 501 })
+    return new Response("WebSocket API Available")
   }
 
   let sid = getCookies(request.headers)['sid']
