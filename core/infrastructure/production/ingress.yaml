@@ -4,7 +4,7 @@ metadata:
   name: core-ingress
   annotations:
     kubernetes.io/ingress.global-static-ip-name: core-production-ingress-ip
-    networking.gke.io/managed-certificates: core-production-ingress-managed-cert
+    networking.gke.io/managed-certificates: core-ingress-managed-cert
 spec:
   rules:
   - host: api.knowlearning.systems
@@ -22,7 +22,7 @@ spec:
 apiVersion: networking.gke.io/v1
 kind: ManagedCertificate
 metadata:
-  name: core-production-ingress-managed-cert
+  name: core-ingress-managed-cert
 spec:
   domains:
     - api.knowlearning.systems
