@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: core-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: core-production-ingress-ip
+    networking.gke.io/managed-certificates: core-production-ingress-managed-cert
+spec:
+  rules:
+  - host: api.knowlearning.systems
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: core-node
+            port:
+              number: 8080
+---
+# TODO: separate deployment procedure for managed certs and document
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: core-production-ingress-managed-cert
+spec:
+  domains:
+    - api.knowlearning.systems
+    - api.staging.knowlearning.systems

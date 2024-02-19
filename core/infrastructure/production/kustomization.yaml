@@ -5,7 +5,9 @@ namespace: production
 
 resources:
 - ../base
+- core-node-service.yaml
 - service.yaml
+- ingress.yaml
 
 configMapGenerator:
 - name: core-env
