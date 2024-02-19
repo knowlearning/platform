@@ -1,4 +1,4 @@
-import { environment } from './utils.js'
+import { environment, randomBytes } from './utils.js'
 import { createServer as createServerHTTP } from 'http'
 import { createServer as createServerHTTPS } from 'https'
 import { WebSocketServer } from 'ws'
@@ -67,7 +67,7 @@ function setUpServer(server, port) {
       sid = cookies['sid']
     }
     if (!sid) {
-      sid =  crypto.randomBytes(16).toString('hex')
+      sid =  randomBytes(16).toString('hex')
       headers.push(`Set-Cookie: sid=${sid}; SameSite=None; Secure; HttpOnly`)
       console.log('creating sid', sid)
     }
