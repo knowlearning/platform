@@ -29,10 +29,6 @@ const initialConfig = Promise.all([
 const serveConfig = MODE === 'local' ? LOCAL_SERVE_CONFIG : { port: PORT }
 
 Deno.serve(serveConfig, request => {
-  if (request.headers.get("upgrade") != "websocket") {
-    return new Response("WebSocket API Available")
-  }
-
   let sid = getCookies(request.headers)['sid']
 
   const headers = new Headers()
@@ -42,13 +38,17 @@ Deno.serve(serveConfig, request => {
     setCookie(headers, { name: 'sid', value: sid, secure: true, httpOnly: true })
   }
 
+  if (request.headers.get("upgrade") != "websocket") {
+    return new Response("WebSocket API Available", { headers })
+  }
+
   const { socket, response } = Deno.upgradeWebSocket(request, { idleTimeout: 10, headers })
 
   //  TODO: domain should probably be "development", "staging" or "production" based on mode...
   const { host: domain } = new URL(request.headers.get('origin') || 'https://core')
 
   const connection = {
-    send(message) { socket.send(JSON.stringify(message)) },
+    send(message) { socket.send(message ? JSON.stringify(message) : '') },
     close() { socket.close() }
   }
 
@@ -63,6 +63,10 @@ Deno.serve(serveConfig, request => {
       socket.send(JSON.stringify({ error: 'Error Parsing Message' }))
     }
   })
+
+  let wsError
+  socket.addEventListener('error', e => wsError = e)
+  socket.addEventListener('close', () => connection.onclose(wsError))
 
   handleConnection(connection, domain, sid)
 

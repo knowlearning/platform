@@ -109,7 +109,7 @@ else {
       watchDeep()
       vuex()
       namespacedEmbeddings()
-      // if (!Agent.embedded) reconnect()
+      if (!Agent.embedded) reconnect()
       uploads()
       latestBugfixes()
       multiAgent()

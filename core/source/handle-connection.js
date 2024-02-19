@@ -6,11 +6,31 @@ import coreSideEffects from './core-side-effects.js'
 import domainAgent from './domain-agent.js'
 
 const HEARTBEAT_INTERVAL = 5000
+const SESSION_RECONNECTION_INTERVAL = 60000
 
+const activeConnections = {}
 const sessionMessageIndexes = {}
 const responseBuffers = {}
-const activeConnections = {}
 const outstandingSideEffects = {}
+const reconnectionPromiseResolvers = {}
+
+function close(session) {
+  //  TODO: tear down listeners
+  delete responseBuffers[session]
+  delete activeConnections[session]
+  delete outstandingSideEffects[session]
+}
+
+function reconnection(session) {
+  return new Promise((resolve, reject) => {
+    const reconnectionTimeout = setTimeout(reject, SESSION_RECONNECTION_INTERVAL)
+
+    reconnectionPromiseResolvers[session] = () => {
+      clearTimeout(reconnectionTimeout)
+      resolve()
+    }
+  })
+}
 
 export default async function handleConnection(connection, domain, sid) {
   let user, session, provider, heartbeatTimeout
@@ -23,7 +43,7 @@ export default async function handleConnection(connection, domain, sid) {
     heartbeatTimeout = setTimeout(
       () => {
         try {
-          connection.send('')
+          connection.send()
           heartbeat()
         }
         catch (error) {
@@ -44,9 +64,18 @@ export default async function handleConnection(connection, domain, sid) {
       heartbeat()
     }
     catch (error) {
-      console.warn('ERROR SENDING OVER ACTIVE CONNECTION')
-      activeConnections[session].close()
+      console.warn('ERROR SENDING OVER ACTIVE CONNECTION', error)
     }
+  }
+
+  connection.onclose = async () => {
+    clearTimeout(heartbeatTimeout)
+    if (!session) return
+
+    delete activeConnections[session]
+    //  TODO: if no error passed to onclose, we can go ahead and
+    //        close the session without waiting for reconnection
+    reconnection(session).catch(() => close(session))
   }
 
   connection.onmessage = async message => {
@@ -61,8 +90,19 @@ export default async function handleConnection(connection, domain, sid) {
         session = authResponse.session
 
         //  TODO: consider making this cross server
-        if (sessionMessageIndexes[session] === undefined) sessionMessageIndexes[session] = -1
-        if (!responseBuffers[session]) responseBuffers[session] = []
+        if (sessionMessageIndexes[session] !== undefined) {
+          if (reconnectionPromiseResolvers[session]) reconnectionPromiseResolvers[session]()
+          else {
+            connection.send({ error: 'Session reconnection failed' })
+            connection.close()
+            return
+          }
+        }
+        else {
+          sessionMessageIndexes[session] = -1
+          responseBuffers[session] = []
+          outstandingSideEffects[session] = {}
+        }
 
         connection.send({
           domain,
@@ -105,13 +145,18 @@ export default async function handleConnection(connection, domain, sid) {
 
           sessionMessageIndexes[session] = si
 
-          const resolveCurrentSideEffects = await resolvePreviousSideEffects(domain, user, scope, session)
+          const id = await scopeToId(domain, user, scope)
+          if (!outstandingSideEffects[session][id]) outstandingSideEffects[session][id] = []
+
+          await Promise.all(outstandingSideEffects[session][id])
+          let resolveSideEffects
+          outstandingSideEffects[session][id].push(new Promise(resolve => resolveSideEffects = resolve))
 
           const { ii, active_type } = await interact(domain, user, scope, patch)
           await coreSideEffects({ session, domain, user, scope, active_type, patch, si, ii, send })
           agent?.send({ type: 'mutate', session, data: { scope, patch, ii } })
 
-          resolveCurrentSideEffects()
+          resolveSideEffects()
         }
       }
       catch (error) {
@@ -120,16 +165,4 @@ export default async function handleConnection(connection, domain, sid) {
       }
     }
   }
-}
-
-async function resolvePreviousSideEffects(domain, user, scope, session) {
-  const id = await scopeToId(domain, user, scope)
-
-  await Promise.all(outstandingSideEffects?.[session]?.[id] || [])
-
-  if (!outstandingSideEffects[session]) outstandingSideEffects[session] = {}
-  if (!outstandingSideEffects[session][id]) outstandingSideEffects[session][id] = []
-  let resolveSideEffects
-  outstandingSideEffects[session][id].push(new Promise(resolve => resolveSideEffects = resolve))
-  return resolveSideEffects
 }
