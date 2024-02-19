@@ -26,4 +26,3 @@ metadata:
 spec:
   domains:
     - api.knowlearning.systems
-    - api.staging.knowlearning.systems
