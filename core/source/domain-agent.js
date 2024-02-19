@@ -38,7 +38,8 @@ export default function domainAgent(domain) {
       const connection = {
         async send(message) {
           // TODO: consider more reliable/explicit recognintion of auth response method
-          if (message.server) {
+          if (!message) postMessage() // heartbeat
+          else if (message.server) {
             connectionAuthenticated = true
             postMessage(message)
             while (postAuthenticationMessageQueue.length) {

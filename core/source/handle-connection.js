@@ -14,13 +14,6 @@ const responseBuffers = {}
 const outstandingSideEffects = {}
 const reconnectionPromiseResolvers = {}
 
-function close(session) {
-  //  TODO: tear down listeners
-  delete responseBuffers[session]
-  delete activeConnections[session]
-  delete outstandingSideEffects[session]
-}
-
 function reconnection(session) {
   return new Promise((resolve, reject) => {
     const reconnectionTimeout = setTimeout(reject, SESSION_RECONNECTION_INTERVAL)
@@ -37,6 +30,15 @@ export default async function handleConnection(connection, domain, sid) {
 
   // TODO: centralize 'close' method for child
   const agentPromise = domainAgent(domain)
+
+  function close() {
+    //  TODO: tear down listeners
+    delete responseBuffers[session]
+    delete activeConnections[session]
+    delete outstandingSideEffects[session]
+    //  TODO: possibly pass along close info in data param (ex. error)
+    agentPromise.then(a => a?.send({ type: 'close', session }))
+  }
 
   function heartbeat() {
     clearTimeout(heartbeatTimeout)
@@ -75,7 +77,7 @@ export default async function handleConnection(connection, domain, sid) {
     delete activeConnections[session]
     //  TODO: if no error passed to onclose, we can go ahead and
     //        close the session without waiting for reconnection
-    reconnection(session).catch(() => close(session))
+    reconnection(session).catch(close)
   }
 
   connection.onmessage = async message => {
