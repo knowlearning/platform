@@ -34,6 +34,7 @@ const agent = new Agent({
     //  concept probably has a place in the generic agent
     if (type === 'open') {
       const child = {
+        environment: data,
         on: (eventType, reaction) => {
           if (!listeners[session]) throw new Error('Error attaching listener, child is closed')
           if (!listeners[session][eventType]) throw new Error('Only "mutate" and "close" events can be listened to with Agent.on')
