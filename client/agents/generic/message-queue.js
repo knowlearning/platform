@@ -236,7 +236,7 @@ export default function messageQueue({ token, Connection, watchers, states, appl
   function disconnect() {
     log('DISCONNECTED AGENT!!!!!!!!!!!!!!!')
     disconnected = true
-    connection.close()
+    connection.close({ keepalive: true })
   }
 
   function reconnect() {

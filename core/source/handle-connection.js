@@ -18,9 +18,14 @@ function reconnection(session) {
   return new Promise((resolve, reject) => {
     const reconnectionTimeout = setTimeout(reject, SESSION_RECONNECTION_INTERVAL)
 
+    if (reconnectionPromiseResolvers[session]) {
+      console.warn('DOUBLED UP CALLS TO RECONNECTION', session)
+      reconnectionPromiseResolvers[session]()
+    }
     reconnectionPromiseResolvers[session] = () => {
       clearTimeout(reconnectionTimeout)
       resolve()
+      delete reconnectionPromiseResolvers[session]
     }
   })
 }
@@ -28,16 +33,15 @@ function reconnection(session) {
 export default async function handleConnection(connection, domain, sid) {
   let user, session, provider, heartbeatTimeout
 
-  // TODO: centralize 'close' method for child
   const agentPromise = domainAgent(domain)
 
-  function close() {
+  function close(data) {
     //  TODO: tear down listeners
     delete responseBuffers[session]
     delete activeConnections[session]
     delete outstandingSideEffects[session]
     //  TODO: possibly pass along close info in data param (ex. error)
-    agentPromise.then(a => a?.send({ type: 'close', session }))
+    agentPromise.then(a => a?.send({ type: 'close', session, data }))
   }
 
   function heartbeat() {
@@ -70,14 +74,15 @@ export default async function handleConnection(connection, domain, sid) {
     }
   }
 
-  connection.onclose = async () => {
+  connection.onclose = async error => {
     clearTimeout(heartbeatTimeout)
     if (!session) return
 
     delete activeConnections[session]
     //  TODO: if no error passed to onclose, we can go ahead and
     //        close the session without waiting for reconnection
-    reconnection(session).catch(close)
+    if (error) reconnection(session).catch(() => close('reconnection error'))
+    else close()
   }
 
   connection.onmessage = async message => {
@@ -93,7 +98,9 @@ export default async function handleConnection(connection, domain, sid) {
 
         //  TODO: consider making this cross server
         if (sessionMessageIndexes[session] !== undefined) {
-          if (reconnectionPromiseResolvers[session]) reconnectionPromiseResolvers[session]()
+          if (reconnectionPromiseResolvers[session]) {
+            reconnectionPromiseResolvers[session]()
+          }
           else {
             connection.send({ error: 'Session reconnection failed' })
             connection.close()
@@ -139,8 +146,17 @@ export default async function handleConnection(connection, domain, sid) {
           const responseIndex = responseBuffers[session].findIndex(({ si }) => si === message.ack)
           responseBuffers[session].splice(0, responseIndex + 1)
         }
+        else if (message.type === 'close') {
+          if (message.info?.keepalive) {
+            connection.close('Closed with keepalive by client')
+          }
+          else {
+            close(message.info)
+            session = undefined
+            connection.close()
+          }
+        }
         else {
-
           const { scope, patch, si } = message
 
           if (si !== sessionMessageIndexes[session] + 1) console.warn(`SKIPPING MESSAGE INDEX! TODO: INVESTIGATE CAUSE ${sessionMessageIndexes[session]} -> ${si}`)

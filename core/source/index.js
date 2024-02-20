@@ -49,7 +49,10 @@ Deno.serve(serveConfig, request => {
 
   const connection = {
     send(message) { socket.send(message ? JSON.stringify(message) : '') },
-    close() { socket.close() }
+    close(error) {
+      socketError = error
+      socket.close()
+    }
   }
 
   ensureDomainConfigured(domain)
@@ -64,9 +67,9 @@ Deno.serve(serveConfig, request => {
     }
   })
 
-  let wsError
-  socket.addEventListener('error', e => wsError = e)
-  socket.addEventListener('close', () => connection.onclose(wsError))
+  let socketError
+  socket.addEventListener('error', error => socketError = error)
+  socket.addEventListener('close', () => connection.onclose(socketError?.toString()))
 
   handleConnection(connection, domain, sid)
 
