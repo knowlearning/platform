@@ -3,7 +3,8 @@ import { applyPatch } from 'fast-json-patch'
 import { getToken, login, logout } from './auth.js'
 import GenericAgent from '../generic/index.js'
 
-const DEVELOPMENT_HOST = 'localhost:32001'
+const SECURE = window.location.protocol === 'https:'
+const DEVELOPMENT_HOST = `localhost:3200${ SECURE ? '1' : '2' }`
 const REMOTE_HOST = localStorage.getItem('mode') === 'staging' ? 'api.staging.knowlearning.systems' : 'api.knowlearning.systems'
 
 function isLocal() { return localStorage.getItem('api') === 'local' }
@@ -11,10 +12,10 @@ function isLocal() { return localStorage.getItem('api') === 'local' }
 const API_HOST = isLocal() ? DEVELOPMENT_HOST : REMOTE_HOST
 
 export default options => {
-  const { host, protocol } = window.location
+  const { host } = window.location
 
   const Connection = function () {
-    const ws = new WebSocket(`${protocol === 'https:' ? 'wss' : 'ws'}://${API_HOST}`)
+    const ws = new WebSocket(`ws${ SECURE ? 's' : '' }://${API_HOST}`)
 
     this.send = message => ws.send(JSON.stringify(message))
     this.close = info => {
