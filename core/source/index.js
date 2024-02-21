@@ -15,6 +15,8 @@ const {
   ADMIN_DOMAIN
 } = environment
 
+const HTTP_SERVE_CONFIG = { port: PORT }
+
 const LOCAL_SERVE_CONFIG = {
   port: TLS_PORT,
   cert: INSECURE_DEVELOPMENT_CERT,
@@ -26,9 +28,12 @@ const initialConfig = Promise.all([
   ensureDomainConfigured('core')
 ])
 
-const serveConfig = MODE === 'local' ? LOCAL_SERVE_CONFIG : { port: PORT }
+//  Serve https directly from local
+if (MODE === 'local') Deno.serve(LOCAL_SERVE_CONFIG, handleRequest)
 
-Deno.serve(serveConfig, request => {
+Deno.serve(HTTP_SERVE_CONFIG, handleRequest)
+
+function handleRequest(request) {
   let sid = getCookies(request.headers)['sid']
 
   const headers = new Headers()
@@ -74,4 +79,4 @@ Deno.serve(serveConfig, request => {
   handleConnection(connection, domain, sid)
 
   return response
-})
+}

@@ -8,6 +8,10 @@ nodes:
     containerPort: 30001
     listenAddress: "127.0.0.1"
     protocol: TCP
+  - hostPort: 32002
+    containerPort: 30002
+    listenAddress: "127.0.0.1"
+    protocol: TCP
   - hostPort: 32003
     containerPort: 30003
     listenAddress: "127.0.0.1"
