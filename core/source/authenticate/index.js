@@ -1,4 +1,4 @@
-import { jwt, jwkToPem, uuid, environment, decryptSymmetric } from '../utils.js'
+import { jwt, jwkToPem, uuid, environment, decryptSymmetric, decodeBase64String } from '../utils.js'
 import saveSession from './save-session.js'
 import * as hash from './hash.js'
 import interact from '../interact/index.js'
@@ -121,9 +121,8 @@ export default async function authenticate(message, domain, sid) {
   else authority = 'JWT'
 
   const session = uuid()
-  console.log('Authenticating token', message.token)
   const { user, provider, provider_id, info } = await authenticateToken(message.token, authority)
-  console.log('NEW SESSION FOR USER', user, domain, session)
+  console.log('NEW SESSION FOR USER', user, domain, session.slice(0, 4))
 
   const userPatch = [
     { op: 'add', value: USER_TYPE, path: ['active_type'] },
@@ -150,7 +149,7 @@ async function fetchJSON(url) {
 
 function kidFromToken(token) {
   //  get kid header from token
-  const { kid } = JSON.parse(Buffer.from(token.split('.').shift(), "base64"))
+  const { kid } = JSON.parse(decodeBase64String(token.split('.').shift()))
   return kid
 }
 
@@ -246,7 +245,6 @@ const providerJWKs = Object.fromEntries(
 
 async function fetchJWKs(provider, retries=0) {
   if (retries > 3) throw new Error(`Could not fetch ${provider} public keys`)
-    console
 
   const endpoint = JWKS_ENDPOINTS[provider]
 
@@ -288,11 +286,8 @@ async function JWTVerification(client_id, client_secret, token_uri, token, resol
   if (!providerJWKs[provider][kid]) return reject('Public key not found')
 
   const encoded = jwkToPem(providerJWKs[provider][kid])
-  console.log('encoded', id_token, encoded)
   jwt.verify(id_token, encoded, async (error, decoded, claims) => {
     if (error) return reject(error)
-
-    console.log('decoded', decoded, claims)
 
     if (passTokenChallenge(provider, decoded)) {
       const provider_id = decoded.sub
