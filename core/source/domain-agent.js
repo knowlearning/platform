@@ -58,7 +58,7 @@ export default function domainAgent(domain) {
 
       worker.onerror = event => console.log('DOMAIN AGENT ERROR', event)
       worker.onmessage = async ({ data }) => {
-        console.log('MESSAGE FROM WORKER!!!!!!!!!!!!!!!', data, typeof data)
+        console.log('MESSAGE FROM WORKER!!!!!!!!!!!!!!!', JSON.stringify(data))
         await sessionSave
         connection.onmessage(data)
       }
