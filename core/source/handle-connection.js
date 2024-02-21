@@ -64,6 +64,9 @@ export default async function handleConnection(connection, domain, sid) {
   heartbeat()
 
   function send(message) {
+    //  this guard probably unnecessary if we properly stop watchers
+    if (!responseBuffers[session]) return console.warn('SESSION CLOSED BUT RESPONSE SENT', message, session.slice(0,4))
+
     responseBuffers[session].push(message)
     try {
       activeConnections[session].send(message)
