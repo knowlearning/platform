@@ -5,32 +5,23 @@ import { ensureDomainConfigured } from './side-effects/configure.js'
 const {
   MODE,
   PORT,
-  INSECURE_DEVELOPMENT_CERT,
-  INSECURE_DEVELOPMENT_KEY,
-  SECRET_ENCRYPTION_KEY,
+  INSECURE_DEVELOPMENT_CERT: cert,
+  INSECURE_DEVELOPMENT_KEY: key,
   TLS_PORT,
   ADMIN_DOMAIN
 } = environment
 
-const HTTP_SERVE_CONFIG = { port: PORT }
+ensureDomainConfigured(ADMIN_DOMAIN)
+ensureDomainConfigured('core')
 
-const LOCAL_SERVE_CONFIG = {
-  port: TLS_PORT,
-  cert: INSECURE_DEVELOPMENT_CERT,
-  key: INSECURE_DEVELOPMENT_KEY,
+//  Serve https directly when in local development mode
+if (MODE === 'local') {
+  Deno.serve({ port: TLS_PORT, cert, key }, handler)
 }
 
-const initialConfig = Promise.all([
-  ensureDomainConfigured(ADMIN_DOMAIN),
-  ensureDomainConfigured('core')
-])
+Deno.serve({ port: PORT }, handler)
 
 function handler(request) {
   ensureDomainConfigured(requestDomain(request))
   return handleHttpRequest(request)
 }
-
-//  Serve https directly from local
-if (MODE === 'local') Deno.serve(LOCAL_SERVE_CONFIG, handler)
-
-Deno.serve(HTTP_SERVE_CONFIG, handler)
