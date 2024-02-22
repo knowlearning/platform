@@ -104,6 +104,7 @@ const decrypt = (mySecretKey, theirPublicKey, encryptedMessageBufferWithNonce) =
 
 const decodeBase64String = string => (new TextDecoder()).decode(decodeBase64(string))
 const escapePostgresLiteral = nodePostres.escapeLiteral
+const requestDomain = request => (new URL(request.headers.get('origin') || 'https://core')).host
 
 export {
   pg,
@@ -125,6 +126,7 @@ export {
   writeFile,
   getCookies,
   setCookie,
+  requestDomain,
   escapePostgresLiteral,
   environment
 }
