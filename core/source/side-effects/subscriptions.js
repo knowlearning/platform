@@ -1,8 +1,6 @@
-import { isUUID } from '../utils.js'
 import * as redis from '../redis.js'
 import subscribe from '../subscribe.js'
 import configuration from '../configuration.js'
-import initializationState from '../initialization-state.js'
 import scopeToId from '../scope-to-id.js'
 import subscriptions from '../subscriptions.js'
 

@@ -1,5 +1,4 @@
 import * as redis from '../redis.js'
-import initializationState from '../initialization-state.js'
 import scopeToId from '../scope-to-id.js'
 import sync from './sync.js'
 
