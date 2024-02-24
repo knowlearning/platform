@@ -46,7 +46,8 @@ const agent = new Agent({
       trigger('child', child)
     }
     else if (type === 'mutate') {
-      listeners[session].mutate.forEach(f => f(data))
+      const filteredData = { ...data, patch: activePatch(data.patch) }
+      listeners[session].mutate.forEach(f => f(filteredData))
     }
     else if (type === 'close') {
       listeners[session].close.forEach(f => f(data))
@@ -55,5 +56,9 @@ const agent = new Agent({
     }
   }
 })
+
+function activePatch(patch) {
+  return structuredClone(patch).filter(({ path }) => 'active' === path.shift())
+}
 
 export default agent
