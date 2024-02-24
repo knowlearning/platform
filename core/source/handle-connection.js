@@ -41,7 +41,11 @@ export default async function handleConnection(connection, domain, sid) {
     delete activeConnections[session]
     delete outstandingSideEffects[session]
     //  TODO: possibly pass along close info in data param (ex. error)
-    agentPromise.then(a => a?.send({ type: 'close', session, data }))
+    agentPromise.then(agent => {
+      if (agent && user && user !== domain) {
+        agent.send({ type: 'close', session, data })
+      }
+    })
   }
 
   function heartbeat() {
@@ -128,8 +132,8 @@ export default async function handleConnection(connection, domain, sid) {
         responseBuffers[session].forEach(r => connection.send(r))
 
         //  Only send open on initial session auth
-        if (sessionMessageIndexes[session] === -1) {
-          agent?.send({ type: 'open', session, data: { user } })
+        if (sessionMessageIndexes[session] === -1 && agent && user !== domain) {
+          agent.send({ type: 'open', session, data: { user } })
         }
       }
       catch (error) {
@@ -175,7 +179,10 @@ export default async function handleConnection(connection, domain, sid) {
 
           const { ii, active_type } = await interact(domain, user, scope, patch)
           await coreSideEffects({ session, domain, user, scope, active_type, patch, si, ii, send })
-          agent?.send({ type: 'mutate', session, data: { scope, patch, ii } })
+          if (agent && user !== domain) {
+            const data = { scope, patch, ii }
+            agent.send({ type: 'mutate', session, data })
+          }
 
           resolveSideEffects()
         }
