@@ -56,7 +56,12 @@ export default function domainAgent(domain) {
         }
       }
 
-      worker.onerror = event => console.log('DOMAIN AGENT ERROR', event)
+      worker.onerror = event => {
+        console.log('DOMAIN AGENT ERROR', event)
+        //  Stop unhandled child error event from closing the core server
+        event.preventDefault()
+        // TODO: restart child process, probably with backoff and reporting to admin domain...
+      }
       worker.onmessage = async ({ data }) => {
         console.log('MESSAGE FROM WORKER!!!!!!!!!!!!!!!', JSON.stringify(data))
         await sessionSave
