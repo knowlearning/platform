@@ -1,5 +1,6 @@
 import { uuid, parseYAML, environment } from '../utils.js'
 import { domainAdmin } from '../configuration.js'
+import domainAgent from '../domain-agent.js'
 import * as redis from '../redis.js'
 import * as postgres from '../postgres.js'
 import { download } from '../storage.js'
@@ -82,9 +83,14 @@ export default async function ({ domain, user, session, patch, si, ii, send }) {
   send({ si, ii })
 }
 
-export async function applyConfiguration(domain, { postgres }, report) {
+export async function applyConfiguration(domain, { postgres, agent }, report) {
   const tasks = []
   if (postgres) tasks.push(() => configurePostgres(domain, postgres, report))
+  if (agent) tasks.push(async () => {
+    report.tasks.agent = ['refreshing']
+    await domainAgent(domain, true)
+    report.tasks.agent.push('done')
+  })
 
   return Promise.all(tasks.map(t => t()))
 }

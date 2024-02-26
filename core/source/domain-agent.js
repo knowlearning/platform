@@ -5,8 +5,8 @@ import handleConnection from './handle-connection.js'
 
 const Agents = {}
 
-export default function domainAgent(domain) {
-  if (Agents[domain]) return Agents[domain]
+export default function domainAgent(domain, refresh=false) {
+  if (Agents[domain] && !refresh) return Agents[domain]
 
   Agents[domain] = new Promise(async resolve => {
     const config = await configuration(domain)
