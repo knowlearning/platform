@@ -36,8 +36,10 @@ export default async function (requestingDomain, targetDomain, queryName, params
       })
 
     return postgres.query(targetDomain, queryBody, queryParams, true).catch(error => {
-      const e = new Error(error.fields.message)
-      e.code = error.fields.code
+      //  TODO: this type of error should probably make it to the admin interface
+      console.warn('POSTGRES QUERY ERROR', requestingDomain, targetDomain, error)
+      const e = new Error(error.fields?.message)
+      e.code = error.fields?.code || 'Unknown Error Code'
       throw e
     })
   }

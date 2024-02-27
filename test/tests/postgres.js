@@ -373,11 +373,15 @@ postgres:
 
     it('Cannot query old tables', async function () {
       let erroredExpectedly = false
+      let error
       try {
         const state = await Agent.query('my-old-test-table')
       }
-      catch (error) { erroredExpectedly = error.error === '42P01' }
-      if (!erroredExpectedly) throw new Error('Expected postgres 42P01 error on query involving new table')
+      catch (e) {
+        erroredExpectedly = e.error === '42P01'
+        error = e
+      }
+      if (!erroredExpectedly) throw new Error(`Expected postgres 42P01 error on query involving new table; received ${error}`)
     })
 
   })
