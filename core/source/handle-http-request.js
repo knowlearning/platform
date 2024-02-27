@@ -13,6 +13,9 @@ export default function handleHTTPRequest(request) {
   }
 
   if (request.headers.get("upgrade") != "websocket") {
+    headers.set("Access-Control-Allow-Origin", "*")
+    headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    headers.set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
     return new Response("WebSocket API Available", { headers })
   }
 
