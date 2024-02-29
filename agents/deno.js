@@ -25,6 +25,11 @@ const agent = new Agent({
   Connection,
   token: () => AGENT_TOKEN,
   uuid: () => crypto.randomUUID(),
+  async log() {
+    const { session } = await agent.environment()
+    const value = structuredClone([...arguments])
+    agent.interact('sessions', [{ op: 'add', path: ['active', session, 'log'], value }], false, false)
+  },
   fetch,
   applyPatch: fastJSONPatch.applyPatch,
   reboot: () => Deno.exit(1),
