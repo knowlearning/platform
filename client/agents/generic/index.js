@@ -34,7 +34,7 @@ export default function Agent({ Connection, domain, token, uuid, fetch, applyPat
   // initialize session
   environment()
     .then(({ session }) => {
-      interact('sessions', [{ op: 'add', path: [session], value: { queries: {}, subscriptions: {} } }], false, false)
+      interact('sessions', [{ op: 'add', path: ['active', session], value: { queries: {}, subscriptions: {} } }], false, false)
     })
 
   const internalReferences = {
