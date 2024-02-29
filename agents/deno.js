@@ -27,7 +27,15 @@ const agent = new Agent({
   uuid: () => crypto.randomUUID(),
   async log() {
     const { session } = await agent.environment()
-    const value = structuredClone([...arguments])
+    let value
+
+    try {
+      value = structuredClone([...arguments])
+    }
+    catch (error) {
+      value = `ERROR: error occurred logging arguments ${arguments}`
+    }
+
     agent.interact('sessions', [{ op: 'add', path: ['active', session, 'log'], value }], false, false)
   },
   fetch,
