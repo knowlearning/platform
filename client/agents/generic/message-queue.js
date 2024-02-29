@@ -130,9 +130,6 @@ export default function messageQueue({ token, domain, Connection, watchers, stat
       if (!message) return // heartbeat
 
       try {
-        log('handling message', disconnected, authed)
-        log('message', JSON.stringify(message))
-
         if (message.error) console.warn('ERROR RESPONSE', message)
 
         if (!authed) {

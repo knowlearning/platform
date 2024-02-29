@@ -13,7 +13,7 @@ const POSTGRES_QUERY_TYPE = 'application/json;type=postgres-query'
 const TAG_TYPE = 'application/json;type=tag'
 const DOMAIN_CLAIM_TYPE = 'application/json;type=domain-claim'
 
-export default function Agent({ Connection, domain, token, uuid, fetch, applyPatch, login, logout, reboot, handleDomainMessage }) {
+export default function Agent({ Connection, domain, token, uuid, fetch, applyPatch, login, logout, reboot, handleDomainMessage, log:passedLog=console.log }) {
   const states = {}
   const watchers = {}
   const keyToSubscriptionId = {}
@@ -61,7 +61,7 @@ export default function Agent({ Connection, domain, token, uuid, fetch, applyPat
 
   function debug() { mode = 'debug' }
 
-  function log() { if (mode === 'debug') console.log(...arguments) }
+  function log() { if (mode === 'debug') passedLog(...arguments) }
 
   function create({ id=uuid(), active_type, active, name }) {
     if (!active_type) active_type = 'application/json'
