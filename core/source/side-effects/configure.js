@@ -7,7 +7,7 @@ import { download } from '../storage.js'
 import interact from '../interact/index.js'
 import POSTGRES_DEFAULT_TABLES from '../postgres-default-tables.js'
 import configuration from '../configuration.js'
-import MutableProxy from '../../../client/persistence/json.js'
+import MutableProxy from '../../../agents/persistence/json.js'
 
 const EXISTING_TABLES_QUERY = `
   SELECT tablename

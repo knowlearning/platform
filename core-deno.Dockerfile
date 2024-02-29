@@ -5,7 +5,7 @@ COPY ./core/source/utils.js ./core/source/utils.js
 RUN deno cache ./core/source/utils.js
 
 COPY ./core/source ./core/source
-COPY ./client ./client
+COPY ./agents ./agents
 
 RUN deno cache ./core/source/index.js
 
