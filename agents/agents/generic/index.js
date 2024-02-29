@@ -232,6 +232,7 @@ export default function Agent({ Connection, domain, token, uuid, fetch, applyPat
     environment,
     login,
     logout,
+    log,
     create,
     state,
     watch,
