@@ -15,7 +15,7 @@ function sanitizeJSONPatchPathSegment(s) {
   else return s
 }
 
-export default function messageQueue({ token, Connection, watchers, states, applyPatch, log, login, reboot, handleDomainMessage, trigger }) {
+export default function messageQueue({ token, domain, Connection, watchers, states, applyPatch, log, login, reboot, handleDomainMessage, trigger }) {
   let connection
   let user
   let authed = false
@@ -179,7 +179,7 @@ export default function messageQueue({ token, Connection, watchers, states, appl
             }
           }
           else {
-            const d = message.domain === window.location.host ? '' : message.domain
+            const d = message.domain === domain ? '' : message.domain
             const u = message.user === user ? '' : message.user
             const s = message.scope
             const qualifiedScope = isUUID(s) ? s : `${d}/${u}/${s}`

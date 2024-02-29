@@ -33,6 +33,7 @@ export default options => {
 
   const agent = GenericAgent({
     token: options.getToken || getToken,
+    domain: window.location.host,
     Connection,
     uuid,
     fetch,
