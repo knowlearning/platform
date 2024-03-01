@@ -18,6 +18,7 @@ agent: |
   
   Agent.on('child', child => {
     console.log('GOT CHILD!!!', child)
+    Agent.log('GOT CHILD!!!', child)
     child.on('mutate', mutation => console.log('GOT MUTATION!!!', mutation))
     child.on('close', info => console.log('GOT CLOSE!!!', info))
   })

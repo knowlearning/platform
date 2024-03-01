@@ -33,7 +33,7 @@ const agent = new Agent({
       value = structuredClone([...arguments])
     }
     catch (error) {
-      value = `ERROR: error occurred logging arguments ${arguments}`
+      value = `ERROR: error occurred logging arguments ${error} ${arguments}`
     }
 
     agent.interact('sessions', [{ op: 'add', path: ['active', session, 'log'], value }], false, false)
