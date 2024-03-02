@@ -63,7 +63,6 @@ export default function domainAgent(domain, refresh=false) {
         // TODO: restart child process, probably with backoff and reporting to admin domain...
       }
       worker.onmessage = async ({ data }) => {
-        console.log('MESSAGE FROM WORKER!!!!!!!!!!!!!!!', JSON.stringify(data))
         await sessionSave
         connection.onmessage(data)
       }

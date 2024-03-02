@@ -36,11 +36,18 @@ export default async function handleConnection(connection, domain, sid) {
   const agentPromise = domainAgent(domain)
 
   function close(data) {
+    if (!user) return
+
     //  TODO: tear down listeners
     delete responseBuffers[session]
     delete activeConnections[session]
     delete outstandingSideEffects[session]
-    //  TODO: possibly pass along close info in data param (ex. error)
+
+    interact(domain, user, 'sessions', [
+      { op: 'add', path: ['active', session, 'close'], value: data  },
+      { op: 'remove', path: ['active', session]  }
+    ])
+
     agentPromise.then(agent => {
       if (agent && user && user !== domain) {
         agent.send({ type: 'close', session, data })

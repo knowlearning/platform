@@ -18,10 +18,9 @@ agent: |
   
   Agent.on('child', child => {
     const { environment: { user } } = child
-    console.log('GOT CHILD!!!', child)
-    Agent.log('GOT CHILD!!!', user)
-    child.on('mutate', mutation => console.log('GOT MUTATION!!!', mutation))
-    child.on('close', info => console.log('GOT CLOSE!!!', info))
+    Agent.log('GOT CHILD!', user)
+    child.on('mutate', mutation => Agent.log('GOT MUTATION!!!', mutation))
+    child.on('close', info => Agent.log('GOT CLOSE!!!', info))
   })
 postgres:
   tables: {}
