@@ -50,7 +50,8 @@ export default function Agent({ Connection, domain, token, uuid, fetch, applyPat
     interact,
     fetch,
     synced,
-    metadata
+    metadata,
+    log
   }
 
   const [ watch, removeWatcher ] = watchImplementation(internalReferences)
