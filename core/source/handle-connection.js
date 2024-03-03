@@ -35,7 +35,7 @@ export default async function handleConnection(connection, domain, sid) {
 
   const agentPromise = domainAgent(domain)
 
-  function close(data) {
+  function close(data=null) {
     if (!user) return
 
     //  TODO: tear down listeners
