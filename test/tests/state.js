@@ -40,5 +40,24 @@ export default function () {
       const thirdAgentRetrievedState = await Agent3.state(name, agent1Env.auth.user)
       expect(thirdAgentRetrievedState).to.deep.equal(state)
     })
+
+    it('Can update a second requested persistent object', async function () {
+      const { auth: { user } } = await Agent.environment()
+      const id = uuid()
+      const name = `Special State ${id}`
+      const state = await Agent.state(name)
+      state.x = 100
+      state.y = 200
+
+      const state2 = await Agent.state(name)
+      state2.x = 200
+      state2.y = 400
+
+      await Agent.synced()
+
+      const updatedStateFromSecondAgent = await Agent2.state(name, user)
+
+      expect(updatedStateFromSecondAgent).to.deep.equal(state2)
+    })
   })
 }
