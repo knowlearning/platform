@@ -120,19 +120,18 @@ export default function Agent({ Connection, domain, token, uuid, fetch, applyPat
     //  if we are watching this scope, we want to keep track of last interaction we fired
     const qualifiedScope = isUUID(scope) ? scope : `//${scope}`
     if (manageLocalState && states[qualifiedScope] !== undefined) {
-      let resolve
-      lastInteractionResponse[qualifiedScope] = new Promise(r => resolve = r)
-
-      const resolveAndUnwatch = async (update) => {
-        const { ii } = await response
-        if (update.ii === ii) {
-          resolve(ii)
-          removeWatcher(qualifiedScope, resolveAndUnwatch)
+      lastInteractionResponse[qualifiedScope] = new Promise(resolve => {
+        const resolveAndUnwatch = async update => {
+          log('AWAITING INTERACTION RESPONSE', qualifiedScope, update)
+          const { ii } = await response
+          log('GOT INTERACTION RESPONSE', qualifiedScope, await response)
+          if (update.ii === ii) {
+            resolve(ii)
+            removeWatcher(qualifiedScope, resolveAndUnwatch)
+          }
         }
-      }
-
-      watchers[qualifiedScope].push(resolveAndUnwatch)
-
+        watchers[qualifiedScope].push(resolveAndUnwatch)
+      })
       return response
     }
     else {
