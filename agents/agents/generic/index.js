@@ -61,7 +61,7 @@ export default function Agent({ Connection, domain, token, uuid, fetch, applyPat
 
   function debug() { mode = 'debug' }
 
-  function log() { if (mode === 'debug') passedLog(...arguments) }
+  function log() { passedLog(...arguments) }
 
   function create({ id=uuid(), active_type, active, name }) {
     if (!active_type) active_type = 'application/json'
