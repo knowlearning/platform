@@ -158,7 +158,12 @@ export default function messageQueue({ token, domain, Connection, watchers, stat
         }
         else {
           if (DOMAIN_MESSAGES[message.type]) {
-            handleDomainMessage && handleDomainMessage(message, trigger)
+            try {
+              handleDomainMessage && handleDomainMessage(message, trigger)
+            }
+            catch (error) {
+              log('ERROR HANDLING DOMAIN MESSAGE', message)
+            }
           }
           else if (message.si !== undefined) {
             if (responses[message.si]) {

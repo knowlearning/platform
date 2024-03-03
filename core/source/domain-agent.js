@@ -63,6 +63,7 @@ export default function domainAgent(domain, refresh=false) {
         // TODO: restart child process, probably with backoff and reporting to admin domain...
       }
       worker.onmessage = async ({ data }) => {
+        resolve(connection)
         await sessionSave
         connection.onmessage(data)
       }
@@ -78,7 +79,6 @@ export default function domainAgent(domain, refresh=false) {
       })
 
       handleConnection(connection, domain, sid)
-      resolve(connection)
     }
     else {
       delete Agents[domain]
