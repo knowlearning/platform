@@ -26,6 +26,8 @@ const agent = new Agent({
   token: () => AGENT_TOKEN,
   uuid: () => crypto.randomUUID(),
   async log() {
+    await new Promise(r => r()) // so we can access our own agent instance
+
     const { session } = await agent.environment()
     let value
 
