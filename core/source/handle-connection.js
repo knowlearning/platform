@@ -79,12 +79,15 @@ export default async function handleConnection(connection, domain, sid) {
     if (!responseBuffers[session]) return console.warn('SESSION CLOSED BUT RESPONSE SENT', JSON.stringify(message), session.slice(0,4))
 
     responseBuffers[session].push(message)
-    try {
-      activeConnections[session].send(message)
-      heartbeat()
-    }
-    catch (error) {
-      console.warn('ERROR SENDING OVER ACTIVE CONNECTION', error)
+
+    if (activeConnections[session]) {
+      try {
+        activeConnections[session].send(message)
+        heartbeat()
+      }
+      catch (error) {
+        console.warn('ERROR SENDING OVER ACTIVE CONNECTION', error)
+      }
     }
   }
 
