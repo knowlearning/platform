@@ -122,17 +122,17 @@ export default function Agent({ Connection, domain, token, uuid, fetch, applyPat
     if (manageLocalState && states[qualifiedScope] !== undefined) {
       lastInteractionResponse[qualifiedScope] = new Promise(resolve => {
         const resolveAndUnwatch = async update => {
-          log('AWAITING INTERACTION RESPONSE', qualifiedScope, update)
+          console.log('AWAITING INTERACTION RESPONSE', qualifiedScope, update)
           const { ii } = await response
-          log('GOT INTERACTION RESPONSE', qualifiedScope, await response)
+          console.log('GOT INTERACTION RESPONSE', qualifiedScope, await response)
           if (update.ii === ii) {
             resolve(ii)
             removeWatcher(qualifiedScope, resolveAndUnwatch)
           }
         }
         watchers[qualifiedScope].push(resolveAndUnwatch)
-        log('SETTING LAST INTERACTION RESPONSE PROMISE', qualifiedScope)
-        response.then(r => log('GOT INTERACTION RESPONSE FOR', qualifiedScope, r))
+        console.log('SETTING LAST INTERACTION RESPONSE PROMISE', qualifiedScope)
+        response.then(r => console.log('GOT INTERACTION RESPONSE FOR', qualifiedScope, r))
       })
       return response
     }
