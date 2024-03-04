@@ -72,6 +72,7 @@ export default function messageQueue({ token, domain, Connection, watchers, stat
       try {
         connection.send(messageQueue[lastSentSI + 1])
         lastSentSI += 1
+        console.log('SENDING MESSAGE!!!!!!!!!!', lastSentSI, messageQueue[lastSentSI])
         //  async so we don't try and push more to a closed connection
         await new Promise(r=>r())
       }
@@ -166,6 +167,7 @@ export default function messageQueue({ token, domain, Connection, watchers, stat
             }
           }
           else if (message.si !== undefined) {
+            console.log('GOT RESPONSE', message.si, message)
             if (responses[message.si]) {
               //  TODO: remove "acknowledged" messages from queue and do accounting with si
               responses[message.si]
