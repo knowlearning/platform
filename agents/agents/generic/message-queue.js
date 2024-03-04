@@ -52,6 +52,7 @@ export default function messageQueue({ token, domain, Connection, watchers, stat
     }
     else {
       si += 1
+      if (responses[si]) console.log('ERROR! response for si already set!', si, scope, patch)
       lastSynchronousScopePatchPromise = new Promise((resolve, reject) => responses[si] = [[resolve, reject]])
       messageQueue.push({ scope, patch, si, ts: Date.now()})
       lastSynchronousScopePatched = scope
@@ -167,7 +168,7 @@ export default function messageQueue({ token, domain, Connection, watchers, stat
             }
           }
           else if (message.si !== undefined) {
-            console.log('GOT RESPONSE', message.si, message)
+            console.log('GOT RESPONSE', message.si, message, responses)
             if (responses[message.si]) {
               //  TODO: remove "acknowledged" messages from queue and do accounting with si
               responses[message.si]
