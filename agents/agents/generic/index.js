@@ -131,6 +131,8 @@ export default function Agent({ Connection, domain, token, uuid, fetch, applyPat
           }
         }
         watchers[qualifiedScope].push(resolveAndUnwatch)
+        log('SETTING LAST INTERACTION RESPONSE PROMISE', qualifiedScope)
+        response.then(r => log('GOT INTERACTION RESPONSE FOR', qualifiedScope, r))
       })
       return response
     }
