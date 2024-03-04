@@ -27,14 +27,10 @@ export default function(scope='[]', user, domain, { keyToSubscriptionId, watcher
       })
     }
 
-    log('AWAITING LAST INTERACTION', qualifiedScope)
     await lastInteractionResponse[qualifiedScope]
-    log('GOT LAST INTERACTION', qualifiedScope)
 
     try {
-      log('GETTING STATE FOR', qualifiedScope)
       const data = structuredClone(await states[qualifiedScope])
-      log('GOT STATE FOR', qualifiedScope)
       const active = data.active
       delete data.active
       resolveMetadataPromise(data)
