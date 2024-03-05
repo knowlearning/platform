@@ -20,10 +20,11 @@
     Upload
   </button>
   <RelationalQueryInterface :domain="domain" />
-  <button @click="showPerformance = !showPerformance">
-    {{ showPerformance ? 'hide' : 'show' }} performance
-  </button>
-  <DomainQueryPerformance v-if="showPerformance" :domain="domain" />
+  <div>
+    <div v-for="log in agentLogs">
+      {{ log }}
+    </div>
+  </div>
 </template>
 
 <script>
@@ -31,7 +32,6 @@
 import { v4 as uuid } from 'uuid'
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 import RelationalQueryInterface from './relational-query-interface.vue'
-import DomainQueryPerformance from './domain-query-performance.vue'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
@@ -42,18 +42,29 @@ export default {
   },
   components: {
     vueScopeComponent,
-    RelationalQueryInterface,
-    DomainQueryPerformance
+    RelationalQueryInterface
   },
   data() {
     return {
       config: null,
+      agentLogs: [],
       claimReport: null,
       claimMessage: null
     }
   },
   async created() {
     this.config = (await Agent.query('current-config', [this.domain]))[0]
+    Agent.watch(
+      'sessions',
+      ({ patch, state }) => patch && patch.forEach(({ op, path, value }) => {
+        if (op === 'add' && path.length === 2 && path[1] === 'log') {
+          const [ serverSession ] = path
+          this.agentLogs.push([serverSession, value])
+        }
+      }),
+      this.domain,
+      this.domain
+    )
   },
   methods: {
     async claim() {

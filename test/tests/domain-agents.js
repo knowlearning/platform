@@ -12,16 +12,18 @@ authorize:
 agent: |
   import Agent from 'npm:@knowlearning/agents/deno.js'
   Agent.debug()
-  console.log('LOADED DENO AGENT')
-  console.log('AWAITING DENO ENVIRONMENT')
-  console.log('DENO ENVIRONMENT:', await Agent.environment())
-  
+  Agent.log('LOADED DENO AGENT')
+  Agent.log('AWAITING DENO ENVIRONMENT')
+  Agent.log('DENO ENVIRONMENT:', await Agent.environment())
+
   Agent.on('child', child => {
     const { environment: { user } } = child
     Agent.log('GOT CHILD!', user)
     child.on('mutate', mutation => Agent.log('GOT MUTATION!!!', mutation))
-    child.on('close', info => Agent.log('GOT CLOSE!!!', info))
+    //  TODO: supply session id with child...
+    child.on('close', info => Agent.log('GOT CLOSE!!!', user, info))
   })
+
 postgres:
   tables: {}
   scopes: {}

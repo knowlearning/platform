@@ -10,6 +10,10 @@ function standardJSONPatch(patch) {
   })
 }
 
+function activePatch(patch) {
+  return structuredClone(patch).filter(({ path }) => 'active' === path.shift())
+}
+
 function sanitizeJSONPatchPathSegment(s) {
   if (typeof s === "string") return s.replaceAll('~', '~0').replaceAll('/', '~1')
   else return s
@@ -204,7 +208,7 @@ export default function messageQueue({ token, domain, Connection, watchers, stat
               watchers[qualifiedScope]
                 .forEach(fn => {
                   const state = structuredClone(states[qualifiedScope].active)
-                  fn({ ...message, state })
+                  fn({ ...message, patch: activePatch(message.patch), state })
                 })
             }
           }
