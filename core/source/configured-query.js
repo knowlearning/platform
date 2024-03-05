@@ -45,7 +45,7 @@ export default async function (requestingDomain, targetDomain, queryName, params
   }
   else {
     const error = new Error(`No query named "${queryName}" in ${targetDomain}`)
-    error.code = `INVALID QUERY '${queryName}'`
+    error.code = `INVALID QUERY '${queryName}' FOR '${targetDomain}'`
     throw error
   }
 }
