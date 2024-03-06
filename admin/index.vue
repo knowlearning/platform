@@ -3,9 +3,9 @@
   <div v-if="claimMessage">
     {{ claimMessage }}
     <vueScopeComponent :id="claimReport" />
-    <button @click="claimMessage = null">Okay</button>
+    <v-btn @click="claimMessage = null">Okay</v-btn>
   </div>
-  <button v-else @click="claim">Become admin for {{ domain }}</button>
+  <v-btn v-else @click="claim">Become admin for {{ domain }}</v-btn>
   <div v-if="config ">
     config: {{config.config}}
     <vueScopeComponent :id="config.report" />
@@ -16,14 +16,19 @@
     type="file"
     @change="uploadConfig"
   />
-  <button @click="$refs.fileInput.click()">
+  <v-btn @click="$refs.fileInput.click()">
     Upload
-  </button>
+  </v-btn>
   <RelationalQueryInterface :domain="domain" />
   <div>
-    <div v-for="log in agentLogs">
-      {{ log }}
-    </div>
+    <v-virtual-scroll
+      :height="300"
+      :items="agentLogs"
+    >
+      <template v-slot:default="{ item }">
+        Item {{ item }}
+      </template>
+    </v-virtual-scroll>
   </div>
 </template>
 

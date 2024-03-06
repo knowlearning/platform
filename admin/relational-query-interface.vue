@@ -1,7 +1,10 @@
 <template>
   <div>
-    <textarea v-model="query" />
-    <button @click="submitQuery">submit</button>
+    <v-textarea
+      label="Postgres SQL Query"
+      v-model="query"
+    />
+    <v-btn @click="submitQuery">submit</v-btn>
     <div v-if="response === null"></div>
     <div v-else>
       {{ response.length }} results
