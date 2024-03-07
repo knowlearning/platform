@@ -3,7 +3,8 @@ import configuration from './configuration.js'
 import saveSession from './authenticate/save-session.js'
 import handleConnection from './handle-connection.js'
 
-const Agents = {}
+const DomainAgents = {}
+const connections = {}
 
 async function createValidSession(domain, user) {
   const sid = randomBytes(32, 'hex')
@@ -44,9 +45,9 @@ function createConnection(worker, connectionId) {
 }
 
 export default function domainAgent(domain, refresh=false) {
-  if (Agents[domain] && !refresh) return Agents[domain]
+  if (DomainAgents[domain] && !refresh) return DomainAgents[domain]
 
-  Agents[domain] = new Promise(async resolve => {
+  DomainAgents[domain] = new Promise(async resolve => {
     const config = await configuration(domain)
     if (config.agent) {
       const filename = `/core/source/${uuid()}.js`
@@ -77,20 +78,20 @@ export default function domainAgent(domain, refresh=false) {
 
       worker.onmessage = async ({ data }) => {
         if (!connections[data.connection]) {
-          const connection = createConnection(worker, data.connection)
-          if (data.domain === null) resolve(connection)
+          connections[data.connection] = createConnection(worker, data.connection)
+          if (data.domain === null) resolve(connections[data.connection])
           const targetDomain = data.domain || domain
           const sid = await createValidSession(targetDomain, domain)
-          handleConnection(connection, targetDomain, sid)
+          handleConnection(connections[data.connection], targetDomain, sid)
         }
         connections[data.connection].onmessage(data)
       }
     }
     else {
-      delete Agents[domain]
+      delete DomainAgents[domain]
       resolve()
     }
   })
 
-  return Agents[domain]
+  return DomainAgents[domain]
 }

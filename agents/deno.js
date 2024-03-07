@@ -7,18 +7,17 @@ const denoProcess = self
 
 function Connection(domain) {
   const connection = crypto.randomUUID()
-  const thisConnection = this
 
-  thisConnection.send = message => denoProcess.postMessage({ ...message, domain, connection })
+  this.send = message => denoProcess.postMessage({ ...message, domain, connection })
 
   denoProcess.addEventListener('message', ({ data }) => {
-    if (data.connection === connection) thisConnection.onmessage(data)
+    if (data.connection === connection) this.onmessage(data)
   })
 
   //  TODO: consider what onclose and onerror mean
-  setTimeout(() => thisConnection.onopen())
+  setTimeout(() => this.onopen())
 
-  return thisConnection
+  return this
 }
 
 const children = {}
