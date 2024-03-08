@@ -28,15 +28,13 @@ const agents = {}
 function getAgent(domain, forceNew) {
   if (agents[domain] && !forceNew) return agents[domain]
 
-  let agent
-
-  agent = new Agent({
+  const agent = new Agent({
     Connection: new Connection(domain), // TODO: probably don't want to need to pass domain here, as first message from generic agent should pass it
     domain,
     token: () => AGENT_TOKEN,
     uuid: () => crypto.randomUUID(),
     async log() {
-      await new Promise(r => r()) // so we can access our own agent instance
+      await new Promise(r => setTimeout(r)) // so we can access our own agent instance
 
       const { session } = await agent.environment()
       let value

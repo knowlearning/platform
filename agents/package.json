@@ -1,6 +1,6 @@
 {
   "name": "@knowlearning/agents",
-  "version": "0.9.118",
+  "version": "0.9.119",
   "description": "API for embedding applications in KnowLearning systems.",
   "main": "node.js",
   "browser": "browser.js",
