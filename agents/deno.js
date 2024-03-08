@@ -5,19 +5,21 @@ const AGENT_TOKEN = Deno.env.get('AGENT_TOKEN')
 
 const denoProcess = self
 
-function Connection(domain) {
-  const connection = crypto.randomUUID()
+class Connection {
+  constructor(domain) {
+    const connection = crypto.randomUUID();
 
-  this.send = message => denoProcess.postMessage({ ...message, domain, connection })
+    this.send = message => denoProcess.postMessage({ ...message, domain, connection });
 
-  denoProcess.addEventListener('message', ({ data }) => {
-    if (data.connection === connection) this.onmessage(data)
-  })
+    denoProcess.addEventListener('message', ({ data }) => {
+      if (data.connection === connection) this.onmessage(data);
+    });
 
-  //  TODO: consider what onclose and onerror mean
-  setTimeout(() => this.onopen())
+    // TODO: consider what onclose and onerror mean
+    setTimeout(() => this.onopen());
 
-  return this
+    return this;
+  }
 }
 
 const children = {}
