@@ -142,6 +142,7 @@ export default function messageQueue({ token, domain, Connection, watchers, stat
 
           authed = true
           if (!user) { // this is the first authed websocket connection
+            console.log('INIT MESSAGE', message)
             sessionMetrics.authenticated = Date.now()
             user = message.auth.user
             session = message.session
