@@ -20,7 +20,8 @@ export default function handleHTTPRequest(request) {
     headers.set("Access-Control-Allow-CREDENTIALS", "true")
     headers.set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 
-    const responseInit = { headers, status: newSidCreated ? 201 : 200 } // status hack for setting sid cookie since deno websocket responses don't yet set cookie headers
+    const isSidCheck = request.url.endsWith('/_sid-check')
+    const responseInit = { headers, status: newSidCreated && isSidCheck ? 201 : 200 } // status hack for setting sid cookie since deno websocket responses don't yet set cookie headers
     return new Response("WebSocket API Available", responseInit)
   }
 
