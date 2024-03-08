@@ -10,11 +10,24 @@ authorize:
   crossDomain:
     postgres: cross_domain_authorization
 agent: |
-  import Agent from 'npm:@knowlearning/agents/deno.js'
+  import Agent, { getAgent } from 'npm:@knowlearning/agents/deno.js'
+
   Agent.debug()
   Agent.log('LOADED DENO AGENT')
   Agent.log('AWAITING DENO ENVIRONMENT')
   Agent.log('DENO ENVIRONMENT:', await Agent.environment())
+
+  const TaggingAgent = getAgent('tags.knowlearning.systems')
+
+  //  Test to see if we can spin up an agent connection to another domain
+  TaggingAgent
+    .state('agents-named-scope-in-other-domain')
+    .then(state => {
+      function set() {
+        state.lastUpdated = Date.now()
+        setTimeout(set, 3000)
+      }
+    })
 
   Agent.on('child', child => {
     const { environment: { user } } = child
