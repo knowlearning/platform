@@ -5,21 +5,19 @@ const AGENT_TOKEN = Deno.env.get('AGENT_TOKEN')
 
 const denoProcess = self
 
-class Connection {
-  constructor(domain) {
-    const connection = crypto.randomUUID();
+function Connection() {
+  const connection = crypto.randomUUID()
 
-    this.send = message => denoProcess.postMessage({ ...message, domain, connection });
+  this.send = message => denoProcess.postMessage({ ...message, connection })
 
-    denoProcess.addEventListener('message', ({ data }) => {
-      if (data.connection === connection) this.onmessage(data);
-    });
+  denoProcess.addEventListener('message', ({ data }) => {
+    if (data.connection === connection) this.onmessage(data)
+  })
 
-    // TODO: consider what onclose and onerror mean
-    setTimeout(() => this.onopen());
+  // TODO: consider what onclose and onerror mean
+  setTimeout(() => this.onopen())
 
-    return this;
-  }
+  return this
 }
 
 const children = {}
@@ -31,7 +29,7 @@ function getAgent(domain, forceNew) {
   if (agents[domain] && !forceNew) return agents[domain]
 
   const agent = new Agent({
-    Connection: new Connection(domain), // TODO: probably don't want to need to pass domain here, as first message from generic agent should pass it
+    Connection,
     domain,
     token: () => AGENT_TOKEN,
     uuid: () => crypto.randomUUID(),
