@@ -8,15 +8,20 @@ export default function handleHTTPRequest(request) {
 
   const headers = new Headers()
 
-  if (previousSid !== sid) {
+  const newSidCreated = previousSid !== sid
+
+  if (newSidCreated) {
     setCookie(headers, { name: 'sid', value: sid, secure: true, httpOnly: true })
   }
 
   if (request.headers.get("upgrade") != "websocket") {
-    headers.set("Access-Control-Allow-Origin", "*")
+    headers.set("Access-Control-Allow-Origin",  `https://${domain}`)
     headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+    headers.set("Access-Control-Allow-CREDENTIALS", "true")
     headers.set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
-    return new Response("WebSocket API Available", { headers })
+
+    const responseInit = { headers, status: newSidCreated ? 201 : 200 } // status hack for setting sid cookie since deno websocket responses don't yet set cookie headers
+    return new Response("WebSocket API Available", responseInit)
   }
 
   const { socket, response } = Deno.upgradeWebSocket(request, { idleTimeout: 10, headers })

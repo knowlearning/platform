@@ -11,6 +11,10 @@ function isLocal() { return localStorage.getItem('api') === 'local' }
 
 const API_HOST = isLocal() ? DEVELOPMENT_HOST : REMOTE_HOST
 
+//  TODO: remove this hack when we can set sid cookie through websocket handshake
+fetch(`http${ SECURE ? 's' : '' }://${API_HOST}`, { method: 'GET', credentials: 'include' })
+  .then(response => response.status === 201 && location.reload())
+
 export default options => {
   const { host } = window.location
 

@@ -23,6 +23,14 @@ export default defineConfig({
       {
         find: '@knowlearning/agents/browser.js',
         replacement: __dirname + '/../../agents/browser.js'
+      },
+      {
+        find: 'fast-json-patch',
+        replacement: 'node_modules/fast-json-patch/index.mjs'
+      },
+      {
+        find: 'uuid',
+        replacement: 'node_modules/uuid/dist/esm-browser/index.js'
       }
     ]
   }
