@@ -21,7 +21,7 @@ function createConnection(worker, connectionId) {
   const postAuthenticationMessageQueue = []
   let connectionAuthenticated
 
-  const postMessage = message => message ? worker.postMessage({...message, connection: connectionId}) : worker.postMessage()
+  const postMessage = message => message ? worker.postMessage({...message, connection: connectionId}) : worker.postMessage(message)
 
   return {
     async send(message) {

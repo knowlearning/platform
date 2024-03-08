@@ -11,7 +11,8 @@ function Connection() {
   this.send = message => denoProcess.postMessage({ ...message, connection })
 
   denoProcess.addEventListener('message', ({ data }) => {
-    if (data.connection === connection) this.onmessage(data)
+    if (data && data.connection === connection) this.onmessage(data)
+    else this.onmessage(data) // think of better way that doesn't pass all heartbeats to all agents inside domain agent
   })
 
   // TODO: consider what onclose and onerror mean
