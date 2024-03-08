@@ -3,12 +3,51 @@ import configuration from './configuration.js'
 import saveSession from './authenticate/save-session.js'
 import handleConnection from './handle-connection.js'
 
-const Agents = {}
+const DomainAgents = {}
+const connections = {}
+
+async function createValidSession(domain, user) {
+  const sid = randomBytes(32, 'hex')
+  await saveSession(domain, uuid(), sid, user, 'core', {
+    user: domain,
+    provider_id: domain,
+    provider: 'core',
+    info: { name: `${domain} Agent`, picture: null }
+  })
+  return sid
+}
+
+function createConnection(worker, connectionId) {
+  const postAuthenticationMessageQueue = []
+  let connectionAuthenticated
+
+  const postMessage = message => message ? worker.postMessage({...message, connection: connectionId}) : worker.postMessage(message)
+
+  return {
+    async send(message) {
+      // TODO: consider more reliable/explicit recognintion of auth response method
+      if (!message) postMessage() // heartbeat
+      else if (message.server) {
+        connectionAuthenticated = true
+        postMessage(message)
+        while (postAuthenticationMessageQueue.length) {
+          postMessage(postAuthenticationMessageQueue.shift())
+        }
+      }
+      else if (connectionAuthenticated) postMessage(message)
+      else postAuthenticationMessageQueue.push(message)
+    },
+    close() {
+      // TODO: clean up worker if domain main domain connection closed...
+      console.warn('WORKER CLOSED THROUGH CONNECTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    }
+  }
+}
 
 export default function domainAgent(domain, refresh=false) {
-  if (Agents[domain] && !refresh) return Agents[domain]
+  if (DomainAgents[domain] && !refresh) return DomainAgents[domain]
 
-  Agents[domain] = new Promise(async resolve => {
+  DomainAgents[domain] = new Promise(async resolve => {
     const config = await configuration(domain)
     if (config.agent) {
       const filename = `/core/source/${uuid()}.js`
@@ -30,61 +69,29 @@ export default function domainAgent(domain, refresh=false) {
         }
       })
 
-      const postAuthenticationMessageQueue = []
-      let connectionAuthenticated
-
-      const postMessage = message => worker.postMessage(message)
-
-      const connection = {
-        async send(message) {
-          // TODO: consider more reliable/explicit recognintion of auth response method
-          if (!message) postMessage() // heartbeat
-          else if (message.server) {
-            connectionAuthenticated = true
-            postMessage(message)
-            while (postAuthenticationMessageQueue.length) {
-              postMessage(postAuthenticationMessageQueue.shift())
-            }
-          }
-          else if (connectionAuthenticated) postMessage(message)
-          else postAuthenticationMessageQueue.push(message)
-        },
-        close() {
-          delete Agents[domain]
-          // TODO: clean up worker
-          console.warn('WORKER CLOSED THROUGH CONNECTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        }
-      }
-
       worker.onerror = event => {
         console.log('DOMAIN AGENT ERROR', event)
         //  Stop unhandled child error event from closing the core server
         event.preventDefault()
         // TODO: restart child process, probably with backoff and reporting to admin domain...
       }
+
       worker.onmessage = async ({ data }) => {
-        resolve(connection)
-        await sessionSave
-        connection.onmessage(data)
+        if (!connections[data.connection]) {
+          connections[data.connection] = createConnection(worker, data.connection)
+          if (data.domain === null) resolve(connections[data.connection])
+          const targetDomain = data.domain || domain
+          const sid = await createValidSession(targetDomain, domain)
+          handleConnection(connections[data.connection], targetDomain, sid)
+        }
+        connections[data.connection].onmessage(data)
       }
-
-      //  TODO: use sid to create session for domain agent using saveSession
-      const sid = randomBytes(32, 'hex')
-
-      const sessionSave = saveSession(domain, uuid(), sid, domain, 'core', {
-        user: domain,
-        provider_id: domain,
-        provider: 'core',
-        info: { name: `${domain} Agent`, picture: null }
-      })
-
-      handleConnection(connection, domain, sid)
     }
     else {
-      delete Agents[domain]
+      delete DomainAgents[domain]
       resolve()
     }
   })
 
-  return Agents[domain]
+  return DomainAgents[domain]
 }

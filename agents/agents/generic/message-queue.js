@@ -126,7 +126,7 @@ export default function messageQueue({ token, domain, Connection, watchers, stat
       if (!sessionMetrics.connected) sessionMetrics.connected = Date.now()
       log('AUTHORIZING NEWLY OPENED CONNECTION FOR SESSION:', session)
       failedConnections = 0
-      connection.send({ token: await token(), session })
+      connection.send({ token: await token(), session, domain })
     }
 
     connection.onmessage = async message => {
