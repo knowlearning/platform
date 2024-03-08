@@ -27,6 +27,7 @@ agent: |
         state.lastUpdated = Date.now()
         setTimeout(set, 3000)
       }
+      set()
     })
 
   Agent.on('child', child => {

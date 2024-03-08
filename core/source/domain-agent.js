@@ -1,5 +1,6 @@
 import { uuid, writeFile, randomBytes } from './utils.js'
 import configuration from './configuration.js'
+import { ensureDomainConfigured } from './side-effects/configure.js'
 import saveSession from './authenticate/save-session.js'
 import handleConnection from './handle-connection.js'
 
@@ -8,6 +9,7 @@ const connections = {}
 
 async function createValidSession(domain, user) {
   const sid = randomBytes(32, 'hex')
+  await ensureDomainConfigured(domain)
   await saveSession(domain, uuid(), sid, user, 'core', {
     user: domain,
     provider_id: domain,
