@@ -28,7 +28,7 @@ const agents = {}
 function getAgent(domain, forceNew) {
   if (agents[domain] && !forceNew) return agents[domain]
 
-  agents[domain] = new Agent({
+  const agent = new Agent({
     Connection: new Connection(domain), // TODO: probably don't want to need to pass domain here, as first message from generic agent should pass it
     domain,
     token: () => AGENT_TOKEN,
@@ -80,7 +80,9 @@ function getAgent(domain, forceNew) {
     }
   })
 
-  return agents[domain]
+  agents[domain] = agent
+
+  return agent
 }
 
 function activePatch(patch) {
