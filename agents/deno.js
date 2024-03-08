@@ -28,7 +28,9 @@ const agents = {}
 function getAgent(domain, forceNew) {
   if (agents[domain] && !forceNew) return agents[domain]
 
-  const agent = new Agent({
+  let agent
+
+  agent = new Agent({
     Connection: new Connection(domain), // TODO: probably don't want to need to pass domain here, as first message from generic agent should pass it
     domain,
     token: () => AGENT_TOKEN,
