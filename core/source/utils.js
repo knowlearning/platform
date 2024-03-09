@@ -8,7 +8,7 @@ import jwt from 'npm:jsonwebtoken@8.5.1'
 import nacl from 'npm:tweetnacl@1.0.3'
 import { Storage as createGCSClient } from 'npm:@google-cloud/storage@5.18.2'
 import { exists as fileExists } from "https://deno.land/std/fs/mod.ts"
-import { getCookies, setCookie } from 'https://deno.land/std@0.214.0/http/cookie.ts'
+import { getCookies } from 'https://deno.land/std@0.214.0/http/cookie.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
 import { decodeBase64 } from "https://deno.land/std/encoding/base64.ts"
 
@@ -125,7 +125,6 @@ export {
   decryptSymmetric,
   writeFile,
   getCookies,
-  setCookie,
   requestDomain,
   escapePostgresLiteral,
   environment
