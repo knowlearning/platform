@@ -11,7 +11,8 @@ export default function handleHTTPRequest(request) {
   const newSidCreated = previousSid !== sid
 
   if (newSidCreated) {
-    headers.set('set-cookie', `sid=${sid}; Secure; HttpOnly; Partitioned`)
+    //  TODO: add partitioned when we can (must wait unti we can successfully set sid with ws connection)
+    headers.set('set-cookie', `sid=${sid}; Secure; HttpOnly`)
   }
 
   if (request.headers.get("upgrade") != "websocket") {
