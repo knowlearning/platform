@@ -2,10 +2,6 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import basicSsl from '@vitejs/plugin-basic-ssl'
 
-//  Hack to allow "." in paths for dev server
-//  TODO: upgrate to vite 5 on release, and remove this plugin
-import pluginRewriteAll from 'vite-plugin-rewrite-all'
-
 // https://vitejs.dev/config/
 export default defineConfig({
   server: {
@@ -16,26 +12,25 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-    basicSsl(),
-    pluginRewriteAll()
+    basicSsl()
   ],
   resolve: {
     alias: [
       {
         find: '@knowlearning/agents/vue.js',
-        replacement: __dirname + '/../client/vue.js'
+        replacement: __dirname + '/../agents/vue.js'
       },
       {
         find: '@knowlearning/agents/browser.js',
-        replacement: __dirname + '/../client/browser.js'
+        replacement: __dirname + '/../agents/browser.js'
       },
       {
         find: 'fast-json-patch',
-        replacement: 'node_modules/fast-json-patch/index.mjs'
+        replacement: __dirname + '/node_modules/fast-json-patch/index.mjs'
       },
       {
         find: 'uuid',
-        replacement: 'node_modules/uuid/dist/esm-browser/index.js'
+        replacement: __dirname + '/node_modules/uuid/dist/esm-browser/index.js'
       }
     ]
   }

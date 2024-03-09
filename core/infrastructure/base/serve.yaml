@@ -1,58 +1,23 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: core
----
-# TODO: scope to only restricted domain namespaces
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: manage-domain-agents
-rules:
-- apiGroups: ["apps"]
-  resources: ["deployments"]
-  verbs: ["list", "get", "create", "update", "delete"]
-- apiGroups: [""]
-  resources: ["namespaces"]
-  verbs: ["create", "delete"]
-- apiGroups: [""]
-  resources: ["serviceaccounts"]
-  verbs: ["create", "delete"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: manage-domain-agents-binding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: manage-domain-agents
-subjects:
-- kind: ServiceAccount
-  name: core
-  namespace: default
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: core
+  name: core-deno
   labels:
-    app: core
+    app: core-deno
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: core
+      app: core-deno
   template:
     metadata:
       labels:
-        app: core
+        app: core-deno
     spec:
-      serviceAccountName: core
       terminationGracePeriodSeconds: 10
       containers:
-      - name: core
-        image: core
+      - name: core-deno
+        image: core-deno
         resources:
           requests:
             memory: 5000Mi

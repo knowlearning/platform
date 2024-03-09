@@ -44,6 +44,7 @@ export default function () {
         })
         const expectedValues = [{ x: 100 }]
         const seenValues = []
+        await Agent.synced()
 
         Agent.watch(id, update => seenValues.push(update.state) )
 

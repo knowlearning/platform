@@ -10,7 +10,7 @@ import arrays from './tests/arrays.js'
 import metadata from './tests/metadata.js'
 import uploads from './tests/uploads.js'
 import postgres from './tests/postgres.js'
-import sideEffects from './tests/side-effects.js'
+import domainAgents from './tests/domain-agents.js'
 import vuex from './tests/vuex.js'
 import stateTest from './tests/state.js'
 import environmentTest from './tests/environment.js'
@@ -22,7 +22,7 @@ import browserAgent from '@knowlearning/agents/browser/initialize.js'
 import 'mocha/mocha.css'
 
 window.Agent = Agent
-if (!Agent.embedded) Agent.local()
+// if (!Agent.embedded) Agent.local()
 
 const id = window.location.pathname.slice(1)
 const { mode } = await Agent.environment()
@@ -77,6 +77,7 @@ else {
   window.uuid = uuid
   window.pause = ms => new Promise(r => setTimeout(r, ms))
   window.Agent2 = browserAgent({ unique: true, getToken: () => 'anonymous', root: true})
+  window.Agent3 = browserAgent({ unique: true, getToken: () => 'anonymous', root: true})
 
   chai.config.truncateThreshold = 0; // disable truncating
 
@@ -84,6 +85,7 @@ else {
     .setup({
       ui: 'bdd',
       reporter: 'HTML',
+      slow: 1000,
       rootHooks: {
         beforeEach(done) {
           done()
@@ -97,7 +99,7 @@ else {
     mocha.run()
     describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, function () {
       if (!Agent.embedded) postgres()
-      if (!Agent.embedded) sideEffects()
+      if (!Agent.embedded) domainAgents()
       stateTest()
       environmentTest()
       metadata()

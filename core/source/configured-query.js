@@ -13,6 +13,7 @@ export default async function (requestingDomain, targetDomain, queryName, params
   const config = await configuration(targetDomain)
   let queryBody
 
+  // TODO: 'domain-config' scope needs an exception in interact.....
   if (requestingDomain === targetDomain) queryBody = config?.postgres?.scopes?.[queryName]
   else if (config?.postgres?.crossDomainQueries?.[queryName]?.domains?.includes(requestingDomain)) {
     queryBody = config?.postgres?.crossDomainQueries?.[queryName]?.body
@@ -34,11 +35,17 @@ export default async function (requestingDomain, targetDomain, queryName, params
         }
       })
 
-    return postgres.query(targetDomain, queryBody, queryParams, true)
+    return postgres.query(targetDomain, queryBody, queryParams, true).catch(error => {
+      //  TODO: this type of error should probably make it to the admin interface
+      console.warn('POSTGRES QUERY ERROR', requestingDomain, targetDomain, error)
+      const e = new Error(error.fields?.message)
+      e.code = error.fields?.code || 'Unknown Error Code'
+      throw e
+    })
   }
   else {
     const error = new Error(`No query named "${queryName}" in ${targetDomain}`)
-    error.code = `INVALID QUERY '${queryName}'`
+    error.code = `INVALID QUERY '${queryName}' FOR '${targetDomain}'`
     throw error
   }
 }

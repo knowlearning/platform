@@ -1,12 +1,13 @@
-import { uuid, parseYAML } from '../utils.js'
+import { uuid, parseYAML, environment } from '../utils.js'
 import { domainAdmin } from '../configuration.js'
+import domainAgent from '../domain-agent.js'
 import * as redis from '../redis.js'
 import * as postgres from '../postgres.js'
 import { download } from '../storage.js'
 import interact from '../interact/index.js'
 import POSTGRES_DEFAULT_TABLES from '../postgres-default-tables.js'
 import configuration from '../configuration.js'
-import MutableProxy from '../../../client/persistence/json.js'
+import MutableProxy from '../../../agents/persistence/json.js'
 
 const EXISTING_TABLES_QUERY = `
   SELECT tablename
@@ -31,6 +32,10 @@ INSERT INTO ${postgres.purifiedName(table)}
     ${ columns.map(postgres.purifiedName).map(name => `${name} = excluded.${name}`).join(',\n     ') }
 `
 
+const MAX_PARAMS_IN_BATCH = 10_000
+
+const { ADMIN_DOMAIN, MODE } = environment
+
 //  TODO: probably want to abstract this and allow different types
 //        to help with removing privaleged named states
 function coreState(user, id, domain) {
@@ -41,10 +46,6 @@ function coreState(user, id, domain) {
   })
 }
 
-const MAX_PARAMS_IN_BATCH = 10_000
-
-const { ADMIN_DOMAIN, MODE } = process.env
-
 async function isAdmin(user, requestingDomain, requestedDomain) {
   return (
        (MODE === 'local' && requestingDomain.split(':')[0] === 'localhost')
@@ -53,7 +54,7 @@ async function isAdmin(user, requestingDomain, requestedDomain) {
   )
 }
 
-export default async function ({ domain, user, session, scope, patch, si, ii, send }) {
+export default async function ({ domain, user, session, patch, si, ii, send }) {
   for (let index = 0; index < patch.length; index ++) {
     const { op, path, value } = patch[index]
     if (op === 'add' && path.length === 1 && path[0] === 'active' && await isAdmin(user, domain, value.domain)) {
@@ -72,6 +73,7 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
       reportState.tasks = {}
       reportState.start = Date.now()
       const configuration = parseYAML(await response.text())
+
       applyConfiguration(value.domain, configuration, reportState)
         .then(() => reportState.end = Date.now())
         .catch(error => reportState.error = error.toString())
@@ -81,9 +83,14 @@ export default async function ({ domain, user, session, scope, patch, si, ii, se
   send({ si, ii })
 }
 
-export async function applyConfiguration(domain, { postgres }, report) {
+export async function applyConfiguration(domain, { postgres, agent }, report) {
   const tasks = []
   if (postgres) tasks.push(() => configurePostgres(domain, postgres, report))
+  if (agent) tasks.push(async () => {
+    report.tasks.agent = ['refreshing']
+    await domainAgent(domain, true)
+    report.tasks.agent.push('done')
+  })
 
   return Promise.all(tasks.map(t => t()))
 }
@@ -185,11 +192,8 @@ async function syncTables(domain, tables, report) {
         const paramsToInsert = []
         states.forEach((state, index) => {
           const id = rows[start + index]
-          if (!state) {
-            //  TODO: probably want to add this id to some sort of report
-            console.warn(`TRYING TO ADD ROW FOR NON-EXISTENT SCOPE ${domain} ${table} ${id}`)
-            return
-          }
+          if (!state) return //  TODO: probably want to add id to some sort of report
+
           const data = table === 'metadata' ? state : state.active
 
           rowsToInsert.push(id)

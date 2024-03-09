@@ -1,10 +1,10 @@
-import { createRedisClient } from './utils.js'
+import { createRedisClient, environment } from './utils.js'
 
 const {
   REDIS_HOST,
   REDIS_PORT,
   REDIS_SERVICE_ACCOUNT_CREDENTIALS
-} = process.env
+} = environment
 
 const clientConnectionInfo = {
   socket: {

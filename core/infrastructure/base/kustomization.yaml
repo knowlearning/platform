@@ -3,4 +3,3 @@ kind: Kustomization
 
 resources:
   - ./serve.yaml
-#  - ./patch.yaml

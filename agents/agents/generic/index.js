@@ -13,7 +13,7 @@ const POSTGRES_QUERY_TYPE = 'application/json;type=postgres-query'
 const TAG_TYPE = 'application/json;type=tag'
 const DOMAIN_CLAIM_TYPE = 'application/json;type=domain-claim'
 
-export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fetch, applyPatch, login, logout, reboot }) {
+export default function Agent({ Connection, domain, token, uuid, fetch, applyPatch, login, logout, reboot, handleDomainMessage, log:passedLog=console.log }) {
   const states = {}
   const watchers = {}
   const keyToSubscriptionId = {}
@@ -29,12 +29,12 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     reconnect,
     synced,
     environment
-  ] = messageQueue({ token, protocol, host, WebSocket, watchers, states, applyPatch, log, login, interact })
+  ] = messageQueue({ token, domain, Connection, watchers, states, applyPatch, log, login, interact, reboot, trigger, handleDomainMessage })
 
   // initialize session
   environment()
     .then(({ session }) => {
-      interact('sessions', [{ op: 'add', path: [session], value: { queries: {}, subscriptions: {} } }], false, false)
+      interact('sessions', [{ op: 'add', path: ['active', session], value: { queries: {}, subscriptions: {} } }], false, false)
     })
 
   const internalReferences = {
@@ -50,7 +50,8 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     interact,
     fetch,
     synced,
-    metadata
+    metadata,
+    log
   }
 
   const [ watch, removeWatcher ] = watchImplementation(internalReferences)
@@ -61,7 +62,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
 
   function debug() { mode = 'debug' }
 
-  function log() { if (mode === 'debug') console.log(...arguments) }
+  function log() { passedLog(...arguments) }
 
   function create({ id=uuid(), active_type, active, name }) {
     if (!active_type) active_type = 'application/json'
@@ -119,19 +120,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     //  if we are watching this scope, we want to keep track of last interaction we fired
     const qualifiedScope = isUUID(scope) ? scope : `//${scope}`
     if (manageLocalState && states[qualifiedScope] !== undefined) {
-      let resolve
-      lastInteractionResponse[qualifiedScope] = new Promise(r => resolve = r)
-
-      const resolveAndUnwatch = async (update) => {
-        const { ii } = await response
-        if (update.ii === ii) {
-          resolve(ii)
-          removeWatcher(qualifiedScope, resolveAndUnwatch)
-        }
-      }
-
-      watchers[qualifiedScope].push(resolveAndUnwatch)
-
+      lastInteractionResponse[qualifiedScope] = response.then(r => r.ii)
       return response
     }
     else {
@@ -216,11 +205,23 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     })
   }
 
+  const reactions = { child: [] }
+
+  function on(event, reaction) {
+    if (!reactions[event]) throw new Error('Agent can only listen to events of "child"')
+    reactions[event].push(reaction)
+  }
+
+  function trigger(event, data) {
+    reactions[event].forEach(f => f(data))
+  }
+
   return {
     uuid,
     environment,
     login,
     logout,
+    log,
     create,
     state,
     watch,
@@ -235,6 +236,7 @@ export default function Agent({ host, token, WebSocket, protocol='ws', uuid, fet
     disconnect,
     reconnect,
     tag,
-    debug
+    debug,
+    on
   }
 }

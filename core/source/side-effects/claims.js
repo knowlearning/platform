@@ -2,7 +2,7 @@ import { environment, uuid, randomBytes } from '../utils.js'
 import interact from '../interact/index.js'
 import * as redis from '../redis.js'
 import initializationState from '../initialization-state.js'
-import MutableProxy from '../../../client/persistence/json.js'
+import MutableProxy from '../../../agents/persistence/json.js'
 
 const CHALLENGE_TIMEOUT_LIMIT = 1000 * 60 * 5
 
@@ -25,13 +25,13 @@ function coreState(user, id, domain) {
   })
 }
 
-export default function claims({ domain, user, session, scope, patch, si, ii, send }) {
+export default function claims({ domain, user, session, patch, si, ii, send }) {
   if (domain === ADMIN_DOMAIN || MODE === 'local') { //  can claim from any domain on local
     for (let index = 0; index < patch.length; index ++) {
       const { path, value } = patch[index]
       console.log('CHECKING CLAIM PATCH', domain, user, patch[index])
       if (path.length === 1 && path[0] === 'active') {
-        const token = randomBytes(64).toString('hex')
+        const token = randomBytes(64, 'hex')
         const claimedDomain = value.domain //  TODO: graceful fail
 
         //  Make sure the domain config is initialized

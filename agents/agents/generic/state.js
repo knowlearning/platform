@@ -1,7 +1,7 @@
 import { v4 as uuid, validate as isUUID } from 'uuid'
 import MutableProxy from '../../persistence/json.js'
 
-export default function(scope='[]', user, domain, { keyToSubscriptionId, watchers, states, create, environment, lastMessageResponse, lastInteractionResponse, tagIfNotYetTaggedInSession, interact }) {
+export default function(scope='[]', user, domain, { keyToSubscriptionId, watchers, states, create, environment, lastMessageResponse, lastInteractionResponse, tagIfNotYetTaggedInSession, interact, log }) {
   let resolveMetadataPromise
   let metadataPromise = new Promise(resolve => resolveMetadataPromise = resolve)
 

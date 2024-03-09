@@ -41,7 +41,7 @@ export default async function configuration(domain) {
 
   try {
     const path = [`$.active["${domain}"]`]
-    const [domainConfig] = await redis.client.json.get('domain-config', { path })
+    const [domainConfig] = await redis.client.json.get(DOMAIN_CONFIG_SCOPE, { path })
 
     if (domainConfig) {
       const { admin, config } = domainConfig

@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: production
+namespace: staging
 
 resources:
 - ../base
@@ -25,7 +25,7 @@ configMapGenerator:
   - AGENT_IMAGE_DENO=gcr.io/opensourcelearningplatform/agent-deno-image:7fe82f1
 - name: agent-env
   literals:
-  - MODE=production
+  - MODE=staging
   - SERVE_HOST=serve
   - SERVICE_ACCOUNT_TOKEN=/var/run/secrets/kubernetes.io/serviceaccount/token
 

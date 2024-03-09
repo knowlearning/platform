@@ -8,6 +8,8 @@ X   script to construct set named domain -> uuid
 X   make new uuids get added to that set
 X   update sync script to work off of that set
 X   be able to delete and re-create postgres databases easily
+X Admin specifies access rule queries
+X Check for passing access rule query on cross-user state request (later handle cross domain requests with special queries)
   Take postgres out of managed service and use deployable instance
   Dont' rely on redis for base representation of data
     stream all uuids into stored file named domain (stream into gcs as well)
@@ -19,19 +21,10 @@ X   be able to delete and re-create postgres databases easily
   Add reasonable timeout for JWT token verification (expired tokens might take a long time to come back as expired, causing front end to seem to hang)
   Fix initialization of domain config behavior (Avoid re-doing work)
     More granular edit of admin scopes that correspond to tables
-  Authorizer as admin agent
-    Can execute arbitrary read queries (like admin domain)
-    Can also wrangle shared states (can only write to own like all agents, but can do all authorization/composition of reads/writes)
-    Agent.authorize('write', ({ domain, user, scope, patch }, respond) => {...; respond(true/false) })
-      only writes from a user to their owned scopes reach the agent. other writes are immediately blocked
-      respond returns promise that resolves when authorized write is applied (or immediately on reject)
-    Agent.authorize('read', ({ domain, user, scope, }, respond) => {...; respond(true/false) })
   Embeded agent create sessions w/ context
   Embedding agent passes embed start time for embedded agent to record in addition to load + other times
   History Download
   Compaction
   Throttle naughty clients (protect against infinite loops on the client)
   Use create-folder-content in agent upload to handle upload of items and return one piece of content that is the content-graph
-  Admin specifies access rule queries
-  Check for passing access rule query on cross-user state request (later handle cross domain requests with special queries)
   Allow parent to reset child default state

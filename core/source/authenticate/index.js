@@ -1,8 +1,8 @@
-import { jwt, jwkToPem, uuid, environment } from '../utils.js'
+import { jwt, jwkToPem, uuid, environment, decryptSymmetric, decodeBase64String } from '../utils.js'
+import saveSession from './save-session.js'
+import * as hash from './hash.js'
 import interact from '../interact/index.js'
 import { query } from '../postgres.js'
-import { encryptSymmetric, decryptSymmetric } from '../encryption.js'
-import * as hash from './hash.js'
 
 const {
   ADMIN_DOMAIN,
@@ -18,7 +18,6 @@ const JWKS_ENDPOINTS = {
 }
 
 const USER_TYPE = 'application/json;type=user'
-const SESSION_TYPE = 'application/json;type=session'
 const REATTACHING_SESSION_QUERY = `
   SELECT
     sessions.id as id,
@@ -71,9 +70,9 @@ const {
   }
 } = JSON.parse(CLASSLINK_OAUTH_CLIENT_CREDENTIALS)
 
-function decryptAndParseSessionInfo(key, encrypted) {
+async function decryptAndParseSessionInfo(key, encrypted) {
   try {
-    return JSON.parse(decryptSymmetric(key, encrypted))
+    return JSON.parse(await decryptSymmetric(key, encrypted))
   }
   catch (error) {
     console.warn(error)
@@ -95,7 +94,7 @@ export default async function authenticate(message, domain, sid) {
             user: rows[0].user_id,
             provider: rows[0].provider,
             session: message.session,
-            info: decryptAndParseSessionInfo(sid, rows[0].sid_encrypted_info)
+            info: await decryptAndParseSessionInfo(sid, rows[0].sid_encrypted_info)
           }
         }
       }
@@ -104,13 +103,13 @@ export default async function authenticate(message, domain, sid) {
       if (rows[0]) {
         const user = rows[0].user_id
         const { provider, sid_encrypted_info } = rows[0]
-        const info = decryptAndParseSessionInfo(sid, sid_encrypted_info)
+        const info = await decryptAndParseSessionInfo(sid, sid_encrypted_info)
         const session = uuid()
-        await saveSession(domain, session, session_credential, user, provider, sid_encrypted_info)
+        await saveSession(domain, session, sid, user, provider, info)
         return { user, provider, session, info }
       }
     }
-    catch (error) { console.warn('error reconnecting session', error) }
+    catch (error) { console.warn('error reconnecting session', domain, message, error) }
   }
 
   let authority
@@ -123,7 +122,7 @@ export default async function authenticate(message, domain, sid) {
 
   const session = uuid()
   const { user, provider, provider_id, info } = await authenticateToken(message.token, authority)
-  console.log('NEW SESSION FOR USER', user, domain, session)
+  console.log('NEW SESSION FOR USER', user, domain, session.slice(0, 4))
 
   const userPatch = [
     { op: 'add', value: USER_TYPE, path: ['active_type'] },
@@ -137,28 +136,10 @@ export default async function authenticate(message, domain, sid) {
     //        just not associating with session_credential
     //        'anonymous-ephemeral' tokens are used in tests to create multiple agents in the
     //        same browser tab
-    const sid_encrypted_info = encryptSymmetric(sid, JSON.stringify(info))
-    await saveSession(domain, session, session_credential, user, provider, sid_encrypted_info)
+    await saveSession(domain, session, sid, user, provider, info)
   }
 
   return { user, provider, session, info }
-}
-
-async function saveSession(domain, session, session_credential, user, provider, sid_encrypted_info) {
-  const sessionPatch = [
-    { op: 'add', value: SESSION_TYPE, path: ['active_type'] },
-    {
-      op: 'add',
-      value: {
-        session_credential,
-        user_id: user,
-        sid_encrypted_info,
-        provider
-      },
-      path: ['active']
-    }
-  ]
-  await interact(domain, user, session, sessionPatch)
 }
 
 async function fetchJSON(url) {
@@ -168,7 +149,7 @@ async function fetchJSON(url) {
 
 function kidFromToken(token) {
   //  get kid header from token
-  const { kid } = JSON.parse(Buffer.from(token.split('.').shift(), "base64"))
+  const { kid } = JSON.parse(decodeBase64String(token.split('.').shift()))
   return kid
 }
 
@@ -264,7 +245,6 @@ const providerJWKs = Object.fromEntries(
 
 async function fetchJWKs(provider, retries=0) {
   if (retries > 3) throw new Error(`Could not fetch ${provider} public keys`)
-    console
 
   const endpoint = JWKS_ENDPOINTS[provider]
 
@@ -306,11 +286,8 @@ async function JWTVerification(client_id, client_secret, token_uri, token, resol
   if (!providerJWKs[provider][kid]) return reject('Public key not found')
 
   const encoded = jwkToPem(providerJWKs[provider][kid])
-  console.log('encoded', id_token, encoded)
   jwt.verify(id_token, encoded, async (error, decoded, claims) => {
     if (error) return reject(error)
-
-    console.log('decoded', decoded, claims)
 
     if (passTokenChallenge(provider, decoded)) {
       const provider_id = decoded.sub

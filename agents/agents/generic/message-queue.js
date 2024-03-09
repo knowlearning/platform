@@ -1,6 +1,7 @@
 import { validate as isUUID } from 'uuid'
 
 const HEARTBEAT_TIMEOUT = 10000
+const DOMAIN_MESSAGES = { open: true, mutate: true, close: true }
 
 //  transform our custom path implementation to the standard JSONPatch path
 function standardJSONPatch(patch) {
@@ -9,13 +10,17 @@ function standardJSONPatch(patch) {
   })
 }
 
+function activePatch(patch) {
+  return structuredClone(patch).filter(({ path }) => 'active' === path.shift())
+}
+
 function sanitizeJSONPatchPathSegment(s) {
   if (typeof s === "string") return s.replaceAll('~', '~0').replaceAll('/', '~1')
   else return s
 }
 
-export default function messageQueue({ token, protocol, host, WebSocket, watchers, states, applyPatch, log, login }) {
-  let ws
+export default function messageQueue({ token, domain, Connection, watchers, states, applyPatch, log, login, reboot, handleDomainMessage, trigger }) {
+  let connection
   let user
   let authed = false
   let session
@@ -66,13 +71,19 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
     await new Promise(r=>r())
     lastSynchronousScopePatched = null
 
-    while (authed && ws.readyState === WebSocket.OPEN && lastSentSI+1 < messageQueue.length) {
+    while (authed && lastSentSI+1 < messageQueue.length) {
       lastSynchronousScopePatched = null
-      lastSentSI += 1
-      ws.send(JSON.stringify(messageQueue[lastSentSI]))
-
-      //  async so we don't try and push more to a closed connection
-      await new Promise(r=>r())
+      try {
+        connection.send(messageQueue[lastSentSI + 1])
+        lastSentSI += 1
+        //  async so we don't try and push more to a closed connection
+        await new Promise(r=>r())
+      }
+      catch (error) {
+        console.warn('ERROR SENDING OVER CONNECTION', error)
+        restartConnection()
+        break
+      }
     }
   }
 
@@ -100,33 +111,29 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
     authed = false
     if (!disconnected) {
       await new Promise(r => setTimeout(r, Math.min(1000, failedConnections * 100)))
-      ws.onmessage = () => {} // needs to be a no-op since a closing ws can still get messages
+      connection.onmessage = () => {} // needs to be a no-op since a closing connection can still get messages
       restarting = true
       failedConnections += 1
-      initWS() // TODO: don't do this if we are purposefully unloading...
+      initConnection() // TODO: don't do this if we are purposefully unloading...
       restarting = false
     }
   }
 
-  function initWS() {
-    ws = new WebSocket(`${protocol}://${host}`)
+  function initConnection() {
+    connection = new Connection()
 
-    ws.onopen = async () => {
+    connection.onopen = async () => {
       if (!sessionMetrics.connected) sessionMetrics.connected = Date.now()
-      log('AUTHORIZING NEWLY OPENED WS FOR SESSION:', session)
+      log('AUTHORIZING NEWLY OPENED CONNECTION FOR SESSION:', session)
       failedConnections = 0
-      ws.send(JSON.stringify({ token: await token(), session }))
+      connection.send({ token: await token(), session, domain })
     }
 
-    ws.onmessage = async ({ data }) => {
+    connection.onmessage = async message => {
       checkHeartbeat()
-      if (data.length === 0) return // heartbeat
+      if (!message) return // heartbeat
 
       try {
-        log('handling message', disconnected, authed)
-        const message = JSON.parse(data)
-        log('message', JSON.stringify(message))
-
         if (message.error) console.warn('ERROR RESPONSE', message)
 
         if (!authed) {
@@ -135,6 +142,7 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
 
           authed = true
           if (!user) { // this is the first authed websocket connection
+            console.log('INIT MESSAGE', message)
             sessionMetrics.authenticated = Date.now()
             user = message.auth.user
             session = message.session
@@ -154,14 +162,22 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
           flushMessageQueue()
         }
         else {
-          if (message.si !== undefined) {
+          if (DOMAIN_MESSAGES[message.type]) {
+            try {
+              handleDomainMessage && handleDomainMessage(message, trigger)
+            }
+            catch (error) {
+              log('ERROR HANDLING DOMAIN MESSAGE', message)
+            }
+          }
+          else if (message.si !== undefined) {
             if (responses[message.si]) {
               //  TODO: remove "acknowledged" messages from queue and do accounting with si
               responses[message.si]
                 .forEach(([res, rej]) => message.error ? rej(message) : res(message))
 
               delete responses[message.si]
-              ws.send(JSON.stringify({ack: message.si})) //  acknowledgement that we have received the response for this message
+              connection.send({ack: message.si}) //  acknowledgement that we have received the response for this message
               resolveSyncPromises()
             }
             else {
@@ -170,12 +186,20 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
             }
           }
           else {
-            const d = message.domain === window.location.host ? '' : message.domain
+            const d = message.domain === domain ? '' : message.domain
             const u = message.user === user ? '' : message.user
             const s = message.scope
             const qualifiedScope = isUUID(s) ? s : `${d}/${u}/${s}`
             if (watchers[qualifiedScope]) {
               states[qualifiedScope] = await states[qualifiedScope]
+
+              if (states[qualifiedScope].ii + 1 !== message.ii) {
+                console.warn('OUT OF ORDER WATCHER RECEIVED', qualifiedScope, states[qualifiedScope], message)
+                return
+              }
+
+              //  TODO: this should come down with patch...
+              states[qualifiedScope].ii = message.ii
 
               const lastResetPatchIndex = message.patch.findLastIndex(p => p.path.length === 0)
               if (lastResetPatchIndex > -1) states[qualifiedScope] = message.patch[lastResetPatchIndex].value
@@ -185,23 +209,23 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
               watchers[qualifiedScope]
                 .forEach(fn => {
                   const state = structuredClone(states[qualifiedScope].active)
-                  fn({ ...message, state })
+                  fn({ ...message, patch: activePatch(message.patch), state })
                 })
             }
           }
         }
       }
       catch (error) {
-        console.error('ERROR HANDLING WS MESSAGE', error)
+        console.error('ERROR HANDLING CONNECTION MESSAGE', error)
       }
     }
 
-    ws.onerror = async error => {
-      log('WS CONNECTION ERROR', error.message)
+    connection.onerror = async error => {
+      log('CONNECTION ERROR', error.message)
     }
 
-    ws.onclose = async error => {
-      log('WS CLOSURE', error.message)
+    connection.onclose = async error => {
+      log('CONNECTION CLOSURE', error.message)
       restartConnection()
     }
 
@@ -219,7 +243,7 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
   function disconnect() {
     log('DISCONNECTED AGENT!!!!!!!!!!!!!!!')
     disconnected = true
-    ws.close()
+    connection.close({ keepalive: true })
   }
 
   function reconnect() {
@@ -228,7 +252,7 @@ export default function messageQueue({ token, protocol, host, WebSocket, watcher
     restartConnection()
   }
 
-  initWS()
+  initConnection()
 
   return [queueMessage, lastMessageResponse, disconnect, reconnect, synced, environment]
 }

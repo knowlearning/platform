@@ -3,11 +3,11 @@ kind: Ingress
 metadata:
   name: core-ingress
   annotations:
-    kubernetes.io/ingress.global-static-ip-name: core-ingress-ip
-    networking.gke.io/managed-certificates: core-ingress-managed-cert
+    kubernetes.io/ingress.global-static-ip-name: core-staging-ingress-ip
+    networking.gke.io/managed-certificates: core-staging-ingress-managed-cert
 spec:
   rules:
-  - host: api.knowlearning.systems
+  - host: api.staging.knowlearning.systems
     http:
       paths:
       - path: /
@@ -22,7 +22,7 @@ spec:
 apiVersion: networking.gke.io/v1
 kind: ManagedCertificate
 metadata:
-  name: core-ingress-managed-cert
+  name: core-staging-ingress-managed-cert
 spec:
   domains:
-    - api.knowlearning.systems
+    - api.staging.knowlearning.systems

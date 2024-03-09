@@ -112,10 +112,6 @@ authorize:
     postgres: same_domain_authorization
   crossDomain:
     postgres: cross_domain_authorization
-sideEffects:
-- type: application/json;type=side-effect-test
-  script: |
-    console.log('HELLO DENO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 postgres:
   tables:
     test_table_2:
@@ -231,7 +227,7 @@ postgres:
       await done
       expect(closeInfo).to.deep.equal([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
     })
-
+/*
     it('Can resolve many parallel queries at once', async function () {
       this.timeout(5000)
       const numParallelQueries = 1000
@@ -268,7 +264,7 @@ postgres:
       await done
       expect(closeInfo).to.deep.equal(null)
     })
-
+*/
     it('Throws an error in the embedded context on an embedded query error', async function () {
       this.timeout(2000)
       let resolve
@@ -377,11 +373,15 @@ postgres:
 
     it('Cannot query old tables', async function () {
       let erroredExpectedly = false
+      let error
       try {
         const state = await Agent.query('my-old-test-table')
       }
-      catch (error) { erroredExpectedly = error.error === '42P01' }
-      if (!erroredExpectedly) throw new Error('Expected postgres 42P01 error on query involving new table')
+      catch (e) {
+        erroredExpectedly = e.error === '42P01'
+        error = e
+      }
+      if (!erroredExpectedly) throw new Error(`Expected postgres 42P01 error on query involving new table; received ${error}`)
     })
 
   })

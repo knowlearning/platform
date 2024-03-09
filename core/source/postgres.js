@@ -1,4 +1,4 @@
-import { randomBytes, pg } from './utils.js'
+import { randomBytes, pg, environment, escapePostgresLiteral } from './utils.js'
 
 // necessary to ensure that
 function purifiedName(name) {
@@ -16,7 +16,7 @@ const {
   POSTGRES_HOST,
   POSTGRES_PORT,
   POSTGRES_PASSWORD
-} = process.env
+} = environment
 
 const constantMap = {
   PLpgSQL: 'PLpgSQL',
@@ -35,7 +35,7 @@ const ignorableErrors = {
 }
 
 const config = {
-  host: POSTGRES_HOST,
+  hostname: POSTGRES_HOST,
   port: POSTGRES_PORT,
   user: 'postgres',
   password: POSTGRES_PASSWORD
@@ -50,12 +50,11 @@ async function client(domain) {
 
   if (domain !== 'postgres') {
     //  Create database for domain on-demand
-    const c = await client('postgres')
     try {
-      await c.query(`CREATE DATABASE "${database}"`)  //  TODO: track report (third arument)
+      await query('postgres', `CREATE DATABASE "${database}"`)
     }
     catch (error) {
-      if (!ignorableErrors[error.code]) {
+      if (!ignorableErrors[error.fields.code]) {
         console.log('ERROR CREATING DATABASE!!!!!', error)
       }
     }
@@ -68,8 +67,8 @@ async function client(domain) {
       client
         .connect()
         .then(() => {
-          client.query('CREATE EXTENSION IF NOT EXISTS plpgsql')
           resolve(client)
+          query(domain, 'CREATE EXTENSION IF NOT EXISTS plpgsql')
         })
         .catch(async () => setTimeout(retry, 1000))
     }
@@ -81,7 +80,7 @@ async function client(domain) {
 
 async function query(database, text, values, rowMode) {
   const c = await client(database)
-  return c.query({ text, values, rowMode })
+  return c.queryObject(text, values)
 }
 
 async function createTable(domain, table, columns) {
@@ -133,7 +132,7 @@ async function createFunction(domain, name, definition) {
   //  TODO: handle args
 
   //  use random delimiter to prevent injection
-  const delimiter = randomBytes(32).toString('hex')
+  const delimiter = randomBytes(32, 'hex')
   const args = (
     definition
       .arguments
@@ -167,12 +166,12 @@ async function deleteFunction(domain, name) {
   //  This ensures all previously declared functions will be removed
   const q = `DO $$
     DECLARE
-      function_id TEXT;
+      function_id    TEXT;
     BEGIN
       FOR function_id IN
         SELECT oid::regprocedure
         FROM pg_proc
-        WHERE proname = ${pg.escapeLiteral(name)}
+        WHERE proname = ${escapePostgresLiteral(name)}
         AND pg_function_is_visible(oid)
       LOOP
         EXECUTE 'DROP FUNCTION IF EXISTS ' || function_id || ';';
@@ -238,7 +237,6 @@ async function setColumn(domain, table, column, id, value) {
 }
 
 export {
-  client,
   createTable,
   createIndex,
   removeTable,

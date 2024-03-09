@@ -10,6 +10,7 @@ export default function () {
       state.y = 200
 
       const firstAgentRetrievedState = await Agent.state(id)
+      await Agent.synced()
       const secondAgentRetrievedState = await Agent2.state(id)
 
       expect(firstAgentRetrievedState).to.deep.equal(state)
@@ -22,8 +23,6 @@ export default function () {
 
       const agent1Env = await Agent.environment()
 
-      const secondAgentRetrievedState1 = await Agent2.state(name, agent1Env.auth.user)
-
       const state = await Agent.state(name)
       state.x = 100
       state.y = 200
@@ -31,15 +30,34 @@ export default function () {
       const firstAgentRetrievedState = await Agent.state(name)
       expect(firstAgentRetrievedState).to.deep.equal(state)
 
+      await Agent.synced()
       const secondAgentRetrievedState = await Agent2.state(name, agent1Env.auth.user)
       expect(secondAgentRetrievedState).to.deep.equal(state)
 
       state.z = 1000
-      await pause(100)
 
-      const thirdAgentRetrievedState = await Agent2.state(name, agent1Env.auth.user)
+      await Agent.synced()
+      const thirdAgentRetrievedState = await Agent3.state(name, agent1Env.auth.user)
+      expect(thirdAgentRetrievedState).to.deep.equal(state)
+    })
 
-      expect(state).to.deep.equal(thirdAgentRetrievedState)
+    it('Can update a second requested persistent object', async function () {
+      const { auth: { user } } = await Agent.environment()
+      const id = uuid()
+      const name = `Special State ${id}`
+      const state = await Agent.state(name)
+      state.x = 100
+      state.y = 200
+
+      const state2 = await Agent.state(name)
+      state2.x = 200
+      state2.y = 400
+
+      await Agent.synced()
+
+      const updatedStateFromSecondAgent = await Agent2.state(name, user)
+
+      expect(updatedStateFromSecondAgent).to.deep.equal(state2)
     })
   })
 }

@@ -54,11 +54,8 @@ export default function () {
         let numUpdates = 0
 
         const state = await Agent.state(id)
-        const statePromise = Agent.state(id)
 
-        Agent.watch(id, update => {
-          numUpdates += 1
-        })
+        Agent.watch(id, update => numUpdates += 1)
 
         await pause(10)
         state.x = 1

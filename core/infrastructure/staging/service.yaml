@@ -1,16 +1,25 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: core-node
+  name: core-deno
   annotations:
     cloud.google.com/backend-config: '{"default":"core-backend-config"}'
 spec:
   type: NodePort
   selector:
-    app: core
+    app: core-deno
   sessionAffinity: ClientIP
   ports:
   - name: http
     protocol: TCP
     port: 8080
     targetPort: 8080
+---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: core-backend-config
+spec:
+  timeoutSec: 600
+  sessionAffinity:
+    affinityType: "CLIENT_IP"
