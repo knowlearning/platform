@@ -10,7 +10,7 @@ spec:
   - host: api.knowlearning.systems
     http:
       paths:
-      - path: /
+      - path: /*
         pathType: ImplementationSpecific
         backend:
           service:
