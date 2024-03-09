@@ -1,4 +1,4 @@
-import { randomBytes, getCookies, setCookie, requestDomain } from './utils.js'
+import { randomBytes, getCookies, requestDomain } from './utils.js'
 import handleConnection from './handle-connection.js'
 
 export default function handleHTTPRequest(request) {
@@ -11,7 +11,8 @@ export default function handleHTTPRequest(request) {
   const newSidCreated = previousSid !== sid
 
   if (newSidCreated) {
-    setCookie(headers, { name: 'sid', value: sid, secure: true, httpOnly: true })
+    //  TODO: add partitioned when we can (must wait unti we can successfully set sid with ws connection)
+    headers.set('set-cookie', `sid=${sid}; Secure; HttpOnly; SameSite=None; Partitioned`)
   }
 
   if (request.headers.get("upgrade") != "websocket") {

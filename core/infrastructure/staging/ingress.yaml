@@ -10,7 +10,7 @@ spec:
   - host: api.staging.knowlearning.systems
     http:
       paths:
-      - path: /
+      - path: /*
         pathType: ImplementationSpecific
         backend:
           service:
