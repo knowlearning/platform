@@ -52,7 +52,7 @@ export default async function handleConnection(connection, domain, sid) {
       if (agent && user && user !== domain) {
         agent.send({ type: 'close', session, data })
       }
-    })
+    }).catch(() => {})
   }
 
   function heartbeat() {
@@ -103,7 +103,7 @@ export default async function handleConnection(connection, domain, sid) {
   }
 
   connection.onmessage = async message => {
-    const agent = await agentPromise
+    const agent = await agentPromise.catch(() => null)
 
     if (!user) {
       console.log('GOT MESSAGE FOR CONNECTION WITHOUT USER!!!!!!!!!!!', message)
