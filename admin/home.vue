@@ -1,29 +1,35 @@
 <template>
-  <div>{{ user }}</div>
-  <div v-if="claimMessage">
-    {{ claimMessage }}
-    <vueScopeComponent :id="claimReport" />
-    <v-btn @click="claimMessage = null">Okay</v-btn>
+  <div v-if="provider === null">loading...</div>
+  <div v-else-if="provider !== 'anonymous'">
+    <div>{{ user }}</div>
+    <div v-if="claimMessage">
+      {{ claimMessage }}
+      <vueScopeComponent :id="claimReport" />
+      <v-btn @click="claimMessage = null">Okay</v-btn>
+    </div>
+    <v-btn v-else @click="claim">Become admin for {{ domain }}</v-btn>
+    <div v-if="config">
+      config:  {{config.config}}
+      <ReportViewer
+        :key="config.report"
+        :report="config.report"
+      />
+    </div>
+    <v-btn @click="uploadConfig">Upload</v-btn>
+    <RelationalQueryInterface :domain="domain" />
+    <div>
+      <v-virtual-scroll
+        :height="300"
+        :items="agentLogs"
+      >
+        <template v-slot:default="{ item }">
+          {{ item }}
+        </template>
+      </v-virtual-scroll>
+    </div>
   </div>
-  <v-btn v-else @click="claim">Become admin for {{ domain }}</v-btn>
-  <div v-if="config">
-    config:  {{config.config}}
-    <ReportViewer
-      :key="config.report"
-      :report="config.report"
-    />
-  </div>
-  <v-btn @click="uploadConfig">Upload</v-btn>
-  <RelationalQueryInterface :domain="domain" />
-  <div>
-    <v-virtual-scroll
-      :height="300"
-      :items="agentLogs"
-    >
-      <template v-slot:default="{ item }">
-        {{ item }}
-      </template>
-    </v-virtual-scroll>
+  <div v-else>
+    <v-btn @click="login">login</v-btn>
   </div>
 </template>
 
@@ -37,10 +43,6 @@ import RelationalQueryInterface from './relational-query-interface.vue'
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
 export default {
-  props: {
-    user: String,
-    domain: String
-  },
   components: {
     vueScopeComponent,
     ReportViewer,
@@ -48,6 +50,9 @@ export default {
   },
   data() {
     return {
+      user: null,
+      provider: null,
+      domain: null,
       config: null,
       agentLogs: [],
       claimReport: null,
@@ -55,6 +60,13 @@ export default {
     }
   },
   async created() {
+    const { auth: { user, provider } } = await Agent.environment()
+
+    this.user = user
+    this.provider = provider
+
+    this.domain = 'null'
+
     this.config = (await Agent.query('current-config', [this.domain]))[0]
     Agent.watch(
       'sessions',
@@ -69,6 +81,8 @@ export default {
     )
   },
   methods: {
+    login() { Agent.login() },
+    logout() { Agent.logout() },
     async claim() {
       const start = Date.now()
       this.claimMessage = 'claiming...'

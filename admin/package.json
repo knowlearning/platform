@@ -20,6 +20,7 @@
     "vue": "^3.3.4",
     "vue-chartjs": "^5.2.0",
     "vue-flatpickr-component": "^11.0.3",
+    "vue-router": "^4.3.0",
     "vuetify": "^3.5.8",
     "vuex": "^4.1.0"
   }

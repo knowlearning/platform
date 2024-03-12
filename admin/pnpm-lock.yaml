@@ -38,6 +38,9 @@ dependencies:
   vue-flatpickr-component:
     specifier: ^11.0.3
     version: 11.0.3(vue@3.3.4)
+  vue-router:
+    specifier: ^4.3.0
+    version: 4.3.0(vue@3.3.4)
   vuetify:
     specifier: ^3.5.8
     version: 3.5.8(vue@3.3.4)
@@ -459,6 +462,10 @@ packages:
     resolution: {integrity: sha512-o9KfBeaBmCKl10usN4crU53fYtC1r7jJwdGKjPT24t348rHxgfpZ0xL3Xm/gLUYnc0oTp8LAmrxOeLyu6tbk2Q==}
     dev: false
 
+  /@vue/devtools-api@6.6.1:
+    resolution: {integrity: sha512-LgPscpE3Vs0x96PzSSB4IGVSZXZBZHpfxs+ZA1d+VEPwHdOXowy/Y2CsvCAIFrf+ssVU1pD1jidj505EpUnfbA==}
+    dev: false
+
   /@vue/reactivity-transform@3.3.4:
     resolution: {integrity: sha512-MXgwjako4nu5WFLAjpBnCj/ieqcjE2aJBINUNQzkZQfzIZA4xn+0fV1tIYBJvvva3N3OvKGofRLvQIwEQPpaXw==}
     dependencies:
@@ -707,6 +714,15 @@ packages:
       vue: ^3.2.0
     dependencies:
       flatpickr: 4.6.13
+      vue: 3.3.4
+    dev: false
+
+  /vue-router@4.3.0(vue@3.3.4):
+    resolution: {integrity: sha512-dqUcs8tUeG+ssgWhcPbjHvazML16Oga5w34uCUmsk7i0BcnskoLGwjpa15fqMr2Fa5JgVBrdL2MEgqz6XZ/6IQ==}
+    peerDependencies:
+      vue: ^3.2.0
+    dependencies:
+      '@vue/devtools-api': 6.6.1
       vue: 3.3.4
     dev: false
 
