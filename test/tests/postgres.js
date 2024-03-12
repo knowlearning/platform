@@ -54,7 +54,7 @@ postgres:
         integer_test_column: INTEGER
         boolean_test_column: BOOLEAN
         text_array_test_column: TEXT[]
-  scopes:
+  queries:
     my-test-table-entries: |
       SELECT * FROM test_table WHERE id = '${TEST_ENTRY_1_ID}'
     my-test-table-entries-metadata: |
@@ -121,7 +121,7 @@ postgres:
         integer_test_column: INTEGER
         boolean_test_column: BOOLEAN
         text_array_test_column: TEXT[]
-  scopes:
+  queries:
     my-reconfigured-test-table-entries: |
       SELECT * FROM test_table_2 WHERE id = '${TEST_ENTRY_1_ID}'
     my-test-table-entries-metadata: |
@@ -287,7 +287,7 @@ postgres:
       expect(closeInfo).to.deep.equal(null)
     })
 
-    it('Can call functions in special query scopes', async function () {
+    it('Can call functions in queries', async function () {
       expect(await Agent.query('test-function-call'))
       .to.deep.equal([{ id: TEST_ENTRY_0_ID }])
     })

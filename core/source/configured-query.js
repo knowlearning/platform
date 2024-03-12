@@ -14,7 +14,7 @@ export default async function (requestingDomain, targetDomain, queryName, params
   let queryBody
 
   // TODO: 'domain-config' scope needs an exception in interact.....
-  if (requestingDomain === targetDomain) queryBody = config?.postgres?.scopes?.[queryName]
+  if (requestingDomain === targetDomain) queryBody = config?.postgres?.scopes?.[queryName] || config?.postgres?.queries?.[queryName]
   else if (config?.postgres?.crossDomainQueries?.[queryName]?.domains?.includes(requestingDomain)) {
     queryBody = config?.postgres?.crossDomainQueries?.[queryName]?.body
   }
