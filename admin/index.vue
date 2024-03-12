@@ -6,19 +6,14 @@
     <v-btn @click="claimMessage = null">Okay</v-btn>
   </div>
   <v-btn v-else @click="claim">Become admin for {{ domain }}</v-btn>
-  <div v-if="config ">
-    config: {{config.config}}
-    <vueScopeComponent :id="config.report" />
+  <div v-if="config">
+    config:  {{config.config}}
+    <ReportViewer
+      :key="config.report"
+      :report="config.report"
+    />
   </div>
-  <input
-    ref="fileInput"
-    style="display: none;"
-    type="file"
-    @change="uploadConfig"
-  />
-  <v-btn @click="$refs.fileInput.click()">
-    Upload
-  </v-btn>
+  <v-btn @click="uploadConfig">Upload</v-btn>
   <RelationalQueryInterface :domain="domain" />
   <div>
     <v-virtual-scroll
@@ -36,6 +31,7 @@
 
 import { v4 as uuid } from 'uuid'
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
+import ReportViewer from './report-viewer.vue'
 import RelationalQueryInterface from './relational-query-interface.vue'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
@@ -47,6 +43,7 @@ export default {
   },
   components: {
     vueScopeComponent,
+    ReportViewer,
     RelationalQueryInterface
   },
   data() {
@@ -96,20 +93,18 @@ export default {
         delete this.config[this.domain]
       }
     },
-    async uploadConfig(e) {
-      const file = e.target.files[0]
-      const uploadInfo = { name: file.name, type: file.type, data: file }
-      const id = await Agent.upload(uploadInfo)
-      e.target.value = ''
+    async uploadConfig() {
+      const id = await Agent.upload({ browser: true })
 
       const report = uuid()
-      console.log('REPORT ID', report)
-      const { domain } = this
 
       await Agent.create({
-        active: { config: id, report, domain },
+        active: { config: id, report, domain: this.domain },
         active_type: DOMAIN_CONFIG_TYPE
       })
+
+      await Agent.synced()
+
       this.config = (await Agent.query('current-config', [this.domain]))[0]
     },
   }
