@@ -87,9 +87,15 @@ export async function applyConfiguration(domain, { postgres, agent }, report) {
   const tasks = []
   if (postgres) tasks.push(() => configurePostgres(domain, postgres, report))
   if (agent) tasks.push(async () => {
-    report.tasks.agent = ['refreshing']
-    await domainAgent(domain, true)
-    report.tasks.agent.push('done')
+    report.tasks.agent = ['initializing']
+    try {
+      await domainAgent(domain, true)
+      report.tasks.agent.push('done')
+    }
+    catch (error) {
+      const { message, lineno, colno } = error
+      report.tasks.agent.push(`ERROR: ${message}\nline: ${lineno}, column: ${colno}`)
+    }
   })
 
   return Promise.all(tasks.map(t => t()))

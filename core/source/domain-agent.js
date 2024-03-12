@@ -49,7 +49,7 @@ function createConnection(worker, connectionId) {
 export default function domainAgent(domain, refresh=false) {
   if (DomainAgents[domain] && !refresh) return DomainAgents[domain]
 
-  DomainAgents[domain] = new Promise(async resolve => {
+  DomainAgents[domain] = new Promise(async (resolve, reject) => {
     const config = await configuration(domain)
     if (config.agent) {
       const filename = `/core/source/${uuid()}.js`
@@ -73,6 +73,7 @@ export default function domainAgent(domain, refresh=false) {
 
       worker.onerror = event => {
         console.log('DOMAIN AGENT ERROR', event)
+        reject(event)
         //  Stop unhandled child error event from closing the core server
         event.preventDefault()
         // TODO: restart child process, probably with backoff and reporting to admin domain...
