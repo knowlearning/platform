@@ -38,8 +38,8 @@ const { ADMIN_DOMAIN, MODE } = environment
 
 //  TODO: probably want to abstract this and allow different types
 //        to help with removing privaleged named states
-function coreState(user, id, domain) {
-  interact(domain, user, id, [{ op: 'add', value: 'application/json', path: ['active_type'] }])
+async function coreState(user, id, domain) {
+  await interact(domain, user, id, [{ op: 'add', value: 'application/json', path: ['active_type'] }])
   return new MutableProxy({}, async patch => {
     patch.forEach(({ path }) => path.unshift('active'))
     interact(domain, user, id, patch)
@@ -68,7 +68,7 @@ export default async function ({ domain, user, session, patch, si, ii, send }) {
         throw new Error('Error getting config')
       }
 
-      const reportState = coreState(user, report, domain)
+      const reportState = await coreState(user, report, domain)
 
       reportState.tasks = {}
       reportState.start = Date.now()
@@ -86,24 +86,25 @@ export default async function ({ domain, user, session, patch, si, ii, send }) {
 export async function applyConfiguration(domain, { postgres, agent }, report) {
   const tasks = []
   if (postgres) tasks.push(() => configurePostgres(domain, postgres, report))
-  if (agent) tasks.push(async () => {
-    report.tasks.agent = ['initializing']
-    try {
-      await domainAgent(domain, true)
-      report.tasks.agent.push('done')
-    }
-    catch (error) {
-      const { message, lineno, colno } = error
-      report.tasks.agent.push(`ERROR: ${message}\nline: ${lineno}, column: ${colno}`)
-    }
-  })
+  if (agent) tasks.push(() => configureAgent(domain, agent, report))
 
   return Promise.all(tasks.map(t => t()))
 }
 
+async function configureAgent(domain, agent, report) {
+  report.tasks.agent = ['initializing']
+  try {
+    await domainAgent(domain, true)
+    report.tasks.agent.push('done')
+  }
+  catch (error) {
+    const { message, lineno, colno } = error
+    report.tasks.agent.push(`ERROR: ${message}\nline: ${lineno}, column: ${colno}`)
+  }
+}
+
 async function configurePostgres(domain, { tables={}, functions={} }, report) {
   report.tasks.postgres = {}
-  //  TODO: might want to error out if metadata table is configured
   return Promise.all([
     syncTables(domain, { ...tables, ...POSTGRES_DEFAULT_TABLES }, report),
     syncFunctions(domain, functions, report),
@@ -156,6 +157,7 @@ async function syncTables(domain, tables, report) {
 
   //  create tables and supply columns for column updates
   const tableEntries = Object.entries(tables)
+
   for (let tableNum = 0; tableNum < tableEntries.length; tableNum += 1) {
     const [table, { type, columns={}, indices={} }] = tableEntries[tableNum]
     const tableTasks = report.tasks.postgres.tables[table]
@@ -176,11 +178,7 @@ async function syncTables(domain, tables, report) {
       await postgres.createIndex(domain, name, table, column)
     })
 
-    if (rows.length === 0) {
-      tableTasks.push('Done')
-    }
-    else {
-
+    if (rows.length > 0) {
       const batchSize = 100_000
       //  too many transactions queued up will trigger a "RangeError: Too many elements passed to Promise.all"
       for (let batchNum=0; batchNum * batchSize < rows.length; batchNum += 1) {
@@ -218,8 +216,8 @@ async function syncTables(domain, tables, report) {
         tableTasks.push(`Syncing ${start + batch.length}/${rows.length} rows`)
         await batchInsertRows(domain, table, orderedColumns, rowsToInsert, paramsToInsert)
       }
-      tableTasks.push(`Done`)
     }
+    tableTasks.push(`Done`)
   }
 }
 

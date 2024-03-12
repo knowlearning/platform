@@ -103,6 +103,7 @@ export default {
       e.target.value = ''
 
       const report = uuid()
+      console.log('REPORT ID', report)
       const { domain } = this
 
       await Agent.create({
