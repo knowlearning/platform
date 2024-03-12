@@ -21,7 +21,7 @@
       :items="agentLogs"
     >
       <template v-slot:default="{ item }">
-        Item {{ item }}
+        {{ item }}
       </template>
     </v-virtual-scroll>
   </div>
