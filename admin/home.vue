@@ -1,6 +1,6 @@
 <template>
-  <div v-if="provider === null">loading...</div>
-  <div v-else-if="provider === 'anonymous'">
+  <div v-if="!auth?.provider">loading...</div>
+  <div v-else-if="auth?.provider === 'anonymous'">
     <v-btn
       prepend-icon="fa-solid fa-right-to-bracket"
       @click="login"
@@ -33,6 +33,10 @@
       >
         Logout
       </v-btn>
+      <v-avatar
+        class="ms-2 me-2"
+        :image="auth.info.picture"
+      />
     </v-toolbar>
     <router-view></router-view>
   </div>
@@ -54,16 +58,14 @@ export default {
   },
   data() {
     return {
-      user: null,
-      provider: null,
+      auth: null,
       tab: this.$router.currentRoute.value
     }
   },
   async created() {
-    const { auth: { user, provider } } = await Agent.environment()
+    const { auth } = await Agent.environment()
 
-    this.user = user
-    this.provider = provider
+    this.auth = auth
   },
   methods: {
     login() { Agent.login() },
