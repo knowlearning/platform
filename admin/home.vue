@@ -29,7 +29,7 @@
       <v-spacer />
       <v-btn
         @click="logout"
-        prepend-icon="fa-solid fa-arrow-right-from-bracket"
+        append-icon="fa-solid fa-arrow-right-from-bracket"
       >
         Logout
       </v-btn>
@@ -53,7 +53,6 @@ export default {
     ReportViewer
   },
   data() {
-    console.log('current route?', this.$router.currentRoute.value)
     return {
       user: null,
       provider: null,

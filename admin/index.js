@@ -7,6 +7,7 @@ import 'vuetify/styles'
 import '@fortawesome/fontawesome-free/css/all.css'
 import { createVuetify } from 'vuetify'
 import { aliases, fa } from 'vuetify/iconsets/fa'
+import vuetifyKnowLearningTheme from './vuetify-knowlearning-theme.js'
 
 //  TODO: trim down imports
 import * as components from 'vuetify/components'
@@ -33,17 +34,22 @@ const router = createRouter({
     { path: '/:domain/tests', component: DomainTests, props: true }
   ]
 })
+
 const vuetify = createVuetify({
   components,
   directives,
+  theme: {
+    defaultTheme: 'vuetifyKnowLearningTheme',
+    themes: {
+      vuetifyKnowLearningTheme,
+    },
+  },
   icons: {
     defaultSet: 'fa',
     aliases,
     sets: { fa }
   }
 })
-
-console.log(aliases)
 
 createApp(Home)
   .use(router)
