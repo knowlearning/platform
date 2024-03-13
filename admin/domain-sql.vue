@@ -1,11 +1,14 @@
 <template>
   <v-card>
-    <v-textarea
-      label="PostgreSQL Query"
-      v-model="query"
-      @keypress.shift.enter.prevent="submitQuery"
-    />
-     <v-card-actions right>
+    <v-card-title>PostgreSQL</v-card-title>
+    <v-card-text>
+      <v-textarea
+        label="Query"
+        v-model="query"
+        @keypress.shift.enter.prevent="submitQuery"
+      />
+    </v-card-text>
+    <v-card-actions right>
       <v-btn
         text
         @click="submitQuery"
