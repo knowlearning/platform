@@ -1,19 +1,22 @@
 <template>
   <div v-if="provider === null">loading...</div>
   <div v-else-if="provider === 'anonymous'">
-    <v-btn @click="login">login</v-btn>
+    <v-btn
+      prepend-icon="fa-solid fa-right-to-bracket"
+      @click="login"
+    >
+      login
+    </v-btn>
   </div>
   <div v-else>
     {{ user }}
-    <v-btn @click="logout">logout</v-btn>
-    <span v-if="$router.currentRoute.value.fullPath !== '/'">
-      <h1>
-        {{ $router.currentRoute.value.params.domain }}
-        <v-btn @click="$router.push('/')">
-          switch domains
-        </v-btn>
-      </h1>
-    </span>
+    <v-btn
+      @click="logout"
+      prepend-icon="fa-solid fa-arrow-right-from-bracket"
+    >
+      Logout
+    </v-btn>
+    <DomainSwitcher />
     <router-view></router-view>
   </div>
 </template>
@@ -24,12 +27,14 @@ import { v4 as uuid } from 'uuid'
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 import ReportViewer from './report-viewer.vue'
 import RelationalQueryInterface from './relational-query-interface.vue'
+import DomainSwitcher from './domain-switcher.vue'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
 export default {
   components: {
     vueScopeComponent,
+    DomainSwitcher,
     ReportViewer,
     RelationalQueryInterface
   },

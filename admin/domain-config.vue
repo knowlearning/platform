@@ -1,5 +1,6 @@
 <template>
   <div>
+    domain: {{domain}}
     <div v-if="claimMessage">
       {{ claimMessage }}
       <vueScopeComponent :id="claimReport" />
@@ -38,6 +39,9 @@ import RelationalQueryInterface from './relational-query-interface.vue'
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
 export default {
+  props: {
+    domain: String
+  },
   components: {
     vueScopeComponent,
     ReportViewer,
@@ -47,7 +51,6 @@ export default {
     return {
       user: null,
       provider: null,
-      domain: null,
       config: null,
       agentLogs: [],
       claimReport: null,
@@ -59,8 +62,6 @@ export default {
 
     this.user = user
     this.provider = provider
-
-    this.domain = 'null'
 
     this.config = (await Agent.query('current-config', [this.domain]))[0]
     Agent.watch(
@@ -86,7 +87,7 @@ export default {
 
 
       if (this.domain.startsWith(`${this.user}.localhost:`)) {
-        this.claimMessage = `You are now registered as the admin of ${this.domain}. You are welcome, Matt.`
+        this.claimMessage = `You are now registered as the admin of ${this.domain}.`
       }
       else {
         this.claimMessage = `

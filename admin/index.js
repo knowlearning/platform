@@ -4,14 +4,15 @@ import { vuePersistentComponent } from '@knowlearning/agents/vue.js'
 import { createRouter, createWebHistory } from 'vue-router'
 
 import 'vuetify/styles'
+import '@fortawesome/fontawesome-free/css/all.css'
 import { createVuetify } from 'vuetify'
+import { aliases, fa } from 'vuetify/iconsets/fa'
 
 //  TODO: trim down imports
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 
 import Home from './home.vue'
-import DomainSwitcher from './domain-switcher.vue'
 import DomainConfig from './domain-config.vue'
 
 import './third-party-setup.js'
@@ -22,11 +23,21 @@ window.Agent = Agent
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', component: DomainSwitcher },
-    { path: '/config/:domain', component: DomainConfig }
+    { path: '/', component: { template: '<div>woo</div>' } },
+    { path: '/config/:domain', component: DomainConfig, props: true }
   ]
 })
-const vuetify = createVuetify({ components, directives })
+const vuetify = createVuetify({
+  components,
+  directives,
+  icons: {
+    defaultSet: 'fa',
+    aliases,
+    sets: { fa }
+  }
+})
+
+console.log(aliases)
 
 createApp(Home)
   .use(router)
