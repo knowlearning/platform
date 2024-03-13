@@ -12,7 +12,7 @@
     <v-toolbar
       color="primary"
     >
-      <DomainSwitcher />
+      <DomainSwitcher class="ms-2" />
       <v-toolbar-title>
         {{ domain }}
       </v-toolbar-title>
@@ -34,7 +34,7 @@
         Logout
       </v-btn>
       <v-avatar
-        class="ms-2 me-2"
+        class="ms-4 me-4"
         :image="auth.info.picture"
       />
     </v-toolbar>
