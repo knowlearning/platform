@@ -17,7 +17,7 @@
         {{ domain }}
       </v-toolbar-title>
       <v-tabs
-        v-model="tab"
+        v-model="selectedTab"
         bg-color="primary"
         v-if="domain"
       >
@@ -56,10 +56,13 @@ export default {
     DomainSwitcher,
     ReportViewer
   },
+  props: {
+    tab: String
+  },
   data() {
     return {
       auth: null,
-      tab: this.$router.currentRoute.value
+      selectedTab: this.tab
     }
   },
   async created() {
@@ -69,7 +72,7 @@ export default {
   },
   methods: {
     login() { Agent.login() },
-    logout() { Agent.logout() }
+    logout() { Agent.logout() },
   },
   computed: {
     domain() {
@@ -77,8 +80,8 @@ export default {
     }
   },
   watch: {
-    tab() {
-      this.$router.push(`/${this.domain}/${this.tab}`)
+    selectedTab() {
+      this.$router.push(`/${this.domain}/${this.selectedTab}`)
     }
   }
 }

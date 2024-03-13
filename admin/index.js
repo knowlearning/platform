@@ -23,7 +23,6 @@ import './third-party-setup.js'
 
 window.Agent = Agent
 
-
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -51,7 +50,7 @@ const vuetify = createVuetify({
   }
 })
 
-createApp(Home)
+createApp(Home, { tab: location.pathname.split('/')[2] })
   .use(router)
   .use(vuetify)
   .mount('body')

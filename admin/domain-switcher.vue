@@ -3,8 +3,9 @@
   import { useRouter } from 'vue-router'
 
   const router = useRouter()
+  const routerDomain = router.currentRoute?.value?.params?.domain
 
-  const domain = ref(router.currentRoute?.value?.params?.domain || null)
+  const domain = ref(routerDomain || null)
   const domainStates = ref(null)
   const domainToAdd = ref('')
 
