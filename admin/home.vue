@@ -44,7 +44,7 @@
         :image="auth.info.picture"
       />
     </v-toolbar>
-    <v-container>
+    <v-container :key="domain">
       <router-view></router-view>
     </v-container>
   </div>
