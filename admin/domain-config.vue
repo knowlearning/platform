@@ -19,7 +19,6 @@
 
 <script>
 
-import { v4 as uuid } from 'uuid'
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 import ReportViewer from './report-viewer.vue'
 
@@ -78,7 +77,7 @@ export default {
     async uploadConfig() {
       const id = await Agent.upload({ browser: true })
 
-      const report = uuid()
+      const report = Agent.uuid()
 
       await Agent.create({
         active: { config: id, report, domain: this.domain },
