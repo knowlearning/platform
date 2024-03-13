@@ -47,8 +47,8 @@
       <template v-slot:activator="{ props }">
         <v-btn
           v-bind="props"
+          icon="fa-solid fa-gear"
         >
-          {{ domain || 'Select Domain' }}
         </v-btn>
       </template>
       <v-list>
@@ -68,9 +68,9 @@
             />
           </template>
         </v-list-item>
+        <v-divider class="mt-2"></v-divider>
         <v-dialog max-width="500">
           <template v-slot:activator="{ props: activatorProps }">
-            <v-divider class="mt-2"></v-divider>
             <v-list-item
               title="Add New"
               v-bind="activatorProps"

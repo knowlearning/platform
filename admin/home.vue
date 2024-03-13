@@ -9,16 +9,13 @@
     </v-btn>
   </div>
   <div v-else>
-    {{ user }}
-    <v-btn
-      @click="logout"
-      prepend-icon="fa-solid fa-arrow-right-from-bracket"
+    <v-toolbar
+      color="primary"
     >
-      Logout
-    </v-btn>
-    <v-toolbar>
       <DomainSwitcher />
-      <v-spacer></v-spacer>
+      <v-toolbar-title>
+        {{ domain }}
+      </v-toolbar-title>
       <v-tabs
         v-model="tab"
         bg-color="primary"
@@ -29,6 +26,13 @@
         <v-tab value="postgres">Postges</v-tab>
         <v-tab value="tests">Tests</v-tab>
       </v-tabs>
+      <v-spacer />
+      <v-btn
+        @click="logout"
+        prepend-icon="fa-solid fa-arrow-right-from-bracket"
+      >
+        Logout
+      </v-btn>
     </v-toolbar>
     <router-view></router-view>
   </div>
