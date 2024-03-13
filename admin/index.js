@@ -16,7 +16,7 @@ import * as directives from 'vuetify/directives'
 import Home from './home.vue'
 import DomainConfig from './domain-config.vue'
 import DomainAgents from './domain-agents.vue'
-import DomainPostgres from './domain-postgres.vue'
+import DomainSQL from './domain-sql.vue'
 import DomainTests from './domain-tests.vue'
 
 import './third-party-setup.js'
@@ -29,7 +29,7 @@ const router = createRouter({
     { path: '/', component: { template: '<div>woo</div>' } },
     { path: '/:domain/config', component: DomainConfig, props: true },
     { path: '/:domain/agents', component: DomainAgents, props: true },
-    { path: '/:domain/postgres', component: DomainPostgres, props: true },
+    { path: '/:domain/sql', component: DomainSQL, props: true },
     { path: '/:domain/tests', component: DomainTests, props: true }
   ]
 })

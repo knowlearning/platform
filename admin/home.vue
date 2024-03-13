@@ -29,7 +29,7 @@
       >
         <v-tab value="config">Configuration</v-tab>
         <v-tab value="agents">Agents</v-tab>
-        <v-tab value="postgres">Postges</v-tab>
+        <v-tab value="sql">SQL</v-tab>
         <v-tab value="tests">Tests</v-tab>
       </v-tabs>
       <v-spacer />
@@ -44,7 +44,9 @@
         :image="auth.info.picture"
       />
     </v-toolbar>
-    <router-view></router-view>
+    <v-container>
+      <router-view></router-view>
+    </v-container>
   </div>
 </template>
 

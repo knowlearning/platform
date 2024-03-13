@@ -1,17 +1,27 @@
 <template>
-  <div>
+  <v-card>
     <v-textarea
-      label="Postgres SQL Query"
+      label="PostgreSQL Query"
       v-model="query"
+      @keypress.shift.enter.prevent="submitQuery"
     />
-    <v-btn @click="submitQuery">submit</v-btn>
-    <div v-if="response === null"></div>
-    <div v-else>
-      <v-container>
-        <v-data-table sticky :items="response"></v-data-table>
-      </v-container>
-    </div>
-  </div>
+     <v-card-actions right>
+      <v-btn
+        text
+        @click="submitQuery"
+      >
+        Submit
+      </v-btn>
+    </v-card-actions>
+  </v-card>
+  <v-card
+    v-if="response !== null"
+    class="mt-8"
+  >
+    <v-container>
+      <v-data-table sticky :items="response"></v-data-table>
+    </v-container>
+  </v-card>
 </template>
 
 <script>
