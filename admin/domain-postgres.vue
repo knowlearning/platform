@@ -7,7 +7,6 @@
     <v-btn @click="submitQuery">submit</v-btn>
     <div v-if="response === null"></div>
     <div v-else>
-      {{ response.length }} results
       <v-container>
         <v-data-table sticky :items="response"></v-data-table>
       </v-container>
@@ -23,7 +22,7 @@
     },
     data() {
       return {
-        query: 'SELECT * FROM test_table_2',
+        query: 'SELECT * FROM metadata LIMIT 20',
         response: null
       }
     },

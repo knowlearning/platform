@@ -1,6 +1,5 @@
 <template>
   <div>
-    domain: {{domain}}
     <div v-if="claimMessage">
       {{ claimMessage }}
       <vueScopeComponent :id="claimReport" />
@@ -15,17 +14,6 @@
       />
     </div>
     <v-btn @click="uploadConfig">Upload</v-btn>
-    <RelationalQueryInterface :domain="domain" />
-    <div>
-      <v-virtual-scroll
-        :height="300"
-        :items="agentLogs"
-      >
-        <template v-slot:default="{ item }">
-          {{ item }}
-        </template>
-      </v-virtual-scroll>
-    </div>
   </div>
 </template>
 
@@ -34,7 +22,6 @@
 import { v4 as uuid } from 'uuid'
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 import ReportViewer from './report-viewer.vue'
-import RelationalQueryInterface from './relational-query-interface.vue'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
@@ -44,15 +31,13 @@ export default {
   },
   components: {
     vueScopeComponent,
-    ReportViewer,
-    RelationalQueryInterface
+    ReportViewer
   },
   data() {
     return {
       user: null,
       provider: null,
       config: null,
-      agentLogs: [],
       claimReport: null,
       claimMessage: null
     }
@@ -64,17 +49,6 @@ export default {
     this.provider = provider
 
     this.config = (await Agent.query('current-config', [this.domain]))[0]
-    Agent.watch(
-      'sessions',
-      ({ patch, state }) => patch && patch.forEach(({ op, path, value }) => {
-        if (op === 'add' && path.length === 2 && path[1] === 'log') {
-          const [ serverSession ] = path
-          this.agentLogs.push([serverSession, value])
-        }
-      }),
-      this.domain,
-      this.domain
-    )
   },
   methods: {
     async claim() {

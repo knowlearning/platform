@@ -25,7 +25,7 @@
   }
 
   function manageDomain(name) {
-    if (name) router.push(`/config/${name}`)
+    if (name) router.push(`/${name}/config`)
     else router.push('/')
   }
 
@@ -46,8 +46,6 @@
     <v-menu label="Selected Domain">
       <template v-slot:activator="{ props }">
         <v-btn
-          color="primary"
-          dark
           v-bind="props"
         >
           {{ domain || 'Select Domain' }}

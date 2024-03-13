@@ -16,17 +16,28 @@
     >
       Logout
     </v-btn>
-    <DomainSwitcher />
+    <v-toolbar>
+      <DomainSwitcher />
+      <v-spacer></v-spacer>
+      <v-tabs
+        v-model="tab"
+        bg-color="primary"
+        v-if="domain"
+      >
+        <v-tab value="config">Configuration</v-tab>
+        <v-tab value="agents">Agents</v-tab>
+        <v-tab value="postgres">Postges</v-tab>
+        <v-tab value="tests">Tests</v-tab>
+      </v-tabs>
+    </v-toolbar>
     <router-view></router-view>
   </div>
 </template>
 
 <script>
-
 import { v4 as uuid } from 'uuid'
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 import ReportViewer from './report-viewer.vue'
-import RelationalQueryInterface from './relational-query-interface.vue'
 import DomainSwitcher from './domain-switcher.vue'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
@@ -35,13 +46,14 @@ export default {
   components: {
     vueScopeComponent,
     DomainSwitcher,
-    ReportViewer,
-    RelationalQueryInterface
+    ReportViewer
   },
   data() {
+    console.log('current route?', this.$router.currentRoute.value)
     return {
       user: null,
-      provider: null
+      provider: null,
+      tab: this.$router.currentRoute.value
     }
   },
   async created() {
@@ -53,6 +65,16 @@ export default {
   methods: {
     login() { Agent.login() },
     logout() { Agent.logout() }
+  },
+  computed: {
+    domain() {
+      return this.$router.currentRoute.value?.params?.domain
+    }
+  },
+  watch: {
+    tab() {
+      this.$router.push(`/${this.domain}/${this.tab}`)
+    }
   }
 }
 
