@@ -12,7 +12,13 @@
     <v-toolbar
       color="primary"
     >
-      <DomainSwitcher class="ms-2" />
+      <DomainSwitcher
+        class="ms-2"
+        @select="name => {
+          if (name) $router.push(`/${name}/${tab || 'config'}`)
+          else $router.push('/')
+        }"
+      />
       <v-toolbar-title>
         {{ domain }}
       </v-toolbar-title>
@@ -56,13 +62,9 @@ export default {
     DomainSwitcher,
     ReportViewer
   },
-  props: {
-    tab: String
-  },
   data() {
     return {
-      auth: null,
-      selectedTab: this.tab
+      auth: null
     }
   },
   async created() {
@@ -77,11 +79,17 @@ export default {
   computed: {
     domain() {
       return this.$router.currentRoute.value?.params?.domain
-    }
-  },
-  watch: {
-    selectedTab() {
-      this.$router.push(`/${this.domain}/${this.selectedTab}`)
+    },
+    selectedTab: {
+      get() {
+        return this.tab
+      },
+      set(tab) {
+        this.$router.push(`/${this.domain}/${tab}`)
+      }
+    },
+    tab() {
+      return this.$router.currentRoute.value?.path.split('/')[2]
     }
   }
 }

@@ -2,6 +2,9 @@
   import { ref, computed, watch } from 'vue'
   import { useRouter } from 'vue-router'
 
+  const props = defineProps({ tab: String })
+  const emit = defineEmits(['select'])
+
   const router = useRouter()
   const routerDomain = router.currentRoute?.value?.params?.domain
 
@@ -17,17 +20,12 @@
 
   const domains = computed(() => Object.keys(domainStates.value || {}))
 
-  watch(domain, () => manageDomain(domain.value))
+  watch(domain, () => emit('select', domain.value))
 
   function addDomain(name) {
     domainStates.value[name] = true
     domain.value = name
-    manageDomain(name)
-  }
-
-  function manageDomain(name) {
-    if (name) router.push(`/${name}/config`)
-    else router.push('/')
+    emit('select', name)
   }
 
   function removeDomain(name) {

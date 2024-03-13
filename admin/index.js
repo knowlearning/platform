@@ -1,4 +1,4 @@
-import { createApp } from 'vue/dist/vue.esm-bundler'
+import { createApp, ref } from 'vue/dist/vue.esm-bundler'
 import Agent from '@knowlearning/agents/browser.js'
 import { vuePersistentComponent } from '@knowlearning/agents/vue.js'
 import { createRouter, createWebHistory } from 'vue-router'
@@ -50,7 +50,7 @@ const vuetify = createVuetify({
   }
 })
 
-createApp(Home, { tab: location.pathname.split('/')[2] })
+createApp(Home)
   .use(router)
   .use(vuetify)
   .mount('body')
