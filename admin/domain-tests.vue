@@ -6,10 +6,29 @@
     />
   </div>
   <div v-if="testConfig">
-    <ReportViewer
-      :key="testConfig.report"
-      :report="testConfig.report"
-    />
+    <v-expansion-panels
+      multiple
+    >
+      <v-expansion-panel
+        v-for="step, i in testSteps"
+        :key="i"
+        :disabled="i > currentStep"
+      >
+        <v-expansion-panel-title>
+          <v-icon
+            :color="colorForStep(i)"
+            :icon="iconForStep(i)"
+          />
+          <span class="ms-4">{{ step.name }}</span>
+        </v-expansion-panel-title>
+        <v-expansion-panel-text v-if="step.resolvedProps">
+          <component
+            :is="step.component"
+            v-bind="step.resolvedProps"
+          />
+        </v-expansion-panel-text>
+      </v-expansion-panel>
+    </v-expansion-panels>
   </div>
 </template>
 
@@ -22,6 +41,7 @@
   const props = defineProps({ domain: String })
   const testDomain =`${props.domain}.test`
   const testConfig = ref(null)
+  const currentStep = ref(-1)
 
   Agent
     .query('current-config', [testDomain])
@@ -29,20 +49,73 @@
       if (config) testConfig.value = config
     })
 
-  watch(testConfig, () => {
-    //  TODO: start watching test config report for end
-  })
+  const testSteps = [
+    {
+      name: 'Configure Test Domain',
+      component: { template: '<div>woo</div>' },
+      props: () => ({}),
+      run: async () => {
+        // configure domain
+        const parentConfig = (await Agent.query('current-config', [props.domain]))[0]
+        await Agent.create({
+          active: { config: parentConfig.config, report: Agent.uuid(), domain: testDomain },
+          active_type: DOMAIN_CONFIG_TYPE
+        })
+        await Agent.synced()
+        return (await Agent.query('current-config', [testDomain]))[0]
+      }
+    },
+    {
+      name: 'Wait For Configuration To Complete',
+      component: ReportViewer,
+      props: config => {
+        return {
+          key: config.report,
+          report: config.report
+        }
+      },
+      run: config => {
+        testConfig.value = config
+
+        return new Promise((resolve, reject) => {
+          const unwatch = Agent.watch(config.report, ({ state }) => {
+            if (state.error) reject()
+            if (state.end) resolve()
+          })
+        })
+      }
+    }
+  ]
 
   async function runTests() {
-    const parentConfig = (await Agent.query('current-config', [props.domain]))[0]
+    let lastStepResult
+    currentStep.value = 0
 
-    await Agent.create({
-      active: { config: parentConfig.config, report: Agent.uuid(), domain: testDomain },
-      active_type: DOMAIN_CONFIG_TYPE
-    })
+    testSteps.forEach(step => delete step.resolvedProps)
 
-    await Agent.synced()
+    for (const step of testSteps) {
+      try {
+        step.resolvedProps = step.props(lastStepResult)
+        lastStepResult = await step.run(lastStepResult)
+        currentStep.value += 1
+      }
+      catch (error) {
+        //  TODO: render error on step
+        break
+      }
+    }
+    console.log('TESTS COMPLETE!')
+  }
 
-    testConfig.value = (await Agent.query('current-config', [testDomain]))[0]
+  function iconForStep(index) {
+    if (index < currentStep.value) return 'fa-solid fa-check'
+    else if (index > currentStep.value) return 'fa-solid fa-pause'
+    else return 'fa-solid fa-play'
+  }
+
+  function colorForStep(index) {
+    if (index < currentStep.value) return 'success'
+    else if (index > currentStep.value) return 'grey'
+    else return 'black'
   }
 </script>
