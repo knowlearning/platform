@@ -84,6 +84,15 @@
           })
         })
       }
+    },
+    {
+      name: 'Run Tests',
+      component: { template: '<div>Use Vue Embed Component...</div>' },
+      props: () => {
+        //  TODO: pass domain for id, and mode = 'test'
+        return {}
+      },
+      run: () => {}
     }
   ]
 
