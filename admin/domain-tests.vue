@@ -34,6 +34,7 @@
 
 <script setup>
   import { watch, ref } from 'vue'
+  import { vueEmbedComponent } from '@knowlearning/agents/vue.js'
   import ReportViewer from './report-viewer.vue'
 
   const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
@@ -87,10 +88,13 @@
     },
     {
       name: 'Run Tests',
-      component: { template: '<div>Use Vue Embed Component...</div>' },
+      component: vueEmbedComponent,
       props: () => {
         //  TODO: pass domain for id, and mode = 'test'
-        return {}
+        return {
+          id: `${location.protocol}//${props.domain}`,
+          mode: 'test'
+        }
       },
       run: () => {}
     }

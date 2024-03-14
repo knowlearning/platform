@@ -25,7 +25,7 @@ window.Agent = Agent
 // if (!Agent.embedded) Agent.local()
 
 const id = window.location.pathname.slice(1)
-const { mode } = await Agent.environment()
+const { mode='test' } = await Agent.environment()
 
 if (mode === 'EMBEDED_WATCHER_TEST_MODE') {
   const states = []
@@ -93,44 +93,35 @@ else {
       }
     })
 
-  const embedLevel = (await Agent.environment()).context.length
+  mocha.run()
 
-  if (embedLevel < 3) {
-    mocha.run()
-    describe(`${embedLevel > 0 ? `Embed Level ${embedLevel}` : 'Root'} Core API`, function () {
-      if (!Agent.embedded) postgres()
-      if (!Agent.embedded) domainAgents()
-      stateTest()
-      environmentTest()
-      metadata()
-      mutate()
-      arrays()
-      watch()
-      watchDeep()
-      vuex()
-      namespacedEmbeddings()
-      if (!Agent.embedded) reconnect()
-      uploads()
-      latestBugfixes()
-      multiAgent()
-    })
-  }
+  describe(`${mode.length > 4 ? `Embed Level ${mode.length - 4}` : 'Root'} Core API`, function () {
+    if (mode.length === 4) postgres()
+    if (mode.length === 4) domainAgents()
+    stateTest()
+    environmentTest()
+    metadata()
+    mutate()
+    arrays()
+    watch()
+    watchDeep()
+    vuex()
+    namespacedEmbeddings()
+    if (mode.length === 4) reconnect()
+    uploads()
+    latestBugfixes()
+    multiAgent()
+  })
 
-  if (embedLevel === 0) {
+  if (mode === 'test') {
     document.getElementById('mocha').style.width = '33%'
     document.getElementById('embedded-wrapper').style.width = '67%'
   }
 
-  if (embedLevel < 2) {
+  if (mode.length < 6) {
     const wrapper = document.getElementById('embedded-wrapper')
     wrapper.style.display = 'block'
     const iframe = document.getElementById('embedded-frame')
-    const id = uuid()
-    await Agent.create({
-      id,
-      active_type: 'application/json',
-      active: { x: 101, y: 'dalmations' }
-    })
-    Agent.embed({ id }, iframe)
+    Agent.embed({ id: `${location.protocol}//${location.host}/${mode}+`, mode: `${mode}+` }, iframe)
   }
 }
