@@ -1,8 +1,8 @@
 <template>
-  <span>
-    <span v-if="value">{{ value === null && placeholder ? placeholder : value }}</span>
-    <span v-else>loading...</span>
-  </span>
+  <slot :loading="loading" :value="value">
+    <span v-if="loading">loading...</span>
+    <span v-else>{{ value === null && placeholder ? placeholder : value }}</span>
+  </slot>
 </template>
 
 <script>
@@ -17,6 +17,7 @@ export default {
   },
   setup(props) {
     const value = ref(undefined)
+    const loading = ref(true)
     let stopWatching
     let stopWatchingAttempted = false
 
@@ -31,13 +32,14 @@ export default {
           else  value.value = val
         })
       }
+      loading.value = false
     }
 
     watch( [() => props.id, () => props.path], startWatching, { deep: true })
     onMounted(() => startWatching())
     onBeforeUnmount(() => stopWatching && stopWatching())
 
-    return { value }
+    return { loading, value }
   }
 };
 </script>

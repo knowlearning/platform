@@ -32,6 +32,46 @@
 </template>
 ```
 
+## View State At a Scope
+```html
+<template>
+  <!--
+    simple example that will just render the text value of
+    whatever data is at that scope
+  -->
+  <vueScopeComponent :id="scopeId" />
+
+  <!-- simple example rendering the metadata at that scope -->
+  <vueScopeComponent :id="scopeId" metadata/>
+
+  <!--
+    more advanced example rendering data inside that scope
+  -->
+  <vueScopeComponent
+    :id="scopeId"
+    :path="['field_name', 'deeper_field']"/>
+
+  <!--
+    Even more advanced example rendering data with a custom
+    viewer for the data in the scope
+  -->
+  <vueScopeComponent
+    :id="scopeId"
+    v-slot="{ loading, value }"
+  >
+    My Custom Way To View The data at that Scope
+    <span v-if="loading">Please hold...</span>
+    <span v-else>Here you go!: {{value}}</span>
+  </vueScopeComponent>
+</template>
+
+<script setup>
+  import { vueScopeComponent } from '@knowlearning/agents/vue.js'
+  const scopeId = 'some-id-for-a-scope'
+</script>
+
+```
+
 ## Persistent State for Options API Components
 
 ### Application Root Components
