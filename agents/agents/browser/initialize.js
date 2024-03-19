@@ -18,8 +18,8 @@ export default function browserAgent(options={}) {
 
   const originalUpload = newAgent.upload
   newAgent.upload = async info => {
-    if (info && info.browser) {
-      const file = await selectFile()
+    if (info?.browser) {
+      const file = await selectFile(info)
       if (!file) return
 
       info.data = await file.arrayBuffer()
