@@ -8,6 +8,7 @@ import interact from '../interact/index.js'
 import POSTGRES_DEFAULT_TABLES from '../postgres-default-tables.js'
 import configuration from '../configuration.js'
 import MutableProxy from '../../../agents/persistence/json.js'
+import scopeToId from '../scope-to-id.js'
 
 const EXISTING_TABLES_QUERY = `
   SELECT tablename
@@ -54,7 +55,11 @@ async function isAdmin(user, requestingDomain, requestedDomain) {
   )
 }
 
-export default async function ({ domain, user, session, patch, si, ii, send }) {
+export default async function configure({ domain, user, session, scope, patch, si, ii, send }) {
+  console.log('GOT SCOOOOOOOOOPE', scope)
+  const id = await scopeToId(domain, user, scope)
+  const name = await redis.client.json.get(id, { path: [`$.name`] })
+  console.log('GOT NAME FOR SCOOOOOOOOOPE', name)
   for (let index = 0; index < patch.length; index ++) {
     const { op, path, value } = patch[index]
     if (op === 'add' && path.length === 1 && path[0] === 'active' && await isAdmin(user, domain, value.domain)) {

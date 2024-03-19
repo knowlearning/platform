@@ -93,7 +93,8 @@
         //  TODO: pass domain for id, and mode = 'test'
         return {
           id: `${location.protocol}//${props.domain}`,
-          mode: 'test'
+          mode: 'test',
+          namespace: 'test'
         }
       },
       run: () => {}
