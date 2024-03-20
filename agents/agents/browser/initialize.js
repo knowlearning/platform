@@ -151,10 +151,6 @@ function embed(environment, iframe) {
     }
   })
 
-  //  write in a temporary loading notification while frame loads
-  const cw = iframe.contentWindow
-  if (cw) cw.document.body.innerHTML = 'Loading...'
-
   //  TODO: make sure content security policy headers for embedded domain always restrict iframe
   //        src to only self for embedded domain
   iframe.onload = () => {
