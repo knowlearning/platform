@@ -75,7 +75,7 @@ export default {
       }
     },
     async uploadConfig() {
-      const id = await Agent.upload({ browser: true })
+      const id = await Agent.upload({ browser: true, accept: '.yml,.yaml' })
 
       const report = Agent.uuid()
 
