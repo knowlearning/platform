@@ -26,7 +26,7 @@ export default defineConfig({
       },
       {
         find: '@knowlearning/patch-proxy',
-        replacement:  __dirname + 'node_modules/@knowlearning/patch-proxy/index.js'
+        replacement:  __dirname + '/node_modules/@knowlearning/patch-proxy/index.js'
       },
       {
         find: 'fast-json-patch',
