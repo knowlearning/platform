@@ -1,4 +1,4 @@
-import { uuid, parseYAML, environment } from '../utils.js'
+import { uuid, parseYAML, environment, PatchProxy } from '../utils.js'
 import { domainAdmin } from '../configuration.js'
 import domainAgent from '../domain-agent.js'
 import * as redis from '../redis.js'
@@ -7,7 +7,6 @@ import { download } from '../storage.js'
 import interact from '../interact/index.js'
 import POSTGRES_DEFAULT_TABLES from '../postgres-default-tables.js'
 import configuration from '../configuration.js'
-import MutableProxy from '../../../agents/persistence/json.js'
 import scopeToId from '../scope-to-id.js'
 
 const EXISTING_TABLES_QUERY = `
@@ -41,7 +40,7 @@ const { ADMIN_DOMAIN, MODE } = environment
 //        to help with removing privaleged named states
 async function coreState(user, id, domain) {
   await interact(domain, user, id, [{ op: 'add', value: 'application/json', path: ['active_type'] }])
-  return new MutableProxy({}, async patch => {
+  return new PatchProxy({}, async patch => {
     patch.forEach(({ path }) => path.unshift('active'))
     interact(domain, user, id, patch)
   })

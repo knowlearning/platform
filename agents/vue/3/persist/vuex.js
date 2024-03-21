@@ -1,5 +1,4 @@
-import MutableProxy from '../../../persistence/json.js'
-
+import PatchProxy from '@knowlearning/patch-proxy'
 //  TODO: consider path serialization approach. Also consider just using a mutable proxy from agent.state...
 
 const copy = x => JSON.parse(JSON.stringify(x))
@@ -29,7 +28,7 @@ export default async function (storeDefinition, scope) {
   const ephemeralPaths = {}
   Object.keys(scopedPaths).forEach(key => ephemeralPaths[key] = true)
 
-  stateAttachedStore.state = () => MutableProxy(state, handlePatch, ephemeralPaths)
+  stateAttachedStore.state = () => PatchProxy(state, handlePatch, ephemeralPaths)
   return stateAttachedStore
 }
 
@@ -70,7 +69,7 @@ async function attachModuleState(state, module, scopedPaths, path='') {
     }
     const initState = await Agent.state(scope)
     const ephemeralPaths = descendantPaths(path, scopedPaths)
-    state = MutableProxy(copy(initState), handlePatch, ephemeralPaths)
+    state = PatchProxy(copy(initState), handlePatch, ephemeralPaths)
     if (await scopeIsUninitialized(scope)) {
       Object.assign(state, module.state instanceof Function ? module.state() : module.state)
     }

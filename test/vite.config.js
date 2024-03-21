@@ -29,6 +29,10 @@ export default defineConfig({
         replacement: __dirname + '/../agents/agents/browser/initialize.js'
       },
       {
+        find: '@knowlearning/patch-proxy',
+        replacement: 'node_modules/@knowlearning/patch-proxy/index.js'
+      },
+      {
         find: 'fast-json-patch',
         replacement: 'node_modules/fast-json-patch/index.mjs'
       },

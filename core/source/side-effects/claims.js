@@ -1,8 +1,7 @@
-import { environment, uuid, randomBytes } from '../utils.js'
+import { environment, uuid, randomBytes, PatchProxy } from '../utils.js'
 import interact from '../interact/index.js'
 import * as redis from '../redis.js'
 import initializationState from '../initialization-state.js'
-import MutableProxy from '../../../agents/persistence/json.js'
 
 const CHALLENGE_TIMEOUT_LIMIT = 1000 * 60 * 5
 
@@ -19,7 +18,7 @@ redis.connected.then(() => {
 //        to help with removing privaleged named states
 function coreState(user, id, domain) {
   interact(domain, user, id, [{ op: 'add', value: 'application/json', path: ['active_type'] }])
-  return new MutableProxy({}, async patch => {
+  return new PatchProxy({}, async patch => {
     patch.forEach(({ path }) => path.unshift('active'))
     interact(domain, user, id, patch)
   })

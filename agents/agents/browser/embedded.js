@@ -1,6 +1,6 @@
 import { validate as isUUID, v1 as uuid } from 'uuid'
+import PatchProxy from '@knowlearning/patch-proxy'
 import watchImplementation from '../watch.js'
-import MutableProxy from '../../persistence/json.js'
 
 export default function EmbeddedAgent() {
   let messageIndex = 0
@@ -113,7 +113,7 @@ export default function EmbeddedAgent() {
     }
     tagIfNotYetTaggedInSession('subscribed', scope)
     const startState = await send({ type: 'state', scope, user, domain })
-    return new MutableProxy(startState, patch => {
+    return new PatchProxy(startState, patch => {
       //  TODO: reject updates if user is not owner
       const activePatch = structuredClone(patch)
       activePatch.forEach(entry => entry.path.unshift('active'))
@@ -199,7 +199,7 @@ export default function EmbeddedAgent() {
 
   async function metadata(scope, user, domain) {
     const md = await send({ type: 'metadata', scope, user, domain })
-    return new MutableProxy(md, patch => {
+    return new PatchProxy(md, patch => {
       const activePatch = structuredClone(patch)
       activePatch.forEach(entry => {
         if (!isValidMetadataMutation(entry)) throw new Error('You may only modify the type or name for a scope\'s metadata')
