@@ -30,7 +30,7 @@ const router = createRouter({
     { path: '/:domain/config', component: DomainConfig, props: true },
     { path: '/:domain/agents', component: DomainAgents, props: true },
     { path: '/:domain/sql', component: DomainSQL, props: true },
-    { path: '/:domain/tests', component: DomainTests, props: true }
+    { path: '/:domain/tests', component: { template: '<div>Functionality pending</div>' }, props: true }
   ]
 })
 
