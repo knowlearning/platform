@@ -18,8 +18,8 @@ export default function browserAgent(options={}) {
 
   const originalUpload = newAgent.upload
   newAgent.upload = async info => {
-    if (info && info.browser) {
-      const file = await selectFile()
+    if (info?.browser) {
+      const file = await selectFile(info)
       if (!file) return
 
       info.data = await file.arrayBuffer()
@@ -150,10 +150,6 @@ function embed(environment, iframe) {
       handleMessage(data)
     }
   })
-
-  //  write in a temporary loading notification while frame loads
-  const cw = iframe.contentWindow
-  if (cw) cw.document.body.innerHTML = 'Loading...'
 
   //  TODO: make sure content security policy headers for embedded domain always restrict iframe
   //        src to only self for embedded domain

@@ -9,17 +9,18 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@vitejs/plugin-basic-ssl": "^1.0.1",
-    "chai": "^4.3.7",
-    "eslint-linter-browserify": "^8.43.0",
+    "@knowlearning/patch-proxy": "^1.0.1",
+    "@vitejs/plugin-basic-ssl": "^1.1.0",
+    "chai": "^4.4.1",
+    "eslint-linter-browserify": "^8.57.0",
     "fast-json-patch": "^3.1.1",
-    "mocha": "^10.2.0",
-    "uuid": "^9.0.0",
-    "vue": "^3.3.4",
+    "mocha": "^10.3.0",
+    "uuid": "^9.0.1",
+    "vue": "^3.4.21",
     "vuex": "^4.1.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.2.3",
-    "vite": "^4.3.9"
+    "@vitejs/plugin-vue": "^4.6.2",
+    "vite": "^4.5.2"
   }
 }

@@ -80,9 +80,13 @@ export default function({ metadata, environment, state, watchers, synced, sentUp
   }
 
   function removeWatcher(key, fn) {
+    if (!watchers[key]) {
+      console.warn('NO WATCHERS FOR KEY', key, fn)
+      return
+    }
     const watcherIndex = watchers[key].findIndex(x => x === fn)
     if (watcherIndex > -1) watchers[key].splice(watcherIndex, 1)
-    else console.warn('TRIED TO REMOVE WATCHER THAT DOES NOT EXIST')
+    else console.warn('TRIED TO REMOVE WATCHER THAT DOES NOT EXIST', key, fn)
   }
 
   return [ watch, removeWatcher ]

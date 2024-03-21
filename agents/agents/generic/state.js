@@ -1,5 +1,5 @@
 import { v4 as uuid, validate as isUUID } from 'uuid'
-import MutableProxy from '../../persistence/json.js'
+import PatchProxy from '@knowlearning/patch-proxy'
 
 export default function(scope='[]', user, domain, { keyToSubscriptionId, watchers, states, create, environment, lastMessageResponse, lastInteractionResponse, tagIfNotYetTaggedInSession, interact, log }) {
   let resolveMetadataPromise
@@ -34,7 +34,7 @@ export default function(scope='[]', user, domain, { keyToSubscriptionId, watcher
       const active = data.active
       delete data.active
       resolveMetadataPromise(data)
-      resolveState(new MutableProxy(active || {}, patch => {
+      resolveState(new PatchProxy(active || {}, patch => {
         const activePatch = structuredClone(patch)
         activePatch.forEach(entry => entry.path.unshift('active'))
         interact(scope, activePatch)

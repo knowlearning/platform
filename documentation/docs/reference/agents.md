@@ -105,6 +105,10 @@ The ```info``` parameter has the form:
     If in the browser environment you can set this to true
     to automatically prompt the user to select a file through
     the browser's built-in file selection interface.
+  accept:
+    If in the browser environment, this parameter will filter
+    available files in the file picker by type according to the
+    provided [type specifier](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept).
 }
 ```
 

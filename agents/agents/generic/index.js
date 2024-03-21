@@ -1,5 +1,5 @@
 import { validate as isUUID } from 'uuid'
-import MutableProxy from '../../persistence/json.js'
+import PatchProxy from '@knowlearning/patch-proxy'
 import messageQueue from './message-queue.js'
 import stateImplementation from './state.js'
 import watchImplementation from '../watch.js'
@@ -154,7 +154,7 @@ export default function Agent({ Connection, domain, token, uuid, fetch, applyPat
   async function metadata(id=DEFAULT_SCOPE_NAME, user, domain) {
     const md = structuredClone(await state(id, user).metadata)
     delete md.active
-    return new MutableProxy(md, patch => {
+    return new PatchProxy(md, patch => {
       const activePatch = structuredClone(patch)
       if (!activePatch.every(isValidMetadataMutation)) {
         throw new Error("You may only modify the type or name for a scope's metadata")
