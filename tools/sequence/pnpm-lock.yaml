@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@knowlearning/patch-proxy':
-    specifier: ^1.2.0
-    version: 1.2.0
+    specifier: ^1.3.1
+    version: 1.3.1
   '@vitejs/plugin-basic-ssl':
     specifier: ^1.1.0
     version: 1.1.0(vite@5.2.2)
@@ -273,8 +273,8 @@ packages:
     resolution: {integrity: sha512-eF2rxCRulEKXHTRiDrDy6erMYWqNw4LPdQ8UQA4huuxaQsVeRPFl2oM8oDGxMFhJUWZf9McpLtJasDDZb/Bpeg==}
     dev: false
 
-  /@knowlearning/patch-proxy@1.2.0:
-    resolution: {integrity: sha512-3/eYQdY8Hfgcfws0CeNfPb5JEZhNev5qon+U/PzVHwvUro3Kukg82pQo68AKfha/MIbri2CIRsyRt0Yca+xgFQ==}
+  /@knowlearning/patch-proxy@1.3.1:
+    resolution: {integrity: sha512-GqJ+CNd4ARa2YVNRQAmb90WnVWXWfuu6aqrf1MWwlo0x4Lx1b3wOFWqk0HtE//l4SPQAagJ1IVSBqz8ch/ro7g==}
     dependencies:
       chai: 5.1.0
       fast-json-patch: 3.1.1

@@ -1,22 +1,11 @@
 import { validate as isUUID } from 'uuid'
+import { standardJSONPatch } from '@knowlearning/patch-proxy'
 
 const HEARTBEAT_TIMEOUT = 10000
 const DOMAIN_MESSAGES = { open: true, mutate: true, close: true }
 
-//  transform our custom path implementation to the standard JSONPatch path
-function standardJSONPatch(patch) {
-  return patch.map(p => {
-    return {...p, path: '/' + p.path.map(sanitizeJSONPatchPathSegment).join('/')}
-  })
-}
-
 function activePatch(patch) {
   return structuredClone(patch).filter(({ path }) => 'active' === path.shift())
-}
-
-function sanitizeJSONPatchPathSegment(s) {
-  if (typeof s === "string") return s.replaceAll('~', '~0').replaceAll('/', '~1')
-  else return s
 }
 
 export default function messageQueue({ token, domain, Connection, watchers, states, applyPatch, log, login, reboot, handleDomainMessage, trigger }) {

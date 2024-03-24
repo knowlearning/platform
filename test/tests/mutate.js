@@ -1,7 +1,7 @@
 export default function () {
   describe('Mutable State', function () {
     // TODO: test clearing a runstate
-/*
+
     it('Sets new fields and values when starting from empty object', async function () {
       const id = uuid()
       const state = await Agent.state(id)
@@ -91,7 +91,7 @@ export default function () {
       const resetState = await Agent.state(id)
       expect(resetState).to.deep.equal({})
     })
-*/
+
     it('Can call sort on a persistent array', async function () {
       const id = uuid()
       const state = await Agent.state(id)

@@ -17,7 +17,8 @@ const MOVE_SCRIPT = `
   redis.log(redis.LOG_DEBUG, "Key: " .. key .. " from: " .. from_index .. " to: " .. to_index .. ", Path:" .. path)
 
   local moveValue = redis.call('JSON.ARRPOP', key, path, from_index)[1]
-  redis.call('JSON.ARRINSERT', key, path, to_index, cjson.encode(moveValue))
+  local castedMoveValue = cjson.decode(cjson.encode(moveValue))
+  redis.call('JSON.ARRINSERT', key, path, to_index, castedMoveValue)
 `
 
 function arrayPathRepresentationToJSONPath(arrayPath) {

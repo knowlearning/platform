@@ -6,7 +6,7 @@ import nodePostres from 'npm:pg@8.11.0'
 import jwkToPem from 'npm:jwk-to-pem@2.0.5'
 import jwt from 'npm:jsonwebtoken@8.5.1'
 import nacl from 'npm:tweetnacl@1.0.3'
-import PatchProxy from 'npm:@knowlearning/patch-proxy@1.2.0'
+import PatchProxy from 'npm:@knowlearning/patch-proxy@1.3.1'
 import { Storage as createGCSClient } from 'npm:@google-cloud/storage@5.18.2'
 import { exists as fileExists } from "https://deno.land/std/fs/mod.ts"
 import { getCookies } from 'https://deno.land/std@0.214.0/http/cookie.ts'

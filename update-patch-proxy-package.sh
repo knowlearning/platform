@@ -1,7 +1,7 @@
 cd admin
 pnpm update @knowlearning/patch-proxy
 
-cd ../agent
+cd ../agents
 pnpm update @knowlearning/patch-proxy
 
 cd ../test
