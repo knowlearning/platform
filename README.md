@@ -63,7 +63,9 @@ gcloud components install gke-gcloud-auth-plugin
 gcloud container clusters get-credentials skaffold-deployed --region us-central1
 
 # Set CORS config for production bucket.
-gsutil cors set infrastructure/production/CORS_CONFIG_FILE gs://development-bucket-opensourcelearningplatform
+gsutil cors set \
+  infrastructure/production/CORS_CONFIG_FILE \
+  gs://development-bucket-opensourcelearningplatform
 ```
 
 #### Deploy to "staging" or "production"
