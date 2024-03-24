@@ -52,7 +52,7 @@ export default function domainAgent(domain, refresh=false) {
   DomainAgents[domain] = new Promise(async (resolve, reject) => {
     const config = await configuration(domain)
     if (config.agent) {
-      const filename = `/core/source/${uuid()}.js`
+      const filename = `/${uuid()}.js`
       await writeFile(filename, config.agent)
       const workerUrl = new URL(filename, import.meta.url).href
 

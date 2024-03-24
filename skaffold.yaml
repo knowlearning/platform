@@ -16,9 +16,9 @@ build:
     docker:
       dockerfile: ./postgres.Dockerfile
   - image: core-deno
-    context: ./
+    context: ./core/
     docker:
-      dockerfile: ./core-deno.Dockerfile
+      dockerfile: ./core/deno.Dockerfile
 profiles:
 - name: development
   manifests:
