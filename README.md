@@ -17,10 +17,10 @@ sh deploy --setup.sh
 sh deploy.sh
 ```
 
-> **_NOTE:_**
-> If docker/kind/something raises odd issues (we've seen
-> network resolution instabilities at levels outside this
-> project's scope...) just run sh deploy --setup.sh again to
+> **_NOTE:_**<br>
+> If docker/kind/something raises odd issues (we have seen
+> network resolution instabilities at levels outside of this
+> project's scope) just run ```sh deploy --setup.sh``` again to
 > refresh your local cluster.
 
 ## Live
