@@ -23,7 +23,32 @@ sh deploy.sh
 > project's scope) just run ```sh deploy --setup.sh``` again to
 > refresh your local cluster.
 
-## Live
+## GKE cluster
+
+### Login
+
+Use these commands to load required credentials into your
+environment:
+
+```sh
+gcloud auth revoke
+gcloud auth login web
+gcloud config set project opensourcelearningplatform
+gcloud container clusters get-credentials skaffold-deployed --region us-central1
+```
+
+Use these commands to switch kubectl to use the live project's
+cluster:
+
+```sh
+kubectl config use-context gke_opensourcelearningplatform_us-central1_skaffold-deployed
+kubectl config use-namespace production
+```
+
+### Deploy
+
+#### Setup
+
 ```sh
 # Install skaffold, kubectl, gcloud, and gke-gcloud-auth-plugin.
 gcloud components install gke-gcloud-auth-plugin
@@ -33,20 +58,11 @@ gcloud container clusters get-credentials skaffold-deployed --region us-central1
 
 # Set CORS config for production bucket.
 gsutil cors set infrastructure/production/CORS_CONFIG_FILE gs://development-bucket-opensourcelearningplatform
-
-# Deploy to GKE where $PROFILE=staging or production.
-sh deploy.sh $PROFILE
-
-# Use production cluster kubectrl context to explore
-kubectl config use-context gke_opensourcelearningplatform_us-central1_skaffold-deployed
-kubectl config use-namespace production
 ```
 
-## GKE Kubernetes login
+#### Deploy to "staging" or "production"
 
 ```sh
-gcloud auth revoke
-gcloud auth login web
-gcloud config set project opensourcelearningplatform
-gcloud container clusters get-credentials skaffold-deployed --region us-central1
+# Deploy to GKE where $PROFILE=staging or production.
+sh deploy.sh $PROFILE
 ```
