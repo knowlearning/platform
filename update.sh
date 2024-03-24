@@ -12,5 +12,7 @@ pnpm update @knowlearning/patch-proxy
 
 cd ../sequence
 pnpm update @knowlearning/patch-proxy
-
-echo "NOTICE: Don't forget to manually update the explicit import in ./core/source/utils.js"
+echo ""
+echo "NOTICE: Don't forget to manually update explicit npm imports in ./core/source/utils.js"
+echo "Press any key to continue."
+read -r _
