@@ -10,7 +10,7 @@ First install [docker](https://docs.docker.com/get-docker/),
 docker run -d -p 5000:5000 --restart=always --name registry registry:2
 
 # Set up a local kind cluster and deploy the core application.
-sh deploy --setup.sh
+sh deploy.sh --setup
 
 # Deploy core application to local cluster.
 # This process does technically auto-reload servers on updates,
