@@ -2,7 +2,7 @@
 
 First install [docker](https://docs.docker.com/get-docker/),
 [kind](https://kind.sigs.k8s.io/docs/user/quick-start), and
-[skaffold](https://skaffold.dev/docs/install/).
+[skaffold](https://skaffold.dev/docs/install/); then you can:
 
 ```sh
 
