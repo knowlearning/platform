@@ -1,4 +1,4 @@
-cd ../admin
+cd ../sites/admin
 pnpm update @knowlearning/patch-proxy
 
 cd ../agents
@@ -7,7 +7,7 @@ pnpm update @knowlearning/patch-proxy
 cd ../test
 pnpm update @knowlearning/patch-proxy
 
-cd ../tools/embed
+cd ../embed
 pnpm update @knowlearning/patch-proxy
 
 cd ../sequence
