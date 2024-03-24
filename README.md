@@ -5,19 +5,18 @@ First install [docker](https://docs.docker.com/get-docker/),
 [skaffold](https://skaffold.dev/docs/install/); then you can:
 
 ```sh
-
 # Run a local docker registry.
 docker run -d -p 5000:5000 --restart=always --name registry registry:2
 
 # Set up a local kind cluster and deploy the core application.
 sh scripts/deploy.sh --setup
-
-# Deploy core application to local cluster.
-# This process does technically auto-reload servers on updates,
-# but manually stopping it with ctrl+c and re-running deploy.sh
-# is often faster.
-sh scripts/deploy.sh
 ```
+After the first run of the above command you may omit the
+```--setup``` flag. Use it again any time to re-initialize the
+cluster. Technically the ```sh scripts/deploy.sh``` script will
+auto-reload servers on updates, but manually stopping it with
+ctrl+c and re-running ```sh scripts/deploy.sh``` is often
+faster.
 
 > **_NOTE:_**<br>
 > If docker/kind/something raises odd issues (we have seen
