@@ -8,6 +8,22 @@ const MAINTENANCE_SCRIPT = `
   redis.call('SADD', KEYS[2], KEYS[1])
 `;
 
+const MOVE_SCRIPT = `
+  local key = KEYS[1]
+  local path = ARGV[1]
+  local from_index = tonumber(ARGV[2])
+  local to_index = tonumber(ARGV[3])
+
+  redis.log(redis.LOG_DEBUG, "Key: " .. key .. " from: " .. from_index .. " to: " .. to_index .. ", Path:" .. path)
+
+  local moveValue = redis.call('JSON.ARRPOP', key, path, from_index)[1]
+  redis.call('JSON.ARRINSERT', key, path, to_index, cjson.encode(moveValue))
+`
+
+function arrayPathRepresentationToJSONPath(arrayPath) {
+  return arrayPath.length ? `$[${arrayPath.map(JSON.stringify).join('][')}]` : '$'
+}
+
 export default async function interact( domain, user, scope, patch, timestamp=Date.now() ) {
   //  TODO: validate that patch's paths can only start with "active", "active_type", or "name"
   await redis.connected
@@ -24,8 +40,8 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
   transaction.json.numIncrBy(id, '$.ii', 1)
 
   for (let i=0; i<patch.length; i++) {
-    const { op, path, value } = patch[i]
-    const JSONPath = path.length ? `$[${path.map(JSON.stringify).join('][')}]` : '$'
+    const { op, path, from, value } = patch[i]
+    const JSONPath = arrayPathRepresentationToJSONPath(path)
     if (op === 'add') {
       if (JSONPath.match(/\[\-1\]$/)) { // if is to end of array then append
         transaction.json.arrAppend(id, JSONPath.slice(0,-2), value)
@@ -47,6 +63,19 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
       // simple set should do for array and object
       transaction.json.set(id, JSONPath, value)
     }
+    else if (op === 'move') {
+      //  right now the only working moves are those that come out
+      //  of the @knowlearning/patch-proxy npm package (only for moves
+      //  within the same array)
+
+      //  TODO: remove above limitation
+      const fromIndex = from[from.length - 1]
+      const toIndex = path[path.length - 1]
+      const arrayPath = arrayPathRepresentationToJSONPath(path.slice(0, -1))
+      console.log('MOVIIIIIING!!!!!!!!!!!!!!!!!!!!!!', fromIndex, toIndex, arrayPath)
+      const params = { keys: [id], arguments: [arrayPath, ''+fromIndex, ''+toIndex] }
+      transaction.eval(MOVE_SCRIPT, params)
+    }
   }
 
   transaction.eval(MAINTENANCE_SCRIPT, { keys: [id, domain] })
@@ -57,6 +86,8 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
     const ii = response[1][0]
     //  TODO: cache active_types so as not to require fetch on each interaction
     const active_type = response[response.length-1][0]
+
+    console.log('RESPOOOOOONSE!!!!!!!!!!!!!!!!!!!!!!!', response)
 
     redis
       .client
