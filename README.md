@@ -35,6 +35,10 @@ gsutil cors set infrastructure/production/CORS_CONFIG_FILE gs://development-buck
 
 # Deploy to GKE where $PROFILE=staging or production.
 sh deploy.sh $PROFILE
+
+# Use production cluster kubectrl context to explore
+kubectl config use-context gke_opensourcelearningplatform_us-central1_skaffold-deployed
+kubectl config use-namespace production
 ```
 
 ## GKE Kubernetes login
