@@ -1,8 +1,10 @@
-# Deployment
+# Development
 
-## Development
+First install [docker](https://docs.docker.com/get-docker/),
+[kind](https://kind.sigs.k8s.io/docs/user/quick-start), and
+[skaffold](https://skaffold.dev/docs/install/).
+
 ```sh
-# Install docker, kind, and skaffold.
 
 # Run a local docker registry.
 docker run -d -p 5000:5000 --restart=always --name registry registry:2
@@ -22,6 +24,10 @@ sh deploy.sh
 > network resolution instabilities at levels outside of this
 > project's scope) just run ```sh deploy --setup.sh``` again to
 > refresh your local cluster.
+
+# Deployment
+
+Install [skaffold](https://skaffold.dev/docs/install/).
 
 ## GKE cluster
 
