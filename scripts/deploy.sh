@@ -1,19 +1,22 @@
 #! /bin/bash
 
+script_dir=$(dirname "$(readlink -f "$0")")
+cd "$script_dir"
+
 if [ -z "$1" ] || [ "$1" = "--setup" ]; then
   if [ "$1" = "--setup" ]; then
     echo 'Setting Up Development Cluster'
     echo 'Removing Old Development Cluster (If Exists)'
     kind delete clusters kl-core
-    kind create cluster --config ./core/infrastructure/development/cluster.yaml
+    kind create cluster --config ../core/infrastructure/development/cluster.yaml
   fi
 
   echo 'Deploying Development Profile To Local Cluster'
 
-  npm --prefix test run dev &
-  npm --prefix admin run dev &
-  npm --prefix tools/embed run dev &
-  npm --prefix tools/sequence run dev &
+  npm --prefix ../test           run dev &
+  npm --prefix ../admin          run dev &
+  npm --prefix ../tools/embed    run dev &
+  npm --prefix ../tools/sequence run dev &
   # google-chrome https://localhost:5111/localhost:5112
   # google-chrome https://localhost:5112/
   # google-chrome https://localhost:5113/
@@ -28,10 +31,10 @@ if [ -z "$1" ] || [ "$1" = "--setup" ]; then
     --force # forces updates to spec by replacing old objects (used so same job can be depoyed each time)
 elif [ $1 = npm ]; then
   echo 'dry run:'
-  (cd ./agents; npm publish --access public --dry-run)
+  (cd ../agents; npm publish --access public --dry-run)
   read -p 'Are you sure you want to deploy a new version of the @knowlearning/agents module? (y/N): ' choice
   if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
-    (cd ./agents; npm publish --access public )
+    (cd ../agents; npm publish --access public)
   else
     echo 'NPM update deployment aborted'
     exit 1

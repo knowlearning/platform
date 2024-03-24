@@ -1,4 +1,4 @@
-cd admin
+cd ../admin
 pnpm update @knowlearning/patch-proxy
 
 cd ../agents

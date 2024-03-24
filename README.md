@@ -10,20 +10,20 @@ First install [docker](https://docs.docker.com/get-docker/),
 docker run -d -p 5000:5000 --restart=always --name registry registry:2
 
 # Set up a local kind cluster and deploy the core application.
-sh deploy.sh --setup
+sh scripts/deploy.sh --setup
 
 # Deploy core application to local cluster.
 # This process does technically auto-reload servers on updates,
 # but manually stopping it with ctrl+c and re-running deploy.sh
 # is often faster.
-sh deploy.sh
+sh scripts/deploy.sh
 ```
 
 > **_NOTE:_**<br>
 > If docker/kind/something raises odd issues (we have seen
 > network resolution instabilities at levels outside of this
-> project's scope) just run ```sh deploy --setup.sh``` again to
-> refresh your local cluster.
+> project's scope) just run ```sh scripts/deploy --setup.sh```
+> again to refresh your local cluster.
 
 # Deployment
 
@@ -72,5 +72,5 @@ gsutil cors set \
 
 ```sh
 # Deploy to GKE where $PROFILE=staging or production.
-sh deploy.sh $PROFILE
+sh scripts/deploy.sh $PROFILE
 ```

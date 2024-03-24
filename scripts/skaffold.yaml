@@ -4,27 +4,27 @@ kind: Config
 build:
   artifacts:
   - image: gcs
-    context: ./core/infrastructure/development/
+    context: ../core/infrastructure/development/
     docker:
       dockerfile: ./gcs.Dockerfile
   - image: redis
-    context: ./core/infrastructure/development/
+    context: ../core/infrastructure/development/
     docker:
       dockerfile: ./redis.Dockerfile
   - image: postgres
-    context: ./core/infrastructure/development/
+    context: ../core/infrastructure/development/
     docker:
       dockerfile: ./postgres.Dockerfile
   - image: core-deno
-    context: ./core/
+    context: ../core/
     docker:
-      dockerfile: ./core/deno.Dockerfile
+      dockerfile: ./deno.Dockerfile
 profiles:
 - name: development
   manifests:
     kustomize:
       paths:
-      - ./core/infrastructure/development
+      - ../core/infrastructure/development
   deploy:
     kubeContext: kind-kl-core
     kubectl: {}
@@ -32,13 +32,13 @@ profiles:
   manifests:
     kustomize:
       paths:
-      - ./core/infrastructure/staging
+      - ../core/infrastructure/staging
   deploy:
     kubectl: {}
 - name: production
   manifests:
     kustomize:
       paths:
-      - ./core/infrastructure/production
+      - ../core/infrastructure/production
   deploy:
     kubectl: {}
