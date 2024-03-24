@@ -7,20 +7,21 @@
 # Run a local docker registry.
 docker run -d -p 5000:5000 --restart=always --name registry registry:2
 
-# Create a kind cluster with proper configuration.
-sh setup.sh
+# Set up a local kind cluster and deploy the core application.
+sh deploy --setup.sh
 
 # Deploy core application to local cluster.
 # This process does technically auto-reload servers on updates,
 # but manually stopping it with ctrl+c and re-running deploy.sh
 # is often faster.
 sh deploy.sh
-
-# If docker/kind/something raises an odd issue (we've seen
-# network resolution instabilities at the lower levels outside
-# of this project's scope...) just run setup.sh again to reset
-# your local cluster.
 ```
+
+> **_NOTE:_**
+> If docker/kind/something raises odd issues (we've seen
+> network resolution instabilities at levels outside this
+> project's scope...) just run sh deploy --setup.sh again to
+> refresh your local cluster.
 
 ## Live
 ```sh
