@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@knowlearning/patch-proxy": "^1.0.1",
+    "@knowlearning/patch-proxy": "^1.2.0",
     "@vitejs/plugin-basic-ssl": "^1.1.0",
     "eslint-linter-browserify": "^8.57.0",
     "fast-json-patch": "^3.1.1",

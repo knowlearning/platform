@@ -91,5 +91,28 @@ export default function () {
       const resetState = await Agent.state(id)
       expect(resetState).to.deep.equal({})
     })
+
+    it('Can call sort on a persistent array', async function () {
+      const id = uuid()
+      const state = await Agent.state(id)
+      state.x = [2, 1, 5, 3]
+      state.x.sort()
+
+      await Agent.synced()
+      expect(state).to.deep.equal(await Agent2.state(id))
+    })
+
+    it('Can call sort on a persistent array, then modify internal objects', async function () {
+      const id = uuid()
+      const state = await Agent.state(id)
+      state.x = [{ x: 100 },2, 1, 5]
+      state.x.sort()
+      state.x[3].x = 101
+
+      console.log('WOOOOOOOOOOOOOOOOOOO', state.x)
+
+      await Agent.synced()
+      expect(state).to.deep.equal(await Agent2.state(id))
+    })
   })
 }
