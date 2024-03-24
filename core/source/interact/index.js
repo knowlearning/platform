@@ -73,7 +73,6 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
       const fromIndex = from[from.length - 1]
       const toIndex = path[path.length - 1]
       const arrayPath = arrayPathRepresentationToJSONPath(path.slice(0, -1))
-      console.log('MOVIIIIIING!!!!!!!!!!!!!!!!!!!!!!', fromIndex, toIndex, arrayPath)
       const params = { keys: [id], arguments: [arrayPath, ''+fromIndex, ''+toIndex] }
       transaction.eval(MOVE_SCRIPT, params)
     }
@@ -87,8 +86,6 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
     const ii = response[1][0]
     //  TODO: cache active_types so as not to require fetch on each interaction
     const active_type = response[response.length-1][0]
-
-    console.log('RESPOOOOOONSE!!!!!!!!!!!!!!!!!!!!!!!', response)
 
     redis
       .client
