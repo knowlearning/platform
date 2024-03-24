@@ -1,15 +1,3 @@
-X Remove special "claims" name usage for domain
-X Cross domain queries
-X Fix claiming domains (http challenge doesnt seem to work)
-X Embedded agent watch can take array of references as id
-X Download archive of entire domain's data (so we can reliably delete live)
-X Don't rely on postgres for uuid list for uuid resync
-X   script to construct set named domain -> uuid
-X   make new uuids get added to that set
-X   update sync script to work off of that set
-X   be able to delete and re-create postgres databases easily
-X Admin specifies access rule queries
-X Check for passing access rule query on cross-user state request (later handle cross domain requests with special queries)
   Take postgres out of managed service and use deployable instance
   Dont' rely on redis for base representation of data
     stream all uuids into stored file named domain (stream into gcs as well)
@@ -27,4 +15,3 @@ X Check for passing access rule query on cross-user state request (later handle 
   Compaction
   Throttle naughty clients (protect against infinite loops on the client)
   Use create-folder-content in agent upload to handle upload of items and return one piece of content that is the content-graph
-  Allow parent to reset child default state
