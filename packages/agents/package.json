@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/knowlearning/platform#readme",
   "dependencies": {
-    "@knowlearning/patch-proxy": "^1.3.1",
+    "@knowlearning/patch-proxy": "^1.3.2",
     "fast-json-patch": "^3.1.1",
     "uuid": "^8.3.2",
     "vue": "^3.3.4",
