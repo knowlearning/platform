@@ -28,7 +28,7 @@ faster.
 
 Install [docker](https://docs.docker.com/get-docker/),
 [skaffold](https://skaffold.dev/docs/install/), and
-[gcloud](https://cloud.google.com/sdk/docs/install) cli tool.
+[gcloud](https://cloud.google.com/sdk/docs/install).
 
 ## GKE cluster
 
