@@ -25,7 +25,8 @@ const constantMap = {
   'TEXT[]': 'TEXT[]',
   TIMESTAMP: 'TIMESTAMP',
   INTEGER: 'INTEGER',
-  BIGINT: 'BIGINT'
+  BIGINT: 'BIGINT',
+  JSON: 'JSON'
 }
 
 const ignorableErrors = {
