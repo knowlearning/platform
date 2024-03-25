@@ -26,7 +26,9 @@ faster.
 
 # Deployment
 
-Install [skaffold](https://skaffold.dev/docs/install/).
+Install [docker](https://docs.docker.com/get-docker/),
+[skaffold](https://skaffold.dev/docs/install/), and
+[gcloud](https://cloud.google.com/sdk/docs/install) cli tool.
 
 ## GKE cluster
 
@@ -55,7 +57,7 @@ kubectl config use-namespace production
 #### Setup
 
 ```sh
-# Install skaffold, kubectl, gcloud, and gke-gcloud-auth-plugin.
+# Install the gcloud gke-gcloud-auth-plugin component.
 gcloud components install gke-gcloud-auth-plugin
 
 # Load gcloud credentials.
@@ -63,7 +65,7 @@ gcloud container clusters get-credentials skaffold-deployed --region us-central1
 
 # Set CORS config for production bucket.
 gsutil cors set \
-  infrastructure/production/CORS_CONFIG_FILE \
+  core/infrastructure/production/CORS_CONFIG_FILE \
   gs://development-bucket-opensourcelearningplatform
 ```
 
