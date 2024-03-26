@@ -25,16 +25,6 @@ if [ -z "$1" ] || [ "$1" = "--setup" ]; then
     --kube-context=kind-kl-core \
     --status-check=false \
     --force # forces updates to spec by replacing old objects (used so same job can be depoyed each time)
-elif [ $1 = npm ]; then
-  echo 'dry run:'
-  (cd ../packages/agents; npm publish --access public --dry-run)
-  read -p 'Are you sure you want to deploy a new version of the @knowlearning/agents module? (y/N): ' choice
-  if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
-    (cd ../packages/agents; npm publish --access public)
-  else
-    echo 'NPM update deployment aborted'
-    exit 1
-  fi
 elif [ $1 = staging ]; then
   read -p 'Are you sure you want to deploy to STAGING? (y/N): ' choice
   if [ "$choice" = "y" ] || [ "$choice" = "Y" ]; then
