@@ -1,12 +1,11 @@
 <template>
   <slot :loading="loading" :value="value">
-    <span v-if="loading">loading...</span>
-    <span v-else>{{ value === null && placeholder ? placeholder : value }}</span>
+    <span>{{ defaultRenderedValue }}</span>
   </slot>
 </template>
 
 <script>
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 
 export default {
   props: {
@@ -39,7 +38,13 @@ export default {
     onMounted(() => startWatching())
     onBeforeUnmount(() => stopWatching && stopWatching())
 
-    return { loading, value }
+    const defaultRenderedValue = computed(() => {
+      if (loading.value) return 'loading'
+      else if (value.value === null && props.placeholder) return props.placeholder
+      else return value.value
+    })
+
+    return { loading, value, defaultRenderedValue }
   }
 };
 </script>
