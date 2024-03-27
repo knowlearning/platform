@@ -55,32 +55,33 @@ async function isAdmin(user, requestingDomain, requestedDomain) {
 }
 
 export default async function configure({ domain, user, session, scope, patch, si, ii, send }) {
-  console.log('GOT SCOOOOOOOOOPE', scope)
-  const id = await scopeToId(domain, user, scope)
-  const name = await redis.client.json.get(id, { path: [`$.name`] })
-  console.log('GOT NAME FOR SCOOOOOOOOOPE', name)
   for (let index = 0; index < patch.length; index ++) {
     const { op, path, value } = patch[index]
     if (op === 'add' && path.length === 1 && path[0] === 'active' && await isAdmin(user, domain, value.domain)) {
-      const { config, report } = value
-      await interact('core', 'core', 'domain-config', [
-        { op: 'add', path: ['active', value.domain], value: { config, admin: user } }
-      ])
-      const url = await download(config, 3, true)
-      const response = await fetch(url)
-      if (response.status !== 200) {
-        throw new Error('Error getting config')
-      }
+      const { config, report, domain:domainToConfigure } = value
+      const domainConfig = await coreState('core', 'domain-config', 'core')
+      domainConfig[domainToConfigure] = { config, report, admin: user }
 
       const reportState = await coreState(user, report, domain)
-
       reportState.tasks = {}
       reportState.start = Date.now()
-      const configuration = parseYAML(await response.text())
 
-      applyConfiguration(value.domain, configuration, reportState)
-        .then(() => reportState.end = Date.now())
-        .catch(error => reportState.error = error.toString())
+      try {
+        const url = await download(config, 3, true)
+        const response = await fetch(url)
+
+        if (response.status !== 200) throw new Error('Error getting config')
+
+        response
+          .text()
+          .then(parseYAML)
+          .then(config => applyConfiguration(domainToConfigure, config, reportState))
+          .then(() => reportState.end = Date.now())
+          .catch(error => reportState.error = error.toString())
+      }
+      catch (error) {
+        reportState.error = error.toString()
+      }
     }
   }
 
