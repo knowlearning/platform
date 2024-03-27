@@ -1,4 +1,5 @@
 import { environment, uuid, randomBytes, PatchProxy } from '../utils.js'
+import coreState from '../core-state.js'
 import interact from '../interact/index.js'
 import * as redis from '../redis.js'
 import initializationState from '../initialization-state.js'
@@ -14,17 +15,7 @@ redis.connected.then(() => {
   redis.client.json.set('domain-config', '$', state, { NX: true })
 })
 
-//  TODO: probably want to abstract this and allow different types
-//        to help with removing privaleged named states
-function coreState(user, id, domain) {
-  interact(domain, user, id, [{ op: 'add', value: 'application/json', path: ['active_type'] }])
-  return new PatchProxy({}, async patch => {
-    patch.forEach(({ path }) => path.unshift('active'))
-    interact(domain, user, id, patch)
-  })
-}
-
-export default function claims({ domain, user, session, patch, si, ii, send }) {
+export default async function claims({ domain, user, session, patch, si, ii, send }) {
   if (domain === ADMIN_DOMAIN || MODE === 'local') { //  can claim from any domain on local
     for (let index = 0; index < patch.length; index ++) {
       const { path, value } = patch[index]
@@ -39,7 +30,7 @@ export default function claims({ domain, user, session, patch, si, ii, send }) {
         const report = uuid()
         send({ si, ii, token, report })
 
-        const reportState = coreState(user, report, domain)
+        const reportState = await coreState(user, report, domain)
 
         return (
           passDNSOrHTTPChallenge(claimedDomain, user, token, reportState)

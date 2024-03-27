@@ -1,4 +1,5 @@
 import { uuid, parseYAML, environment, PatchProxy } from '../utils.js'
+import coreState from '../core-state.js'
 import { domainAdmin } from '../configuration.js'
 import domainAgent from '../domain-agent.js'
 import * as redis from '../redis.js'
@@ -35,16 +36,6 @@ INSERT INTO ${postgres.purifiedName(table)}
 const MAX_PARAMS_IN_BATCH = 10_000
 
 const { ADMIN_DOMAIN, MODE } = environment
-
-//  TODO: probably want to abstract this and allow different types
-//        to help with removing privaleged named states
-async function coreState(user, id, domain) {
-  await interact(domain, user, id, [{ op: 'add', value: 'application/json', path: ['active_type'] }])
-  return new PatchProxy({}, async patch => {
-    patch.forEach(({ path }) => path.unshift('active'))
-    interact(domain, user, id, patch)
-  })
-}
 
 async function isAdmin(user, requestingDomain, requestedDomain) {
   return (

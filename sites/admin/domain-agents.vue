@@ -30,7 +30,7 @@ export default {
     Agent.watch(
       'sessions',
       ({ patch, state }) => patch && patch.forEach(({ op, path, value }) => {
-        if (op === 'add' && path.length === 2 && path[1] === 'log') {
+        if ((op === 'add' || op === 'replace') && path.length === 2 && path[1] === 'log') {
           const [ serverSession ] = path
           this.agentLogs.push([serverSession, value])
         }
