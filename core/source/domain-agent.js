@@ -93,7 +93,9 @@ export default function domainAgent(domain, refresh=false) {
         //  Stop unhandled child error event from closing the core server
         event.preventDefault()
 
-        // TODO: restart child process, probably with backoff and reporting to admin domain...
+        //  remove domain agent from rotation so it will be reinitialized on next ask
+        //  TODO: consider what to do with connections using errored domain agent
+        delete DomainAgents[domain]
       }
 
       worker.onmessage = async ({ data }) => {
