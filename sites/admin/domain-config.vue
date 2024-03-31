@@ -6,6 +6,7 @@
       <v-btn @click="claimMessage = null">Okay</v-btn>
     </div>
     <v-btn v-else @click="claim">Become admin for {{ domain }}</v-btn>
+    <v-btn @click="uploadConfig">Upload</v-btn>
     <div v-if="config">
       config:  {{config.config}}
       <ReportViewer
@@ -13,7 +14,6 @@
         :report="config.report"
       />
     </div>
-    <v-btn @click="uploadConfig">Upload</v-btn>
   </div>
 </template>
 
