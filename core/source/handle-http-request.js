@@ -1,6 +1,20 @@
 import { randomBytes, getCookies, requestDomain } from './utils.js'
 import handleConnection from './handle-connection.js'
 
+function JSONReplacer(key, value) {
+  return typeof value === 'bigint' ? value.toString() : value
+}
+
+function serialize(value) {
+  try {
+    return JSON.stringify(value)
+  }
+  catch (error) {
+    console.warn('Error stringifying return message', error)
+    return JSON.stringify(value, JSONReplacer)
+  }
+}
+
 export default function handleHTTPRequest(request) {
   const domain = requestDomain(request)
   const previousSid = getCookies(request.headers)['sid']
@@ -29,7 +43,7 @@ export default function handleHTTPRequest(request) {
   const { socket, response } = Deno.upgradeWebSocket(request, { idleTimeout: 10, headers })
 
   const connection = {
-    send(message) { socket.send(message ? JSON.stringify(message) : '') },
+    send(message) { socket.send(message ? serialize(message) : '') },
     close(error) {
       socketError = error
       socket.close()
