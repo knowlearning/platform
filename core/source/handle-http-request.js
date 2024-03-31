@@ -2,7 +2,9 @@ import { randomBytes, getCookies, requestDomain } from './utils.js'
 import handleConnection from './handle-connection.js'
 
 function JSONReplacer(key, value) {
-  return typeof value === 'bigint' ? value.toString() : value
+  // TODO: some validation to make sure we error instead of sending the wrong response
+  //       for cases where bigint is actually larger than int
+  return typeof value === 'bigint' ? parseInt(value.toString()) : value
 }
 
 function serialize(value) {
