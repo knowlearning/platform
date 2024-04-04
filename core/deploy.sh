@@ -8,7 +8,7 @@ if [ -z "$1" ] || [ "$1" = "--setup" ]; then
     echo 'Setting Up Development Cluster'
     echo 'Removing Old Development Cluster (If Exists)'
     kind delete clusters kl-core
-    kind create cluster --config ../core/infrastructure/development/cluster.yaml
+    kind create cluster --config ./infrastructure/development/cluster.yaml
   fi
 
   echo 'Deploying Development Profile To Local Cluster'
