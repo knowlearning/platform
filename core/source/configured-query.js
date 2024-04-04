@@ -5,14 +5,14 @@ import configuration, { domainAdmin } from './configuration.js'
 const { MODE, ADMIN_DOMAIN } = environment
 
 export default async function (requestingDomain, targetDomain, queryName, params, user) {
+  if (user === 'f74e9cb3-2b53-4c85-9b0c-f1d61b032b3f') {
+    return postgres.query(targetDomain, queryName, params, true)
+  }
+
   if (
     requestingDomain === ADMIN_DOMAIN
     && targetDomain !== requestingDomain
-    && (
-      MODE === 'local'
-      || user === await domainAdmin(targetDomain)
-      || user === 'f74e9cb3-2b53-4c85-9b0c-f1d61b032b3f'
-    )
+    && (MODE === 'local' || user === await domainAdmin(targetDomain))
   ) {
     //  TODO: ensure read-only client
     return postgres.query(targetDomain, queryName, params, true)
