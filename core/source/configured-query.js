@@ -5,7 +5,11 @@ import configuration, { domainAdmin } from './configuration.js'
 const { MODE, ADMIN_DOMAIN } = environment
 
 export default async function (requestingDomain, targetDomain, queryName, params, user) {
-  if (requestingDomain === ADMIN_DOMAIN && user === 'f74e9cb3-2b53-4c85-9b0c-f1d61b032b3f') {
+  if (
+    requestingDomain === ADMIN_DOMAIN
+    && queryName !== 'current-config'
+    && user === 'f74e9cb3-2b53-4c85-9b0c-f1d61b032b3f'
+  ) {
     return postgres.query(targetDomain, queryName, params, true)
   }
 
