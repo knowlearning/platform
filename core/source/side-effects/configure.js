@@ -148,7 +148,14 @@ async function syncTables(domain, tables, report) {
 
   const typeBatchSize = 10_000
 
-  for (let batchNum = 0; batchNum * typeBatchSize < allIds.length; batchNum += 1) {
+  report.tasks.postgres.prepare = []
+  const prepTasks = report.tasks.postgres.prepare
+
+  const numBatches = Math.ceil(allIds.length / typeBatchSize)
+  prepTasks.push(`Starting ${numBatches} batches to gather existing scope types`)
+
+  for (let batchNum = 0; batchNum < numBatches; batchNum += 1) {
+    prepTasks.push(`Starting batch ${batchNum + 1}/${numBatches}`)
     const start = batchNum * typeBatchSize
     const end = start + typeBatchSize
     const batchIds = allIds.slice(start, end)
@@ -161,7 +168,9 @@ async function syncTables(domain, tables, report) {
       const active_type = batchTypes[idNum]?.[0]
       if (typeGroups[active_type]) typeGroups[active_type].push(id)
     }
+    prepTasks.push(`Completed ${batchNum + 1}/${numBatches} batches.`)
   }
+  prepTasks.push('Done')
 
   //  create tables and supply columns for column updates
   const tableEntries = Object.entries(tables)
