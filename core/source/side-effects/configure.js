@@ -154,11 +154,11 @@ async function syncTables(domain, tables, report) {
     const batchIds = allIds.slice(start, end)
     const transaction = redis.client.multi()
     batchIds.forEach(id => transaction.json.get(id, { path: [`$.active_type`] }))
-    const allTypes = await transaction.exec()
+    const batchTypes = await transaction.exec()
 
     for (let idNum = 0; idNum < batchIds.length; idNum += 1) {
       const id = batchIds[idNum]
-      const active_type = allTypes[idNum]?.[0]
+      const active_type = batchTypes[idNum]?.[0]
       if (typeGroups[active_type]) typeGroups[active_type].push(id)
     }
   }
