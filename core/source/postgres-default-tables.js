@@ -13,7 +13,10 @@ export default {
     },
     indices: {
       updated: { column: 'updated' },
-      created: { column: 'created' }
+      created: { column: 'created' },
+      created: { column: 'owner' },
+      created: { column: 'name' },
+      created: { column: 'domain' }
     }
   },
   sessions: {
