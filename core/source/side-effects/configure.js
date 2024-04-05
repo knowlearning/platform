@@ -141,14 +141,26 @@ async function syncTables(domain, tables, report) {
 
   const typeGroups = {}
 
-  const allIds = await redis.client.sendCommand(['smembers', domain])
+  Object.values(tables).forEach(({type}) => typeGroups[type] = [])
 
   //  TODO: do in chunks...
-  for (let idNum = 0; idNum < allIds.length; idNum += 1) {
-    const id = allIds[idNum]
-    const active_type = await redis.client.json.get(id, { path: [`$.active_type`] })
-    if (!typeGroups[active_type]) typeGroups[active_type] = []
-    typeGroups[active_type].push(id)
+  const allIds = await redis.client.sendCommand(['smembers', domain])
+
+  const typeBatchSize = 10_000
+
+  for (let batchNum = 0; batchNum * typeBatchSize < allIds.length; batchNum += 1) {
+    const start = batchNum * typeBatchSize
+    const end = start + typeBatchSize
+    const batchIds = allIds.slice(start, end)
+    const transaction = redis.client.multi()
+    batchIds.forEach(id => transaction.json.get(id, { path: [`$.active_type`] }))
+    const allTypes = await transaction.exec()
+
+    for (let idNum = 0; idNum < batchIds.length; idNum += 1) {
+      const id = batchIds[idNum]
+      const active_type = allTypes[idNum]?.[0]
+      if (typeGroups[active_type]) typeGroups[active_type].push(id)
+    }
   }
 
   //  create tables and supply columns for column updates
@@ -163,7 +175,7 @@ async function syncTables(domain, tables, report) {
     await postgres.createTable(domain, table, columns)
     tableTasks.push('Fetching syncable states from metadata')
 
-    const rows = table === 'metadata' ? allIds : typeGroups[type] || []
+    const rows = table === 'metadata' ? allIds : typeGroups[type]
 
     tableTasks.push(`0/${rows.length} rows synced`)
 
