@@ -168,7 +168,6 @@ async function syncTables(domain, tables, report) {
       const active_type = batchTypes[idNum]?.[0]
       if (typeGroups[active_type]) typeGroups[active_type].push(id)
     }
-    prepTasks.push(`Completed ${batchNum + 1}/${numBatches} batches.`)
   }
   prepTasks.push('Done')
 
