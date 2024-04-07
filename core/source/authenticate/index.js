@@ -46,6 +46,15 @@ const NEW_SESSION_QUERY = `
   ORDER BY created DESC LIMIT 1
 `
 
+const EXISTING_USER_QUERY = `
+  SELECT u.id
+  FROM users u
+  JOIN metadata m ON m.id = u.id
+  WHERE u.provider = $1
+    AND u.provider_id = $2
+  ORDER BY m.created ASC LIMIT 1
+`
+
 const {
   web: {
     client_id: GOOGLE_OAUTH_CLIENT_ID,
@@ -78,6 +87,15 @@ async function decryptAndParseSessionInfo(key, encrypted) {
     console.warn(error)
     return {}
   }
+}
+
+async function getExistingUser(provider, provider_id) {
+  const { rows: [ existingUser ]} = await query(
+    ADMIN_DOMAIN,
+    EXISTING_USER_QUERY,
+    [provider, provider_id]
+  )
+  return existingUser
 }
 
 export default async function authenticate(message, domain, sid) {
@@ -226,7 +244,7 @@ async function coreVerfication(token, resolve, reject) {
 
           const kio = decoded['kubernetes.io']
           const provider_id = kio.serviceaccount.name
-          const { rows: [ existingUser ]} = await query(ADMIN_DOMAIN, `SELECT id FROM users WHERE provider = 'core' AND provider_id = $1`, [provider_id])
+          const existingUser = await getExistingUser('core', provider_id)
           const user = existingUser ? existingUser.id : uuid()
           const info = { name: provider_id, picture: null }
           resolve({ provider: 'core', provider_id, user, info })
@@ -291,7 +309,7 @@ async function JWTVerification(client_id, client_secret, token_uri, token, resol
 
     if (passTokenChallenge(provider, decoded)) {
       const provider_id = decoded.sub
-      const { rows: [ existingUser ]} = await query(ADMIN_DOMAIN, `SELECT id FROM users WHERE provider = $1 AND provider_id = $2`, [provider, provider_id])
+      const existingUser = await getExistingUser(provider, provider_id)
       const user = existingUser ? existingUser.id : uuid()
       const { name, picture } = decoded
       resolve({ provider, provider_id, user, info: { name, picture } })
