@@ -21,6 +21,7 @@ export default function browserAgent(options={}) {
     if (info?.browser) {
       const file = await selectFile(info)
       if (!file) return
+      if (info.validate && !(await info.validate(file))) return
 
       info.data = await file.arrayBuffer()
       if (!info.name) info.name = file.name
