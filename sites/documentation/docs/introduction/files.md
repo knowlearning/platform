@@ -19,14 +19,15 @@ To prompt the user to select a file to upload using the browser's file picker:
 const id = Agent.uuid()
 const validate = async function (file) {
   // validate is an optional parameter. If supplied, it must
-  // resolve to true, otherwise the upload will be aborted. The
-  // "file" parameter is an instance of the web standard [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
+  // resolve to true, otherwise the upload will be aborted.
 
   return true
 }
 
 await Agent.upload({ id, browser: true, validate })
 ```
+
+The "file" parameter for the validate function is an instance of the web standard [File](https://developer.mozilla.org/en-US/docs/Web/API/File).
 
 !!! tip
 
