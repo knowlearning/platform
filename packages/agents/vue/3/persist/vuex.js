@@ -1,4 +1,5 @@
 import PatchProxy from '@knowlearning/patch-proxy'
+import Agent from '../../../browser.js'
 //  TODO: consider path serialization approach. Also consider just using a mutable proxy from agent.state...
 
 const copy = x => JSON.parse(JSON.stringify(x))
