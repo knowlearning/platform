@@ -13,20 +13,13 @@ export default function({ metadata, environment, state, watchers, synced, sentUp
     let removed = false
     metadata(scope, user, domain)
       .then(async ({ ii }) => {
+        const { auth: { user: u }, domain: d } = await environment()
+        const state = await statePromise
+
         if (removed) return
 
-        const { auth: { user: u }, domain: d } = await environment()
         qualifiedScope = isUUID(scope) ? scope : `${!domain || domain === d ? '' : domain}/${!user || user === u ? '' : user}/${scope}`
-
-        fn({
-          scope,
-          user,
-          domain,
-          state: await statePromise,
-          patch: null,
-          ii
-        })
-
+        fn({ scope, user, domain, state, patch: null, ii })
         if (sentUpdates) sentUpdates[qualifiedScope] = ii
 
         if (removed) return
@@ -37,7 +30,7 @@ export default function({ metadata, environment, state, watchers, synced, sentUp
 
     return () => {
       removed = true
-      return removeWatcher(qualifiedScope, fn)
+      if (qualifiedScope) removeWatcher(qualifiedScope, fn)
     }
   }
 
