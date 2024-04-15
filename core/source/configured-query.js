@@ -23,19 +23,29 @@ export default async function (requestingDomain, targetDomain, queryName, params
   }
 
   const config = await configuration(targetDomain)
-  let queryBody
+  let queryDefinition
 
-  // TODO: 'domain-config' scope needs an exception in interact.....
-  if (requestingDomain === targetDomain) queryBody = config?.postgres?.scopes?.[queryName] || config?.postgres?.queries?.[queryName]
-  else if (config?.postgres?.crossDomainQueries?.[queryName]?.domains?.includes(requestingDomain)) {
-    queryBody = config?.postgres?.crossDomainQueries?.[queryName]?.body
+  const queryDefinitions = config?.postgres?.scopes || config?.postgres?.queries //  TODO: deprecate scopes
+
+  if (requestingDomain === targetDomain) {
+    queryDefinition = queryDefinitions?.[queryName]
+  }
+  else if (
+    config?.postgres?.crossDomainQueries?.[queryName]?.domains?.includes(requestingDomain) //  TODO: deprecate cross domain queries
+    || queryDefinitions?.[queryName]?.domains?.includes(requestingDomain)
+  ) {
+    queryDefinition = queryDefinitions[queryName]
   }
 
+  let queryBody
+
+  if (typeof queryDefinition === 'string') queryBody = queryDefinition
+  else if (queryDefinition?.body) queryBody = queryDefinition.body
+
   if (queryBody) {
-    const namedParams = {
-      DOMAIN: targetDomain
-    }
+    const namedParams = { DOMAIN: targetDomain }
     if (user) namedParams.REQUESTER = user
+
     //  TODO: better replacement technique
     const queryParams = [...params]
     Object

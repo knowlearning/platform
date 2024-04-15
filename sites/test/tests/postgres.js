@@ -122,8 +122,11 @@ postgres:
         boolean_test_column: BOOLEAN
         text_array_test_column: TEXT[]
   queries:
-    my-reconfigured-test-table-entries: |
-      SELECT * FROM test_table_2 WHERE id = '${TEST_ENTRY_1_ID}'
+    my-reconfigured-test-table-entries:
+      domains:
+      - example.com
+      body: |
+        SELECT * FROM test_table_2 WHERE id = '${TEST_ENTRY_1_ID}'
     my-test-table-entries-metadata: |
       SELECT * FROM metadata WHERE id = '${TEST_ENTRY_1_ID}'
     my-test-table-previous-entries-metadata: |
