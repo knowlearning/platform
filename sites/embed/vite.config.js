@@ -26,15 +26,15 @@ export default defineConfig({
       },
       {
         find: '@knowlearning/patch-proxy',
-        replacement: 'node_modules/@knowlearning/patch-proxy/index.js'
+        replacement:  __dirname + '/node_modules/@knowlearning/patch-proxy/index.js'
       },
       {
         find: 'fast-json-patch',
-        replacement: 'node_modules/fast-json-patch/index.mjs'
+        replacement: __dirname + '/node_modules/fast-json-patch/index.mjs'
       },
       {
         find: 'uuid',
-        replacement: 'node_modules/uuid/dist/esm-browser/index.js'
+        replacement: __dirname + '/node_modules/uuid/dist/esm-browser/index.js'
       }
     ]
   }
