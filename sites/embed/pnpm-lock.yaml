@@ -14,18 +14,6 @@ dependencies:
   '@vitejs/plugin-vue':
     specifier: ^5.0.4
     version: 5.0.4(vite@5.2.2)(vue@3.4.21)
-  chart.js:
-    specifier: ^4.4.2
-    version: 4.4.2
-  chartjs-plugin-autocolors:
-    specifier: ^0.2.2
-    version: 0.2.2(@kurkle/color@0.3.2)(chart.js@4.4.2)
-  fast-json-patch:
-    specifier: ^3.1.1
-    version: 3.1.1
-  flatpickr:
-    specifier: ^4.6.13
-    version: 4.6.13
   uuid:
     specifier: ^9.0.1
     version: 9.0.1
@@ -35,12 +23,6 @@ dependencies:
   vue:
     specifier: ^3.4.21
     version: 3.4.21
-  vue-chartjs:
-    specifier: ^5.3.0
-    version: 5.3.0(chart.js@4.4.2)(vue@3.4.21)
-  vue-flatpickr-component:
-    specifier: ^11.0.5
-    version: 11.0.5(vue@3.4.21)
   vue-router:
     specifier: ^4.3.0
     version: 4.3.0(vue@3.4.21)
@@ -306,10 +288,6 @@ packages:
     resolution: {integrity: sha512-m1f+dDCMw2dnKoLXgh4ViaAuGyAmgfevy+vDo4zDLuSv5W/bGdDwyB9epp+8nlqUVG9yCyvC+XU9s+5PmsB9vQ==}
     dev: false
 
-  /@kurkle/color@0.3.2:
-    resolution: {integrity: sha512-fuscdXJ9G1qb7W8VdHi+IwRqij3lBkosAm4ydQtEmbY58OzHXqQhvlxqEkoz0yssNVn38bcpRWgA9PP+OGoisw==}
-    dev: false
-
   /@rollup/rollup-android-arm-eabi@4.13.0:
     resolution: {integrity: sha512-5ZYPOuaAqEH/W3gYsRkxQATBW3Ii1MfaT4EQstTnLKViLi2gLSQmlmtTpGucNP3sXEpOiI5tdGhjdE111ekyEg==}
     cpu: [arm]
@@ -515,23 +493,6 @@ packages:
     resolution: {integrity: sha512-PuJe7vDIi6VYSinuEbUIQgMIRZGgM8e4R+G+/dQTk0X1NEdvgvvgv7m+rfmDH1gZzyA1OjjoWskvHlfRNfQf3g==}
     dev: false
 
-  /chart.js@4.4.2:
-    resolution: {integrity: sha512-6GD7iKwFpP5kbSD4MeRRRlTnQvxfQREy36uEtm1hzHzcOqwWx0YEHuspuoNlslu+nciLIB7fjjsHkUv/FzFcOg==}
-    engines: {pnpm: '>=8'}
-    dependencies:
-      '@kurkle/color': 0.3.2
-    dev: false
-
-  /chartjs-plugin-autocolors@0.2.2(@kurkle/color@0.3.2)(chart.js@4.4.2):
-    resolution: {integrity: sha512-zKSivIHRL3yB6a47bcxOfIEOEByL+AMXTtcnscb7I3Vu4PGNCyPe4C+4XxLGvR52lMYgFYcMcYmaXksi1bbA+A==}
-    peerDependencies:
-      '@kurkle/color': ^0.3.1
-      chart.js: '>=2'
-    dependencies:
-      '@kurkle/color': 0.3.2
-      chart.js: 4.4.2
-    dev: false
-
   /csstype@3.1.3:
     resolution: {integrity: sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==}
     dev: false
@@ -574,14 +535,6 @@ packages:
 
   /estree-walker@2.0.2:
     resolution: {integrity: sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w==}
-    dev: false
-
-  /fast-json-patch@3.1.1:
-    resolution: {integrity: sha512-vf6IHUX2SBcA+5/+4883dsIjpBTqmfBjmYiWK1savxQmFk4JfBMLa7ynTYOs1Rolp/T1betJxHiGD3g1Mn8lUQ==}
-    dev: false
-
-  /flatpickr@4.6.13:
-    resolution: {integrity: sha512-97PMG/aywoYpB4IvbvUJi0RQi8vearvU0oov1WW3k0WZPBMrTQVqekSX5CjSG/M4Q3i6A/0FKXC7RyAoAUUSPw==}
     dev: false
 
   /fsevents@2.3.3:
@@ -689,26 +642,6 @@ packages:
       rollup: 4.13.0
     optionalDependencies:
       fsevents: 2.3.3
-    dev: false
-
-  /vue-chartjs@5.3.0(chart.js@4.4.2)(vue@3.4.21):
-    resolution: {integrity: sha512-8XqX0JU8vFZ+WA2/knz4z3ThClduni2Nm0BMe2u0mXgTfd9pXrmJ07QBI+WAij5P/aPmPMX54HCE1seWL37ZdQ==}
-    peerDependencies:
-      chart.js: ^4.1.1
-      vue: ^3.0.0-0 || ^2.7.0
-    dependencies:
-      chart.js: 4.4.2
-      vue: 3.4.21
-    dev: false
-
-  /vue-flatpickr-component@11.0.5(vue@3.4.21):
-    resolution: {integrity: sha512-Vfwg5uVU+sanKkkLzUGC5BUlWd5wlqAMq/UpQ6lI2BCZq0DDrXhOMX7hrevt8bEgglIq2QUv0K2Nl84Me/VnlA==}
-    engines: {node: '>=14.13.0'}
-    peerDependencies:
-      vue: ^3.2.0
-    dependencies:
-      flatpickr: 4.6.13
-      vue: 3.4.21
     dev: false
 
   /vue-router@4.3.0(vue@3.4.21):
