@@ -40,8 +40,28 @@
           </v-list-item>
         </v-list>
       </div>
-      <div v-if="state.id">
-        {{ state.embedding }}
+      <div v-if="state.embedding">
+        <v-card
+          :elevation="6"
+          class="mx-auto"
+          color="surface-variant"
+          max-width="340"
+          subtitle="Take a walk down the beach"
+          title="Evening sunset"
+        >
+          <template v-slot:text>
+            <v-img :src="embeddingImageURL" />
+          </template>
+          <template v-slot:actions>
+            <v-btn
+              append-icon="fa-solid fa-play"
+              color="red-lighten-2"
+              text="Preview"
+              variant="outlined"
+              @click="router.push(`/${state.id}`)"
+            />
+          </template>
+        </v-card>
         <v-text-field v-model="state.embedding.name" label="Name" />
         <v-text-field v-model="state.embedding.id" label="UUID or Url" />
         <v-btn @click="uploadCardImage">
@@ -56,17 +76,24 @@
 </template>
 
 <script setup>
-  import { ref, reactive } from 'vue'
+  import { ref, reactive, watch } from 'vue'
+  import { useRouter } from 'vue-router'
   import { v4 as uuid } from 'uuid'
   import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 
-
+  const router = useRouter()
   const auth = ref(null)
   const state = reactive({
     auth: null,
     id: null,
     embedding: null,
     library: null
+  })
+  const embeddingImageURL = ref(null)
+
+  watch(() => state.embedding?.picture, async () => {
+    const picture = state.embedding?.picture
+    embeddingImageURL.value = picture ? await Agent.download(picture).url() : null
   })
 
   Agent
