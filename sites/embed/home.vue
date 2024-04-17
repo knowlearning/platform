@@ -8,8 +8,15 @@
       login
     </v-btn>
   </div>
-  <div v-else>
-    <v-toolbar color="primary">
+  <v-app v-else>
+    <v-app-bar
+      color="primary"
+      prominent
+    >
+      <v-app-bar-nav-icon
+        variant="text"
+        @click.stop="drawer = !drawer"
+      />
       <v-toolbar-title>Embed</v-toolbar-title>
       <v-btn
         @click="logout"
@@ -21,58 +28,37 @@
         class="ms-4 me-4"
         :image="state.auth.info.picture"
       />
-    </v-toolbar>
-    <v-container>
-      <div>
-        <v-btn @click="createNewEmbedding">
+    </v-app-bar>
+    <v-navigation-drawer
+      v-model="drawer"
+    >
+      <v-list-item
+        v-for="info, id in state.library"
+        :text="id"
+        @click="router.push(`/edit/${id}`)"
+      >
+        <vueScopeComponent :id="id" :path="['name']" />
+      </v-list-item>
+      <template v-slot:append>
+        <v-btn
+          @click="createNewEmbedding"
+          block
+        >
           <template v-slot:prepend>
             <v-icon icon="fa-solid fa-plus" />
           </template>
           Create New Embedding
         </v-btn>
-        <v-list>
-          <v-list-item
-            v-for="info, id in state.library"
-            :text="id"
-            @click="selectEmbedding(id)"
-          >
-            <vueScopeComponent :id="id" :path="['name']" />
-          </v-list-item>
-        </v-list>
-      </div>
-      <div v-if="state.embedding">
-        <v-card
-          :elevation="6"
-          class="mx-auto"
-          color="surface-variant"
-          max-width="340"
-          subtitle="Take a walk down the beach"
-          :title="state.embedding.name"
-        >
-          <template v-slot:text>
-            <v-img :src="embeddingImageURL" />
-          </template>
-          <template v-slot:actions>
-            <v-btn
-              append-icon="fa-solid fa-play"
-              color="red-lighten-2"
-              text="Preview"
-              variant="outlined"
-              @click="router.push(`/${state.id}`)"
-            />
-          </template>
-        </v-card>
-        <v-text-field v-model="state.embedding.name" label="Name" />
-        <v-text-field v-model="state.embedding.id" label="UUID or Url" />
-        <v-btn @click="uploadCardImage">
-          <template v-slot:prepend>
-            <v-icon icon="fa-solid fa-upload"></v-icon>
-          </template>
-          Upload Card Image
-        </v-btn>
-      </div>
-    </v-container>
-  </div>
+      </template>
+    </v-navigation-drawer>
+    <v-main>
+      <EmbeddingEditor
+        v-if="props.id"
+        :key="props.id"
+        :id="props.id"
+      />
+    </v-main>
+  </v-app>
 </template>
 
 <script setup>
@@ -80,13 +66,14 @@
   import { useRouter } from 'vue-router'
   import { v4 as uuid } from 'uuid'
   import { vueScopeComponent } from '@knowlearning/agents/vue.js'
+  import EmbeddingEditor from './embedding-editor.vue'
 
+  const props = defineProps(['id'])
   const router = useRouter()
   const auth = ref(null)
+  const drawer = ref(true)
   const state = reactive({
     auth: null,
-    id: null,
-    embedding: null,
     library: null
   })
   const embeddingImageURL = ref(null)
@@ -107,26 +94,14 @@
   function login() { Agent.login() }
   function logout() { Agent.logout() }
 
-  async function selectEmbedding(id) {
-    state.id = id
-    state.embedding = await Agent.state(id)
-  }
-
   async function createNewEmbedding() {
-    state.id = uuid()
-    state.embedding = await Agent.state(state.id)
+    const id = uuid()
+    state.embedding = await Agent.state(id)
     state.embedding.name = `New Embedding ${(new Date()).toLocaleString()}`
     state.embedding.id = null
     state.embedding.picture = null
-    state.library[state.id] = {}
-  }
-
-  async function uploadCardImage() {
-    const id = await Agent.upload({
-      browser: true,
-      accept: 'image/*'
-    })
-    if (id) state.embedding.picture = id
+    state.library[id] = {}
+    router.push(`/edit/${id}`)
   }
 
 </script>

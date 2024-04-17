@@ -12,14 +12,18 @@ import vuetifyKnowLearningTheme from './vuetify-knowlearning-theme.js'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 
+import Main from './index.vue'
 import Home from './home.vue'
+import Player from './player.vue'
 
 window.Agent = Agent
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', component: { template: '<div>woo</div>' } },
+    { path: '/', component: Home },
+    { path: '/edit/:id', component: Home, props: true },
+    { path: '/:id', component: Player, props: true }
   ]
 })
 
@@ -39,7 +43,7 @@ const vuetify = createVuetify({
   }
 })
 
-createApp(Home)
+createApp(Main)
   .use(router)
   .use(vuetify)
   .mount('body')
