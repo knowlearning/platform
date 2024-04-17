@@ -2,7 +2,7 @@
   <v-container>
     <v-form>
       <v-text-field v-model="embedding.name" label="Name" />
-      <v-text-field v-model="embedding.id" label="UUID or Url" />
+      <v-text-field v-model="embedding.id" label="UUID or URL" />
       <v-img
         :key="embedding.picture"
         style="max-height: 128px"
