@@ -37,7 +37,7 @@
           v-for="info, id in state.library"
           :value="id"
           :text="id"
-          @click="router.push(`/edit/${id}`)"
+          @click="router.push(props.id === id ? '/' : `/edit/${id}`)"
         >
           <vueScopeComponent :id="id" :path="['name']" />
           <template v-slot:append>
