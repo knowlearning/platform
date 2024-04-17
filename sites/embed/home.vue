@@ -43,6 +43,13 @@
       <div v-if="state.id">
         {{ state.embedding }}
         <v-text-field v-model="state.embedding.name" label="Name" />
+        <v-text-field v-model="state.embedding.id" label="UUID or Url" />
+        <v-btn @click="uploadCardImage">
+          <template v-slot:prepend>
+            <v-icon icon="fa-solid fa-upload"></v-icon>
+          </template>
+          Upload Card Image
+        </v-btn>
       </div>
     </v-container>
   </div>
@@ -85,6 +92,14 @@
     state.embedding.id = null
     state.embedding.picture = null
     state.library[state.id] = {}
+  }
+
+  async function uploadCardImage() {
+    const id = await Agent.upload({
+      browser: true,
+      accept: 'image/*'
+    })
+    if (id) state.embedding.picture = id
   }
 
 </script>
