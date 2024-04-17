@@ -42,6 +42,7 @@
       </div>
       <div v-if="state.id">
         {{ state.embedding }}
+        <v-text-field v-model="state.embedding.name" label="Name" />
       </div>
     </v-container>
   </div>
