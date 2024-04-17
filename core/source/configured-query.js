@@ -25,15 +25,12 @@ export default async function (requestingDomain, targetDomain, queryName, params
   const config = await configuration(targetDomain)
   let queryDefinition
 
-  const queryDefinitions = config?.postgres?.scopes || config?.postgres?.queries //  TODO: deprecate scopes
+  const queryDefinitions = config?.postgres?.queries
 
   if (requestingDomain === targetDomain) {
     queryDefinition = queryDefinitions?.[queryName]
   }
-  else if (
-    config?.postgres?.crossDomainQueries?.[queryName]?.domains?.includes(requestingDomain) //  TODO: deprecate cross domain queries
-    || queryDefinitions?.[queryName]?.domains?.includes(requestingDomain)
-  ) {
+  else if (queryDefinitions?.[queryName]?.domains?.includes(requestingDomain)) {
     queryDefinition = queryDefinitions[queryName]
   }
 
