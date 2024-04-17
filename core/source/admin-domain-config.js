@@ -22,7 +22,7 @@ export default {
       }
     },
     functions: {},
-    scopes: {
+    queries: {
       'current-config': `
         SELECT config, report
         FROM domain_configurations dc
