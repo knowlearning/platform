@@ -9,6 +9,11 @@
     <v-btn @click="uploadConfig">Upload</v-btn>
     <div v-if="config">
       config:  {{config.config}}
+      <v-btn
+        variant="plain"
+        @click="downloadConfig(config.config)"
+        icon="fa-solid fa-download"
+      />
       <ReportViewer
         :key="config.report"
         :report="config.report"
@@ -88,6 +93,9 @@ export default {
 
       this.config = (await Agent.query('current-config', [this.domain]))[0]
     },
+    downloadConfig(id) {
+      Agent.download(id).direct()
+    }
   }
 }
 
