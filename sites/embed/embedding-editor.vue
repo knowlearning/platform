@@ -1,35 +1,29 @@
 <template>
   <v-container>
-    <v-card
-      :elevation="6"
-      class="mx-auto"
-      max-width="340"
-      :title="embedding.name"
-    >
-      <template v-slot:text>
-        <v-img :src="embeddingImageURL" />
-      </template>
-      <template v-slot:actions>
-        <v-btn
-          append-icon="fa-solid fa-play"
-          color="blue-lighten-2"
-          text="Preview"
-          variant="outlined"
-          @click="router.push(`/${props.id}`)"
-        />
-      </template>
-    </v-card>
-    <v-text-field v-model="embedding.name" label="Name" />
-    <v-text-field v-model="embedding.id" label="UUID or Url" />
-    <v-btn
-      @click="uploadCardImage"
-      block
-    >
-      <template v-slot:prepend>
-        <v-icon icon="fa-solid fa-upload"></v-icon>
-      </template>
-      Upload Card Image
-    </v-btn>
+    <v-form>
+      <v-text-field v-model="embedding.name" label="Name" />
+      <v-text-field v-model="embedding.id" label="UUID or Url" />
+      <v-img
+        :key="embedding.picture"
+        style="max-height: 128px"
+        :src="embeddingImageURL"
+      />
+      <v-btn
+        @click="uploadCardImage"
+        class="mt-4"
+        prepend-icon="fa-solid fa-upload"
+        block
+      >
+        Upload Card Image
+      </v-btn>
+      <v-btn
+        append-icon="fa-solid fa-play"
+        class="mt-4"
+        text="Preview"
+        @click="router.push(`/${props.id}`)"
+        block
+      />
+    </v-form>
   </v-container>
 </template>
 
