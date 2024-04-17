@@ -32,13 +32,27 @@
     <v-navigation-drawer
       v-model="drawer"
     >
-      <v-list-item
-        v-for="info, id in state.library"
-        :text="id"
-        @click="router.push(`/edit/${id}`)"
-      >
-        <vueScopeComponent :id="id" :path="['name']" />
-      </v-list-item>
+      <v-list v-model:selected="selected">
+        <v-list-item
+          v-for="info, id in state.library"
+          :value="id"
+          :text="id"
+          @click="router.push(`/edit/${id}`)"
+        >
+          <vueScopeComponent :id="id" :path="['name']" />
+          <template v-slot:append>
+            <v-btn
+              v-if="selected.includes(id)"
+              icon="fa-solid fa-xmark"
+              variant="plain"
+              @click.stop="() => {
+                delete state.library[id]
+                router.push('/')
+              }"
+            />
+          </template>
+        </v-list-item>
+      </v-list>
       <template v-slot:append>
         <v-btn
           @click="createNewEmbedding"
@@ -77,6 +91,7 @@
     library: null
   })
   const embeddingImageURL = ref(null)
+  const selected = ref([props.id])
 
   watch(() => state.embedding?.picture, async () => {
     const picture = state.embedding?.picture
