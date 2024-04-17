@@ -47,7 +47,7 @@
           color="surface-variant"
           max-width="340"
           subtitle="Take a walk down the beach"
-          title="Evening sunset"
+          :title="state.embedding.name"
         >
           <template v-slot:text>
             <v-img :src="embeddingImageURL" />
