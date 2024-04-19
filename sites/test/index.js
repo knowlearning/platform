@@ -118,7 +118,7 @@ else {
     document.getElementById('embedded-wrapper').style.width = '67%'
   }
 
-  if (mode.length < 6) {
+  if (mode.length < 6 && location.search === '') {
     const wrapper = document.getElementById('embedded-wrapper')
     wrapper.style.display = 'block'
     const iframe = document.getElementById('embedded-frame')

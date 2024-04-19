@@ -35,6 +35,40 @@ export default function () {
     )
 
     it(
+      'Gets the expected number of updates when requesting with explicit current user id and state name',
+      async function () {
+        const expectedUpdateOrder = [0, 1, 2, 3]
+        const updateOrder = []
+
+        let resolveExpectedUpdates
+        const expectedUpdatesPromise = new Promise(r => resolveExpectedUpdates = r)
+
+        const id = `state-name-${uuid()}`
+        const { auth: { user } } = await Agent.environment()
+        const state = await Agent.state(id, user)
+        Agent
+          .watch(id, async update => {
+            updateOrder.push(update.ii)
+            if (updateOrder.length === expectedUpdateOrder.length) {
+              await new Promise(r => setTimeout(r, 10))
+              resolveExpectedUpdates()
+            }
+          }, user)
+
+        await Agent.synced()
+        state.x = 1
+        await pause()
+        state.y = 2
+        await pause()
+        state.z = 3
+        await pause()
+        await expectedUpdatesPromise
+
+        expect(updateOrder).to.deep.equal(expectedUpdateOrder)
+      }
+    )
+
+    it(
       'Triggers callback for initial watch once',
       async function () {
         const id = uuid()

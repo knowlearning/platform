@@ -6,14 +6,15 @@ export default function(scope='[]', user, domain, { keyToSubscriptionId, watcher
   let metadataPromise = new Promise(resolve => resolveMetadataPromise = resolve)
 
   const statePromise = new Promise(async (resolveState, rejectState) => {
-    const qualifiedScope = isUUID(scope) ? scope : `${domain || ''}/${user || ''}/${scope}`
+    const { auth: { user: u }, domain: d, session } = await environment()
+
+    const qualifiedScope = isUUID(scope) ? scope : `${!domain || domain === d ? '' : domain}/${!user || user === u ? '' : user}/${scope}`
     if (!keyToSubscriptionId[qualifiedScope]) {
       const id = uuid()
 
       keyToSubscriptionId[qualifiedScope] = id
       watchers[qualifiedScope] = []
       states[qualifiedScope] = new Promise(async (resolve, reject) => {
-        const { session } = await environment()
         await new Promise(r => setTimeout(r))
         interact('sessions', [{
           op: 'add',
