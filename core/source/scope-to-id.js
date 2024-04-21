@@ -2,6 +2,7 @@ import { isUUID, uuid, environment } from './utils.js'
 import initializationState from './initialization-state.js'
 import * as redis from './redis.js'
 import * as postgres from './postgres.js'
+import { ensureDomainConfigured } from './side-effects/configure.js'
 import sync from './interact/sync.js'
 
 const { ADMIN_DOMAIN } = environment
@@ -25,7 +26,10 @@ function cacheScope(domain, user, scope, id) {
 
 export default async function scopeToId(domain, user, scope) {
   if (cache?.[domain]?.[user]?.[scope]) return cache[domain][user][scope]
-  else if (isUUID(scope)) {
+
+  await ensureDomainConfigured(domain)
+
+  if (isUUID(scope)) {
     if (await redis.client.exists(scope)) return scope
 
     const state = initializationState(domain, user, scope)

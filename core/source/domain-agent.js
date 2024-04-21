@@ -20,25 +20,22 @@ async function createValidSession(domain, user) {
   return sid
 }
 
-function createConnection(worker, connectionId) {
-  const postAuthenticationMessageQueue = []
-  let connectionAuthenticated
+function createConnection(worker, id) {
+  let queue = []
 
-  const postMessage = message => message ? worker.postMessage({...message, connection: connectionId}) : worker.postMessage(message)
+  const postMessage = m => worker.postMessage(m ? { ...m, connection: id} : m)
 
   return {
     async send(message) {
       // TODO: consider more reliable/explicit recognintion of auth response method
       if (!message) postMessage() // heartbeat
       else if (message.server) {
-        connectionAuthenticated = true
         postMessage(message)
-        while (postAuthenticationMessageQueue.length) {
-          postMessage(postAuthenticationMessageQueue.shift())
-        }
+        while (queue.length) postMessage(queue.shift())
+        queue = null
       }
-      else if (connectionAuthenticated) postMessage(message)
-      else postAuthenticationMessageQueue.push(message)
+      else if (queue) queue.push(message)
+      else postMessage(message)
     },
     close() {
       // TODO: clean up worker if domain main domain connection closed...

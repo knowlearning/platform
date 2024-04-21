@@ -137,6 +137,20 @@ postgres:
       - name: requestedScope
         type: TEXT`
 
+const CONFIGURATION_3 = `
+
+postgres:
+  tables: {}
+  scopes: {}
+  functions: {}
+agent: |
+  import Agent from 'npm:@knowlearning/agents/deno.js'
+
+  console.log('AGENT CONFIGURED????')
+
+  console.log('AGENT CONNECTED?', await Agent.environment())
+`
+
   describe('Domain Agent', function () {
     it('Configures successfully in a domain', async function () {
       this.timeout(5000)
@@ -179,6 +193,23 @@ postgres:
       await endOfReport(report)
       const r = await Agent.state(report)
       expect(r.tasks.agent[1]).to.equal('ERROR: Uncaught (in promise) Error: Whoopsie!!!\nline: 3, column: 7')
+    })
+
+    it('Can establish cross domain agent connections that are resilient against reconnections', async function () {
+      this.timeout(5000)
+
+      const { domain } = await Agent.environment()
+
+      const config = await Agent.upload({
+        type: 'application/yaml',
+        data: CONFIGURATION_3
+      })
+      const report = uuid()
+
+      await Agent.create({
+        active_type: DOMAIN_CONFIG_TYPE,
+        active: { config, report, domain: 'domain-agent-test.localhost:5112' }
+      })
     })
   })
 }

@@ -82,7 +82,7 @@ export default async function configure({ domain, user, session, scope, patch, s
 export async function applyConfiguration(domain, { postgres, agent }, report) {
   const tasks = []
   if (postgres) tasks.push(() => configurePostgres(domain, postgres, report))
-  if (agent) tasks.push(() => configureAgent(domain, agent, report))
+  if (agent) configureAgent(domain, agent, report)
 
   return Promise.all(tasks.map(t => t()))
 }
@@ -95,6 +95,7 @@ async function configureAgent(domain, agent, report) {
   }
   catch (error) {
     const { message, lineno, colno } = error
+    console.log('AGENT STARTUP ERROR', domain, error)
     report.tasks.agent.push(`ERROR: ${message}\nline: ${lineno}, column: ${colno}`)
   }
 }
