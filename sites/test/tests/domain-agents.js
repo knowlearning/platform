@@ -1,6 +1,7 @@
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
-const endOfReport = id => new Promise(r => Agent.watch(id, u => u.state.end && r()))
+const domainAgentConfigured = id => new Promise(r => Agent.watch(id, u => u.state.tasks?.agent?.[1] === 'done' && r()))
+const domainAgentInitialized = id => new Promise(r => Agent.watch(id, u => u.state.tasks?.agent?.[0] && r()))
 
 export default function () {
   const CONFIGURATION_1 = `
@@ -169,9 +170,7 @@ agent: |
       })
 
       Agent.watch(report, r => console.log(r.state))
-      await endOfReport(report)
-      const r = await Agent.state(report)
-      expect(r.tasks.agent[1]).to.equal('done')
+      await domainAgentConfigured(report)
     })
 
     it('Exposes error message when agent script fails to start', async function () {
@@ -190,7 +189,8 @@ agent: |
         active: { config, report, domain }
       })
 
-      await endOfReport(report)
+      await domainAgentInitialized(report)
+      await new Promise(r => setTimeout(r, 300))
       const r = await Agent.state(report)
       expect(r.tasks.agent[1]).to.equal('ERROR: Uncaught (in promise) Error: Whoopsie!!!\nline: 3, column: 7')
     })
