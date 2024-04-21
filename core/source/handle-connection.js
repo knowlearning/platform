@@ -64,8 +64,7 @@ export default async function handleConnection(connection, domain, sid) {
           heartbeat()
         }
         catch (error) {
-          console.warn('Error sending heartbeat', error)
-          console.log(connection, domain, sid)
+          console.warn('Error sending heartbeat', domain, user, error)
         }
       },
       HEARTBEAT_INTERVAL
