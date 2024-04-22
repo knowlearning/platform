@@ -20,7 +20,8 @@ async function configureDomain(domain, configuration, awaitInitialized) {
 }
 
 export default function () {
-  const specialCrossDomainScopeName = `super-special-scope-name-${Agent.uuid()}`
+  const specialCrossDomainScopeName = `mirror-no-reset/${Agent.uuid()}`
+  const specialCrossDomainReconnectServerScopeName =`mirror-reset/${Agent.uuid()}`
 
   const CONFIGURATION_1 = `
 authorize:
@@ -140,14 +141,23 @@ agent: |
   import Agent, { getAgent } from 'npm:@knowlearning/agents/deno.js'
   import { standardJSONPatch } from 'npm:@knowlearning/patch-proxy'
   import fastJSONPatch from 'npm:fast-json-patch'
+  console.log('DENO STARTING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
   Agent.on('child', child => {
     const { environment: { user } } = child
     child.on('mutate', async mutation => {
-      if (mutation.scope === 'sessions') return
-
-      const myState = await Agent.state(mutation.scope)
-      fastJSONPatch.applyPatch(myState, standardJSONPatch(mutation.patch))
+      if (mutation.scope.startsWith('mirror-no-reset')) {
+        const myState = await Agent.state(mutation.scope)
+        fastJSONPatch.applyPatch(myState, standardJSONPatch(mutation.patch))
+      }
+      else if (mutation.scope.startsWith('mirror-reset')) {
+        const myState = await Agent.state(mutation.scope)
+        fastJSONPatch.applyPatch(myState, standardJSONPatch(mutation.patch))
+        setTimeout(() => {
+          console.log('DENO EXITING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+          Deno.exit()
+        }, 10)
+      }
     })
   })
 
@@ -184,41 +194,6 @@ postgres:
 `
 
 const CONFIGURATION_3 = `
-authorize:
-  sameDomain:
-    postgres: same_domain_authorization
-  crossDomain:
-    postgres: cross_domain_authorization
-postgres:
-  tables: {}
-  scopes: {}
-  functions:
-    same_domain_authorization:
-      returns: BOOLEAN
-      language: PLpgSQL
-      body: |
-        BEGIN
-          RETURN TRUE;
-        END;
-      arguments:
-      - name: requestingUser
-        type: TEXT
-      - name: requestedScope
-        type: TEXT
-    cross_domain_authorization:
-      returns: BOOLEAN
-      language: PLpgSQL
-      body: |
-        BEGIN
-          RETURN TRUE;
-        END;
-      arguments:
-      - name: requestingDomain
-        type: TEXT
-      - name: requestingUser
-        type: TEXT
-      - name: requestedScope
-        type: TEXT
 agent: |
   import Agent, { getAgent } from 'npm:@knowlearning/agents/deno.js'
 
@@ -235,6 +210,30 @@ agent: |
   const agentState = await TestAgent.state(scopeNameToMirror, agentDomain, agentDomain)
 
   myState.success = agentState.x === 100
+`
+
+
+const CONFIGURATION_4 = `
+agent: |
+  import Agent, { getAgent } from 'npm:@knowlearning/agents/deno.js'
+
+  const agentDomain = 'localhost:5112'
+  const TestAgent = getAgent(agentDomain)
+
+  //  Test to see if we can spin up an agent connection to another domain
+  const scopeNameToMirror = "${specialCrossDomainReconnectServerScopeName}"
+  const myState = await TestAgent.state(scopeNameToMirror)
+  myState.x = 100
+
+  await new Promise(r => setTimeout(r, 100))
+
+  myState.x = 200
+
+  await new Promise(r => setTimeout(r, 100))
+
+  const agentState = await TestAgent.state(scopeNameToMirror, agentDomain, agentDomain)
+
+  myState.success = agentState.x === 200
 `
 
   describe('Domain Agent', function () {
@@ -259,7 +258,7 @@ agent: |
       expect(state.tasks.agent[1]).to.equal('ERROR: Uncaught (in promise) Error: Whoopsie!!!\nline: 2, column: 7')
     })
 
-    it('Can establish cross domain agent connections that are resilient against reconnections', async function () {
+    it('Can establish cross domain agent connections', async function () {
       this.timeout(5000)
 
       const { domain, auth: { user } } = await Agent.environment()
@@ -277,5 +276,24 @@ agent: |
 
       expect(state.success).to.equal(true)
     })
+
+    it('Can establish cross domain agent connections that are resilient against reconnections', async function () {
+      this.timeout(5000)
+
+      const { domain, auth: { user } } = await Agent.environment()
+
+      const remoteDomain = 'domain-agent-test.localhost:5112'
+      await configureDomain(domain, MIRROR_CONFIGURATION)
+      await configureDomain(remoteDomain, CONFIGURATION_4)
+
+      let state = {}
+      while (state.success === undefined) {
+        await pause(100)
+        state = await Agent.state(specialCrossDomainReconnectServerScopeName, remoteDomain, domain)
+      }
+
+      expect(state.success).to.equal(true)
+    })
+
   })
 }
