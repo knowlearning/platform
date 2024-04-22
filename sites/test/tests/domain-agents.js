@@ -4,6 +4,22 @@ const domainAgentConfigured = id => new Promise(r => Agent.watch(id, u => u.stat
 const domainAgentInitialized = id => new Promise(r => Agent.watch(id, u => u.state.tasks?.agent?.[0] && r()))
 
 
+async function configureDomain(domain, configuration) {
+  const config = await Agent.upload({
+    type: 'application/yaml',
+    data: configuration
+  })
+  const report = uuid()
+
+  await Agent.create({
+    active_type: DOMAIN_CONFIG_TYPE,
+    active: { config, report, domain }
+  })
+
+  await domainAgentInitialized(report)
+  return report
+}
+
 export default function () {
   const specialCrossDomainScopeName = `super-special-scope-name-${Agent.uuid()}`
 
@@ -168,41 +184,16 @@ agent: |
   describe('Domain Agent', function () {
     it('Configures successfully in a domain', async function () {
       this.timeout(5000)
-
       const { domain } = await Agent.environment()
-
-      const config = await Agent.upload({
-        type: 'application/yaml',
-        data: CONFIGURATION_1
-      })
-      const report = uuid()
-
-      await Agent.create({
-        active_type: DOMAIN_CONFIG_TYPE,
-        active: { config, report, domain }
-      })
-
-      Agent.watch(report, r => console.log(r.state))
-      await domainAgentConfigured(report)
+      await configureDomain(domain, CONFIGURATION_1)
     })
 
     it('Exposes error message when agent script fails to start', async function () {
       this.timeout(5000)
 
       const { domain } = await Agent.environment()
+      const report = await configureDomain(domain, CONFIGURATION_2)
 
-      const config = await Agent.upload({
-        type: 'application/yaml',
-        data: CONFIGURATION_2
-      })
-      const report = uuid()
-
-      await Agent.create({
-        active_type: DOMAIN_CONFIG_TYPE,
-        active: { config, report, domain }
-      })
-
-      await domainAgentInitialized(report)
       await new Promise(r => setTimeout(r, 300))
       const r = await Agent.state(report)
       expect(r.tasks.agent[1]).to.equal('ERROR: Uncaught (in promise) Error: Whoopsie!!!\nline: 3, column: 7')
@@ -211,27 +202,11 @@ agent: |
     it('Can establish cross domain agent connections that are resilient against reconnections', async function () {
       this.timeout(5000)
 
-      const { domain } = await Agent.environment()
-
-      const config = await Agent.upload({
-        type: 'application/yaml',
-        data: CONFIGURATION_3
-      })
-
-      const report = uuid()
       const remoteDomain = 'domain-agent-test.localhost:5112'
-
-      await Agent.create({
-        active_type: DOMAIN_CONFIG_TYPE,
-        active: { config, report, domain: remoteDomain }
-      })
-
-      await domainAgentInitialized(report)
+      await configureDomain(remoteDomain, CONFIGURATION_3)
 
       await pause(500)
-
       const state = await Agent.state(specialCrossDomainScopeName)
-
       expect(state.success).to.equal(true)
     })
   })
