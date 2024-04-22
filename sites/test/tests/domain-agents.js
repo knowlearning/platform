@@ -155,8 +155,8 @@ agent: |
         fastJSONPatch.applyPatch(myState, standardJSONPatch(mutation.patch))
         setTimeout(() => {
           console.log('DENO EXITING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-          Deno.exit()
-        }, 10)
+          throw new Error('EXITING WITH ERROR!!!!!!!!!!')
+        })
       }
     })
   })
@@ -229,7 +229,7 @@ agent: |
 
   myState.x = 200
 
-  await new Promise(r => setTimeout(r, 100))
+  await new Promise(r => setTimeout(r, 200))
 
   const agentState = await TestAgent.state(scopeNameToMirror, agentDomain, agentDomain)
 

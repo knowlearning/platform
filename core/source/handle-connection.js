@@ -33,7 +33,7 @@ function reconnection(session) {
 export default async function handleConnection(connection, domain, sid) {
   let user, session, provider, heartbeatTimeout
 
-  const agentPromise = domainAgent(domain).catch(() => null)
+  let agentPromise = domainAgent(domain).catch(() => null)
 
   function close(data=null) {
     if (!user) return
@@ -102,7 +102,18 @@ export default async function handleConnection(connection, domain, sid) {
   }
 
   connection.onmessage = async message => {
-    const agent = await agentPromise
+    let agent = await agentPromise
+
+    if (agent && agent.closed) {
+      agentPromise = domainAgent(domain).catch(() => null)
+      agent = await agentPromise
+      if (agent && user) {
+        // TODO: consider adding param so new agent instance knows
+        //       that this is a reconnection of a previously connected
+        //       and prematurely closed or un-closed session
+        agent.send({ type: 'open', session, data: { user } })
+      }
+    }
 
     if (!user) {
       console.log('GOT MESSAGE FOR CONNECTION WITHOUT USER!!!!!!!!!!!', message)
