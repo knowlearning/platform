@@ -3,7 +3,10 @@ const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 const domainAgentConfigured = id => new Promise(r => Agent.watch(id, u => u.state.tasks?.agent?.[1] === 'done' && r()))
 const domainAgentInitialized = id => new Promise(r => Agent.watch(id, u => u.state.tasks?.agent?.[0] && r()))
 
+
 export default function () {
+  const specialCrossDomainScopeName = `super-special-scope-name-${Agent.uuid()}`
+
   const CONFIGURATION_1 = `
 authorize:
   sameDomain:
@@ -145,11 +148,21 @@ postgres:
   scopes: {}
   functions: {}
 agent: |
-  import Agent from 'npm:@knowlearning/agents/deno.js'
+  import Agent, { getAgent } from 'npm:@knowlearning/agents/deno.js'
 
-  console.log('AGENT CONFIGURED????')
+  const agentDomain = 'localhost:5112'
+  const TestAgent = getAgent(agentDomain)
 
-  console.log('AGENT CONNECTED?', await Agent.environment())
+  //  Test to see if we can spin up an agent connection to another domain
+  cosnt scopeNameToMirror = "${specialCrossDomainScopeName}"
+  const myState = TestAgent.state(scopeNameToMirror)
+  myState.x = 100
+
+  await new Promise(r => setTimeout(r, 100))
+
+  const agentState = await Agent.state(scopeNameToMirror, agentDomain, agentDomain)
+
+  myState.success = agentState.x === 100
 `
 
   describe('Domain Agent', function () {
@@ -204,12 +217,22 @@ agent: |
         type: 'application/yaml',
         data: CONFIGURATION_3
       })
+
       const report = uuid()
+      const remoteDomain = 'domain-agent-test.localhost:5112'
 
       await Agent.create({
         active_type: DOMAIN_CONFIG_TYPE,
-        active: { config, report, domain: 'domain-agent-test.localhost:5112' }
+        active: { config, report, domain: remoteDomain }
       })
+
+      await domainAgentInitialized(report)
+
+      await pause(500)
+
+      const state = await Agent.state(specialCrossDomainScopeName)
+
+      expect(state.success).to.equal(true)
     })
   })
 }
