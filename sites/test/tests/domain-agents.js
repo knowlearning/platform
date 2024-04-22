@@ -252,7 +252,7 @@ agent: |
 
       await new Promise(r => setTimeout(r, 300))
       const r = await Agent.state(report)
-      expect(r.tasks.agent[1]).to.equal('ERROR: Uncaught (in promise) Error: Whoopsie!!!\nline: 3, column: 7')
+      expect(r.tasks.agent[1]).to.equal('ERROR: Uncaught (in promise) Error: Whoopsie!!!\nline: 2, column: 7')
     })
 
     it('Can establish cross domain agent connections that are resilient against reconnections', async function () {
