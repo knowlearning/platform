@@ -250,9 +250,13 @@ agent: |
       const { domain } = await Agent.environment()
       const report = await configureDomain(domain, CONFIGURATION_2, true)
 
-      await new Promise(r => setTimeout(r, 300))
-      const r = await Agent.state(report)
-      expect(r.tasks.agent[1]).to.equal('ERROR: Uncaught (in promise) Error: Whoopsie!!!\nline: 2, column: 7')
+      let state = {}
+
+      while (!state.tasks?.agent?.[1]) {
+        await pause(100)
+        state = await Agent.state(report)
+      }
+      expect(state.tasks.agent[1]).to.equal('ERROR: Uncaught (in promise) Error: Whoopsie!!!\nline: 2, column: 7')
     })
 
     it('Can establish cross domain agent connections that are resilient against reconnections', async function () {
