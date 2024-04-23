@@ -2,11 +2,10 @@
   <div v-if="!state.auth?.provider">loading...</div>
   <div v-else-if="state.auth?.provider === 'anonymous'">
     <Button
-      prepend-icon="fa-solid fa-right-to-bracket"
+      icon="pi pi-sign-in"
       @click="login"
-    >
-      login
-    </Button>
+      label="login"
+    />
   </div>
   <div v-else>
     <MenuBar>
@@ -15,10 +14,9 @@
       <template #end>
         <Button
           @click="logout"
-          icon="pi pi-imes"
-        >
-          Logout
-        </Button>
+          icon="pi pi-sign-out"
+          label="Logout"
+        />
         <Avatar
           shape="circle"
           :image="state.auth.info.picture"
@@ -30,16 +28,15 @@
         <ul>
           <li
             v-for="info, id in state.library"
-            :value="id"
-            :text="id"
+            :key="id"
             @click="router.push(props.id === id ? '/' : `/edit/${id}`)"
           >
             <vueScopeComponent :id="id" :path="['name']" />
             <Button
-              v-if="selected.includes(id)"
-              icon="fa-solid fa-xmark"
-              variant="plain"
+              v-if="selected === id"
+              icon="pi pi-times"
               @click.stop="() => {
+                selected = id
                 delete state.library[id]
                 router.push('/')
               }"
@@ -49,9 +46,8 @@
         <Button
           @click="createNewEmbedding"
           icon="pi pi-plus"
-        >
-          Create New Embedding
-        </Button>
+          label="Create New Embedding"
+        />
       </SplitterPanel>
       <SplitterPanel>
         <EmbeddingEditor
@@ -85,7 +81,7 @@
     library: null
   })
   const embeddingImageURL = ref(null)
-  const selected = ref([props.id])
+  const selected = ref(props.id)
 
   watch(() => state.embedding?.picture, async () => {
     const picture = state.embedding?.picture

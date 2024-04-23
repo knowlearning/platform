@@ -21,16 +21,14 @@
     />
     <Button
       @click="uploadCardImage"
-      class="mt-4"
-      prepend-icon="fa-solid fa-upload"
-      block
-    >
-      Upload Card Image
-    </Button>
+      icon="pi pi-upload"
+      label="Upload Card Image"
+    />
     <Button
       icon="pi pi-play"
+      label="Preview"
       @click="router.push(`/${props.id}`)"
-    >Preview</Button>
+    />
   </div>
 </template>
 
