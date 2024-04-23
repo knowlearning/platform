@@ -21,7 +21,7 @@ Immediately removes all authentication credentials and reloads the application.
 
 Returned string is a new [UUID](https://developer.mozilla.org/en-US/docs/Glossary/UUID).
 
-## state(id: string, user: OPTIONAL string) &rarr; Promise&lt;Object&gt;
+## state(id: string, user: OPTIONAL string, domain: OPTIONAL string) &rarr; Promise&lt;Object&gt;
 The ```id``` argument can be a string containing one of the following:
 
 * A UUID that uniquely identifies the requested state.
@@ -36,10 +36,10 @@ You can supply the optional ```user``` parameter, if you want to watch another u
 
 !!! note
 
-    There is no need to supply the ```user``` parameter if you are using a uuid reference,
-    since the system will already know what user owns the uuid in question.
+    There is no need to supply the ```user``` or ```domain``` parameters if you are using a uuid reference.
+    The system already knows what user owns and which domain contains the uuid in question.
 
-## metadata(id: string, user: OPTIONAL string) &rarr; Promise&lt;Object&gt;
+## metadata(id: string, user: OPTIONAL string, domain: OPTIONAL string) &rarr; Promise&lt;Object&gt;
 The ```id``` argument can be a string containing one of the following:
 
 * A UUID that uniquely identifies the requested state.
@@ -63,7 +63,7 @@ Here is an example metadata object:
 
 The ```ii``` field is the counter for how many updates have been made to the state. It stands for "interaction index."
 
-## watch(id: string, callback: function, user: OPTIONAL string)
+## watch(id: string, callback: function, user: OPTIONAL string, domain: OPTIONAL string)
 
 The callback function will be called whenever an update is applied to the state for ```id```.
 If you want to set up a watcher for a user's named scope, supply the name for ```id```.
