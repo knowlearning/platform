@@ -1,47 +1,41 @@
 <template>
   <div v-if="!state.auth?.provider">loading...</div>
   <div v-else-if="state.auth?.provider === 'anonymous'">
-    <v-btn
+    <Button
       prepend-icon="fa-solid fa-right-to-bracket"
       @click="login"
     >
       login
-    </v-btn>
+    </Button>
   </div>
-  <v-app v-else>
-    <v-app-bar
-      color="primary"
-      prominent
-    >
-      <v-app-bar-nav-icon
-        variant="text"
-        @click.stop="drawer = !drawer"
-      />
-      <v-toolbar-title>Embed</v-toolbar-title>
-      <v-btn
-        @click="logout"
-        append-icon="fa-solid fa-arrow-right-from-bracket"
-      >
-        Logout
-      </v-btn>
-      <v-avatar
-        class="ms-4 me-4"
-        :image="state.auth.info.picture"
-      />
-    </v-app-bar>
-    <v-navigation-drawer
-      v-model="drawer"
-    >
-      <v-list v-model:selected="selected">
-        <v-list-item
-          v-for="info, id in state.library"
-          :value="id"
-          :text="id"
-          @click="router.push(props.id === id ? '/' : `/edit/${id}`)"
+  <div v-else>
+    <MenuBar>
+      <template #start>
+      </template>
+      <template #end>
+        <Button
+          @click="logout"
+          icon="pi pi-imes"
         >
-          <vueScopeComponent :id="id" :path="['name']" />
-          <template v-slot:append>
-            <v-btn
+          Logout
+        </Button>
+        <Avatar
+          shape="circle"
+          :image="state.auth.info.picture"
+        />
+      </template>
+    </MenuBar>
+    <Splitter>
+      <SplitterPanel>
+        <ul>
+          <li
+            v-for="info, id in state.library"
+            :value="id"
+            :text="id"
+            @click="router.push(props.id === id ? '/' : `/edit/${id}`)"
+          >
+            <vueScopeComponent :id="id" :path="['name']" />
+            <Button
               v-if="selected.includes(id)"
               icon="fa-solid fa-xmark"
               variant="plain"
@@ -50,29 +44,24 @@
                 router.push('/')
               }"
             />
-          </template>
-        </v-list-item>
-      </v-list>
-      <template v-slot:append>
-        <v-btn
+          </li>
+        </ul>
+        <Button
           @click="createNewEmbedding"
-          block
+          icon="pi pi-plus"
         >
-          <template v-slot:prepend>
-            <v-icon icon="fa-solid fa-plus" />
-          </template>
           Create New Embedding
-        </v-btn>
-      </template>
-    </v-navigation-drawer>
-    <v-main>
-      <EmbeddingEditor
-        v-if="props.id"
-        :key="props.id"
-        :id="props.id"
-      />
-    </v-main>
-  </v-app>
+        </Button>
+      </SplitterPanel>
+      <SplitterPanel>
+        <EmbeddingEditor
+          v-if="props.id"
+          :key="props.id"
+          :id="props.id"
+        />
+      </SplitterPanel>
+    </Splitter>
+  </div>
 </template>
 
 <script setup>
@@ -81,6 +70,11 @@
   import { v4 as uuid } from 'uuid'
   import { vueScopeComponent } from '@knowlearning/agents/vue.js'
   import EmbeddingEditor from './embedding-editor.vue'
+  import Button from 'primevue/button'
+  import MenuBar from 'primevue/menubar'
+  import Avatar from 'primevue/avatar'
+  import Splitter from 'primevue/splitter'
+  import SplitterPanel from 'primevue/splitterpanel'
 
   const props = defineProps(['id'])
   const router = useRouter()

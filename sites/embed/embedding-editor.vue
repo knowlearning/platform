@@ -1,35 +1,45 @@
 <template>
-  <v-container>
-    <v-form>
-      <v-text-field v-model="embedding.name" label="Name" />
-      <v-text-field v-model="embedding.id" label="UUID or URL" />
-      <v-img
-        :key="embedding.picture"
-        style="max-height: 128px"
-        :src="embeddingImageURL"
+  <div>
+    <FloatLabel>
+      <InputText
+        id="embedding-name"
+        v-model="embedding.name"
       />
-      <v-btn
-        @click="uploadCardImage"
-        class="mt-4"
-        prepend-icon="fa-solid fa-upload"
-        block
-      >
-        Upload Card Image
-      </v-btn>
-      <v-btn
-        append-icon="fa-solid fa-play"
-        class="mt-4"
-        text="Preview"
-        @click="router.push(`/${props.id}`)"
-        block
+      <label for="embedding-name">Name</label>
+    </FloatLabel>
+    <FloatLabel>
+      <InputText
+        id="embedding-id"
+        v-model="embedding.id"
       />
-    </v-form>
-  </v-container>
+      <label for="embedding-id">UUID or URL</label>
+    </FloatLabel>
+    <img
+      :key="embedding.picture"
+      style="max-height: 128px"
+      :src="embeddingImageURL"
+    />
+    <Button
+      @click="uploadCardImage"
+      class="mt-4"
+      prepend-icon="fa-solid fa-upload"
+      block
+    >
+      Upload Card Image
+    </Button>
+    <Button
+      icon="pi pi-play"
+      @click="router.push(`/${props.id}`)"
+    >Preview</Button>
+  </div>
 </template>
 
 <script setup>
   import { ref, reactive, watch } from 'vue'
   import { useRouter } from 'vue-router'
+  import Button from 'primevue/button'
+  import InputText from 'primevue/inputtext'
+  import FloatLabel from 'primevue/floatlabel'
 
   const router = useRouter()
   const props = defineProps(['id'])

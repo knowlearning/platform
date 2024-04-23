@@ -6,6 +6,7 @@
     <vueEmbedComponent
       :key="embedding.id"
       :id="embedding.id"
+      @close="handleClose"
     />
   </div>
   <div v-else>
@@ -15,11 +16,18 @@
 
 <script setup>
   import { ref } from 'vue'
+  import { useRouter } from 'vue-router'
   import { vueEmbedComponent } from '@knowlearning/agents/vue.js'
 
+  const router = useRouter()
   const props = defineProps(['id'])
 
   const embedding = ref(await Agent.state(props.id))
+
+  function handleClose(info) {
+    console.log('INFO!!!', info)
+    router.push(`/edit/${props.id}`)
+  }
 </script>
 
 <style scoped>
