@@ -38,8 +38,8 @@ function createConnection(worker, id) {
       else postMessage(message)
     },
     close() {
-      // TODO: clean up worker if domain main domain connection closed...
       console.warn('WORKER CLOSED THROUGH CONNECTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+      worker.terminate()
     }
   }
 }
@@ -53,7 +53,16 @@ line: ${error.lineno}, column: ${error.colno}
 export default function domainAgent(domain, refresh=false) {
   let mainConnection = null
 
-  if (DomainAgents[domain] && !refresh) return DomainAgents[domain]
+  if (DomainAgents[domain]) {
+    if (!refresh) return DomainAgents[domain]
+
+    DomainAgents[domain]
+      .then(agent => {
+        agent.closed = true
+        agent.onclose?.()
+        agent.close()
+      })
+  }
 
   DomainAgents[domain] = new Promise(async (resolve, reject) => {
     const config = await configuration(domain)
@@ -95,9 +104,11 @@ export default function domainAgent(domain, refresh=false) {
         //  remove domain agent from rotation so it will be reinitialized on next ask
         //  TODO: consider what to do with connections using errored domain agent
         delete DomainAgents[domain]
+
         if (mainConnection) {
           mainConnection.closed = true
           mainConnection.onclose?.()
+          mainConnection.close()
         }
       }
 

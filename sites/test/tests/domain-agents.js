@@ -143,8 +143,17 @@ agent: |
   import fastJSONPatch from 'npm:fast-json-patch'
   console.log('DENO STARTING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
+  const serverId = Agent.uuid()
+
   Agent.on('child', child => {
     const { environment: { user } } = child
+    Agent
+      .state('child-connections-' + user)
+      .then(state => {
+        if (!state.connections) state.connections = []
+        state.connections.push({ user, serverId })
+      })
+
     child.on('mutate', async mutation => {
       if (mutation.scope.startsWith('mirror-no-reset')) {
         const myState = await Agent.state(mutation.scope)
@@ -210,6 +219,11 @@ agent: |
   const agentState = await TestAgent.state(scopeNameToMirror, agentDomain, agentDomain)
 
   myState.success = agentState.x === 100
+
+  // set up ping to ensure connections to TestAgent connect
+  const ping = await TestAgent.state('ping')
+  ping.num = 0
+  setInterval(() => ping.num += 1, 250)
 `
 
 
@@ -265,7 +279,7 @@ agent: |
 
       const remoteDomain = 'domain-agent-test.localhost:5112'
       await configureDomain(domain, MIRROR_CONFIGURATION)
-      await configureDomain(remoteDomain, CONFIGURATION_3)
+      await configureDomain(remoteDomain, CONFIGURATION_3 + ' ')
 
       let state = {}
 
@@ -293,6 +307,35 @@ agent: |
       }
 
       expect(state.success).to.equal(true)
+    })
+
+    it('Connects to most recently deployed third party domain', async function () {
+      this.timeout(5000)
+
+      const { domain, auth: { user } } = await Agent.environment()
+      const remoteDomain = 'domain-agent-test.localhost:5112'
+
+      const childConnectionScope = `child-connections-${remoteDomain}`
+      const { connections } = await Agent.state(childConnectionScope, domain, domain)
+      const initialConnections = connections?.length || 0
+
+      await configureDomain(remoteDomain, CONFIGURATION_3)
+      await pause(1000)
+      await configureDomain(domain, MIRROR_CONFIGURATION)
+      await pause(100)
+      // reconfigure to force reconnection
+      await configureDomain(domain, MIRROR_CONFIGURATION)
+
+      let nextConnections
+
+      while (!nextConnections || nextConnections.length < initialConnections + 2) {
+        await pause(100)
+        nextConnections = (await Agent.state(childConnectionScope, domain, domain)).connections
+      }
+
+      const a = nextConnections.pop()
+      const b = nextConnections.pop()
+      expect(a.serverId).to.not.equal(b.serverId)
     })
 
   })
