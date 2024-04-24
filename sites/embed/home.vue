@@ -33,10 +33,9 @@
           >
             <vueScopeComponent :id="id" :path="['name']" />
             <Button
-              v-if="selected === id"
+              v-if="props.id === id"
               icon="pi pi-times"
               @click.stop="() => {
-                selected = id
                 delete state.library[id]
                 router.push('/')
               }"
@@ -81,7 +80,6 @@
     library: null
   })
   const embeddingImageURL = ref(null)
-  const selected = ref(props.id)
 
   watch(() => state.embedding?.picture, async () => {
     const picture = state.embedding?.picture
