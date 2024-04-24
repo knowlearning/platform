@@ -24,7 +24,7 @@
       </template>
     </MenuBar>
     <Splitter>
-      <SplitterPanel>
+      <SplitterPanel :size="25">
         <ul>
           <li
             v-for="info, id in state.library"
@@ -49,7 +49,7 @@
           label="Create New Embedding"
         />
       </SplitterPanel>
-      <SplitterPanel>
+      <SplitterPanel :size="75">
         <EmbeddingEditor
           v-if="props.id"
           :key="props.id"

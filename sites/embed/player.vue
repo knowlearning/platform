@@ -28,9 +28,14 @@
       </SplitterPanel>
       <SplitterPanel :size="25">
         <Button
-          icon="pi pi-reload"
+          icon="pi pi-replay"
           label="Reload"
           @click="reload"
+        />
+        <Button
+          icon="pi pi-pencil"
+          label="Edit"
+          @click="router.push(`/edit/${props.id}`)"
         />
         <ul class="m-0 p-0 list-none border-1 surface-border border-round p-3 flex flex-column gap-2 w-full md:w-30rem">
           <li
