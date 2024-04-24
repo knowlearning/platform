@@ -4,10 +4,52 @@
     v-if="embedding.id"
   >
     <vueEmbedComponent
+      v-if="embedded"
       :key="embedding.id"
       :id="embedding.id"
       @close="handleClose"
     />
+    <Splitter
+      v-else
+      style="height: 100%"
+      @resizestart="resizing=true"
+      @resizeend="resizing=false"
+    >
+      <SplitterPanel :size="75">
+        <vueEmbedComponent
+          :style="{
+            'pointer-events': resizing ? 'none' : ''
+          }"
+          :key="`${embedding.id}/${lastLoad}`"
+          :id="embedding.id"
+          @state="handleState"
+          @close="handleClose"
+        />
+      </SplitterPanel>
+      <SplitterPanel :size="25">
+        <Button
+          icon="pi pi-reload"
+          label="Reload"
+          @click="reload"
+        />
+        <ul class="m-0 p-0 list-none border-1 surface-border border-round p-3 flex flex-column gap-2 w-full md:w-30rem">
+          <li
+              v-for="{ scope, user, domain } in states"
+              :key="scope"
+          >
+            <div>
+              <span>{{ scope }} {{ user }} {{ domain }}</span>
+            </div>
+            scope:
+            <pre><vueScopeComponent
+              :id="scope"
+              :user="user"
+              :domain="domain"
+            /></pre>
+          </li>
+        </ul>
+      </SplitterPanel>
+    </Splitter>
   </div>
   <div v-else>
     No content has been embedded here! {{ embedding.id }}
@@ -15,18 +57,34 @@
 </template>
 
 <script setup>
-  import { ref } from 'vue'
+  import { ref, reactive } from 'vue'
   import { useRouter } from 'vue-router'
-  import { vueEmbedComponent } from '@knowlearning/agents/vue.js'
+  import { vueEmbedComponent, vueScopeComponent } from '@knowlearning/agents/vue.js'
+  import Button from 'primevue/button'
+  import Splitter from 'primevue/splitter'
+  import SplitterPanel from 'primevue/splitterpanel'
 
   const router = useRouter()
   const props = defineProps(['id'])
+  const resizing = ref(false)
+  const states = reactive([])
+  const lastLoad = ref(Date.now())
 
+  const embedded = Agent.embedded
   const embedding = ref(await Agent.state(props.id))
+
+  function handleState(info) {
+    states.push(info)
+  }
 
   function handleClose(info) {
     console.log('INFO!!!', info)
     router.push(`/edit/${props.id}`)
+  }
+
+  function reload() {
+    states.splice(0, states.length)
+    lastLoad.value = Date.now()
   }
 </script>
 
@@ -45,4 +103,5 @@
     display: block;
     margin: 0;
   }
+
 </style>
