@@ -27,32 +27,34 @@
         />
       </SplitterPanel>
       <SplitterPanel :size="25">
-        <Button
-          icon="pi pi-replay"
-          label="Reload"
-          @click="reload"
-        />
-        <Button
-          icon="pi pi-pencil"
-          label="Edit"
-          @click="router.push(`/edit/${props.id}`)"
-        />
-        <ul class="m-0 p-0 list-none border-1 surface-border border-round p-3 flex flex-column gap-2 w-full md:w-30rem">
-          <li
-              v-for="{ scope, user, domain } in states"
-              :key="scope"
-          >
-            <div>
-              <span>{{ scope }} {{ user }} {{ domain }}</span>
-            </div>
-            scope:
-            <pre><vueScopeComponent
-              :id="scope"
-              :user="user"
-              :domain="domain"
-            /></pre>
-          </li>
-        </ul>
+        <div style="height: 100%; overflow: scroll;">
+          <Button
+            icon="pi pi-replay"
+            label="Reload"
+            @click="reload"
+          />
+          <Button
+            icon="pi pi-pencil"
+            label="Edit"
+            @click="router.push(`/edit/${props.id}`)"
+          />
+          <ul class="m-0 p-0 list-none border-1 surface-border border-round p-3 flex flex-column gap-2 w-full md:w-30rem">
+            <li
+                v-for="{ scope, user, domain } in states"
+                :key="scope"
+            >
+              <div>
+                <span>{{ scope }} {{ user }} {{ domain }}</span>
+              </div>
+              scope:
+              <pre><vueScopeComponent
+                :id="scope"
+                :user="user"
+                :domain="domain"
+              /></pre>
+            </li>
+          </ul>
+        </div>
       </SplitterPanel>
     </Splitter>
   </div>
@@ -79,7 +81,8 @@
   const embedding = ref(await Agent.state(props.id))
 
   function handleState(info) {
-    states.push(info)
+    const existing = states.find(s => info.scope === s.scope && info.user === s.user && info.domain === s.domain)
+    if (!existing) states.push(info)
   }
 
   function handleClose(info) {
