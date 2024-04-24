@@ -17,6 +17,9 @@ dependencies:
   fast-json-patch:
     specifier: ^3.1.1
     version: 3.1.1
+  primeflex:
+    specifier: ^3.3.1
+    version: 3.3.1
   primeicons:
     specifier: ^7.0.0
     version: 7.0.0
@@ -568,6 +571,10 @@ packages:
       nanoid: 3.3.7
       picocolors: 1.0.0
       source-map-js: 1.2.0
+    dev: false
+
+  /primeflex@3.3.1:
+    resolution: {integrity: sha512-zaOq3YvcOYytbAmKv3zYc+0VNS9Wg5d37dfxZnveKBFPr7vEIwfV5ydrpiouTft8MVW6qNjfkaQphHSnvgQbpQ==}
     dev: false
 
   /primeicons@7.0.0:

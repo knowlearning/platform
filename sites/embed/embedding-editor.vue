@@ -1,5 +1,6 @@
 <template>
   <div>
+    <div class="spacer" />
     <FloatLabel>
       <InputText
         id="embedding-name"
@@ -7,6 +8,7 @@
       />
       <label for="embedding-name">Name</label>
     </FloatLabel>
+    <div class="spacer" />
     <FloatLabel>
       <InputText
         id="embedding-id"
@@ -62,3 +64,10 @@
   }
 
 </script>
+
+<style scoped>
+  .spacer
+  {
+    height: 32px;
+  }
+</style>

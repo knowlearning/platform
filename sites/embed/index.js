@@ -4,6 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import PrimeVue from 'primevue/config'
 import 'primevue/resources/themes/aura-light-green/theme.css'
 import 'primeicons/primeicons.css'
+import 'primeflex/primeflex.css'
 
 import Main from './index.vue'
 import Home from './home.vue'
