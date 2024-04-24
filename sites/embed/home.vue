@@ -31,7 +31,7 @@
             :key="id"
             @click="router.push(props.id === id ? '/' : `/edit/${id}`)"
             draggable="true"
-            @dragstart="$event.dataTransfer.setData('text', props.id)"
+            @dragstart="$event.dataTransfer.setData('text', id)"
           >
             <vueScopeComponent :id="id" :path="['name']" />
             <Button
