@@ -30,6 +30,8 @@
             v-for="info, id in state.library"
             :key="id"
             @click="router.push(props.id === id ? '/' : `/edit/${id}`)"
+            draggable="true"
+            @dragstart="$event.dataTransfer.setData('text', props.id)"
           >
             <vueScopeComponent :id="id" :path="['name']" />
             <Button
