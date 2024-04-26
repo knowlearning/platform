@@ -27,4 +27,5 @@ export interface Agent {
   synced(): Promise<void>;
 }
 
-export default Agent;
+const agent: Agent;
+export default agent;
