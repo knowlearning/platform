@@ -48,4 +48,4 @@ If you are unsure whether an incident is a violation, or whether the space where
 
 ## Attribution
 
-This Code of Conduct is adapted from [auth0's](https://github.com/auth0/open-source-template/blob/master/CODE-OF-CONDUCT.md).
+This Code of Conduct is adapted from [auth0's](https://github.com/auth0/open-source-template/blob/151434cc34b82eb6691f6b34784d513f2aa703b0/CODE-OF-CONDUCT.md).
