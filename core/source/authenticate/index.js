@@ -244,10 +244,16 @@ async function coreVerfication(token, resolve, reject) {
 
           const kio = decoded['kubernetes.io']
           const provider_id = kio.serviceaccount.name
-          const existingUser = await getExistingUser('core', provider_id)
-          const user = existingUser ? existingUser.id : uuid()
-          const info = { name: provider_id, picture: null }
-          resolve({ provider: 'core', provider_id, user, info })
+          try {
+            const existingUser = await getExistingUser('core', provider_id)
+            const user = existingUser ? existingUser.id : uuid()
+            const info = { name: provider_id, picture: null }
+            resolve({ provider: 'core', provider_id, user, info })
+          }
+          catch (existingUserError) {
+            console.warn('EXISTING USER ERROR', existingUserError)
+            reject(existingUserError)
+          }
         })
       })
     })
@@ -309,10 +315,16 @@ async function JWTVerification(client_id, client_secret, token_uri, token, resol
 
     if (passTokenChallenge(provider, decoded)) {
       const provider_id = decoded.sub
-      const existingUser = await getExistingUser(provider, provider_id)
-      const user = existingUser ? existingUser.id : uuid()
-      const { name, picture } = decoded
-      resolve({ provider, provider_id, user, info: { name, picture } })
+      try {
+        const existingUser = await getExistingUser(provider, provider_id)
+        const user = existingUser ? existingUser.id : uuid()
+        const { name, picture } = decoded
+        resolve({ provider, provider_id, user, info: { name, picture } })
+      }
+      catch (existingUserError) {
+        console.warn('EXISTING USER ERROR', existingUserError)
+        reject('Issue Fetching Existing User')
+      }
     }
     else {
       console.warn('JWT Expectation Failed', error)
