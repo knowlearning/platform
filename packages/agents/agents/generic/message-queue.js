@@ -8,7 +8,7 @@ function activePatch(patch) {
   return structuredClone(patch).filter(({ path }) => 'active' === path.shift())
 }
 
-export default function messageQueue({ token, domain, Connection, watchers, states, applyPatch, log, login, reboot, handleDomainMessage, trigger }) {
+export default function messageQueue({ token, sid, domain, Connection, watchers, states, applyPatch, log, login, reboot, handleDomainMessage, trigger }) {
   let connection
   let user
   let authed = false
@@ -115,7 +115,7 @@ export default function messageQueue({ token, domain, Connection, watchers, stat
       if (!sessionMetrics.connected) sessionMetrics.connected = Date.now()
       log('AUTHORIZING NEWLY OPENED CONNECTION FOR SESSION:', session)
       failedConnections = 0
-      connection.send({ token: await token(), session, domain })
+      connection.send({ token: await token(), sid: await sid?.(), session, domain })
     }
 
     connection.onmessage = async message => {

@@ -11,13 +11,32 @@ function isLocal() { return localStorage.getItem('api') === 'local' }
 
 const API_HOST = isLocal() ? DEVELOPMENT_HOST : REMOTE_HOST
 
-//  TODO: remove this hack when we can set sid cookie through websocket handshake
+//  TODO: remove this hack when we can set partitioned sid cookie through websocket handshake
+//        deno is partly in the way on teh set side, and browser support is in the way for
+//        the client side.
 fetch(`http${ SECURE ? 's' : '' }://${API_HOST}/_sid-check`, { method: 'GET', credentials: 'include' })
-  .then(response => response.status === 201 && location.reload())
+  .then(async response => {
+    const hasLocalStorageSID = !!localStorage.getItem('sid')
+    if (response.status === 201) {
+      if (!hasLocalStorageSID) {
+        const sentSid = await response.text()
+        localStorage.setItem('sid', sentSid)
+        location.reload()
+      }
+    }
+    else if (response.status === 200) {
+      //  if we reach here, assumably the server has seen an sid cookie
+      if (hasLocalStorageSID) {
+        localStorage.removeItem('sid')
+        location.reload()
+      }
+    }
+    else {
+      console.warn('Issue Connecting To the API Server')
+    }
+  })
 
 export default options => {
-  const { host } = window.location
-
   const Connection = function () {
     const ws = new WebSocket(`ws${ SECURE ? 's' : '' }://${API_HOST}`)
 
@@ -37,6 +56,7 @@ export default options => {
 
   const agent = GenericAgent({
     token: options.getToken || getToken,
+    sid: () => localStorage.getItem('sid'),
     domain: window.location.host,
     Connection,
     uuid,

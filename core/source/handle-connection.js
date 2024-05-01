@@ -117,8 +117,8 @@ export default async function handleConnection(connection, domain, sid) {
 
     if (!user) {
       console.log('GOT MESSAGE FOR CONNECTION WITHOUT USER!!!!!!!!!!!', message)
-      try {
-        const authResponse = await authenticate(message, domain, sid)
+      try {  //  default to first message sid if present
+        const authResponse = await authenticate(message, domain, message.sid || sid)
         user = authResponse.user
         provider = authResponse.provider
         session = authResponse.session

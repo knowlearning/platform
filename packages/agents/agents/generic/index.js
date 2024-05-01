@@ -9,11 +9,10 @@ import downloadImplementation from '../download.js'
 //       for resoling default scope in context
 const DEFAULT_SCOPE_NAME = '[]'
 const UPLOAD_TYPE = 'application/json;type=upload'
-const POSTGRES_QUERY_TYPE = 'application/json;type=postgres-query'
 const TAG_TYPE = 'application/json;type=tag'
 const DOMAIN_CLAIM_TYPE = 'application/json;type=domain-claim'
 
-export default function Agent({ Connection, domain, token, uuid, fetch, applyPatch, login, logout, reboot, handleDomainMessage, log:passedLog=console.log }) {
+export default function Agent({ Connection, domain, token, sid, uuid, fetch, applyPatch, login, logout, reboot, handleDomainMessage, log:passedLog=console.log }) {
   const states = {}
   const watchers = {}
   const keyToSubscriptionId = {}
@@ -29,7 +28,7 @@ export default function Agent({ Connection, domain, token, uuid, fetch, applyPat
     reconnect,
     synced,
     environment
-  ] = messageQueue({ token, domain, Connection, watchers, states, applyPatch, log, login, interact, reboot, trigger, handleDomainMessage })
+  ] = messageQueue({ token, sid, domain, Connection, watchers, states, applyPatch, log, login, interact, reboot, trigger, handleDomainMessage })
 
   // initialize session
   environment()

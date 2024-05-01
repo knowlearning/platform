@@ -28,7 +28,7 @@ export default function handleHTTPRequest(request) {
 
   if (newSidCreated) {
     //  TODO: add partitioned when we can (must wait unti we can successfully set sid with ws connection)
-    headers.set('set-cookie', `sid=${sid}; Secure; HttpOnly; SameSite=None; Partitioned`)
+    headers.set('set-cookie', `sid=${sid}; Secure; HttpOnly; SameSite=None; Partitioned;`)
   }
 
   if (request.headers.get("upgrade") != "websocket") {
@@ -39,7 +39,7 @@ export default function handleHTTPRequest(request) {
 
     const isSidCheck = request.url.endsWith('/_sid-check')
     const responseInit = { headers, status: newSidCreated && isSidCheck ? 201 : 200 } // status hack for setting sid cookie since deno websocket responses don't yet set cookie headers
-    return new Response("WebSocket API Available", responseInit)
+    return new Response(newSidCreated && isSidCheck ? sid : 'WebSocket API Available', responseInit)
   }
 
   const { socket, response } = Deno.upgradeWebSocket(request, { idleTimeout: 10, headers })
