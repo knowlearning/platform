@@ -67,6 +67,26 @@ else if (mode === 'EMBEDED_SCOPE_NAMESPACE_TEST_MODE') {
   const s = await Agent.state(scope)
   s.modifiedInEmbed = true
 }
+else if (mode === 'EMBEDED_SCOPE_NAMESPACE_ALLOW_TEST_MODE') {
+  const scope ='some-namespaced-scope-name'
+  const unnamespacedScope = 'this-avoids-namespacing/' + scope
+  Agent.watch(unnamespacedScope, async ({ state: unnamespacedState }) => {
+    if (unnamespacedState.modifiedInEmbed) {
+      Agent.watch(scope, async ({ state: namespacedState }) => {
+      //  TODO: FIX: the namespace is "[object, Object]" since we're allowing a richer namespace object with an allow list
+      console.log('MODIFIED IN EMBED??????', unnamespacedState, namespacedState, await Agent.metadata(scope))
+        if (namespacedState.modified && namespacedState.modifiedInEmbed) Agent.close(JSON.parse(JSON.stringify({
+          unnamespacedState,
+          namespacedState
+        })))
+      })
+      const s = await Agent.state(scope)
+      s.modifiedInEmbed = true
+    }
+  })
+  const s = await Agent.state(unnamespacedScope)
+  s.modifiedInEmbed = true
+}
 else if (mode === 'EMBEDDED_ENVIRONMENT_TEST_MODE') {
   const id = uuid()
   Agent.close(await Agent.environment(id))
