@@ -5,6 +5,12 @@ import selectFile from './select-file.js'
 
 let Agent
 
+function getNamespacedScope(namespace, scope) {
+  const allow = namespace?.allow || []
+  const prefix = typeof namespace === 'string' ? namespace : namespace?.prefix
+  return prefix && !validateUUID(scope) && !allow.some(allowPrefix => scope.startsWith(allowPrefix)) ? `${prefix}/${scope}` : scope
+}
+
 export default function browserAgent(options={}) {
   if (Agent && !options.unique) return Agent
 
@@ -80,16 +86,14 @@ function embed(environment, iframe) {
     }
     else if (type === 'interact') {
       let { scope, patch } = message
-      if (environment.namespace && !validateUUID(scope)) scope = environment.namespace + '/' + scope
-      //  TODO: should use a better approach to instruct agent
-      //        not to generate a tag from this interaction
-      await Agent.interact(scope, patch, false)
-      if (listeners.mutate) listeners.mutate({ scope })
+      const namespacedScope = getNamespacedScope(environment.namespace, scope)
+      await Agent.interact(namespacedScope, patch, false)
+      if (listeners.mutate) listeners.mutate({ scope: namespacedScope })
       sendDown({}) // TODO: might want to send down the interaction index
     }
     else if (type === 'metadata') {
       const { scope, user, domain } = message
-      const namespacedScope = environment.namespace && !validateUUID(scope) ? `${environment.namespace}/${scope}` : scope
+      const namespacedScope = getNamespacedScope(environment.namespace, scope)
 
       sendDown(await Agent.metadata(namespacedScope, user, domain))
     }
@@ -100,7 +104,7 @@ function embed(environment, iframe) {
     }
     else if (type === 'state') {
       const { scope, user, domain } = message
-      const namespacedScope = environment.namespace && !validateUUID(scope) ? `${environment.namespace}/${scope}` : scope
+      const namespacedScope = getNamespacedScope(environment.namespace, scope)
 
       const statePromise = Agent.state(namespacedScope, user, domain)
 
