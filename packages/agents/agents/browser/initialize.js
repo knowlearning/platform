@@ -8,7 +8,6 @@ let Agent
 function getNamespacedScope(namespace, scope) {
   const allow = namespace?.allow || []
   const prefix = typeof namespace === 'string' ? namespace : namespace?.prefix
-  console.log('PREFIX!!!!!!!!!!!!!', prefix, allow)
   return prefix && !validateUUID(scope) && !allow.some(allowPrefix => scope.startsWith(allowPrefix)) ? `${prefix}/${scope}` : scope
 }
 

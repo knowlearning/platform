@@ -69,7 +69,6 @@ export default function latestBugfixes() {
       let updatedNamespaceIncludedReference
       let updatedNamespaceNotIncludedReference
       on('open', async () => {
-        console.log('MODIFIEDDDD', namespaceIncludedReference, await Agent.metadata(`${namespace}/some-namespaced-scope-name`))
         namespaceIncludedReference.modified = true
       })
       on('close', async info => {
