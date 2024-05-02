@@ -83,7 +83,7 @@ export default function latestBugfixes() {
       await done
 
       expect(closeInfo.namespacedState).to.deep.equal(updatedNamespaceIncludedReference)
-      expect(closeInfo.unnamespacedState).to.deep.equal(updatedNamespaceIncludedReference)
+      expect(closeInfo.unnamespacedState).to.deep.equal(updatedNamespaceNotIncludedReference)
     })
   })
 }
