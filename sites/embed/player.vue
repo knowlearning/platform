@@ -88,8 +88,8 @@
   }
 
   function handleClose(info) {
-    console.log('INFO!!!', info)
-    router.push(`/edit/${props.id}`)
+    if (embedded) Agent.close(info)
+    else router.push(`/edit/${props.id}`)
   }
 
   function reload() {
