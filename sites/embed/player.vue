@@ -8,6 +8,7 @@
       :key="embedding.id"
       :id="embedding.id"
       @close="handleClose"
+      allow="camera;microphone;fullscreen"
     />
     <Splitter
       v-else
@@ -17,13 +18,14 @@
     >
       <SplitterPanel :size="75">
         <vueEmbedComponent
-          :style="{
-            'pointer-events': resizing ? 'none' : ''
-          }"
           :key="`${embedding.id}/${lastLoad}`"
           :id="embedding.id"
           @state="handleState"
           @close="handleClose"
+          allow="camera;microphone;fullscreen"
+          :style="{
+            'pointer-events': resizing ? 'none' : ''
+          }"
         />
       </SplitterPanel>
       <SplitterPanel :size="25">
