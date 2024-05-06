@@ -48,14 +48,14 @@ export default function handleHTTPRequest(request) {
     send(message) {
       if (socket.readyState > 1) {
         // bail on send if CLOSED (readyState === 3) **OR** CLOSING (readyState === 2)
-        console.warn(`Send called while socket clos${socket.readyState === 3 ? 'ed' : 'ing'}. readyState === ${socket.readyState}`, domain, message)
+        console.warn(`WebSocket send called while socket clos${socket.readyState === 3 ? 'ed' : 'ing'}. readyState === ${socket.readyState}`, domain, message)
       }
       else socket.send(message ? serialize(message) : '')
     },
     close(error) {
       socketError = error
       if (socket.readyState < 2) socket.close()
-      else console.warn('WebSocket close called after already closed', domain, error)
+      else console.warn(`WebSocket close called while socket clos${socket.readyState === 3 ? 'ed' : 'ing'}. readyState === ${socket.readyState}`, domain, error)
     }
   }
 
