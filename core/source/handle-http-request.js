@@ -44,18 +44,25 @@ export default function handleHTTPRequest(request) {
 
   const { socket, response } = Deno.upgradeWebSocket(request, { idleTimeout: 10, headers })
 
+  let sendOnCloseErrorReported = false
+  let closeOnCloseErrorReported = false
+
   const connection = {
     send(message) {
-      if (socket.readyState > 1) {
-        // bail on send if CLOSED (readyState === 3) **OR** CLOSING (readyState === 2)
+      //  TODO: assess if we should error if sending on readyState !== 1
+      if (socket.readyState < 2) socket.send(message ? serialize(message) : '')
+      else if (!sendOnCloseErrorReported) {
         console.warn(`WebSocket send called while socket clos${socket.readyState === 3 ? 'ed' : 'ing'}. readyState === ${socket.readyState}`, domain, message)
+        sendOnCloseErrorReported = true
       }
-      else socket.send(message ? serialize(message) : '')
     },
     close(error) {
       socketError = error
       if (socket.readyState < 2) socket.close()
-      else console.warn(`WebSocket close called while socket clos${socket.readyState === 3 ? 'ed' : 'ing'}. readyState === ${socket.readyState}`, domain, error)
+      else if (!closeOnCloseErrorReported) {
+        console.warn(`WebSocket close called while socket clos${socket.readyState === 3 ? 'ed' : 'ing'}. readyState === ${socket.readyState}`, domain, error)
+        closeOnCloseErrorReported = true
+      }
     }
   }
 
