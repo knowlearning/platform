@@ -243,7 +243,7 @@ agent: |
 
   myState.x = 200
 
-  await new Promise(r => setTimeout(r, 200))
+  await new Promise(r => setTimeout(r, 400))
 
   const agentState = await TestAgent.state(scopeNameToMirror, agentDomain, agentDomain)
 
