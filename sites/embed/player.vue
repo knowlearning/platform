@@ -55,6 +55,10 @@
                 :domain="domain"
               /></pre>
             </li>
+            <div v-if="closed">
+              <h3>Closed!</h3>
+              <pre>info passed: {{ closeInfo }}</pre>
+            </div>
           </ul>
         </div>
       </SplitterPanel>
@@ -77,6 +81,8 @@
   const props = defineProps(['id'])
   const resizing = ref(false)
   const states = reactive([])
+  const closeInfo = ref(null)
+  const closed = ref(false)
   const lastLoad = ref(Date.now())
 
   const embedded = Agent.embedded
@@ -91,6 +97,7 @@
 
   //  candli example: https://cand.li/dev/testing-release-pila/pila-play.html?game=0adb500fa86a5cc6b62ab7ca3680ec64
   async function handleClose(info) {
+    closed.value = true
     if (embedded) {
       if (embedding.value.id.startsWith('https://cand.li/')) {
         const game = (new URL(embedding.value.id)).searchParams.get('game')
@@ -99,12 +106,14 @@
         })
       }
       else Agent.close(info)
-
     }
-    else router.push(`/edit/${props.id}`)
+    else {
+      closeInfo.value = info
+    }
   }
 
   function reload() {
+    closed.value = false
     states.splice(0, states.length)
     lastLoad.value = Date.now()
   }
