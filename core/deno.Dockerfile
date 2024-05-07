@@ -1,4 +1,4 @@
-FROM denoland/deno:1.40.4
+FROM denoland/deno:1.43.1
 
 # Copy local code to the container image.
 COPY ./source/utils.js ./source/utils.js
