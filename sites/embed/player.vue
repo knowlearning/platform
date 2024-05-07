@@ -87,8 +87,20 @@
     if (!existing) states.push(info)
   }
 
-  function handleClose(info) {
-    if (embedded) Agent.close(info)
+  const copy = x => JSON.parse(JSON.stringify(x))
+
+  //  candli example: https://cand.li/dev/testing-release-pila/pila-play.html?game=0adb500fa86a5cc6b62ab7ca3680ec64
+  async function handleClose(info) {
+    if (embedded) {
+      if (embedding.value.id.startsWith('https://cand.li/')) {
+        const game = (new URL(embedding.value.id)).searchParams.get('game')
+        Agent.close({
+          competencies: copy(await Agent.state(`pila/competencies/${game}`))
+        })
+      }
+      else Agent.close(info)
+
+    }
     else router.push(`/edit/${props.id}`)
   }
 
