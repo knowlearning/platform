@@ -11,21 +11,21 @@
 
   const props = defineProps({ id: String })
 
+  let latestURLRequest = 0
+
   const downloadURL = ref(downloadURLRegistry[props.id])
 
   if (!downloadURL.value) setDownloadURL()
 
   watch(props, setDownloadURL)
-
-  let latestRequest = 0
   async function setDownloadURL() {
     downloadURL.value = null
-    latestRequest += 1
+    latestURLRequest += 1
 
-    const thisRequest = latestRequest
+    const thisRequest = latestURLRequest
     const newURL = downloadURLRegistry[props.id] || await Agent.download(props.id).url()
 
     downloadURLRegistry[props.id] = newURL
-    if (latestRequest === thisRequest) downloadURL.value = newURL
+    if (latestURLRequest === thisRequest) downloadURL.value = newURL
   }
 </script>
