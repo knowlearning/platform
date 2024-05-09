@@ -11,7 +11,7 @@
 
   const props = defineProps({ id: String })
 
-  downloadURL = ref(downloadURLRegistry[props.id])
+  const downloadURL = ref(downloadURLRegistry[props.id])
 
   if (!downloadURL.value) setDownloadURL()
 
