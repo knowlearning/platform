@@ -102,7 +102,7 @@
       if (embedding.value.id.startsWith('https://cand.li/')) {
         const game = (new URL(embedding.value.id)).searchParams.get('game')
         Agent.close({
-          competencies: copy(await Agent.state(`pila/competencies/${game}`))
+          competencies: copy(await Agent.state(`pila/latest_competencies/${game}`))
         })
       }
       else Agent.close(info)
