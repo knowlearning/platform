@@ -209,7 +209,10 @@ export default async function handleConnection(connection, domain, sid) {
       }
       catch (error) {
         console.warn('ERROR PROCESSING MESSAGE', error)
-        send({ si: message.si, error: `ERROR PROCESSING MESSAGE` })
+        send({
+          si: message ? message.si : null,
+          error: `ERROR PROCESSING MESSAGE`
+        })
       }
     }
   }
