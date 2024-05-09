@@ -6,7 +6,7 @@
 </template>
 
 <script setup>
-  import { ref } from 'vue'
+  import { ref, watch } from 'vue'
   import downloadURLRegistry from '../download-url-registry.js'
 
   const props = defineProps({ id: String })
