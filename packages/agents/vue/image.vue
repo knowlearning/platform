@@ -1,5 +1,5 @@
 <template>
-  <image
+  <img
     :key="downloadURL"
     :src="downloadURL"
   />
