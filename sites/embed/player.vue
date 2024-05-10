@@ -95,21 +95,34 @@
 
   const copy = x => JSON.parse(JSON.stringify(x))
 
+  let candliGameId
+  if (embedding.value.id.startsWith('https://cand.li/')) {
+    candliGameId = (new URL(embedding.value.id)).searchParams.get('game')
+  }
+
+  await clearOutLatestCompetencies()
+
+  async function clearOutLatestCompetencies() {
+    if (!candliGameId) return
+
+    const competencies = await Agent.state(`pila/latest_competencies/${candliGameId}`)
+    Object.keys(competencies).forEach(key => delete competencies[key])
+  }
+
   //  candli example: https://cand.li/dev/testing-release-pila/pila-play.html?game=0adb500fa86a5cc6b62ab7ca3680ec64
   async function handleClose(info) {
     closed.value = true
     if (embedded) {
-      if (embedding.value.id.startsWith('https://cand.li/')) {
-        const game = (new URL(embedding.value.id)).searchParams.get('game')
-        Agent.close({
-          competencies: copy(await Agent.state(`pila/latest_competencies/${game}`))
-        })
+      if (candliGameId) {
+        const latestCompetencies = await Agent.state(`pila/latest_competencies/${candliGameId}`)
+        Agent.close({ competencies: copy(latestCompetencies) })
       }
       else Agent.close(info)
     }
     else {
       closeInfo.value = info
     }
+    await clearOutLatestCompetencies()
   }
 
   function reload() {
