@@ -1,0 +1,14 @@
+{
+  "name": "@knowlearning/tags",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {},
+  "author": "Jason Ford",
+  "license": "MPL-2.0",
+  "peerDependencies": {
+    "vue": "3.x",
+    "vuetify": "3.x"
+  }
+}
