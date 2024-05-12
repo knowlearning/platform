@@ -5,6 +5,7 @@
       :key="tag"
       :tag="tag"
       :depth="props.depth"
+      :domain="props.domain"
       :partition="props.partition"
       :selected="props.selected"
       @select="tag => emit('select', tag)"
@@ -21,6 +22,7 @@
   const props = defineProps({
     selectLeavesOnly: Boolean,
     tags: Array,
+    domain: String,
     partition: String,
     selected: Array,
     depth: {

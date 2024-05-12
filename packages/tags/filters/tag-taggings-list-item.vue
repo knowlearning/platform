@@ -30,6 +30,7 @@
   <TagTaggingsList
     v-if="open"
     :tags="childTags"
+    :domain="props.domain"
     :partition="props.partition"
     :selected="props.selected"
     :depth="props.depth + 1"
@@ -47,6 +48,7 @@
   const tag = ref({})
 
   const props = defineProps({
+    domain: String,
     tag: String,
     partition: String,
     selectLeavesOnly: Boolean,
@@ -66,7 +68,11 @@
 
   function updateChildTags() {
     Agent
-      .query('taggings-targeting-tags', [props.partition, props.tag])
+      .query(
+        'taggings-targeting-tags',
+        [props.partition, props.tag],
+        props.domain
+      )
       .then(r => childTags.value = r.map(t => t.target))
   }
 

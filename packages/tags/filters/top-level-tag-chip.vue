@@ -37,6 +37,7 @@
           </template>
           <TagTaggingsList
             :tags="childTags"
+            :domain="props.domain"
             :partition="props.partition"
             :selected="props.selected"
             @select="tag => emit('select', tag)"
@@ -53,7 +54,13 @@
   import TagTaggingsList from './tag-taggings-list.vue'
 
   const emit = defineEmits(['select'])
-  const props = defineProps(['partition', 'tag', 'selected', 'selectLeavesOnly'])
+  const props = defineProps([
+    'domain',
+    'partition',
+    'tag',
+    'selected',
+    'selectLeavesOnly'
+  ])
   const myTags = ref(null)
   const childTags = ref([])
   const tag = ref({})
@@ -72,7 +79,11 @@
 
   function updateChildTags() {
     Agent
-      .query('taggings-targeting-tags', [props.partition, props.tag])
+      .query(
+        'taggings-targeting-tags',
+        [props.partition, props.tag],
+        props.domain
+      )
       .then(r => childTags.value = r.map(t => t.target))
   }
 

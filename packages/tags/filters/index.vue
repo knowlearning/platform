@@ -8,6 +8,7 @@
         :tag="tag"
         :partition="props.partition"
         :selected="modelValue"
+        :domain="props.domain"
         @select="select"
       />
       <v-dialog
@@ -94,6 +95,10 @@
     editable: {
       type: Boolean,
       default: false
+    },
+    domain: {
+      type: String,
+      default: 'tags.knowlearning.systems'
     },
     partition: String,
     roots: Array,
