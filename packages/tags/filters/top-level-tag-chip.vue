@@ -57,7 +57,7 @@
     'partition',
     'tag',
     'selected',
-    'selectLeavesOnly'
+    'selectLeavesOnly',
     'LabelComponent'
   ])
   const myTags = ref(null)
