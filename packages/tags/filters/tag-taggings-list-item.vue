@@ -43,6 +43,7 @@
 <script setup>
   import { ref, watch } from 'vue'
   import TagTaggingsList from './tag-taggings-list.vue'
+  import Agent from '@knowlearning/agents/browser.js'
 
   const emit = defineEmits(['select'])
   const tag = ref({})

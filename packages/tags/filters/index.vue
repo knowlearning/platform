@@ -55,9 +55,6 @@
         class="active-filters mb-4"
         v-if="modelValue.length"
       >
-        <h3>
-          {{ modelValue.length > 1 ? 'Taggings For' : 'Active Tag' }}:
-        </h3>
         <v-chip
           v-for="tag in modelValue"
           :key="tag"
@@ -77,9 +74,6 @@
         </v-chip>
       </div>
     </div>
-    <div v-if="modelValue.length === 0">
-      Select tags above to filter by
-    </div>
   </div>
 </template>
 
@@ -87,6 +81,7 @@
   import { ref, reactive, watch } from 'vue'
   import DefaultLabelComponent from './label-component.vue'
   import TopLevelTagChip from './top-level-tag-chip.vue'
+  import Agent from '@knowlearning/agents/browser.js'
 
   const props = defineProps({
     selectLeavesOnly: {

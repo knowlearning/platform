@@ -49,6 +49,7 @@
 <script setup>
   import { ref, watch } from 'vue'
   import { vueScopeComponent } from '@knowlearning/agents/vue.js'
+  import Agent from '@knowlearning/agents/browser.js'
   import TagTaggingsList from './tag-taggings-list.vue'
 
   const emit = defineEmits(['select'])
