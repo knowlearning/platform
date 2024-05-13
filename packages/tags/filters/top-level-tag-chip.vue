@@ -11,10 +11,7 @@
     @click="select"
     filter
   >
-      <vueScopeComponent
-        :id="props.tag"
-        :path="['name']"
-      />
+      <LabelComponent :id="props.tag" />
       <template v-slot:append>
         <v-menu
           v-model="open"
@@ -42,6 +39,7 @@
             :selected="props.selected"
             @select="tag => emit('select', tag)"
             :select-leaves-only="props.selectLeavesOnly"
+            :LabelComponent="LabelComponent"
           />
         </v-menu>
       </template>
@@ -60,10 +58,12 @@
     'tag',
     'selected',
     'selectLeavesOnly'
+    'LabelComponent'
   ])
   const myTags = ref(null)
   const childTags = ref([])
   const tag = ref({})
+  const { LabelComponent } = props
 
   Agent
     .state('tags')

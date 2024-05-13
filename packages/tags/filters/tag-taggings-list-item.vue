@@ -16,7 +16,7 @@
       @dragstart="$event.dataTransfer.setData('text', props.tag)"
       @dragover.prevent
     >
-      <vueScopeComponent :id="props.tag" :path="['name']" />
+      <LabelComponent :id="props.tag" />
     </v-list-item-title>
     <template v-slot:append>
       <v-icon
@@ -36,13 +36,13 @@
     :depth="props.depth + 1"
     @select="tag => emit('select', tag)"
     :select-leaves-only="props.selectLeavesOnly"
+    :LabelComponent="LabelComponent"
   />
 </template>
 
 <script setup>
   import { ref, watch } from 'vue'
   import TagTaggingsList from './tag-taggings-list.vue'
-  import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 
   const emit = defineEmits(['select'])
   const tag = ref({})
@@ -53,6 +53,7 @@
     partition: String,
     selectLeavesOnly: Boolean,
     selected: Array,
+    LabelComponent: Object,
     depth: {
       type: Number,
       default: 0
@@ -60,6 +61,7 @@
   })
   const open = ref(false)
   const childTags = ref([])
+  const { LabelComponent } = props
 
   updateChildTags()
 

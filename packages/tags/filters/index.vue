@@ -9,6 +9,7 @@
         :partition="props.partition"
         :selected="modelValue"
         :domain="props.domain"
+        :LabelComponent="LabelComponent"
         @select="select"
       />
       <v-dialog
@@ -72,7 +73,7 @@
           color="primary"
           closable
         >
-          <vueScopeComponent :id="tag" :path="['name']" />
+          <LabelComponent :id="tag" />
         </v-chip>
       </div>
     </div>
@@ -84,7 +85,7 @@
 
 <script setup>
   import { ref, reactive, watch } from 'vue'
-  import { vueScopeComponent } from '@knowlearning/agents/vue.js'
+  import DefaultLabelComponent from './label-component.vue'
   import TopLevelTagChip from './top-level-tag-chip.vue'
 
   const props = defineProps({
@@ -105,8 +106,14 @@
     modelValue: {
       type: Array,
       default: () => []
+    },
+    LabelComponent: {
+      type: Object,
+      default: () => DefaultLabelComponent
     }
   })
+
+  const LabelComponent = props.LabelComponent
 
   const emit = defineEmits(['update:modelValue'])
 

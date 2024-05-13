@@ -10,6 +10,7 @@
       :selected="props.selected"
       @select="tag => emit('select', tag)"
       :select-leaves-only="props.selectLeavesOnly"
+      :LabelComponent="LabelComponent"
     />
   </v-list>
 </template>
@@ -25,9 +26,12 @@
     domain: String,
     partition: String,
     selected: Array,
+    LabelComponent: Object,
     depth: {
       type: Number,
       default: 0
     }
   })
+
+  const { LabelComponent } = props
 </script>
