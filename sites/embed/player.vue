@@ -115,7 +115,7 @@
     if (embedded) {
       if (candliGameId) {
         const latestCompetencies = await Agent.state(`pila/latest_competencies/${candliGameId}`)
-        Agent.close({ competencies: copy(latestCompetencies) })
+        Agent.close({ competencies: copy(latestCompetencies), success: info?.success })
       }
       else Agent.close(info)
     }
