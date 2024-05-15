@@ -28,7 +28,7 @@ enrich providers. KnowLearning is a registered non-profit to
 keep it oriented toward a mission far more important than share
 price.
 
-- **Technical Agnosticity** use whatever tool is best for the job
+- **Technical Agnosticism** use whatever tool is best for the job
 - **Non-Stick Technology** empower users; don't lock them in
 - **Simple is Special** the empowering value of a technology is
   intimately tied to its simplicity
