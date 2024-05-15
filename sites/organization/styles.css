@@ -1,0 +1,45 @@
+body {
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  background-image: url("background-logo.svg"); /* Replace with your image path */
+  background-position: center; /* Center the image */
+  background-repeat: no-repeat; /* Prevent the image from repeating */
+  background-size: cover; /* Scale the image to be contained within the container */
+}
+
+#header {
+  text-align: left;
+  position: fixed;
+  padding-left: 32px;
+  width: calc(100vw - 32px);
+  top: 0;
+  background: white;
+  border-bottom: 1px solid #eeeeee;
+}
+
+#header img {
+  height: 48px;
+  margin-bottom: -12px;
+}
+
+em {
+  font-weight: bold;
+  font-style: normal;
+  border-bottom: 5px solid orange;
+}
+
+.statement {
+  max-width: 600px;
+  padding: 0 32px;
+  margin: 25vh auto;
+  font-size: 22px;
+  line-height: 2em;
+}
+
+ul {
+  text-align: left;
+  max-width: 400px;
+  margin: 32px auto;
+}
