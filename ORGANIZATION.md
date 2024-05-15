@@ -16,7 +16,7 @@ goals, whatever they may be.
 
 ## Goals
 
-We aim to provide the go-to option for robust, reliable,
+We aim to provide the go-to option for cutting-edge, reliable,
 universally available, and fairly and transparently priced
 technical infrastructure for re-mixable learning experiences;
 while never compromising our non-stick technology values.
