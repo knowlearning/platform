@@ -116,6 +116,11 @@ export default function domainAgent(domain, refresh=false) {
         if (!connections[data.connection]) {
           connections[data.connection] = createConnection(worker, data.connection)
           if (data.domain === null) {
+            //  TODO: If this happens a second time it is either due to a heartbeat timeout
+            //        being triggered on the agent end, or due to a second agent
+            //        instance being initialized. In both cases we want to stop using the
+            //        old mainConnection and use this new connection as the main connection.
+            //        
             mainConnection = connections[data.connection]
             resolve(mainConnection)
           }
