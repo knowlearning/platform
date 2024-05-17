@@ -12,4 +12,15 @@
 - [ ]  History Download
 - [ ]  Compaction
 - [ ]  Per user resource usage tracking
+  - [ ] user session # messages -> gives /sec from history
+  - [ ] user session # open subscriptions -> gives subscription changes over time...
+  - [ ] user session bytes ingress -> gives /sec from history
+  - [ ] user session bytes state responses -> gives /sec from history
+  - [ ] user session bytes subscriptions updates -> gives /sec from history
+  - [ ] user session bytes query responses -> gives /sec from history && avg size & such...
+  - [ ] user session bytes uploaded -> gives /sec from history && avg size & such...
+  - [ ] per domain server process network ingress
+  - [ ] per domain server process network egress
+  - [ ] per domain server process memory usage
+  - [ ] per domain server process cpu usage
 - [ ]  Throttle naughty clients (protect against infinite loops on the client)
