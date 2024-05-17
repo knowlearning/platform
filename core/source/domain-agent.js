@@ -113,20 +113,26 @@ export default function domainAgent(domain, refresh=false) {
       }
 
       worker.onmessage = async ({ data }) => {
-        if (!connections[data.connection]) {
-          connections[data.connection] = createConnection(worker, data.connection)
-          if (data.domain === null) {
-            //  TODO: If this happens a second time it is either due to a heartbeat timeout
-            //        being triggered on the agent end, or due to a second agent
-            //        instance being initialized. In both cases we want to stop using the
-            //        old mainConnection and use this new connection as the main connection.
-            //        
-            mainConnection = connections[data.connection]
-            resolve(mainConnection)
+        console.log('DATA!!!!!!!!!!!!!!!', data)
+        const isConnection = Object.hasOwn(data, 'token')
+        if (isConnection) {
+          const isInitialConnection = !connections[data.connection]
+
+          if (isInitialConnection) {
+            connections[data.connection] = createConnection(worker, data.connection)
           }
-          const targetDomain = data.domain || domain
-          const sid = await createValidSession(targetDomain, domain)
-          handleConnection(connections[data.connection], targetDomain, sid)
+
+          if (data.domain === null) {
+            mainConnection = connections[data.connection]
+            if (isInitialConnection) resolve(mainConnection)
+            else DomainAgents[domain] = mainConnection
+          }
+
+          if (isInitialConnection) {
+            const targetDomain = data.domain || domain
+            const sid = await createValidSession(targetDomain, domain)
+            handleConnection(connections[data.connection], targetDomain, sid)
+          }
         }
         connections[data.connection].onmessage(data)
       }
