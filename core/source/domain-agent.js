@@ -107,22 +107,16 @@ export default function domainAgent(domain, refresh=false) {
       worker.onmessage = async ({ data }) => {
         const isConnection = Object.hasOwn(data, 'token')
         if (isConnection) {
-          const isInitialConnection = !connections[data.connection]
-
-          if (isInitialConnection) {
-            connections[data.connection] = createConnection(worker, data.connection)
-          }
+          connections[data.connection] = createConnection(worker, data.connection)
 
           if (data.domain === null) {
-            if (isInitialConnection) resolve(connections[data.connection])
-            else DomainAgents[domain] = connections[data.connection]
+            resolve(connections[data.connection])
+            DomainAgents[domain] = Promise.resolve(connections[data.connection])
           }
 
-          if (isInitialConnection) {
-            const targetDomain = data.domain || domain
-            const sid = await createValidSession(targetDomain, domain)
-            handleConnection(connections[data.connection], targetDomain, sid)
-          }
+          const targetDomain = data.domain || domain
+          const sid = await createValidSession(targetDomain, domain)
+          handleConnection(connections[data.connection], targetDomain, sid)
         }
         connections[data.connection].onmessage(data)
       }
