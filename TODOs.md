@@ -1,7 +1,7 @@
 - [ ] Take postgres out of managed service and use deployable instance
 - [ ] Dont' rely on redis for base representation of data
-  -  stream all uuids into stored file named domain (stream into gcs as well)
-  -  stream all updates to uuids into file named uuid (stream into gcs as well)
+  - [ ] stream all uuids into stored file named domain (stream into gcs as well)
+  - [ ] stream all updates to uuids into file named uuid (stream into gcs as well)
 - [ ]  Auth service needs to associate 1 time use auth token with a domain, so that only auth requests with a token from that domain are treated as valid (great redis expiring key use case)
 - [ ]  Throw error instead of returning undefined when cross domain query fails (fails when points at wrong domain/no query configured)
 - [ ]  Semicolons at the end of queries in configuration shouldn't cause them to break
@@ -19,8 +19,8 @@
   - [ ] user session bytes subscriptions updates -> gives /sec from history
   - [ ] user session bytes query responses -> gives /sec from history && avg size & such...
   - [ ] user session bytes uploaded -> gives /sec from history && avg size & such...
-  - [ ] per domain server process network ingress
-  - [ ] per domain server process network egress
-  - [ ] per domain server process memory usage
-  - [ ] per domain server process cpu usage
+  - [ ] per domain server session process network ingress
+  - [ ] per domain server session process network egress
+  - [ ] per domain server session process memory usage
+  - [ ] per domain server session process cpu usage
 - [ ]  Throttle naughty clients (protect against infinite loops on the client)
