@@ -266,7 +266,7 @@ agent: |
       const { domain } = await Agent.environment()
       await configureDomain(domain, CONFIGURATION_1)
     })
-/*
+
     it('Exposes error message when agent script fails to start', async function () {
       this.timeout(5000)
 
@@ -281,7 +281,7 @@ agent: |
       }
       expect(state.tasks.agent[1]).to.equal('ERROR: Uncaught (in promise) Error: Whoopsie!!!\nline: 2, column: 7')
     })
-*/
+
     it('Can establish cross domain agent connections', async function () {
       this.timeout(5000)
 
