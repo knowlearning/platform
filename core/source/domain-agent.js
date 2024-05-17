@@ -105,7 +105,6 @@ export default function domainAgent(domain, refresh=false) {
       }
 
       worker.onmessage = async ({ data }) => {
-        console.log('DATA!!!!!!!!!!!!!!!', data)
         const isConnection = Object.hasOwn(data, 'token')
         if (isConnection) {
           const isInitialConnection = !connections[data.connection]
