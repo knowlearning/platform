@@ -2,7 +2,7 @@
 
 ## Mission
 
-To elevate global learning by lowering technical barriers for
+Elevate global learning by lowering technical barriers for
 students, teachers, researchers, and organizations to
 effectively create, consume, evaluate, improve, re-mix and
 re-use digital learning experiences.
@@ -28,9 +28,26 @@ enrich providers. KnowLearning is a registered non-profit to
 keep it oriented toward a mission far more important than share
 price.
 
-- **Technical Agnosticism** use whatever tool is best for the job
-- **Non-Stick Technology** empower users; don't lock them in
-- **Simple is Special** the empowering value of a technology is
-  intimately tied to its simplicity
-- **Transparency** be open
-- **Reliability** be reliable
+- **People First**
+  
+  lead by serving
+
+- **Technical Flexibility**
+  
+  use whatever tool is best for the team and job
+
+- **Non-Stick Technology**
+  
+  empower users; don't lock them in
+
+- **Simple is Special**
+  
+  the empowering value of a technology is intimately tied to its simplicity
+
+- **Transparency**
+  
+  be open
+
+- **Reliability**
+  
+  be trustworthy
