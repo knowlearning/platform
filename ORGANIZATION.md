@@ -2,24 +2,25 @@
 
 ## Mission
 
-Elevate global learning by lowering technical barriers for
+Elevate global learning by **lowering technical barriers for**
 students, teachers, researchers, and organizations to
 effectively create, consume, evaluate, improve, re-mix and
-re-use digital learning experiences.
+re-use **digital learning experiences**.
 
 ## Vision
 
-We see a future where learners everywhere have free access to
-world class learning experiences and well structured ways to
+We see a future where learners everywhere have **free access to
+world class learning experiences** and well structured ways to
 interact with them that are appropriate to their situations and
 goals, whatever they may be.
 
 ## Goals
 
-We aim to provide the go-to option for cutting-edge, reliable,
-universally available, and fairly and transparently priced
-technical infrastructure for re-mixable learning experiences;
-while never compromising our non-stick technology values.
+We aim to provide the go-to option for **cutting-edge**,
+reliable, universally available, and fairly and transparently
+priced technical infrastructure for re-mixable learning
+experiences; while never compromising our non-stick technology
+values.
 
 ## Values
 
@@ -34,7 +35,7 @@ price.
 
 - **Technical Flexibility**
   
-  use whatever tool is best for the team and job
+  the best tool is the right one for the team and the job
 
 - **Non-Stick Technology**
   
