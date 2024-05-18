@@ -40,6 +40,11 @@ import HelloWorld from './components/HelloWorld.vue'
     toward a mission far more important than share price.
     <ul>
       <li>
+        <em>People First</em>
+        <br />
+        lead by serving
+      </li>
+      <li>
         <em>Technical Flexibility</em>
         <br />
         use whatever tool is best for the job
