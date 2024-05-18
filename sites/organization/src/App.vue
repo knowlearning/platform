@@ -14,7 +14,7 @@ import HelloWorld from './components/HelloWorld.vue'
     <em>lowering technical barriers for</em>
     students, teachers, researchers, and organizations to effectively create,
     consume, evaluate, improve, re-mix and re-use
-    <em>digital learning</em> experiences.
+    <em>digital learning experiences</em>.
   </div>
   <div class="statement">
     <img src="/vision.svg" height="100px" />
@@ -29,7 +29,7 @@ import HelloWorld from './components/HelloWorld.vue'
     <h2>Goals</h2>
     We aim to provide the go-to option for <em>cutting-edge</em>, reliable,
     universally available, and fairly and transparently priced
-    <em>technical infrastructure</em> for re-mixable learning experiences;
+    <em>technical infrastructure</em> for re-mixable learning experiences,
     while never compromising our non-stick technology values.
   </div>
   <div class="statement">
@@ -47,7 +47,7 @@ import HelloWorld from './components/HelloWorld.vue'
       <li>
         <em>Technical Flexibility</em>
         <br />
-        use whatever tool is best for the job
+        the best tool is the right one for the team and the job
       </li>
       <li>
         <em>Non-Stick Technology</em>
@@ -68,7 +68,7 @@ import HelloWorld from './components/HelloWorld.vue'
       <li>
         <em>Reliability</em>
         <br />
-        be reliable
+        be trustworthy
       </li>
     </ul>
   </div>
