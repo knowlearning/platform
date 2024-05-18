@@ -3,17 +3,21 @@ body {
   padding: 0;
   text-align: center;
   font-family: Verdana, Geneva, Tahoma, sans-serif;
-  background-image: url("/background-logo.svg"); /* Replace with your image path */
-  background-position: center; /* Center the image */
-  background-repeat: no-repeat; /* Prevent the image from repeating */
-  background-size: cover; /* Scale the image to be contained within the container */
+  background-image: url("/background-logo.svg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  font-size: 22px;
 }
 
 #header {
   text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   position: fixed;
-  padding-left: 32px;
-  width: calc(100vw - 32px);
+  padding: 0 32px;
+  width: calc(100% - 64px);
   top: 0;
   background: white;
   border-bottom: 1px solid #eeeeee;
@@ -34,7 +38,6 @@ em {
   max-width: 600px;
   padding: 0 32px;
   margin: 25vh auto;
-  font-size: 22px;
   line-height: 2em;
 }
 
@@ -42,4 +45,45 @@ ul {
   text-align: left;
   max-width: 400px;
   margin: 32px auto;
+}
+
+.header-link
+{
+  text-decoration: none;
+  color: black;
+  text-align: center;
+  display: inline-block;
+  width: 64px;
+  margin-top: 12px;
+  font-size: 12px;
+}
+
+#header .header-link img
+{
+  height: 24px;
+  margin-bottom: 1px;
+}
+
+#contact-us
+{
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#contact-us > div
+{
+  max-width: 500px;
+}
+
+#contact-us a
+{
+  text-decoration: none;
+  color: black;
+}
+
+#footer
+{
+  padding: 16px;
 }

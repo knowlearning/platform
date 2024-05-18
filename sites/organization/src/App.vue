@@ -1,11 +1,30 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
+  const year = new Date().getFullYear()
 </script>
 
 <template>
 <!DOCTYPE html>
   <div id="header">
-    <h1><img src="/logo.svg" /> KnowLearning</h1>
+    <div>
+      <h1><img src="/logo.svg" /> KnowLearning</h1>
+    </div>
+    <div>
+      <a class="header-link" href="#contact-us-header">
+        <img src="/contact.svg" />
+        <br>
+        <span>contact</span>
+      </a>
+      <a class="header-link" href="https://docs.knowlearning.systems">
+        <img src="/docs.svg" />
+        <br>
+        <span>docs</span>
+      </a>
+      <a class="header-link" href="https://github.com/knowlearning/platform">
+        <img src="/git-logo.svg" />
+        <br>
+        <span>code</span>
+      </a>
+    </div>
   </div>
   <div class="statement">
     <img src="/mission.svg" width="100px" />
@@ -71,6 +90,23 @@ import HelloWorld from './components/HelloWorld.vue'
         be trustworthy
       </li>
     </ul>
+  </div>
+  <div id="contact-us">
+    <div>
+      <h1 id="contact-us-header">Contact Us</h1>
+      <p>
+        KnowLearning invites you to contact us if you are
+        interested in our services, want to participate or
+        contribute, have a question, or have something interesting
+        to share.
+      </p>
+      <em>
+        <a href="mailto:info@knowlearning.org">info@knowlearning.org</a>
+      </em>
+    </div>
+  </div>
+  <div id="footer">
+    © 2019-{{ year }} KnowLearning
   </div>
 </template>
 
