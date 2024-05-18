@@ -3,7 +3,7 @@ body {
   padding: 0;
   text-align: center;
   font-family: Verdana, Geneva, Tahoma, sans-serif;
-  background-image: url("background-logo.svg"); /* Replace with your image path */
+  background-image: url("/background-logo.svg"); /* Replace with your image path */
   background-position: center; /* Center the image */
   background-repeat: no-repeat; /* Prevent the image from repeating */
   background-size: cover; /* Scale the image to be contained within the container */
