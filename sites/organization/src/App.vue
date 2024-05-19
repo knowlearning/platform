@@ -168,4 +168,29 @@
   justify-content: center;
 }
 
+#hero > div
+{
+  padding: 48px;
+}
+
+@media only screen and (max-width: 600px) {
+  #hero {
+    font-size: 24px;
+  }
+  #header h1 {
+    font-size: 18px;
+  }
+  #header h1 img {
+    height: 30px;
+    margin-bottom: -8px;
+  }
+}
+
+@media only screen and (min-width: 1000px) {
+  #hero {
+    font-size: 50px;
+    line-height: 80px;
+  }
+}
+
 </style>
