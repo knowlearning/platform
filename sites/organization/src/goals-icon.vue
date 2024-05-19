@@ -1,0 +1,12 @@
+<template>
+  <svg viewBox="270 302 68 36" xmlns="http://www.w3.org/2000/svg">
+    <path
+      style="fill: rgb(216, 216, 216); stroke: rgb(0, 0, 0);"
+      d="M 275.786 334.145 L 274.212 306.537 L 293.682 305.833 L 293.944 314.822 L 314.375 314.823 L 314.112 324.158 L 333.382 323.555 L 333.991 332.711 L 275.786 334.145 Z"
+    />
+  </svg>
+</template>
+
+<script setup>
+  const props = defineProps({ progress: Number })
+</script>
