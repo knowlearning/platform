@@ -181,6 +181,7 @@
   justify-content: center;
   align-items: center;
   padding: 16px;
+  line-height: 2em;
 }
 
 #contact-us > div
@@ -210,9 +211,11 @@
     height: 30px;
     margin-bottom: -8px;
   }
-  #hero > div
-  {
+  #hero > div {
     padding: 16px;
+  }
+  #footer {
+    font-size: 16px;
   }
 }
 
