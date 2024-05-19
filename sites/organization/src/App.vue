@@ -173,6 +173,32 @@
   padding: 48px;
 }
 
+#contact-us
+{
+  margin-top: -30vh;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+
+#contact-us > div
+{
+  max-width: 500px;
+}
+
+#contact-us a
+{
+  text-decoration: none;
+  color: black;
+}
+
+#footer
+{
+  padding: 16px;
+}
+
 @media only screen and (max-width: 600px) {
   #hero {
     font-size: 24px;
@@ -183,6 +209,10 @@
   #header h1 img {
     height: 30px;
     margin-bottom: -8px;
+  }
+  #hero > div
+  {
+    padding: 16px;
   }
 }
 

@@ -69,28 +69,3 @@ ul {
   height: 24px;
   margin-bottom: 1px;
 }
-
-#contact-us
-{
-  margin-top: -30vh;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-#contact-us > div
-{
-  max-width: 500px;
-}
-
-#contact-us a
-{
-  text-decoration: none;
-  color: black;
-}
-
-#footer
-{
-  padding: 16px;
-}
