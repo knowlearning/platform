@@ -50,7 +50,6 @@
   })
 
   const yOffset = computed(() => {
-    console.log(Math.max((1-props.progress) * 50 - 20, -7))
     return Math.min(Math.max((1-props.progress) * 40 - 20, -7), 20)
   })
 </script>
