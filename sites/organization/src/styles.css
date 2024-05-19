@@ -16,16 +16,22 @@ body {
   justify-content: space-between;
   align-items: center;
   position: fixed;
-  padding: 0 32px;
-  width: calc(100% - 64px);
+  padding-right: 8px;
+  width: calc(100% - 8px);
   top: 0;
   background: white;
+  white-space: nowrap;
   border-bottom: 1px solid #eeeeee;
 }
 
+h1 {
+  margin: 16px;
+  font-size: 32px;
+}
+
 #header img {
-  height: 48px;
-  margin-bottom: -12px;
+  height: 40px;
+  margin-bottom: -8px;
 }
 
 em {
@@ -36,14 +42,14 @@ em {
 
 .statement {
   max-width: 600px;
-  padding: 0 32px;
-  margin: 25vh auto;
+  padding: 10vh 32px 25vh 32px;
+  margin: 0 auto;
   line-height: 2em;
 }
 
 ul {
   text-align: left;
-  max-width: 400px;
+  max-width: 360px;
   margin: 32px auto;
 }
 
@@ -66,6 +72,7 @@ ul {
 
 #contact-us
 {
+  margin-top: -30vh;
   height: 100vh;
   display: flex;
   justify-content: center;

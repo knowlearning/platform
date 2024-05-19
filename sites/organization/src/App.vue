@@ -1,4 +1,6 @@
 <script setup>
+  import VisibilityTracker from './visibility-tracker.vue'
+
   const year = new Date().getFullYear()
 </script>
 
@@ -26,23 +28,109 @@
       </a>
     </div>
   </div>
-  <div class="statement">
-    <img src="/mission.svg" width="100px" />
-    <h2 class="header">Mission</h2>
-    Elevate global learning by
-    <em>lowering technical barriers for</em>
-    students, teachers, researchers, and organizations to effectively create,
-    consume, evaluate, improve, re-mix and re-use
-    <em>digital learning experiences</em>.
+  <div id="hero">
+    <div>
+      A non-profit project
+      <br>
+      dedicated to a new generation of
+      <br>
+      digital learning experiences
+    </div>
   </div>
-  <div class="statement">
-    <img src="/vision.svg" height="100px" />
-    <h2>Vision</h2>
-    We see a future where all learners have
-    <em>free access to world class learning experiences</em>
-    and well structured ways to interact with them that are appropriate to
-    their situations and goals, whatever they may be.
-  </div>
+  <VisibilityTracker v-slot="{ scrolledBy }">
+    <div class="statement">
+      <svg
+        viewBox="406.8501 227.749 65.4445 44.5019"
+        height="100px"
+      >
+        <g transform="matrix(0.7575740218162538, 0, 0, 0.6756739616394044, 357.76624068269484, 152.40767133843403)" style="">
+          <g transform="matrix(1, 0, 0, 1, 5.671882, 2.181501)">
+            <path style="fill: rgb(216, 216, 216); stroke: rgb(0, 0, 0);" d="M 105.172 173.228 L 127.182 133.739 L 145.506 174.314"/>
+            <path style="fill: rgb(216, 216, 216); stroke: rgb(0, 0, 0);" d="M 71.481 171.811 L 101.964 109.324 L 128.053 175.187"/>
+            <path style="fill: rgb(216, 216, 216); stroke: rgb(0, 0, 0);" d="M 59.119 175.187 L 74.825 135.92 L 100.131 173.878"/>
+          </g>
+        </g>
+        <path
+          id="mission-logo-path"
+          :style="`
+            fill: rgb(216, 216, 216);
+            paint-order: fill markers;
+            stroke: rgb(0, 0, 0);
+            stroke-dashoffset: ${Math.round(80 * (1-scrolledBy) / 10) * 10};
+            stroke-dasharray: 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 5 80;
+          `"
+          d="M 439.655 271.051 C 439.655 271.051 453.846 269.269 451.695 262.32 C 450.335 257.926 441.718 256.837 436.104 255.294 C 432.84 254.396 430.592 253.346 431.377 251.403 C 433.512 246.119 445.068 248.879 443.627 243.715 C 442.186 238.551 432.445 242.968 439.368 228.574" transform="matrix(1, 0, 0, 1, 0, -2.842170943040401e-14)"
+        />
+      </svg>
+      <h2 class="header">Mission</h2>
+      Elevate global learning by
+      <em>lowering technical barriers for</em>
+      students, teachers, researchers, and organizations to effectively create,
+      consume, evaluate, improve, re-mix and re-use
+      <em>digital learning experiences</em>.
+    </div>
+  </VisibilityTracker>
+  <VisibilityTracker  v-slot="{ scrolledBy }">
+    <div class="statement">
+      <svg
+        viewBox="282 194 34 50"
+        style="height: 100px"
+      >
+        <g transform="matrix(1, 0, 0, 1, -8.725992332786202, 176.26532245077672)">
+          <path
+            style="
+              fill: rgb(216, 216, 216);
+              stroke: rgb(0, 0, 0);
+            "
+            d="M 295.693 67.421 L 301.446 42.684 L 311.592 43.123 L 314.207 66.835 L 296.53 66.982"
+          />
+          <ellipse
+            style="
+              fill: rgb(216, 216, 216);
+              stroke: rgb(0, 0, 0);
+            "
+            cx="306.467"
+            cy="35.073"
+            rx="7.217"
+            ry="6.587"
+          />
+          <ellipse
+            :style="`
+              fill: #FEFADC;
+              stroke: rgb(0, 0, 0);
+              opacity: ${scrolledBy};
+            `"
+            cx="306.467"
+            cy="35.073"
+            rx="7.217"
+            ry="6.587"
+          />
+          <rect x="301.55" y="22.046" width="10.46" height="5.123" style="fill: rgb(216, 216, 216); stroke: rgb(0, 0, 0);"/>
+          <path
+            v-for="d in [
+              'M 314.835 30.828 L 323.098 26.876',
+              'M 315.253 37.269 L 323.517 40.196',
+              'M 297.994 30.096 L 290.463 25.851',
+              'M 297.575 38 L 290.358 38.732'
+            ]"
+            :key="d"
+            :style="`
+              fill: rgb(216, 216, 216);
+              stroke: rgb(0, 0, 0);
+              stroke-dashoffset: ${10 * (1-scrolledBy)};
+              stroke-dasharray: 10;
+            `"
+            :d="d"
+          />
+        </g>
+      </svg>
+      <h2>Vision</h2>
+      We see a future where all learners have
+      <em>free access to world class learning experiences</em>
+      and well structured ways to interact with them that are appropriate to
+      their situations and goals, whatever they may be.
+    </div>
+  </VisibilityTracker>
   <div class="statement">
     <img src="/goals.svg" width="100px" />
     <h2>Goals</h2>
@@ -95,10 +183,9 @@
     <div>
       <h1 id="contact-us-header">Contact Us</h1>
       <p>
-        KnowLearning invites you to contact us if you are
-        interested in our services, want to participate or
-        contribute, have a question, or have something interesting
-        to share.
+        We invite you to contact us if you are interested in
+        our services, want to participate or contribute, have a
+        question, or have something interesting to share.
       </p>
       <em>
         <a href="mailto:info@knowlearning.org">info@knowlearning.org</a>
@@ -123,4 +210,15 @@
 .logo.vue:hover {
   filter: drop-shadow(0 0 2em #42b883aa);
 }
+
+#hero {
+  height: 100vh;
+  margin-bottom: -15vh;
+  font-size: 32px;
+  line-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 </style>
