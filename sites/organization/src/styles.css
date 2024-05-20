@@ -4,14 +4,13 @@ body {
   text-align: center;
   font-family: Verdana, Geneva, Tahoma, sans-serif;
   background-image: url("/background-logo.svg");
-  background-position: 47% 50%;
+  background-position: 50% 50%;
   background-repeat: no-repeat;
   background-size: cover;
   font-size: 22px;
 }
 
 @media only screen and (max-width: 600px) {
-
   body {
     background-position: 48% 50%;
     background-size: cover;
