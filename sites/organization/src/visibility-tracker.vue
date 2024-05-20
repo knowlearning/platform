@@ -12,7 +12,7 @@
       height
     } = container.value.getBoundingClientRect()
     const pixelsVisible = window.innerHeight - top
-    scrolledBy.value = Math.max(0, Math.min(1, pixelsVisible/height))
+    scrolledBy.value = Math.max(0, Math.min(1, pixelsVisible/Math.min(height, window.innerHeight)))
     scroll.value = window.scrollY
   })
 
