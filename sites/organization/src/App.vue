@@ -159,8 +159,8 @@
 }
 
 #hero {
-  height: 100vh;
-  margin-bottom: -15vh;
+  height: 100svh;
+  margin-bottom: -15svh;
   font-size: 32px;
   line-height: 60px;
   display: flex;
