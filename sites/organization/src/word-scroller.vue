@@ -1,24 +1,23 @@
 <script setup>
-import { ref, computed } from 'vue'
+  import { ref, computed } from 'vue'
 
-setInterval(() => {
-  const lastAdjIndex = adjIndex.value
-  const lastColorIndex = colorIndex.value
-  while (lastAdjIndex === adjIndex.value || lastColorIndex === colorIndex.value) {
-    adjIndex.value = Math.floor(Math.random() * adjectives.length)
-    colorIndex.value = Math.floor(Math.random() * colors.length)
-  }
-}, 6000)
+  setInterval(() => {
+    const lastAdjIndex = adjIndex.value
+    const lastColorIndex = colorIndex.value
+    while (lastAdjIndex === adjIndex.value || lastColorIndex === colorIndex.value) {
+      adjIndex.value = Math.floor(Math.random() * adjectives.length)
+      colorIndex.value = Math.floor(Math.random() * colors.length)
+    }
+  }, 6000)
 
-const adjectives = ["interactive", "collaborative", "engaging", "open-source", "flexible", "adaptive"]
-const colors = ["#9B5DE5", "#00BBF9", "#00F5D4", "#11D98C", "#FEE440", "#FFA724", "#EE4266", "#F15BB5"]
+  const adjectives = ["interactive", "collaborative", "engaging", "open-source", "flexible", "adaptive"]
+  const colors = ["#FF9505", "#AB4E68", "#41BBD9", "#6CC551"]
 
-const adjIndex = ref(0)
-const colorIndex = ref(0)
+  const adjIndex = ref(0)
+  const colorIndex = ref(0)
 
-const adjective = computed(() => adjectives[adjIndex.value])
-const color = computed(() => colors[colorIndex.value])
-
+  const adjective = computed(() => adjectives[adjIndex.value])
+  const color = computed(() => colors[colorIndex.value])
 </script>
 
 <template>
