@@ -34,7 +34,7 @@
   </div>
   <div id="hero">
     <div>
-      A non-profit project
+      A non-profit organization
       <br>
       dedicated to a new generation of
       <br>
