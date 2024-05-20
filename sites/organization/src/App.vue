@@ -4,6 +4,7 @@
   import VisionIcon from './vision-icon.vue'
   import GoalsIcon from './goals-icon.vue'
   import ValuesIcon from './values-icon.vue'
+  import WordScroller from './word-scroller.vue'
 
   const year = new Date().getFullYear()
 </script>
@@ -37,6 +38,8 @@
       A non-profit organization
       <br>
       dedicated to a new generation of
+      <br>
+      <WordScroller />
       <br>
       digital learning experiences
     </div>
