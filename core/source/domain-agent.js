@@ -51,8 +51,6 @@ line: ${error.lineno}, column: ${error.colno}
 }
 
 export default function domainAgent(domain, refresh=false) {
-  let mainConnection = null
-
   if (DomainAgents[domain]) {
     if (!refresh) return DomainAgents[domain]
 
@@ -102,23 +100,20 @@ export default function domainAgent(domain, refresh=false) {
         event.preventDefault()
 
         //  remove domain agent from rotation so it will be reinitialized on next ask
-        //  TODO: consider what to do with connections using errored domain agent
         delete DomainAgents[domain]
-
-        if (mainConnection) {
-          mainConnection.closed = true
-          mainConnection.onclose?.()
-          mainConnection.close()
-        }
+        worker.terminate()
       }
 
       worker.onmessage = async ({ data }) => {
-        if (!connections[data.connection]) {
+        const isConnection = Object.hasOwn(data, 'token')
+        if (isConnection) {
           connections[data.connection] = createConnection(worker, data.connection)
+
           if (data.domain === null) {
-            mainConnection = connections[data.connection]
-            resolve(mainConnection)
+            resolve(connections[data.connection])
+            DomainAgents[domain] = Promise.resolve(connections[data.connection])
           }
+
           const targetDomain = data.domain || domain
           const sid = await createValidSession(targetDomain, domain)
           handleConnection(connections[data.connection], targetDomain, sid)
