@@ -4,7 +4,7 @@
   - [ ] stream all updates to uuids into file named uuid (stream into gcs as well)
 - [ ]  Auth service needs to associate 1 time use auth token with a domain, so that only auth requests with a token from that domain are treated as valid (great redis expiring key use case)
 - [ ]  Throw error instead of returning undefined when cross domain query fails (fails when points at wrong domain/no query configured)
-- [ ]  Semicolons at the end of queries in configuration shouldn't cause them to break
+- [x]  Semicolons at the end of queries in configuration shouldn't cause them to break
 - [ ]  Add reasonable timeout for JWT token verification (expired tokens might take a long time to come back as expired, causing front end to seem to hang)
 - [ ]  Optimize table updates
 - [ ]  Embeded agent create sessions w/ context
@@ -24,3 +24,8 @@
   - [ ] per domain server session process memory usage
   - [ ] per domain server session process cpu usage
 - [ ]  Throttle naughty clients (protect against infinite loops on the client)
+  - [ ] establish resource thresholds and close sessions that meet them
+  - [ ] prioritize "known good" (authenticated users with history and no abuse) sessions above "unknowns"
+    - [ ] pool of servers to host/connect "unknowns" before upgrading to "knowns"
+  - [ ] domain customizable thresholds and reporting stats on admin domain
+- [ ] allow undefined/empty columns on postgres table config (useful for tracking metadata for certain types...)

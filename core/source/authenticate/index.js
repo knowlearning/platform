@@ -298,7 +298,13 @@ async function JWTVerification(client_id, client_secret, token_uri, token, resol
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
     },
-    body: `client_id=${client_id}&client_secret=${client_secret}&code=${code}&grant_type=authorization_code&redirect_uri=https://auth.knowlearning.systems/`
+    body: new URLSearchParams({
+      client_id,
+      client_secret,
+      code,
+      grant_type: 'authorization_code',
+      redirect_uri: 'https://auth.knowlearning.systems/'
+    }).toString()
   }).then(r => r.json())
 
   if (response.error) return reject(response.error)
