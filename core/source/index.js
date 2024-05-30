@@ -25,3 +25,8 @@ function handler(request) {
   ensureDomainConfigured(requestDomain(request))
   return handleHttpRequest(request)
 }
+
+globalThis.addEventListener("unhandledrejection", event => {
+  console.log("UNHANDLED REJECTION HANDLER", event)
+  event.preventDefault()
+})
