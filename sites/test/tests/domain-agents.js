@@ -21,7 +21,7 @@ async function configureDomain(domain, configuration, awaitInitialized) {
 
 export default function () {
   const specialCrossDomainScopeName = `mirror-no-reset/${Agent.uuid()}`
-  const specialCrossDomainResetScopeName =`mirror-reset/${Agent.uuid()}`
+  const specialCrossDomainReconnectServerScopeName =`mirror-reset/${Agent.uuid()}`
 
   const CONFIGURATION_1 = `
 authorize:
@@ -146,7 +146,6 @@ agent: |
   const serverId = Agent.uuid()
 
   Agent.on('child', child => {
-    console.log('GOT CHILD!', child)
     const { environment: { user } } = child
     Agent
       .state('child-connections-' + user)
@@ -156,18 +155,9 @@ agent: |
       })
 
     child.on('mutate', async mutation => {
-      console.log('MUTATION!!!!!!!!!!!!!!!!!!!', mutation)
       if (mutation.scope.startsWith('mirror-no-reset')) {
         const myState = await Agent.state(mutation.scope)
         fastJSONPatch.applyPatch(myState, standardJSONPatch(mutation.patch))
-      }
-      else if (mutation.scope.startsWith('mirror-reconnect')) {
-        console.log('AGENT RECONNECTING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        Agent.reconnect()
-        const myState = await Agent.state(mutation.scope)
-        setTimeout(() => {
-          fastJSONPatch.applyPatch(myState, standardJSONPatch(mutation.patch))
-        }, 100)
       }
       else if (mutation.scope.startsWith('mirror-reset')) {
         const myState = await Agent.state(mutation.scope)
@@ -245,7 +235,7 @@ agent: |
   const TestAgent = getAgent(agentDomain)
 
   //  Test to see if we can spin up an agent connection to another domain
-  const scopeNameToMirror = "${specialCrossDomainResetScopeName}"
+  const scopeNameToMirror = "${specialCrossDomainReconnectServerScopeName}"
   const myState = await TestAgent.state(scopeNameToMirror)
   myState.x = 100
 
@@ -301,7 +291,7 @@ agent: |
       expect(state.success).to.equal(true)
     })
 
-    it('Can establish cross domain agent connections that are resilient against domain agent resets', async function () {
+    it('Can establish cross domain agent connections that are resilient against reconnections', async function () {
       this.timeout(5000)
 
       const { domain, auth: { user } } = await Agent.environment()
@@ -313,7 +303,7 @@ agent: |
       let state = {}
       while (state.success === undefined) {
         await pause(100)
-        state = await Agent.state(specialCrossDomainResetScopeName, remoteDomain, domain)
+        state = await Agent.state(specialCrossDomainReconnectServerScopeName, remoteDomain, domain)
       }
 
       expect(state.success).to.equal(true)
@@ -373,7 +363,6 @@ agent: |
           if (state.x === 200) resolve()
         }, domain)
       })
-      //  TODO: check if agent still mirroring...
     })
   })
 }
