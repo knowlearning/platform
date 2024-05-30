@@ -1,4 +1,9 @@
+import SIMPLE_MIRROR_CONFIGURATION from './domain-agents/simple-mirror-config.js'
+import PROXY_TO_SIMPLE_MIRROR_CONFIGURATION from './domain-agents/proxy-to-simple-mirror-config.js'
+
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
+
+const SIMPLE_MIRROR_DOMAIN = `simple-mirror-config.localhost:5112`
 
 const domainAgentConfigured = id => new Promise(r => Agent.watch(id, u => u.state.tasks?.agent?.[1] === 'done' && r()))
 const domainAgentInitialized = id => new Promise(r => Agent.watch(id, u => u.state.tasks?.agent?.[0] && r()))
@@ -15,7 +20,7 @@ async function configureDomain(domain, configuration, awaitInitialized) {
     active: { config, report, domain }
   })
 
-  await awaitInitialized ? domainAgentInitialized(report) : domainAgentConfigured(report)
+  awaitInitialized ? await domainAgentInitialized(report) : await domainAgentConfigured(report)
   return report
 }
 
@@ -353,9 +358,7 @@ agent: |
 
       const { domain, auth: { user } } = await Agent.environment()
 
-      const report = await configureDomain(domain, MIRROR_CONFIGURATION)
-      await domainAgentInitialized(report)
-      await pause(500) //  TODO: need more reliable mechanism to know domain agent ready to accept messages
+      await configureDomain(domain, MIRROR_CONFIGURATION)
 
       const reconnectMirroredStateName = 'mirror-reconnect/' + uuid()
       const reconnectMirroredState = await Agent.state(reconnectMirroredStateName)
@@ -367,13 +370,34 @@ agent: |
         }, domain)
       })
 
+      console.log('passed 1')
+
       reconnectMirroredState.x = 200
       await new Promise((resolve, reject) => {
         Agent.watch(reconnectMirroredStateName, ({ state }) => {
           if (state.x === 200) resolve()
         }, domain)
       })
-      //  TODO: check if agent still mirroring...
+
+      console.log('passed 2')
+    })
+
+    it('Can keep mirroring with new agent configurations', async function () {
+      this.timeout(5000)
+      const { domain, auth: { user } } = await Agent.environment()
+      await configureDomain(SIMPLE_MIRROR_DOMAIN, SIMPLE_MIRROR_CONFIGURATION)
+      await configureDomain(domain, PROXY_TO_SIMPLE_MIRROR_CONFIGURATION)
+
+      const myStateName = 'mirror/' + uuid()
+      const myState = await Agent.state(myStateName)
+
+      myState.x = 200
+      await new Promise((resolve, reject) => {
+        Agent.watch(myStateName, ({ state }) => {
+          console.log('INTERESTING....?', state)
+          if (state.x === 200) resolve()
+        }, SIMPLE_MIRROR_DOMAIN, SIMPLE_MIRROR_DOMAIN)
+      })
     })
   })
 }

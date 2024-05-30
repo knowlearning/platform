@@ -142,7 +142,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
             resolveEnvironment(message)
           }
           else if (server !== message.server) {
-            console.warn(`REBOOTING DUE TO SERVER SWITCH ${server} -> ${message.server}`)
+            console.warn(`REBOOTING DUE TO SERVER SWITCH ${server} -> ${message.server}`, message)
             reboot()
           }
           else {
@@ -205,7 +205,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
         }
       }
       catch (error) {
-        console.error('ERROR HANDLING CONNECTION MESSAGE', error)
+        console.error('ERROR HANDLING CONNECTION MESSAGE', error, message)
       }
     }
 
