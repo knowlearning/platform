@@ -363,16 +363,16 @@ agent: |
       reconnectMirroredState.x = 100
       await new Promise((resolve, reject) => {
         Agent.watch(reconnectMirroredStateName, ({ state }) => {
-          if (state.x === 100) {
-            console.log('STAAAAAAAAAAAAAAAAAAAAAAAAAAAAATE RESULT', state)
-            resolve()
-          }
-          else {
-            console.log('STAAAAAAAAAAAAAAAAAAAAAAAAAAAAATE RESULT (not mirrored yet)', state)
-          }
+          if (state.x === 100) resolve()
         }, domain)
       })
 
+      reconnectMirroredState.x = 200
+      await new Promise((resolve, reject) => {
+        Agent.watch(reconnectMirroredStateName, ({ state }) => {
+          if (state.x === 200) resolve()
+        }, domain)
+      })
       //  TODO: check if agent still mirroring...
     })
   })
