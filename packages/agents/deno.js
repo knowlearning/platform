@@ -5,6 +5,10 @@ const AGENT_TOKEN = Deno.env.get('AGENT_TOKEN')
 
 const denoProcess = self
 
+denoProcess.addEventListener('message', ({ data }) => {
+  if (!data) denoProcess.postMessage() // ping response
+})
+
 function Connection() {
   const connection = crypto.randomUUID()
 
