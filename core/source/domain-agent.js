@@ -22,14 +22,16 @@ async function createValidSession(domain, user) {
 
 function createConnection(worker, id) {
   let queue = []
+  let closed = false
 
   const postMessage = m => worker.postMessage(m ? { ...m, connection: id} : m)
 
   return {
     async send(message) {
-      // TODO: consider more reliable/explicit recognintion of auth response method
-      if (!message) postMessage() // heartbeat
+      if (closed) console.warn('MESSAGE SENT TO CLOSED CONNECTION', id, message)
+      else if (!message) postMessage() // heartbeat
       else if (message.server) {
+        // TODO: consider more reliable/explicit recognintion of auth response method
         postMessage(message)
         while (queue.length) postMessage(queue.shift())
         queue = null
@@ -39,6 +41,7 @@ function createConnection(worker, id) {
     },
     close() {
       console.warn('WORKER CLOSED THROUGH CONNECTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+      closed = true
       worker.terminate()
     }
   }
