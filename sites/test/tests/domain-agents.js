@@ -1,4 +1,9 @@
+import SIMPLE_MIRROR_CONFIGURATION from './domain-agents/simple-mirror-config.js'
+import PROXY_TO_SIMPLE_MIRROR_CONFIGURATION from './domain-agents/proxy-to-simple-mirror-config.js'
+
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
+
+const SIMPLE_MIRROR_DOMAIN = `simple-mirror-config.localhost:5112`
 
 const domainAgentConfigured = id => new Promise(r => Agent.watch(id, u => u.state.tasks?.agent?.[1] === 'done' && r()))
 const domainAgentInitialized = id => new Promise(r => Agent.watch(id, u => u.state.tasks?.agent?.[0] && r()))
@@ -15,13 +20,13 @@ async function configureDomain(domain, configuration, awaitInitialized) {
     active: { config, report, domain }
   })
 
-  await awaitInitialized ? domainAgentInitialized(report) : domainAgentConfigured(report)
+  awaitInitialized ? await domainAgentInitialized(report) : await domainAgentConfigured(report)
   return report
 }
 
 export default function () {
   const specialCrossDomainScopeName = `mirror-no-reset/${Agent.uuid()}`
-  const specialCrossDomainReconnectServerScopeName =`mirror-reset/${Agent.uuid()}`
+  const specialCrossDomainResetScopeName =`mirror-reset/${Agent.uuid()}`
 
   const CONFIGURATION_1 = `
 authorize:
@@ -146,6 +151,7 @@ agent: |
   const serverId = Agent.uuid()
 
   Agent.on('child', child => {
+    console.log('GOT CHILD!', child)
     const { environment: { user } } = child
     Agent
       .state('child-connections-' + user)
@@ -155,9 +161,18 @@ agent: |
       })
 
     child.on('mutate', async mutation => {
+      console.log('MUTATION!!!!!!!!!!!!!!!!!!!', mutation)
       if (mutation.scope.startsWith('mirror-no-reset')) {
         const myState = await Agent.state(mutation.scope)
         fastJSONPatch.applyPatch(myState, standardJSONPatch(mutation.patch))
+      }
+      else if (mutation.scope.startsWith('mirror-reconnect')) {
+        console.log('AGENT RECONNECTING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        Agent.reconnect()
+        const myState = await Agent.state(mutation.scope)
+        setTimeout(() => {
+          fastJSONPatch.applyPatch(myState, standardJSONPatch(mutation.patch))
+        }, 100)
       }
       else if (mutation.scope.startsWith('mirror-reset')) {
         const myState = await Agent.state(mutation.scope)
@@ -235,7 +250,7 @@ agent: |
   const TestAgent = getAgent(agentDomain)
 
   //  Test to see if we can spin up an agent connection to another domain
-  const scopeNameToMirror = "${specialCrossDomainReconnectServerScopeName}"
+  const scopeNameToMirror = "${specialCrossDomainResetScopeName}"
   const myState = await TestAgent.state(scopeNameToMirror)
   myState.x = 100
 
@@ -291,7 +306,7 @@ agent: |
       expect(state.success).to.equal(true)
     })
 
-    it('Can establish cross domain agent connections that are resilient against reconnections', async function () {
+    it('Can establish cross domain agent connections that are resilient against domain agent resets', async function () {
       this.timeout(5000)
 
       const { domain, auth: { user } } = await Agent.environment()
@@ -303,7 +318,7 @@ agent: |
       let state = {}
       while (state.success === undefined) {
         await pause(100)
-        state = await Agent.state(specialCrossDomainReconnectServerScopeName, remoteDomain, domain)
+        state = await Agent.state(specialCrossDomainResetScopeName, remoteDomain, domain)
       }
 
       expect(state.success).to.equal(true)
@@ -343,9 +358,7 @@ agent: |
 
       const { domain, auth: { user } } = await Agent.environment()
 
-      const report = await configureDomain(domain, MIRROR_CONFIGURATION)
-      await domainAgentInitialized(report)
-      await pause(500) //  TODO: need more reliable mechanism to know domain agent ready to accept messages
+      await configureDomain(domain, MIRROR_CONFIGURATION)
 
       const reconnectMirroredStateName = 'mirror-reconnect/' + uuid()
       const reconnectMirroredState = await Agent.state(reconnectMirroredStateName)
@@ -357,11 +370,33 @@ agent: |
         }, domain)
       })
 
+      console.log('passed 1')
+
       reconnectMirroredState.x = 200
       await new Promise((resolve, reject) => {
         Agent.watch(reconnectMirroredStateName, ({ state }) => {
           if (state.x === 200) resolve()
         }, domain)
+      })
+
+      console.log('passed 2')
+    })
+
+    it('Can keep mirroring with new agent configurations', async function () {
+      this.timeout(5000)
+      const { domain, auth: { user } } = await Agent.environment()
+      await configureDomain(SIMPLE_MIRROR_DOMAIN, SIMPLE_MIRROR_CONFIGURATION)
+      await configureDomain(domain, PROXY_TO_SIMPLE_MIRROR_CONFIGURATION)
+
+      const myStateName = 'mirror/' + uuid()
+      const myState = await Agent.state(myStateName)
+
+      myState.x = 200
+      await new Promise((resolve, reject) => {
+        Agent.watch(myStateName, ({ state }) => {
+          console.log('INTERESTING....?', state)
+          if (state.x === 200) resolve()
+        }, SIMPLE_MIRROR_DOMAIN, SIMPLE_MIRROR_DOMAIN)
       })
     })
   })

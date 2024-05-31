@@ -98,9 +98,9 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
     if (restarting) return
 
     authed = false
+    connection.onmessage = () => {} // needs to be a no-op since a closing connection can still get messages
     if (!disconnected) {
       await new Promise(r => setTimeout(r, Math.min(1000, failedConnections * 100)))
-      connection.onmessage = () => {} // needs to be a no-op since a closing connection can still get messages
       restarting = true
       failedConnections += 1
       initConnection() // TODO: don't do this if we are purposefully unloading...
@@ -142,7 +142,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
             resolveEnvironment(message)
           }
           else if (server !== message.server) {
-            console.warn(`REBOOTING DUE TO SERVER SWITCH ${server} -> ${message.server}`)
+            console.warn(`REBOOTING DUE TO SERVER SWITCH ${server} -> ${message.server}`, message)
             reboot()
           }
           else {
@@ -205,7 +205,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
         }
       }
       catch (error) {
-        console.error('ERROR HANDLING CONNECTION MESSAGE', error)
+        console.error('ERROR HANDLING CONNECTION MESSAGE', error, message)
       }
     }
 
