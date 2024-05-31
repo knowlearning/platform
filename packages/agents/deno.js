@@ -6,7 +6,7 @@ const AGENT_TOKEN = Deno.env.get('AGENT_TOKEN')
 const denoProcess = self
 
 denoProcess.addEventListener('message', ({ data }) => {
-  if (!data) denoProcess.postMessage() // ping response
+  if (!data) denoProcess.postMessage(undefined) // ping response
 })
 
 function Connection() {
