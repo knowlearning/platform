@@ -5,6 +5,8 @@ import { ensureDomainConfigured } from './side-effects/configure.js'
 import saveSession from './authenticate/save-session.js'
 import handleConnection from './handle-connection.js'
 
+const HEARTBEAT_INTERVAL = 5000
+
 const DomainAgents = {}
 const connections = {}
 
@@ -106,6 +108,19 @@ export default function domainAgent(domain, refresh=false) {
         //  remove domain agent from rotation so it will be reinitialized on next ask
         delete DomainAgents[domain]
         worker.terminate()
+      }
+
+      let workerPongTimeout
+      function resetPongTimeout() {
+        clearTimeout(workerPongTimeout)
+        workerPongTimeout = setTimeout(
+          () => {
+            console.log('CLOSING AGENT DUE TO HEARTBEAT_INTERVAL PONG TIMEOUT', domain)
+            delete DomainAgents[domain]
+            worker.terminate()
+          },
+          HEARTBEAT_INTERVAL + 1000
+        )
       }
 
       worker.onmessage = async ({ data }) => {
