@@ -109,6 +109,10 @@ export default function domainAgent(domain, refresh=false) {
       }
 
       worker.onmessage = async ({ data }) => {
+        if (!data) {
+          //  clear ping response expectationtimeout
+          return
+        }
         const isConnection = Object.hasOwn(data, 'token')
         if (isConnection) {
           connections[data.connection] = createConnection(worker, data.connection, domain)
