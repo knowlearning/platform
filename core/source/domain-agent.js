@@ -20,7 +20,7 @@ async function createValidSession(domain, user) {
   return sid
 }
 
-function createConnection(worker, id) {
+function createConnection(worker, id, domain) {
   let queue = []
   let closed = false
 
@@ -39,10 +39,11 @@ function createConnection(worker, id) {
       else if (queue) queue.push(message)
       else postMessage(message)
     },
-    close() {
-      console.warn('WORKER CLOSED THROUGH CONNECTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+    close(info) {
+      console.warn('WORKER CLOSED THROUGH CONNECTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', info)
       closed = true
       worker.terminate()
+      delete DomainAgents[domain]
     }
   }
 }
@@ -110,7 +111,7 @@ export default function domainAgent(domain, refresh=false) {
       worker.onmessage = async ({ data }) => {
         const isConnection = Object.hasOwn(data, 'token')
         if (isConnection) {
-          connections[data.connection] = createConnection(worker, data.connection)
+          connections[data.connection] = createConnection(worker, data.connection, domain)
 
           if (data.domain === null) {
             resolve(connections[data.connection])
