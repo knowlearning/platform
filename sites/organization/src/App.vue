@@ -163,7 +163,7 @@
 
 #hero {
   height: 100svh;
-  margin-bottom: -15svh;
+  margin-bottom: -5svh;
   font-size: 32px;
   line-height: 60px;
   display: flex;
