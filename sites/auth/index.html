@@ -16,9 +16,17 @@
       const CLASSLINK_CLIENT_ID = 'c17067461192207630e7cc2ae2d82cccf1f28f20bd10'
       const CLASSLINK_OAUTH2_URL = 'https://launchpad.classlink.com/oauth2/v2/auth'
 
-      function objectToQuerystring(o) {
-        return Object.entries(o).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&')
-      }
+      const CORE_AUTH_SERVICE_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA59Uz6jvBJF3B8/7xMqGo
+XkIhLFvTCHuFIGuCNNZGCJUnSk2ne6Jp1ehUIarliJwzrvfr2HMe0PvzAJyZqQIs
+uz0Lt867TTojCAKJunxbcrwEhzvz0FNjNu1wpgkSHFvd1uTvRSZqauqUmG0HqC17
+HSmBaXivB49B/pviowVJc+mUJJ9MROtOiL4JN5niHnLbt6QVi6NITAJkOwtoRhck
+5j0KLvfrq18R8QrfDOq3v5hWlrA6j1wPvTW1mzFk8MrOZw935mMDdMivFAm/DltM
+NT5I3YnLZpcl1e/fydC+B6zSz2nZfLb2iDBbADDVj2+i9JUEFomg6ng1DjHUGMYc
+ZQIDAQAB
+-----END PUBLIC KEY-----
+`
+
       if (window.location.pathname !== '/') {
         const [_, provider, state, origin] = window.location.pathname.split('/')
         const info = { origin: decodeURIComponent(origin), provider }
@@ -59,12 +67,18 @@
 
         if (code && state) {
           const { origin, provider } = JSON.parse(localStorage.getItem(state))
+          localStorage.removeItem(state)
 
           const { protocol, host } = new URL(origin)
-          //  TODO: encrypt domain + code with server public key so that server
-          //        can verify that the user of the code is the intended recipient
-          window.location.href = `${protocol}//${host}/auth/${state}/${provider}-${code}`
-          localStorage.removeItem(state)
+
+          if (host === 'localhost:5113') {
+            const tokenContents = { code, provider, domain: host }
+            encryptString(CORE_AUTH_SERVICE_PUBLIC_KEY, JSON.stringify(tokenContents))
+              .then(encryptedToken => window.location.href = `${protocol}//${host}/auth/${state}/${encryptedToken}`)
+          }
+          else {
+            window.location.href = `${protocol}//${host}/auth/${state}/${provider}-${code}`
+          }
         }
       }
 
@@ -77,6 +91,39 @@
         })
         return result
       }
+
+      function objectToQuerystring(o) {
+        return Object.entries(o).map(([k,v]) => `${k}=${encodeURIComponent(v)}`).join('&')
+      }
+
+      function pemToArrayBuffer(pem) {
+        const b64 = pem.replace(/-----\w+ PUBLIC KEY-----/g, '').replace(/\s+/g, '')
+        const binary = atob(b64)
+        const buffer = new ArrayBuffer(binary.length)
+        const view = new Uint8Array(buffer)
+        for (let i = 0; i < binary.length; i++) {
+          view[i] = binary.charCodeAt(i)
+        }
+        return buffer;
+      }
+
+      async function encryptString(publicKeyPem, plainText) {
+        const publicKey = await crypto.subtle.importKey(
+          'spki',
+          pemToArrayBuffer(publicKeyPem),
+          { name: 'RSA-OAEP', hash: 'SHA-256' },
+          true,
+          ['encrypt']
+        )
+
+        const encryptedData = await crypto.subtle.encrypt(
+          { name: 'RSA-OAEP' },
+          publicKey,
+          (new TextEncoder()).encode(plainText)
+        )
+
+        return btoa(String.fromCharCode(...new Uint8Array(encryptedData)))
+    }
     </script>
   </body>
 </html>

@@ -6,6 +6,7 @@ import { query } from '../postgres.js'
 
 const {
   ADMIN_DOMAIN,
+  AUTH_SERVICE_SECRET_KEY,
   GOOGLE_OAUTH_CLIENT_CREDENTIALS,
   MICROSOFT_OAUTH_CLIENT_CREDENTIALS,
   CLASSLINK_OAUTH_CLIENT_CREDENTIALS
@@ -157,9 +158,18 @@ const authenticateToken = (domain, token, authority) => new Promise( async (reso
   if (authority === 'core') coreVerfication(token, resolve, reject)
   else if (!token) resolve(anonymousProviderResponse(uuid()))
   else {
-    const i = token.indexOf('-')
-    const provider = token.substr(0,i)
-    const code = token.substr(i+1)
+    if (domain === 'localhost:5113') {
+      const { domain: tokenDomain, provider, code } = await decryptBase64String(AUTH_SERVICE_SECRET_KEY, token)
+      if (tokenDomain !== domain) {
+        reject(`INVALID TOKEN DOMAIN: ${domain} != ${tokenDomain}`)
+        return
+      }
+    }
+    else {
+      const i = token.indexOf('-')
+      const provider = token.substr(0,i)
+      const code = token.substr(i+1)
+    }
 
     if (OAuthClientInfo[provider]) JWTVerification(provider, code, resolve, reject)
     else resolve(anonymousProviderResponse(uuid()))
