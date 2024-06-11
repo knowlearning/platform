@@ -1,4 +1,4 @@
-import { jwt, jwkToPem, uuid, environment, decryptSymmetric, decodeBase64String } from '../utils.js'
+import { jwt, jwkToPem, uuid, environment, decryptSymmetric, decodeBase64String, decryptBase64String } from '../utils.js'
 import saveSession from './save-session.js'
 import * as hash from './hash.js'
 import interact from '../interact/index.js'
@@ -55,29 +55,11 @@ const EXISTING_USER_QUERY = `
   ORDER BY m.created ASC LIMIT 1
 `
 
-const {
-  web: {
-    client_id: GOOGLE_OAUTH_CLIENT_ID,
-    client_secret: GOOGLE_OAUTH_CLIENT_SECRET,
-    token_uri: GOOGLE_OAUTH_TOKEN_URI
-  }
-} = JSON.parse(GOOGLE_OAUTH_CLIENT_CREDENTIALS)
-
-const {
-  web: {
-    client_id: MICROSOFT_OAUTH_CLIENT_ID,
-    client_secret: MICROSOFT_OAUTH_CLIENT_SECRET,
-    token_uri: MICROSOFT_OAUTH_TOKEN_URI
-  }
-} = JSON.parse(MICROSOFT_OAUTH_CLIENT_CREDENTIALS)
-
-const {
-  web: {
-    client_id: CLASSLINK_OAUTH_CLIENT_ID,
-    client_secret: CLASSLINK_OAUTH_CLIENT_SECRET,
-    token_uri: CLASSLINK_OAUTH_TOKEN_URI
-  }
-} = JSON.parse(CLASSLINK_OAUTH_CLIENT_CREDENTIALS)
+const OAuthClientInfo = {
+  google: JSON.parse(GOOGLE_OAUTH_CLIENT_CREDENTIALS).web,
+  microsoft: JSON.parse(MICROSOFT_OAUTH_CLIENT_CREDENTIALS).web,
+  classlink: JSON.parse(CLASSLINK_OAUTH_CLIENT_CREDENTIALS).web
+}
 
 async function decryptAndParseSessionInfo(key, encrypted) {
   try {
@@ -139,7 +121,7 @@ export default async function authenticate(message, domain, sid) {
   else authority = 'JWT'
 
   const session = uuid()
-  const { user, provider, provider_id, info } = await authenticateToken(message.token, authority)
+  const { user, provider, provider_id, info } = await authenticateToken(domain, message.token, authority)
   console.log('NEW SESSION FOR USER', user, domain, session.slice(0, 4))
 
   const userPatch = [
@@ -171,51 +153,27 @@ function kidFromToken(token) {
   return kid
 }
 
-const authenticateToken = (token, authority) => new Promise( async (resolve, reject) => {
-  if (authority === 'core') {
-    coreVerfication(token, resolve, reject)
-  }
-  else if (token && token.startsWith('google-')) {
-    JWTVerification(
-      GOOGLE_OAUTH_CLIENT_ID,
-      GOOGLE_OAUTH_CLIENT_SECRET,
-      GOOGLE_OAUTH_TOKEN_URI,
-      token,
-      resolve,
-      reject
-    )
-  }
-  else if (token && token.startsWith('microsoft-')) {
-    JWTVerification(
-      MICROSOFT_OAUTH_CLIENT_ID,
-      MICROSOFT_OAUTH_CLIENT_SECRET,
-      MICROSOFT_OAUTH_TOKEN_URI,
-      token,
-      resolve,
-      reject
-    )
-  }
-  else if (token && token.startsWith('classlink-')) {
-    JWTVerification(
-      CLASSLINK_OAUTH_CLIENT_ID,
-      CLASSLINK_OAUTH_CLIENT_SECRET,
-      CLASSLINK_OAUTH_TOKEN_URI,
-      token,
-      resolve,
-      reject
-    )
-  }
+const authenticateToken = (domain, token, authority) => new Promise( async (resolve, reject) => {
+  if (authority === 'core') coreVerfication(token, resolve, reject)
+  else if (!token) resolve(anonymousProviderResponse(uuid()))
   else {
-    //  TODO: allow anonymous accounts to live beyond refresh
-    const provider_id = uuid()
-    resolve({
-      user: provider_id,
-      provider_id,
-      provider: 'anonymous',
-      info: { name: 'anonymous', picture: null }
-    })
+    const i = token.indexOf('-')
+    const provider = token.substr(0,i)
+    const code = token.substr(i+1)
+
+    if (OAuthClientInfo[provider]) JWTVerification(provider, code, resolve, reject)
+    else resolve(anonymousProviderResponse(uuid()))
   }
 })
+
+function anonymousProviderResponse(id) {
+  return {
+    user: id,
+    provider_id: id,
+    provider: 'anonymous',
+    info: { name: 'anonymous', picture: null }
+  }
+}
 
 async function coreVerfication(token, resolve, reject) {
   throw new Error('TODO: consider core verification')
@@ -286,7 +244,7 @@ async function fetchJWKs(provider, retries=0) {
   )
 }
 
-async function JWTVerification(client_id, client_secret, token_uri, token, resolve, reject) {
+async function JWTVerification(provider, code, resolve, reject) {
   setTimeout(
     () => {
       console.warn('JWT_VERIFICATION_TIMEOUT time elapsed')
@@ -295,10 +253,7 @@ async function JWTVerification(client_id, client_secret, token_uri, token, resol
     JWT_VERIFICATION_TIMEOUT
   )
 
-  const i = token.indexOf('-')
-  const provider = token.substr(0,i)
-  //  TODO: use provider info to differentiate different tokens
-  const code = token.substr(i+1)
+  const { client_id, client_secret, token_uri } = OAuthClientInfo[provider]
 
   //  TODO: use access token for refresh and such...
   const response = await fetch(token_uri, {
@@ -360,7 +315,7 @@ function passClassLinkTokenChallenge({ exp, iat, aud, iss }) {
   return (
     exp > now &&
     iat < now &&
-    aud === CLASSLINK_OAUTH_CLIENT_ID &&
+    aud === OAuthClientInfo.classlink.client_id &&
     'https://launchpad.classlink.com' === iss
   )
 }
@@ -371,7 +326,7 @@ function passGoogleTokenChallenge({ exp, iat, aud, iss }) {
   return (
     exp > now &&
     iat < now &&
-    aud === GOOGLE_OAUTH_CLIENT_ID &&
+    aud === OAuthClientInfo.google.client_id &&
     ['accounts.google.com', 'https://accounts.google.com'].includes(iss)
   )
 }
@@ -384,6 +339,6 @@ function passMicrosoftTokenChallenge({ exp, iat, aud, iss }) {
   return (
     exp > now &&
     iat < now &&
-    aud === MICROSOFT_OAUTH_CLIENT_ID
+    aud === OAuthClientInfo.microsoft.client_id
   )
 }
