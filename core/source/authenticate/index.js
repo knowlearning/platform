@@ -16,7 +16,7 @@ const JWKS_ENDPOINTS = {
   microsoft: 'https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration',
   classlink: 'https://launchpad.classlink.com/.well-known/openid-configuration'
 }
-
+const JWT_VERIFICATION_TIMEOUT = 2500
 const USER_TYPE = 'application/json;type=user'
 const REATTACHING_SESSION_QUERY = `
   SELECT
@@ -287,6 +287,14 @@ async function fetchJWKs(provider, retries=0) {
 }
 
 async function JWTVerification(client_id, client_secret, token_uri, token, resolve, reject) {
+  setTimeout(
+    () => {
+      console.warn('JWT_VERIFICATION_TIMEOUT time elapsed')
+      reject('JWT_VERIFICATION_TIMEOUT time elapsed')
+    },
+    JWT_VERIFICATION_TIMEOUT
+  )
+
   const i = token.indexOf('-')
   const provider = token.substr(0,i)
   //  TODO: use provider info to differentiate different tokens
