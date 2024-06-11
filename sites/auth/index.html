@@ -71,14 +71,9 @@ ZQIDAQAB
 
           const { protocol, host } = new URL(origin)
 
-          if (host === 'localhost:5113') {
-            const tokenContents = { code, provider, domain: host }
-            encryptString(CORE_AUTH_SERVICE_PUBLIC_KEY, JSON.stringify(tokenContents))
-              .then(encryptedToken => window.location.href = `${protocol}//${host}/auth/${state}/${encryptedToken}`)
-          }
-          else {
-            window.location.href = `${protocol}//${host}/auth/${state}/${provider}-${code}`
-          }
+          const tokenContents = { code, provider, domain: host }
+          encryptString(CORE_AUTH_SERVICE_PUBLIC_KEY, JSON.stringify(tokenContents))
+            .then(encryptedToken => window.location.href = `${protocol}//${host}/auth/${state}/${encryptedToken}`)
         }
       }
 

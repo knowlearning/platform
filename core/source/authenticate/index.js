@@ -157,7 +157,7 @@ function kidFromToken(token) {
 const authenticateToken = (domain, token, authority) => new Promise( async (resolve, reject) => {
   if (authority === 'core') coreVerfication(token, resolve, reject)
   else if (!token || token.length < 32) resolve(anonymousProviderResponse(uuid())) //  the less than 32 is an indicator of token passed on logout TODO: make this exchange more explicit between client and server
-  else if (domain === 'localhost:5113') {
+  else {
     try {
       const { domain: tokenDomain, provider, code } = JSON.parse(await decryptBase64String(AUTH_SERVICE_SECRET_KEY, token))
 
@@ -169,14 +169,6 @@ const authenticateToken = (domain, token, authority) => new Promise( async (reso
       console.warn(`ERROR DECRYPTING OR PARSING TOKEN FOR ${domain}`, error)
       reject('ERROR DECRYPTING OR PARSING TOKEN')
     }
-  }
-  else {
-    const i = token.indexOf('-')
-    const provider = token.substr(0,i)
-    const code = token.substr(i+1)
-
-    if (OAuthClientInfo[provider]) JWTVerification(provider, code, resolve, reject)
-    else resolve(anonymousProviderResponse(uuid()))
   }
 })
 
