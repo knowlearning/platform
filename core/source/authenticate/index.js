@@ -156,20 +156,24 @@ function kidFromToken(token) {
 
 const authenticateToken = (domain, token, authority) => new Promise( async (resolve, reject) => {
   if (authority === 'core') coreVerfication(token, resolve, reject)
-  else if (!token) resolve(anonymousProviderResponse(uuid()))
+  else if (!token || token.length < 32) resolve(anonymousProviderResponse(uuid())) //  the less than 32 is an indicator of token passed on logout TODO: make this exchange more explicit between client and server
+  else if (domain === 'localhost:5113') {
+    try {
+      const { domain: tokenDomain, provider, code } = JSON.parse(await decryptBase64String(AUTH_SERVICE_SECRET_KEY, token))
+
+      if (tokenDomain !== domain) reject(`INVALID TOKEN DOMAIN: ${domain} != ${tokenDomain}`)
+      else if (OAuthClientInfo[provider]) JWTVerification(provider, code, resolve, reject)
+      else resolve(anonymousProviderResponse(uuid()))
+    }
+    catch (error) {
+      console.warn(`ERROR DECRYPTING OR PARSING TOKEN FOR ${domain}`, error)
+      reject('ERROR DECRYPTING OR PARSING TOKEN')
+    }
+  }
   else {
-    if (domain === 'localhost:5113') {
-      const { domain: tokenDomain, provider, code } = await decryptBase64String(AUTH_SERVICE_SECRET_KEY, token)
-      if (tokenDomain !== domain) {
-        reject(`INVALID TOKEN DOMAIN: ${domain} != ${tokenDomain}`)
-        return
-      }
-    }
-    else {
-      const i = token.indexOf('-')
-      const provider = token.substr(0,i)
-      const code = token.substr(i+1)
-    }
+    const i = token.indexOf('-')
+    const provider = token.substr(0,i)
+    const code = token.substr(i+1)
 
     if (OAuthClientInfo[provider]) JWTVerification(provider, code, resolve, reject)
     else resolve(anonymousProviderResponse(uuid()))
@@ -256,10 +260,7 @@ async function fetchJWKs(provider, retries=0) {
 
 async function JWTVerification(provider, code, resolve, reject) {
   setTimeout(
-    () => {
-      console.warn('JWT_VERIFICATION_TIMEOUT time elapsed')
-      reject('JWT_VERIFICATION_TIMEOUT time elapsed')
-    },
+    () => reject('JWT_VERIFICATION_TIMEOUT time elapsed'),
     JWT_VERIFICATION_TIMEOUT
   )
 
