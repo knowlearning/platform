@@ -6,6 +6,7 @@
 
 <script setup>
   import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
+  import browserAgent from '../../../agents/browser/initialize.js'
 
   const props = defineProps({
     id: String,
@@ -26,10 +27,10 @@
       value.value = undefined
     }
     else if (props.metadata) {
-      const metadata = await Agent.metadata(props.id)
+      const metadata = await browserAgent().metadata(props.id)
       value.value = props.path.length === 1 ? metadata[props.path[0]] : metadata
     } else {
-      stopWatching = Agent.watch([props.id, ...props.path], v => value.value = v)
+      stopWatching = browserAgent().watch([props.id, ...props.path], v => value.value = v)
     }
     loading.value = false
   }

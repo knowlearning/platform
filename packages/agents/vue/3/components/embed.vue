@@ -13,6 +13,8 @@
 </template>
 
 <script>
+import browserAgent from '../../../agents/browser/initialize.js'
+
 export default {
   props: {
     id: {
@@ -55,7 +57,7 @@ export default {
     startWatching() {
       if (this.stopWatching) this.stopWatching()
       if (this.path.length) {
-        this.stopWatching = Agent.watch([this.id, ...this.path], value => {
+        this.stopWatching = browserAgent().watch([this.id, ...this.path], value => {
           //  TODO: ensure resolved value is uuid or URL
           this.resolvedId = value
         })
@@ -66,8 +68,8 @@ export default {
       if (!iframe || this.iframe === iframe) return
 
       this.iframe = iframe
-      this.embedding = Agent.embed({ id, mode, namespace }, iframe)
-      this.embedding.on('environment', e => this.environmentProxy ? this.environmentProxy(e) : Agent.environment(e))
+      this.embedding = browserAgent().embed({ id, mode, namespace }, iframe)
+      this.embedding.on('environment', e => this.environmentProxy ? this.environmentProxy(e) : browserAgent().environment(e))
       this.embedding.on('state', e => this.$emit('state', e))
       this.embedding.on('mutate', e => this.$emit('mutate', e))
       this.embedding.on('close', e => this.$emit('close', e))

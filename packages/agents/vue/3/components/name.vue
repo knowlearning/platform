@@ -8,6 +8,8 @@
 </template>
 
 <script>
+  import browserAgent from '../../../agents/browser/initialize.js'
+
   export default {
     props: {
       id: String
@@ -19,7 +21,7 @@
       }
     },
     async created() {
-      this.metadata = await Agent.metadata(this.id)
+      this.metadata = await browserAgent().metadata(this.id)
       this.loading = false
     },
     computed: {
