@@ -29,3 +29,5 @@
     - [ ] pool of servers to host/connect "unknowns" before upgrading to "knowns"
   - [ ] domain customizable thresholds and reporting stats on admin domain
 - [ ] allow undefined/empty columns on postgres table config (useful for tracking metadata for certain types...)
+- [ ] better error sent to agent when trying to download a uuid that isn't an uploaded thing
+- [ ] document/surface error for localhosts connecting on non https connections

@@ -74,6 +74,7 @@ ZQIDAQAB
           const tokenContents = { code, provider, domain: host }
           encryptString(CORE_AUTH_SERVICE_PUBLIC_KEY, JSON.stringify(tokenContents))
             .then(encryptedToken => window.location.href = `${protocol}//${host}/auth/${state}/${encryptedToken}`)
+            .catch(error => console.warn(error))
         }
       }
 
