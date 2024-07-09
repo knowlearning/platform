@@ -108,39 +108,53 @@ const decodeBase64String = string => (new TextDecoder()).decode(decodeBase64(str
 const escapePostgresLiteral = nodePostres.escapeLiteral
 const requestDomain = request => (new URL(request.headers.get('origin') || 'https://core')).host
 
-function pemToArrayBuffer(pem) {
-  const b64 = pem.replace(/-----\w+ PRIVATE KEY-----/g, '').replace(/\s+/g, '')
-  const binary = atob(b64)
-  const buffer = new ArrayBuffer(binary.length)
-  const view = new Uint8Array(buffer)
-  for (let i = 0; i < binary.length; i++) {
-    view[i] = binary.charCodeAt(i)
-  }
-  return buffer
-}
-
 async function decryptBase64String(privateKeyPem, encryptedBase64) {
-  const privateKeyArrayBuffer = pemToArrayBuffer(privateKeyPem)
-  const encryptedArrayBuffer = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0)).buffer
-
-  // Import the private key
+  // Import the RSA private key
   const privateKey = await crypto.subtle.importKey(
     'pkcs8',
-    privateKeyArrayBuffer,
+    pemToArrayBuffer(privateKeyPem),
     { name: 'RSA-OAEP', hash: 'SHA-256' },
     true,
     ['decrypt']
-  );
+  )
 
-  const decryptedData = await crypto.subtle.decrypt(
+  const [encodedIv, encodedEncryptedData, encodedEncryptedSymmetricKey] = encryptedBase64.split(',').map(decodeURIComponent)
+  const iv = Uint8Array.from(atob(encodedIv), c => c.charCodeAt(0))
+  const encryptedData = Uint8Array.from(atob(encodedEncryptedData), c => c.charCodeAt(0))
+  const encryptedSymmetricKey = Uint8Array.from(atob(encodedEncryptedSymmetricKey), c => c.charCodeAt(0))
+
+  const symmetricKeyArrayBuffer = await crypto.subtle.decrypt(
     { name: 'RSA-OAEP' },
     privateKey,
-    encryptedArrayBuffer
-  );
+    encryptedSymmetricKey
+  )
 
-  // Decode the decrypted data
-  const decoder = new TextDecoder()
-  return decoder.decode(decryptedData)
+  const symmetricKey = await crypto.subtle.importKey(
+    'raw',
+    symmetricKeyArrayBuffer,
+    { name: 'AES-GCM' },
+    true,
+    ['decrypt']
+  )
+
+  const decryptedData = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    symmetricKey,
+    encryptedData
+  )
+
+  return new TextDecoder().decode(decryptedData)
+}
+
+// Utility function to convert PEM to ArrayBuffer
+function pemToArrayBuffer(pem) {
+  const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
+  const binary = atob(b64);
+  const array = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    array[i] = binary.charCodeAt(i);
+  }
+  return array.buffer;
 }
 
 
