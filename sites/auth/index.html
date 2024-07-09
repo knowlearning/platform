@@ -104,6 +104,7 @@ ZQIDAQAB
       }
 
       async function encryptString(publicKeyPem, plainText) {
+        console.log('1', publicKeyPem, plainText)
         const publicKey = await crypto.subtle.importKey(
           'spki',
           pemToArrayBuffer(publicKeyPem),
@@ -112,11 +113,13 @@ ZQIDAQAB
           ['encrypt']
         )
 
+        console.log('2', publicKey)
         const encryptedData = await crypto.subtle.encrypt(
           { name: 'RSA-OAEP' },
           publicKey,
           (new TextEncoder()).encode(plainText)
         )
+        console.log('3', encryptedData)
 
         return btoa(String.fromCharCode(...new Uint8Array(encryptedData)))
     }
