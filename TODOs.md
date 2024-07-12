@@ -31,3 +31,4 @@
 - [ ] allow undefined/empty columns on postgres table config (useful for tracking metadata for certain types...)
 - [ ] better error sent to agent when trying to download a uuid that isn't an uploaded thing
 - [ ] document/surface error for localhosts connecting on non https connections
+- [ ] Agent.embed should guard against infinite loops in embeddings
