@@ -12,7 +12,7 @@ import { exists as fileExists } from "https://deno.land/std/fs/mod.ts"
 import { getCookies } from 'https://deno.land/std@0.214.0/http/cookie.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
 import { decodeBase64 } from "https://deno.land/std/encoding/base64.ts"
-
+import * as nats from "https://deno.land/x/nats/src/mod.ts"
 
 const { box } = nacl
 const uuid = () => crypto.randomUUID()
@@ -159,6 +159,7 @@ function pemToArrayBuffer(pem) {
 
 
 export {
+  nats,
   pg,
   jwt,
   jwkToPem,
