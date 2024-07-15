@@ -16,3 +16,7 @@ nodes:
     containerPort: 30003
     listenAddress: "127.0.0.1"
     protocol: TCP
+  - hostPort: 32004
+    containerPort: 30004
+    listenAddress: "127.0.0.1"
+    protocol: TCP

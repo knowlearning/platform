@@ -14,7 +14,7 @@ spec:
       labels:
         app: core-deno
     spec:
-      terminationGracePeriodSeconds: 10
+      terminationGracePeriodSeconds: 1
       containers:
       - name: core-deno
         image: core-deno
@@ -25,6 +25,7 @@ spec:
         ports:
         - containerPort: 8080
         - containerPort: 4443
+        - containerPort: 8222
         envFrom:
         - secretRef:
             name: redis-service-account
