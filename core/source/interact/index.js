@@ -1,6 +1,7 @@
 import * as redis from '../redis.js'
 import scopeToId from '../scope-to-id.js'
 import sync from './sync.js'
+import { publish } from '../pubsub.js'
 
 const MAINTENANCE_SCRIPT = `
   local active_size = redis.call('JSON.DEBUG', 'MEMORY', KEYS[1])
@@ -87,10 +88,15 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
     //  TODO: cache active_types so as not to require fetch on each interaction
     const active_type = response[response.length-1][0]
 
+    const update = { domain, user, scope: id, patch, ii }
+
     redis
       .client
-      .publish(id, JSON.stringify({ domain, user, scope: id, patch, ii })) //  TODO: fix this odd scope/id situation...
-      .catch(error => console.log('ERROR PUBLISHING!!!!!!!!', domain, user, scope, id, error))
+      .publish(id, JSON.stringify(update)) //  TODO: fix this odd scope/id situation...
+      .catch(error => console.log('ERROR PUBLISHING!!!!!!!!', update, error))
+
+    publish(id, update)
+      .catch(error => console.log('ERROR PUBLISHING TO PUBSUB PIPELINE', update, error))
 
     await sync(domain, user, active_type, scope)
 

@@ -30,8 +30,8 @@
 - [ ] document/surface error for localhosts connecting on non https connections
 - [ ] Agent.embed should guard against infinite loops in embeddings
 - [ ] Start using streams!
-  - [ ] Publish all interactions for a scope to own stream
-  - [ ] Make sure streams are growing
+  - [x] Publish all interactions for a scope to own stream
+  - [x] Make sure streams are growing
   - [ ] Monitoring process in deno for stream tats
   - [ ] roll up streams at some threshold
   - [ ] insert reference to rolled up data onto stream
