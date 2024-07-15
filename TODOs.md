@@ -32,7 +32,7 @@
 - [ ] Start using streams!
   - [x] Publish all interactions for a scope to own stream
   - [x] Make sure streams are growing
-  - [ ] Monitoring process in deno for stream tats
+  - [x] Monitoring process in deno for stream stats
   - [ ] roll up streams at some threshold
   - [ ] insert reference to rolled up data onto stream
   - [ ] remove rolled up segment behind above reference
