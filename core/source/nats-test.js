@@ -61,10 +61,18 @@ await js.publish("a.b", Empty, { expect: { lastSubjectSequence: pa.seq } });
 
 console.log('DID IT ALL???')
 
-
-const c = await js.consumers.get("a");
-const messages = await c.consume({ max_messages: 1 });
-for await (const m of messages) {
-  console.log(m.seq);
-  m.ack();
+async function consumeMessages(label) {
+  const c = await js.consumers.get("a");
+  const messages = await c.consume({ max_messages: 1000 });
+  for await (const m of messages) {
+    console.log(label, m.seq);
+    m.ack();
+  }
 }
+
+consumeMessages('a')
+
+setTimeout(async () => {
+  await jsm.streams.purge(stream, { seq: 90 })
+  consumeMessages('b')
+}, 2000)
