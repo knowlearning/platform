@@ -9,7 +9,7 @@ spec:
   ports:
   - name: https
     protocol: TCP
-    port: 4443
+    port: 32003
     nodePort: 30003
   - name: http
     protocol: TCP
@@ -36,14 +36,14 @@ spec:
       - name: gcs
         image: gcs
         ports:
-        - containerPort: 4443
+        - containerPort: 32003
         - containerPort: 8000
         args: [
           -scheme, both,
-          -port, '4443',
+          -port, '32003',
           -port-http, '8000',
           -log-level, debug,
           -cors-headers, 'x-upload-content-type,x-goog-content-sha256,x-goog-resumable,x-goog-meta-user,x-goog-meta-type,x-goog-meta-name,x-goog-meta-edit,x-goog-meta-view,x-goog-meta-base,x-goog-meta-domain',
-          -external-url, https://gcs:4443,
+          -external-url, https://gcs:32003,
           -public-host, gcs
         ]
