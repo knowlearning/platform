@@ -1,5 +1,40 @@
-import { nats } from './utils.js'
-import { upload, downloadURL } from './storage.js'
+import { createGCSClient, nats, environment, uuid } from './utils.js'
+import { downloadURL } from './storage.js'
+
+const {
+  INTERNAL_GCS_API_ENDPOINT,
+  GCS_BUCKET_NAME,
+  GC_PROJECT_ID,
+  GCS_SERVICE_ACCOUNT_CREDENTIALS
+} = environment
+
+const storage = new createGCSClient({
+  apiEndpoint: INTERNAL_GCS_API_ENDPOINT,
+  projectId: GC_PROJECT_ID,
+  credentials: JSON.parse(GCS_SERVICE_ACCOUNT_CREDENTIALS)
+})
+
+const bucket = storage.bucket(GCS_BUCKET_NAME)
+
+function upload(id, data) {
+  return new Promise((resolve, reject) => {
+    const file = bucket.file(id)
+    const stream = file.createWriteStream({ metadata: { contentType: "text/plain" } })
+    stream.end(data)
+    stream.on("finish", () => {
+      console.log(`String content uploaded to ${id}`)
+      resolve()
+    })
+
+    stream.on("error", error => {
+      console.error("Error uploading string content:", error)
+      reject(error)
+    })
+  })
+}
+
+
+
 
 const client = await nats.connect({ server: '0.0.0.0:4222' })
 
@@ -19,10 +54,11 @@ async function poll() {
         const messages = await c.consume({ max_messages: 1000 })
         const messagesToSerialize = []
 
-        const { url, info: { id } } = await upload('text/plain', true)
+console.log('MAKING UUID')
+        const id = uuid()
+console.log('MADE UUID', id)
         const snapshot = await js.publish(config.name, jc.encode({ id }));
 
-        //  TODO: stop watching when we get to message we put in...
         for await (const m of messages) {
           if (snapshot.seq < m.seq) {
             messagesToSerialize.push(jc.decode(m.data))
@@ -31,58 +67,20 @@ async function poll() {
           else break
         }
         console.log('UPLOADING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        const response = await fetch(url, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'text/plain' },
-          body: messagesToSerialize.map(m => JSON.stringify(m)).join('\n')
-        })
-        console.log('UPLOAD RESPONSE!!!!!!', response, await response.json())
-        console.log(
-          'UPLOADED TO', id,
-          await downloadURL(id)
-        )
-        if (response.status === 200) {
+        try {
+          await upload(id, messagesToSerialize.map(m => JSON.stringify(m)).join('\n'))
+          console.log(
+            'UPLOADED TO', id,
+            await downloadURL(id)
+          )
           await jsm.streams.purge(config.name, { seq: snapshot.seq })
           console.log('PURGED THE OLD STUFF', id)
         }
-        else {
-          console.log('ISSUES SAVING THE OLD STUFF', id)
+        catch (error) {
+          console.error('ERROR UPLOADING ROLLED UP STATE', error)
         }
       }
     })
   )
   setTimeout(poll, 5000)
-}
-
-async function uploadMessagesFromStream(streamName, subject, endpoint) {
-
-  // Pull all messages from the stream
-  let messages = [];
-  const p = await js.pullSubscribe(subject, { config: { durable_name: "my_durable" } });
-
-  for await (const m of p) {
-    messages.push(jc.decode(m.data));
-    m.ack();
-  }
-
-  // Concatenate all messages with \n
-  const concatenatedMessages = messages.map(msg => JSON.stringify(msg)).join('\n');
-  
-  // Send concatenated messages via a POST request
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: concatenatedMessages,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to upload messages: ${response.statusText}`);
-  }
-
-  console.log('Messages uploaded successfully');
-  
-  // Close the NATS connection
-  await nc.close();
 }

@@ -16,5 +16,5 @@ RUN deno cache ./source/index.js
 CMD [ \
   "sh", "-c", \
   "nats-server -js -m 8222 & \n\
-  deno run --allow-net --allow-env --allow-write --allow-read --unstable-worker-options --v8-flags=--max-old-space-size=8000 --unsafely-ignore-certificate-errors=gcs ./source/index.js" \
+  deno run --allow-net --allow-env --allow-write --allow-read --allow-sys --unstable-fs --unstable-worker-options --v8-flags=--max-old-space-size=8000 --unsafely-ignore-certificate-errors=gcs ./source/index.js" \
 ]

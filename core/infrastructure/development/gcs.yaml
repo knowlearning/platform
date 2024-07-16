@@ -44,6 +44,6 @@ spec:
           -port-http, '8000',
           -log-level, debug,
           -cors-headers, 'x-upload-content-type,x-goog-content-sha256,x-goog-resumable,x-goog-meta-user,x-goog-meta-type,x-goog-meta-name,x-goog-meta-edit,x-goog-meta-view,x-goog-meta-base,x-goog-meta-domain',
-          -external-url, https://localhost:32003,
-          -public-host, localhost
+          -external-url, https://gcs:4443,
+          -public-host, gcs
         ]
