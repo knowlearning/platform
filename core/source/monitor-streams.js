@@ -16,26 +16,6 @@ const storage = new createGCSClient({
 
 const bucket = storage.bucket(GCS_BUCKET_NAME)
 
-function upload(id, data) {
-  return new Promise((resolve, reject) => {
-    const file = bucket.file(id)
-    const stream = file.createWriteStream({ metadata: { contentType: "text/plain" } })
-    stream.end(data)
-    stream.on("finish", () => {
-      console.log(`String content uploaded to ${id}`)
-      resolve()
-    })
-
-    stream.on("error", error => {
-      console.error("Error uploading string content:", error)
-      reject(error)
-    })
-  })
-}
-
-
-
-
 const client = await nats.connect({ server: '0.0.0.0:4222' })
 
 const jsm = await client.jetstreamManager()
@@ -49,26 +29,24 @@ async function poll() {
   await Promise.all(
     streams.map(async ({ config, state }) => {
       if (state.bytes > 1000) {
-        console.log('BIG STREAM!!!!!!!!!!', config, state)
         const c = await js.consumers.get(config.name)
         const messages = await c.consume({ max_messages: 1000 })
         const messagesToSerialize = []
 
-console.log('MAKING UUID')
         const id = uuid()
-console.log('MADE UUID', id)
         const snapshot = await js.publish(config.name, jc.encode({ id }));
 
         for await (const m of messages) {
-          if (snapshot.seq < m.seq) {
+          if (snapshot.seq > m.seq) {
             messagesToSerialize.push(jc.decode(m.data))
             m.ack()
           }
           else break
         }
-        console.log('UPLOADING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         try {
-          await upload(id, messagesToSerialize.map(m => JSON.stringify(m)).join('\n'))
+          const data = messagesToSerialize.map(m => JSON.stringify(m)).join('\n')
+          console.log('UPLOADING', id)
+          await bucket.file(id).save(data)
           console.log(
             'UPLOADED TO', id,
             await downloadURL(id)

@@ -4,6 +4,18 @@ First install [docker](https://docs.docker.com/get-docker/),
 [kind](https://kind.sigs.k8s.io/docs/user/quick-start), and
 [skaffold](https://skaffold.dev/docs/install/); then you can:
 
+Then update /etc/hosts line
+
+```
+# modify this line:
+127.0.0.1 localhost
+
+# to be:
+127.0.0.1 localhost gcs
+```
+
+doing so is necessary for the local google cloud storage emulator to work
+
 ```sh
 # Run a local docker registry.
 docker run -d -p 5000:5000 --restart=always --name registry registry:2
