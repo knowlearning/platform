@@ -73,4 +73,8 @@ async function download(id, retries=3, internal=false) {
   }
 }
 
-export { upload, download }
+function downloadURL(id, internal=false) {
+  return bucket.file(id).getSignedUrl({ action: 'read', expires: Date.now() + 15 * 60 * 1000 }).then(([url]) => directedURL(url, internal))
+}
+
+export { upload, download, downloadURL }

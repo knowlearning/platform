@@ -33,7 +33,7 @@
   - [x] Publish all interactions for a scope to own stream
   - [x] Make sure streams are growing
   - [x] Monitoring process in deno for stream stats
-  - [ ] roll up streams at some threshold
-  - [ ] insert reference to rolled up data onto stream
-  - [ ] remove rolled up segment behind above reference
-
+  - [x] roll up streams at some threshold
+  - [x] insert reference to rolled up data onto stream
+  - [x] remove rolled up segment behind above reference
+  - [ ] upload file to gcs and validate upload
