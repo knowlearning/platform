@@ -1,6 +1,14 @@
 - [x]  Auth service needs to associate 1 time use auth token with a domain, so that only auth requests with a token from that domain are treated as valid (great redis expiring key use case)
 - [x]  Semicolons at the end of queries in configuration shouldn't cause them to break
 - [x]  Add reasonable timeout for JWT token verification (expired tokens might take a long time to come back as expired, causing front end to seem to hang)
+- [x] Start using streams!
+  - [x] Publish all interactions for a scope to own stream
+  - [x] Make sure streams are growing
+  - [x] Monitoring process in deno for stream stats
+  - [x] roll up streams at some threshold
+  - [x] insert reference to rolled up data onto stream
+  - [x] remove rolled up segment behind above reference
+  - [x] upload file to gcs and validate upload
 - [ ] Take postgres out of managed service and use deployable instance
 - [ ]  Throw error instead of returning undefined when cross domain query fails (fails when points at wrong domain/no query configured)
 - [ ]  Optimize table updates
@@ -29,11 +37,3 @@
 - [ ] better error sent to agent when trying to download a uuid that isn't an uploaded thing
 - [ ] document/surface error for localhosts connecting on non https connections
 - [ ] Agent.embed should guard against infinite loops in embeddings
-- [ ] Start using streams!
-  - [x] Publish all interactions for a scope to own stream
-  - [x] Make sure streams are growing
-  - [x] Monitoring process in deno for stream stats
-  - [x] roll up streams at some threshold
-  - [x] insert reference to rolled up data onto stream
-  - [x] remove rolled up segment behind above reference
-  - [ ] upload file to gcs and validate upload
