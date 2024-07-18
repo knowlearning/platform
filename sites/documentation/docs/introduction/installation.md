@@ -10,7 +10,7 @@ pnpm install @knowlearning/agents
 yarn install @knowlearning/agents
 ```
 
-Here is how you can import the agent wherever you need:
+Import the agent wherever you need:
 
 ```js
 import Agent from '@knowlearning/agents'
