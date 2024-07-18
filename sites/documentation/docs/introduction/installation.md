@@ -10,10 +10,10 @@ pnpm install @knowlearning/agents
 yarn install @knowlearning/agents
 ```
 
-If you are developing an browser based application, here is how you can import the agent wherever you need.
+Here is how you can import the agent wherever you need:
 
 ```js
-import Agent from '@knowlearning/agents/browser.js'
+import Agent from '@knowlearning/agents'
 ```
 
 All interactions with the know learning core run through ```Agent```.

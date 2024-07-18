@@ -16,10 +16,7 @@ All communication with our infrastructure runs through this "Agent" connection.
 Rather than just say we have a small set of useful tools, we'll show them. Here's a quick summary of our API:
 
 ```js
-import Agent from '@knowlearning/agents/browser.js'
-
-//  Create an agent to use
-const Agent = browserAgent()
+import Agent from '@knowlearning/agents'
 
 //  Generate a uuid so we can associate some data with it
 const id = Agent.uuid()
@@ -37,8 +34,8 @@ function watchCallback(update) {
 }
 Agent.watch(id, watchCallback)
 
-//  Prompt a user to upload a file from their computer
-const uploadId = await Agent.upload()
+//  Prompt a user to upload a file using their built-in file browser
+const uploadId = await Agent.upload({ browser: true })
 
 //  Download the uploaded file back to the user's computer
 await Agent.download(uploadId)
