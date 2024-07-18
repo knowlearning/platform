@@ -7,6 +7,7 @@ import authorize from './authorize.js'
 import interact from './interact/index.js'
 import * as redis from './redis.js'
 import * as pubsub from './pubsub.js'
+import { deepEqual } from './utils.js';
 
 export default async function coreSideEffects({
   session, domain, user, scope, active_type, patch, si, ii, send
@@ -37,7 +38,10 @@ export default async function coreSideEffects({
               pubsub.subscribe(id, update => {
                 if (first) {
                   first = false
-                  console.log('DO STATES EQUAL??????????????', update, state)
+                  const theSameState = deepEqual({...update.state, created: null, updated: null }, {...state, created: null, updated: null })
+                  if (!theSameState) {
+                    console.log('MISMATCHED STATES', update, state, session, domain, user, scope, active_type)
+                  }
                 }
               }, subscribedScope, user, domain)
             }

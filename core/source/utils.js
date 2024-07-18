@@ -13,6 +13,7 @@ import { getCookies } from 'https://deno.land/std@0.214.0/http/cookie.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
 import { decodeBase64 } from "https://deno.land/std@0.214.0/encoding/base64.ts"
 import * as nats from "https://deno.land/x/nats@v1.28.0/src/mod.ts"
+import { equal as deepEqual } from "https://deno.land/std@0.224.0/assert/equal.ts";
 
 const { box } = nacl
 const uuid = () => crypto.randomUUID()
@@ -157,7 +158,6 @@ function pemToArrayBuffer(pem) {
   return array.buffer;
 }
 
-
 export {
   nats,
   pg,
@@ -172,6 +172,7 @@ export {
   decryptBase64String,
   createRedisClient,
   createGCSClient,
+  deepEqual,
   cryptoDigest,
   encrypt,
   decrypt,

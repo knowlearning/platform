@@ -16,35 +16,25 @@ export async function publish(id, update, scope, user, domain) {
 }
 
 async function publishInitializationIfNecessary(id, scope, user, domain) {
-  if (initializationsPublished[scope]) return
+  if (initializationsPublished[scope]) return initializationsPublished[scope]
 
-  initializationsPublished[scope] = true
-  try {
-    await jsm.streams.add({ name: id })
-  }
-  catch (error) {
-    console.log('ERROR WHEN TRYING TO ADD STREAMS ALREADY ADDED....', error)
-  }
+  let resolve
+  initializationsPublished[scope] = new Promise(r => resolve = r)
+
+  await jsm.streams.add({ name: id }).catch(error => console.log('STREAM ALREADY ADDED???', error))
+
+  const value = initializationState(domain, user, scope)
   const update = jsonCodec.encode({
     domain,
     user,
     scope: id,
     ii:0,
-    patch: [{
-      op: 'add',
-      path: [],
-      value: initializationState(domain, user, scope)
-    }]
+    patch: [{ op: 'add', path: [], value }]
   })
-  const options = {
-    expect: { lastSubjectSequence: 0 }
-  }
-  try {
-    await js.publish(id, update, options)
-  }
-  catch (error) {
-    console.log('EXPECTATION FAILED!', error)
-  }
+  const options = { expect: { lastSubjectSequence: 0 } }
+  await js.publish(id, update, options).catch(error => console.log('EXPECTATION FAILED!', error))
+
+  resolve()
 }
 
 export async function subscribe(id, callback, scope, user, domain) {
