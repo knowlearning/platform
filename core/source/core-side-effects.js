@@ -37,7 +37,7 @@ export default async function coreSideEffects({
               pubsub.subscribe(id, async update => {
                 if (first) {
                   first = false
-                  console.log('DO STATES EQUAL??????????????', update.state, state)
+                  console.log('DO STATES EQUAL??????????????', update.history, state)
                 }
               }, subscribedScope)
             }
