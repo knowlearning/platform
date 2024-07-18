@@ -30,7 +30,7 @@ async function poll() {
   const streams = await jsm.streams.list().next()
   await Promise.all(
     streams.map(async ({ config, state }) => {
-      if (state.bytes > 1000) {
+      if (state.bytes > 1000000000) {
         const c = await js.consumers.get(config.name)
         const messages = await c.consume({ max_messages: 1000 })
         const messagesToSerialize = []

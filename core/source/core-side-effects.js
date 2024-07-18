@@ -34,12 +34,12 @@ export default async function coreSideEffects({
             if (!ss[id]) {
               ss[id] = subscribe(id, send, subscribedScope)
               let first = true
-              pubsub.subscribe(id, async update => {
+              pubsub.subscribe(id, update => {
                 if (first) {
                   first = false
-                  console.log('DO STATES EQUAL??????????????', update.history, state)
+                  console.log('DO STATES EQUAL??????????????', update, state)
                 }
-              }, subscribedScope)
+              }, subscribedScope, user, domain)
             }
 
             const state = await redis.client.json.get(id)

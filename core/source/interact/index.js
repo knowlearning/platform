@@ -95,7 +95,7 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
       .publish(id, JSON.stringify(update)) //  TODO: fix this odd scope/id situation...
       .catch(error => console.log('ERROR PUBLISHING!!!!!!!!', update, error))
 
-    publish(id, update)
+    publish(id, update, scope, user, domain)
       .catch(error => console.log('ERROR PUBLISHING TO PUBSUB PIPELINE', update, error))
 
     await sync(domain, user, active_type, scope)

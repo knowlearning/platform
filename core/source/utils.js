@@ -6,13 +6,13 @@ import nodePostres from 'npm:pg@8.11.0'
 import jwkToPem from 'npm:jwk-to-pem@2.0.5'
 import jwt from 'npm:jsonwebtoken@8.5.1'
 import nacl from 'npm:tweetnacl@1.0.3'
-import PatchProxy from 'npm:@knowlearning/patch-proxy@1.3.2'
+import { applyPatch } from 'npm:@knowlearning/patch-proxy@1.3.3/test/utils.js'
+import PatchProxy from 'npm:@knowlearning/patch-proxy@1.3.3'
 import { Storage as createGCSClient } from 'npm:@google-cloud/storage@5.18.2'
-import { exists as fileExists } from "https://deno.land/std/fs/mod.ts"
 import { getCookies } from 'https://deno.land/std@0.214.0/http/cookie.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
-import { decodeBase64 } from "https://deno.land/std/encoding/base64.ts"
-import * as nats from "https://deno.land/x/nats/src/mod.ts"
+import { decodeBase64 } from "https://deno.land/std@0.214.0/encoding/base64.ts"
+import * as nats from "https://deno.land/x/nats@v1.28.0/src/mod.ts"
 
 const { box } = nacl
 const uuid = () => crypto.randomUUID()
@@ -182,5 +182,6 @@ export {
   requestDomain,
   escapePostgresLiteral,
   environment,
+  applyPatch,
   PatchProxy
 }
