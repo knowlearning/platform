@@ -6,6 +6,7 @@ import subscribe from './subscribe.js'
 import authorize from './authorize.js'
 import interact from './interact/index.js'
 import * as redis from './redis.js'
+import * as pubsub from './pubsub.js'
 
 export default async function coreSideEffects({
   session, domain, user, scope, active_type, patch, si, ii, send
@@ -30,7 +31,16 @@ export default async function coreSideEffects({
             if (!subscriptions[session]) subscriptions[session] = {}
 
             const ss = subscriptions[session]
-            if (!ss[id]) ss[id] = subscribe(id, send, subscribedScope)
+            if (!ss[id]) {
+              ss[id] = subscribe(id, send, subscribedScope)
+              let first = true
+              pubsub.subscribe(id, async update => {
+                if (first) {
+                  first = false
+                  console.log('DO STATES EQUAL??????????????', update.state, state)
+                }
+              }, subscribedScope)
+            }
 
             const state = await redis.client.json.get(id)
             send({ ...state, id, si })
