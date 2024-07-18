@@ -1,6 +1,6 @@
 site_name: Know Learning Documentation
 repo_url: https://github.com/knowlearning/platform
-edit_uri: edit/trunk/documentation/docs/
+edit_uri: edit/trunk/sites/documentation/docs/
 nav:
   - Home: index.md
   - Introduction:
@@ -17,7 +17,7 @@ nav:
     - Relational Data: reference/relational-data.md
     - Authorization: reference/authorization.md
   - How-Tos: how-tos/index.md
-  - Tutorials: index.md
+  - Tutorials: tutorials/index.md
   - Embedding:
     - Recommended App Scaffold: embedding/recommended-app-scaffold.md
     - Recommended Dashboard Scaffold: embedding/recommended-dashboard-scaffold.md
