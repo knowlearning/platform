@@ -1,6 +1,4 @@
 import { createGCSClient, nats, environment, uuid, isUUID } from './utils.js'
-import { downloadURL } from './storage.js'
-import { equals } from "https://deno.land/std@0.224.0/bytes/mod.ts"
 
 const {
   INTERNAL_GCS_API_ENDPOINT,
