@@ -81,14 +81,14 @@ sh core/deploy.sh $PROFILE
 sequenceDiagram
 title KnowLearning Core
 
-participant Agent
-participant Authentication
 participant SSO Provider
+participant Authentication
+participant Agent
 participant Authorization
-participant Relational Mirror
 participant Message Queue
 participant Compactor
 participant Storage
+participant Relational Mirror
 
 Compactor -> Message Queue: Get all messages\nfor large queues
 Compactor -> Storage: Upload new interaction\nmessages
