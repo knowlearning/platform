@@ -75,3 +75,50 @@ gsutil cors set \
 # Deploy to GKE where $PROFILE=staging or production.
 sh core/deploy.sh $PROFILE
 ```
+
+# Sequence Diagram
+```mermaid
+sequenceDiagram
+title KnowLearning Core
+
+participant Agent
+participant Authentication
+participant SSO Provider
+participant Authorization
+participant Relational Mirror
+participant Message Queue
+participant Compactor
+participant Storage
+
+Compactor -> Message Queue: Get all messages\nfor large queues
+Compactor -> Storage: Upload new interaction\nmessages
+Compactor -> Storage: Combine new messages\nwith old for same stream
+Compactor -> Message Queue: Insert reference to\ninteraction file upload
+Compactor -> Message Queue: Clear message queue\nup to refererence
+
+Agent -> Authentication: sign me in
+Authentication -> SSO Provider: redirect to SSO provider
+SSO Provider -> Authentication: return OAuth code if\nsuccessful authentication
+Authentication -> Agent: Encrypted OAuth code + domain
+Agent -> Message Queue: Initialize client connection
+Agent -> Authorization:Request Message Queue read/write access for "DOMAIN/USER/*" subjects (using Encryped code)
+Authorization -> Agent: Access Denied or JWT token giving read/write authorization for "DOMAIN/USER/*"
+Agent->Message Queue:Add JWT that allows "DOMAIN/USER/*" read/write to connection authorization
+
+Authorization <-> Message Queue: Listen to "DOMAIN/USER/sessions" for uploads, downloads, and subscription\nrequests to allow/deny by pushing mutations into\n message queue
+
+Agent <-> Message Queue: Listen to "DOMAIN/USER/sessions"
+
+Agent -> Message Queue: Ask for token to authorize other "DOMAIN/USER/SCOPE" (through mutation to sessions scope)
+Authorization -> Relational Mirror: resolve "DOMAIN/USER/SCOPE" to\nuuid and apply DOMAIN access rule
+Relational Mirror -> Authorization: grant/deny access
+Authorization -> Agent: Access Denied or JWT token giving read/write authorization for "DOMAIN/USER/SCOPE"
+
+Agent -> Message Queue: Add JWT that allows "DOMAIN/USER/SCOPE" read access to client connection 
+Agent <-> Message Queue: Subscribe to "DOMAN/USER/SCOPE" stream (Includes all available messages in Message Queue)
+
+Agent -> Message Queue: Request message history download (via mutation to sessions)
+Authorization -> Message Queue: Authorized download link
+Message Queue -> Agent: Mutation to "DOMAIN/USER/sessions" with download link (or access denied message)
+Agent -> Storage: Download interaction history file
+```

@@ -32,3 +32,43 @@
 - [ ] better error sent to agent when trying to download a uuid that isn't an uploaded thing
 - [ ] document/surface error for localhosts connecting on non https connections
 - [ ] Agent.embed should guard against infinite loops in embeddings
+
+
+
+
+
+
+
+
+- [ ] sessions structure:
+      {
+        "uuid-for-session1": {
+          heartbeat: timestamp,
+          publicKey: 'xxxxxxxxxxxxx'
+          subscriptions: {
+            "DOMAIN/USER/SCOPE": {
+              token: ENCRYPTED_JWT_TOKEN_FOR_NATS_CLIENT_ACCESS
+            },
+            "uuid-for-scope": {...}
+          },
+          queries: {
+            'name of query'
+          },
+          downloads: {
+            'DOMAIN/USER/SCOPE': {...},
+            'uuid-for-scope'
+          },
+          uploads: {
+            'uuid-for-scope' (new): {
+              uploadURL: AUTHORIZED_URL_TO_UPLOAD
+            },
+            'DOMAIN/USER/SCOPE' (new): {...}
+          },
+          children: {
+            "uuid-for-child-session1": {...}
+          }
+        }
+        "uuid-for-session2": {...}
+        "uuid-for-session3": {...}
+        "uuid-for-session4": {...}
+      }
