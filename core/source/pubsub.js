@@ -31,20 +31,19 @@ export async function publishInitializationIfNecessary(id, scope, user, domain) 
     patch: [{ op: 'add', path: [], value }]
   })
   const options = { expect: { lastSubjectSequence: 0 } }
-  await js.publish(id, update, options).catch(error => console.log('EXPECTATION FAILED!', error))
+  await js.publish(id, update, options).catch(() => {}) //  TODO: consider if should track...
 
   resolve()
 }
 
 function patchToActiveInside(patch) {
-  return patch.includes(p => p.path[0] === 'active')
+  return patch.find(p => p.path[0] === 'active')
 }
 
 export async function subscribe(id, callback, scope) {
   //  TODO: the await here is making it so we might have more updates than expected pushed onto the queue
   const c = await js.consumers.get(id)
   let { num_pending } = await c.info()
-  console.log('SUBSCRIBING!!!!!!!!!!!!!!!!!')
 
   const messages = await c.consume({ max_messages: 1000 })
 
@@ -63,7 +62,6 @@ export async function subscribe(id, callback, scope) {
           history.push(update.patch)
           num_pending -= 1
           if (!num_pending) {
-            console.log(history)
             let state = {}
             history
               .forEach(patch => {
@@ -82,7 +80,7 @@ export async function subscribe(id, callback, scope) {
       }
       catch (error) {
         //  TODO: deal with different messages other than JSON ones
-        console.log(error, m.data)
+        console.log('ERROR PROCESSING UPDATE', error, m.data)
       }
       m.ack()
     }
