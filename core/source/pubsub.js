@@ -10,12 +10,11 @@ const jsonCodec = JSONCodec()
 
 const initializationsPublished = {}
 
-export async function publish(id, update, scope, user, domain) {
-  await publishInitializationIfNecessary(id, scope, user, domain)
+export async function publish(id, update) {
   await js.publish(id, jsonCodec.encode(update))
 }
 
-async function publishInitializationIfNecessary(id, scope, user, domain) {
+export async function publishInitializationIfNecessary(id, scope, user, domain) {
   if (initializationsPublished[scope]) return initializationsPublished[scope]
 
   let resolve
@@ -37,8 +36,12 @@ async function publishInitializationIfNecessary(id, scope, user, domain) {
   resolve()
 }
 
-export async function subscribe(id, callback, scope, user, domain) {
-  await publishInitializationIfNecessary(id, scope, user, domain)
+function patchToActiveInside(patch) {
+  return patch.includes(p => p.path[0] === 'active')
+}
+
+export async function subscribe(id, callback, scope) {
+  //  TODO: the await here is making it so we might have more updates than expected pushed onto the queue
   const c = await js.consumers.get(id)
   let { num_pending } = await c.info()
   console.log('SUBSCRIBING!!!!!!!!!!!!!!!!!')
@@ -68,7 +71,7 @@ export async function subscribe(id, callback, scope, user, domain) {
                 if (lastResetPatchIndex > -1) state = patch[lastResetPatchIndex].value
 
                 const patchesToApply = patch.slice(lastResetPatchIndex + 1)
-                if (patchesToApply.length && !state.active) state.active = {}
+                if (patchesToApply.length && !state.active && patchToActiveInside(patchesToApply)) state.active = {}
                 state = applyPatch(state, patchesToApply)
               }
             )

@@ -38,7 +38,8 @@ export default async function coreSideEffects({
               pubsub.subscribe(id, update => {
                 if (first) {
                   first = false
-                  const theSameState = deepEqual({...update.state, created: null, updated: null }, {...state, created: null, updated: null })
+                  const ignored = { ii: null, created: null, updated: null, active_size: null }
+                  const theSameState = deepEqual({...update.state, ...ignored }, {...state, ...ignored })
                   if (!theSameState) {
                     console.log('MISMATCHED STATES', update, state, session, domain, user, scope, active_type)
                   }

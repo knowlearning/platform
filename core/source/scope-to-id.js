@@ -4,6 +4,7 @@ import * as redis from './redis.js'
 import * as postgres from './postgres.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
 import sync from './interact/sync.js'
+import { publishInitializationIfNecessary } from './pubsub.js'
 
 const MOST_RECENT_NAMED_SCOPE_QUERY = `
   SELECT id
@@ -28,6 +29,7 @@ export default async function scopeToId(domain, user, scope) {
   await ensureDomainConfigured(domain)
 
   if (isUUID(scope)) {
+    await publishInitializationIfNecessary(scope, scope, user, domain)
     if (await redis.client.exists(scope)) return scope
 
     const state = initializationState(domain, user, scope)
@@ -40,6 +42,7 @@ export default async function scopeToId(domain, user, scope) {
 
   if (response) {
     cacheScope(domain, user, scope, response.id)
+    await publishInitializationIfNecessary(response.id, scope, user, domain)
     return response.id
   }
   else {
@@ -47,6 +50,7 @@ export default async function scopeToId(domain, user, scope) {
     cacheScope(domain, user, scope, id)
     const state = initializationState(domain, user, scope)
     await redis.client.json.set(id, '$', state)
+    await publishInitializationIfNecessary(id, scope, user, domain)
     await sync(domain, user, state.active_type, id)
     return id
   }
