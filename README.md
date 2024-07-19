@@ -105,9 +105,9 @@ Agent -> Authorization:Request Message Queue read/write access for "DOMAIN/USER/
 Authorization -> Agent: Access Denied or JWT token giving read/write authorization for "DOMAIN/USER/*"
 Agent->Message Queue:Add JWT that allows "DOMAIN/USER/*" read/write to connection authorization
 
-Authorization <-> Message Queue: Listen to "DOMAIN/USER/sessions" for uploads, downloads, and subscription\nrequests to allow/deny by pushing mutations into\n message queue
+Authorization -> Message Queue: Listen to "DOMAIN/USER/sessions" for uploads, downloads, and subscription\nrequests to allow/deny by pushing mutations into\n message queue
 
-Agent <-> Message Queue: Listen to "DOMAIN/USER/sessions"
+Agent -> Message Queue: Listen to "DOMAIN/USER/sessions"
 
 Agent -> Message Queue: Ask for token to authorize other "DOMAIN/USER/SCOPE" (through mutation to sessions scope)
 Authorization -> Relational Mirror: resolve "DOMAIN/USER/SCOPE" to\nuuid and apply DOMAIN access rule
@@ -115,7 +115,7 @@ Relational Mirror -> Authorization: grant/deny access
 Authorization -> Agent: Access Denied or JWT token giving read/write authorization for "DOMAIN/USER/SCOPE"
 
 Agent -> Message Queue: Add JWT that allows "DOMAIN/USER/SCOPE" read access to client connection 
-Agent <-> Message Queue: Subscribe to "DOMAN/USER/SCOPE" stream (Includes all available messages in Message Queue)
+Agent -> Message Queue: Subscribe to "DOMAN/USER/SCOPE" stream (Includes all available messages in Message Queue)
 
 Agent -> Message Queue: Request message history download (via mutation to sessions)
 Authorization -> Message Queue: Authorized download link
