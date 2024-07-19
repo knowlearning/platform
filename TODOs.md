@@ -47,9 +47,15 @@
           publicKey: 'xxxxxxxxxxxxx'
           subscriptions: {
             "DOMAIN/USER/SCOPE": {
-              token: ENCRYPTED_JWT_TOKEN_FOR_NATS_CLIENT_ACCESS
+              token: ENCRYPTED_JWT_TOKEN_FOR_NATS_CLIENT_ACCESS (written by auth service)
+              uuid: ... (written by auth service)
             },
-            "uuid-for-scope": {...}
+            "uuid-for-scope": {
+              token: ENCRYPTED_JWT_TOKEN_FOR_NATS_CLIENT_ACCESS (written by auth service)
+              domain: ... (written by auth service)
+              user: ... (written by auth service)
+              scope: ... (written by auth service)
+            }
           },
           queries: {
             'name of query'
