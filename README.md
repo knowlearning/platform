@@ -112,7 +112,8 @@ Agent -> Message Queue: Listen to "DOMAIN/USER/sessions"
 Agent -> Message Queue: Ask for token to authorize other "DOMAIN/USER/SCOPE" (through mutation to sessions scope)
 Authorization -> Relational Mirror: resolve "DOMAIN/USER/SCOPE" to\nuuid and apply DOMAIN access rule
 Relational Mirror -> Authorization: grant/deny access
-Authorization -> Agent: Access Denied or JWT token giving read/write authorization for "DOMAIN/USER/SCOPE"
+Authorization -> Message Queue: Access Denied or JWT token giving read/write authorization for "DOMAIN/USER/SCOPE" in sessions object
+Message Queue -> Agent: Access Denied or JWT token giving read/write authorization for "DOMAIN/USER/SCOPE"
 
 Agent -> Message Queue: Add JWT that allows "DOMAIN/USER/SCOPE" read access to client connection 
 Agent -> Message Queue: Subscribe to "DOMAN/USER/SCOPE" stream (Includes all available messages in Message Queue)
