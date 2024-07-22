@@ -28,8 +28,8 @@ ZQIDAQAB
 `
 
       if (window.location.pathname !== '/') {
-        const [_, provider, state, origin] = window.location.pathname.split('/')
-        const info = { origin: decodeURIComponent(origin), provider }
+        const [_, provider, state] = window.location.pathname.split('/')
+        const info = { origin: document.referrer, provider }
         localStorage.setItem(state, JSON.stringify(info))
 
         const query = {
