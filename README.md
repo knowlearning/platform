@@ -84,42 +84,43 @@ title KnowLearning Core
 participant SSO Provider
 participant Authentication
 participant Agent
-participant Authorization
 participant Message Queue
-participant Compactor
-participant Storage
+participant Authorization
 participant Relational Mirror
+participant State Manager
+participant Storage
 
-Compactor -> Message Queue: Get all messages\nfor large queues
-Compactor -> Storage: Upload new interaction\nmessages
-Compactor -> Storage: Combine new messages\nwith old for same stream
-Compactor -> Message Queue: Insert reference to\ninteraction file upload
-Compactor -> Message Queue: Clear message queue\nup to refererence
+Authorization->Message Queue:Initialize client connection
+Authorization->Message Queue:Subscribe to all DOMAIN/USER/sessions streams
+Authorization -> Relational Mirror:resolve "DOMAIN/USER/SCOPE" to uuid and query DOMAIN access rule
+Authorization -> Message Queue:Access Denied or JWT token\ngiving read authorization for\nread/download in "DOMAIN/USER/sessions" object
+Message Queue<-State Manager:Subscribe to all messages from\nall subjects with guaranteed\nin-order at least once delivery
+Relational Mirror<-State Manager:Update records per domain config
+State Manager -> Message Queue:Insert reference to new\ninteraction file upload\nwhen stream is large\n(also state snapshot)
+State Manager -> Storage:Upload new interaction\nmessages
+State Manager -> Storage: Combine new messages\nwith old for same stream
+State Manager -> Message Queue:Clear message queue\nup to new reference
 
 Agent -> Authentication: sign me in
 Authentication -> SSO Provider: redirect to SSO provider
 SSO Provider -> Authentication: return OAuth code if\nsuccessful authentication
 Authentication -> Agent: Encrypted OAuth code + domain
 Agent -> Message Queue: Initialize client connection
-Agent -> Authorization:Request Message Queue read/write access for "DOMAIN/USER/*" subjects (using Encryped code)
-Authorization -> Agent: Access Denied or JWT token giving read/write authorization for "DOMAIN/USER/*"
-Agent->Message Queue:Add JWT that allows "DOMAIN/USER/*" read/write to connection authorization
+Agent -> Authorization:Request Message Queue read/write access for\n"DOMAIN/USER/*" subjects (using Encryped code)
+Authorization -> Agent:Access Denied or JWT token giving read/write\nauthorization for "DOMAIN/USER/*"
+Agent->Message Queue:Add JWT that allows "DOMAIN/USER/*"\nread/write to connection authorization
 
-Authorization -> Message Queue: Listen to "DOMAIN/USER/sessions" for uploads, downloads, and subscription\nrequests to allow/deny by pushing mutations into\n message queue
 
 Agent -> Message Queue: Listen to "DOMAIN/USER/sessions"
 
-Agent -> Message Queue: Ask for token to authorize other "DOMAIN/USER/SCOPE" (through mutation to sessions scope)
-Authorization -> Relational Mirror: resolve "DOMAIN/USER/SCOPE" to\nuuid and apply DOMAIN access rule
-Relational Mirror -> Authorization: grant/deny access
-Authorization -> Message Queue: Access Denied or JWT token giving read/write authorization for "DOMAIN/USER/SCOPE" in sessions object
-Message Queue -> Agent: Access Denied or JWT token giving read/write authorization for "DOMAIN/USER/SCOPE"
+Agent -> Message Queue:Ask for token to authorize read other\n"DOMAIN/USER/SCOPE" (through\nmutation & side effect in sessions scope)
+Message Queue -> Agent
 
-Agent -> Message Queue: Add JWT that allows "DOMAIN/USER/SCOPE" read access to client connection 
-Agent -> Message Queue: Subscribe to "DOMAN/USER/SCOPE" stream (Includes all available messages in Message Queue)
+Agent -> Message Queue:Add JWT that allows "DOMAIN/USER/SCOPE"\nread access to client connection using token\nfrom "DOMAIN/USER/sessions" scope mutation\nfor subscription
+Agent -> Message Queue:Subscribe to "DOMAN/USER/SCOPE" steam\n(Includes all available messages in\nMessage Queue)
 
-Agent -> Message Queue: Request message history download (via mutation to sessions)
-Authorization -> Message Queue: Authorized download link
-Message Queue -> Agent: Mutation to "DOMAIN/USER/sessions" with download link (or access denied message)
-Agent -> Storage: Download interaction history file
+Agent -> Message Queue:Request download (via mutation to sessions)
+Agent->Message Queue:Request upload (via mutation to sessions)
+Agent -> Storage:Download interaction file or other upload
+
 ```
