@@ -86,21 +86,21 @@ participant Authentication
 participant Agent
 participant Message Queue
 participant Authorization
-participant Relational Mirror
 participant State Manager
+participant Relational Mirror
+
 participant Storage
 
 Authorization->Message Queue:Initialize client connection
-Authorization->Message Queue:Subscribe to all DOMAIN/USER/sessions streams
-Authorization -> Relational Mirror:resolve "DOMAIN/USER/SCOPE" to uuid and query DOMAIN access rule
-Authorization -> Message Queue:Access Denied or JWT token\ngiving read authorization for\nread/download in "DOMAIN/USER/sessions" object
-Message Queue<-State Manager:Subscribe to all messages from\nall subjects with guaranteed\nin-order at least once delivery
-Relational Mirror<-State Manager:Update records per domain config
-State Manager -> Message Queue:Insert reference to new\ninteraction file upload\nwhen stream is large\n(also state snapshot)
-State Manager -> Storage:Upload new interaction\nmessages
+Authorization->Message Queue:Subscribe to all DOMAIN/USER/sessions\nstreams and monitor for side effects
+Authorization -> Relational Mirror:resolve "DOMAIN/USER/SCOPE" to\nuuid and query DOMAIN access rule
+Authorization -> Message Queue:Access Denied or JWT token authorizing\nread/download in "DOMAIN/USER/sessions"
+Message Queue<-State Manager:Subscribe to all messages from all subjects with\nguaranteed in-order at least once delivery
+Relational Mirror<-State Manager:Update records per\ndomain config
+State Manager -> Message Queue:Insert reference to new interaction file upload\nwhen stream is large (also state snapshot)
+State Manager -> Storage:Upload new interaction messages
 State Manager -> Storage: Combine new messages\nwith old for same stream
-State Manager -> Message Queue:Clear message queue\nup to new reference
-
+State Manager -> Message Queue:Clear message queue up to new reference
 Agent -> Authentication: sign me in
 Authentication -> SSO Provider: redirect to SSO provider
 SSO Provider -> Authentication: return OAuth code if\nsuccessful authentication
@@ -109,16 +109,10 @@ Agent -> Message Queue: Initialize client connection
 Agent -> Authorization:Request Message Queue read/write access for\n"DOMAIN/USER/*" subjects (using Encryped code)
 Authorization -> Agent:Access Denied or JWT token giving read/write\nauthorization for "DOMAIN/USER/*"
 Agent->Message Queue:Add JWT that allows "DOMAIN/USER/*"\nread/write to connection authorization
-
-
 Agent -> Message Queue: Listen to "DOMAIN/USER/sessions"
-
 Agent -> Message Queue:Ask for token to authorize read other\n"DOMAIN/USER/SCOPE" (through\nmutation & side effect in sessions scope)
-Message Queue -> Agent
-
 Agent -> Message Queue:Add JWT that allows "DOMAIN/USER/SCOPE"\nread access to client connection using token\nfrom "DOMAIN/USER/sessions" scope mutation\nfor subscription
 Agent -> Message Queue:Subscribe to "DOMAN/USER/SCOPE" steam\n(Includes all available messages in\nMessage Queue)
-
 Agent -> Message Queue:Request download (via mutation to sessions)
 Agent->Message Queue:Request upload (via mutation to sessions)
 Agent -> Storage:Download interaction file or other upload
