@@ -88,7 +88,6 @@ participant Message Queue
 participant Authorization
 participant State Manager
 participant Relational Mirror
-
 participant Storage
 
 Authorization->Message Queue:Initialize client connection
@@ -116,5 +115,5 @@ Agent -> Message Queue:Subscribe to "DOMAN/USER/SCOPE" steam\n(Includes all avai
 Agent -> Message Queue:Request download (via mutation to sessions)
 Agent->Message Queue:Request upload (via mutation to sessions)
 Agent -> Storage:Download interaction file or other upload
-
+Agent->Storage:Upload file with authorized URL
 ```
