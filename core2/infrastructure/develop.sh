@@ -16,7 +16,8 @@ docker run -d --rm --name gcs-emulator -p 4443:4443 fsouza/fake-gcs-server
 # Start NATS server
 docker stop nats 2>/dev/null
 docker rm nats 2>/dev/null
-docker run -d --rm --name nats --network $NATS_NETWORK -p 4222:4222 -p 8222:8222 nats --http_port 8222
+docker build -t nats -f ../source/nats.dockerfile ../source/
+docker run -d --rm --name nats --network $NATS_NETWORK -p 4222:4222 -p 8222:8222 -p 8080:8080 nats -c /nats.conf
 
 # Start Postgres server
 docker stop postgres 2>/dev/null
