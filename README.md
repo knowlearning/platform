@@ -94,8 +94,8 @@ Authorization->Message Queue:Initialize client connection
 Authorization->Message Queue:Subscribe to all DOMAIN/USER/sessions\nstreams and monitor for side effects
 Authorization -> Relational Mirror:resolve "DOMAIN/USER/SCOPE" to\nuuid and query DOMAIN access rule
 Authorization -> Message Queue:Access Denied or JWT token authorizing\nread/download in "DOMAIN/USER/sessions"
-Message Queue<-State Manager:Subscribe to all messages from all subjects with\nguaranteed in-order at least once delivery
-Relational Mirror<-State Manager:Update records per\ndomain config
+State Manager -> Message Queue:Subscribe to all messages from all subjects with\nguaranteed in-order at least once delivery
+State Manager -> Relational Mirror:Update records per\ndomain config
 State Manager -> Message Queue:Insert reference to new interaction file upload\nwhen stream is large (also state snapshot)
 State Manager -> Storage:Upload new interaction messages
 State Manager -> Storage: Combine new messages\nwith old for same stream
