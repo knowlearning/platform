@@ -11,6 +11,9 @@ importers:
       '@knowlearning/patch-proxy':
         specifier: ^1.3.3
         version: 1.3.3
+      fast-json-patch:
+        specifier: ^3.1.1
+        version: 3.1.1
       nats.ws:
         specifier: ^1.29.0
         version: 1.29.0

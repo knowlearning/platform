@@ -8,5 +8,6 @@ Agent.watch('whatever', update => {
 
 ;(async () => {
   const x = await Agent.state('whatever')
+  console.log('OLD VALUE', x)
   x.field = `new value! ${Date.now()}`
 })()

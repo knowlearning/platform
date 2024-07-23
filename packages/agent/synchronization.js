@@ -1,5 +1,6 @@
 import { connect, JSONCodec } from 'nats.ws'
-import PatchProxy from '@knowlearning/patch-proxy'
+import PatchProxy, { standardJSONPatch } from '@knowlearning/patch-proxy'
+import { applyPatch } from 'fast-json-patch'
 
 const { host } = window.location
 
@@ -23,6 +24,8 @@ export async function watch(scope, callback, user=userPromise, domain=host) {
 
   ;(async () => {
     const messages = await c.consume({ max_messages: 1000 })
+    if (historyLength === 0) callback({ history: [], state: {}, patch: null })
+
     const history = []
     //  TODO: account for history if old messages were cleared
     for await (const message of messages) {
@@ -31,7 +34,8 @@ export async function watch(scope, callback, user=userPromise, domain=host) {
       }
       else if (message.seq === historyLength) {
         //  TODO: construct state
-        callback({ history, state: {}, patch: null })
+        const state = stateFromHistory(history)
+        callback({ history, state, patch: null })
       }
       else {
         callback({ patch: decodeJSON(message.data) })
@@ -68,4 +72,13 @@ async function publish(domain, user, scope, patch) {
   const subject = `${domain}_${user}_${scope}`
   const client = await jetstreamClientPromise
   await client.publish(subject, encodeJSON(structuredClone(patch)))
+}
+
+function stateFromHistory(history) {
+  return history.reduce((state, patch) => {
+    const lastResetPatchIndex = patch.findLastIndex(p => p.path.length === 0)
+    if (lastResetPatchIndex > -1) state = patch[lastResetPatchIndex].value
+
+    return applyPatch(state, standardJSONPatch(patch.slice(lastResetPatchIndex + 1))).newDocument
+  }, {})
 }
