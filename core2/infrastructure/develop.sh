@@ -1,8 +1,8 @@
 NATS_NETWORK=nats
-POSTRGES_PASSWORD=insecure-development-password
+POSTGRES_PASSWORD=insecure-development-password
 
 # Make current directory the script directory
-script_dir=$(dirname "$(readlink -f "$0")")
+script_dir=$(cd "$(dirname "$0")" && pwd)
 cd "$script_dir"
 
 # Create network if doesn't exist
@@ -21,7 +21,7 @@ docker run -d --rm --name nats --network $NATS_NETWORK -p 4222:4222 -p 8222:8222
 # Start Postgres server
 docker stop postgres 2>/dev/null
 docker rm postgres 2>/dev/null
-docker run -d --name postgres -e POSTGRES_PASSWORD=$POSTRGES_PASSWORD postgres
+docker run -d --name postgres -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD postgres
 
 # Start Authorization server
 docker stop authorization 2>/dev/null
