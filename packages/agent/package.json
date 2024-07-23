@@ -9,6 +9,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@knowlearning/patch-proxy": "^1.3.3",
     "nats.ws": "^1.29.0"
   }
 }
