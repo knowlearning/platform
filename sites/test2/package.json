@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "nats.ws": "^1.29.0",
     "uuid": "^9.0.1",
     "vue": "^3.4.21",
     "vuex": "^4.1.0"

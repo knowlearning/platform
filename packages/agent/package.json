@@ -7,5 +7,8 @@
   },
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "nats.ws": "^1.29.0"
+  }
 }

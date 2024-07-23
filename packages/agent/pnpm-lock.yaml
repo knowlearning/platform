@@ -1,0 +1,39 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      nats.ws:
+        specifier: ^1.29.0
+        version: 1.29.0
+
+packages:
+
+  nats.ws@1.29.0:
+    resolution: {integrity: sha512-n3+2M/vZp8odDxn4NbIDE4pVBE12dQqxk3ckzXJvbgIjfquUHvrvF3lrMqhdjeGjYdAvTZpaEEZTJG3v5HS3xg==}
+
+  nkeys.js@1.1.0:
+    resolution: {integrity: sha512-tB/a0shZL5UZWSwsoeyqfTszONTt4k2YS0tuQioMOD180+MbombYVgzDUYHlx+gejYK6rgf08n/2Df99WY0Sxg==}
+    engines: {node: '>=10.0.0'}
+
+  tweetnacl@1.0.3:
+    resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
+
+snapshots:
+
+  nats.ws@1.29.0:
+    optionalDependencies:
+      nkeys.js: 1.1.0
+
+  nkeys.js@1.1.0:
+    dependencies:
+      tweetnacl: 1.0.3
+    optional: true
+
+  tweetnacl@1.0.3:
+    optional: true

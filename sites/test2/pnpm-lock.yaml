@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      nats.ws:
+        specifier: ^1.29.0
+        version: 1.29.0
       uuid:
         specifier: ^9.0.1
         version: 9.0.1
@@ -255,6 +258,13 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
+  nats.ws@1.29.0:
+    resolution: {integrity: sha512-n3+2M/vZp8odDxn4NbIDE4pVBE12dQqxk3ckzXJvbgIjfquUHvrvF3lrMqhdjeGjYdAvTZpaEEZTJG3v5HS3xg==}
+
+  nkeys.js@1.1.0:
+    resolution: {integrity: sha512-tB/a0shZL5UZWSwsoeyqfTszONTt4k2YS0tuQioMOD180+MbombYVgzDUYHlx+gejYK6rgf08n/2Df99WY0Sxg==}
+    engines: {node: '>=10.0.0'}
+
   picocolors@1.0.1:
     resolution: {integrity: sha512-anP1Z8qwhkbmu7MFP5iTt+wQKXgwzf7zTyGlcdzabySa9vd0Xt392U0rVmz9poOaBj0uHJKyyo9/upk0HrEQew==}
 
@@ -274,6 +284,9 @@ packages:
   to-fast-properties@2.0.0:
     resolution: {integrity: sha512-/OaKK0xYrs3DmxRYqL/yDc+FxFUVYhDlXMhRmv3z915w2HF1tnN1omB354j8VUGO/hbRzyD6Y3sA7v7GS/ceog==}
     engines: {node: '>=4'}
+
+  tweetnacl@1.0.3:
+    resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
 
   uuid@9.0.1:
     resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
@@ -509,6 +522,15 @@ snapshots:
 
   nanoid@3.3.7: {}
 
+  nats.ws@1.29.0:
+    optionalDependencies:
+      nkeys.js: 1.1.0
+
+  nkeys.js@1.1.0:
+    dependencies:
+      tweetnacl: 1.0.3
+    optional: true
+
   picocolors@1.0.1: {}
 
   postcss@8.4.39:
@@ -524,6 +546,9 @@ snapshots:
   source-map-js@1.2.0: {}
 
   to-fast-properties@2.0.0: {}
+
+  tweetnacl@1.0.3:
+    optional: true
 
   uuid@9.0.1: {}
 
