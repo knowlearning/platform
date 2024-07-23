@@ -6,7 +6,6 @@ const { host } = window.location
 
 const { encode: encodeJSON, decode: decodeJSON } = JSONCodec()
 const natsClientPromise = connect({ servers: ['ws://localhost:8080'] })
-
 const userPromise = new Promise(r => r('me'))
 
 export default {
