@@ -5,6 +5,14 @@ import * as messageQueue from './message-queue.js'
 const { host } = window.location
 const userPromise = new Promise(r => r('me'))
 
+export async function synced() {
+  //  TODO: actually implement this behavior
+  //        main thrust is having state manager
+  //        confirm that side effects have been applied
+  //        for latest session mutation
+  return new Promise(r => setTimeout(r, 1000))
+}
+
 export async function watch(scope, callback, user=userPromise, domain=host) {
   user = await user
 
