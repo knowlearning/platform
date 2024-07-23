@@ -1,43 +1,31 @@
-import { connect, JSONCodec } from 'nats.ws'
 import PatchProxy, { standardJSONPatch } from '@knowlearning/patch-proxy'
 import { applyPatch } from 'fast-json-patch'
+import * as messageQueue from './message-queue.js'
 
 const { host } = window.location
-
-const { encode: encodeJSON, decode: decodeJSON } = JSONCodec()
-const natsClientPromise = connect({ servers: ['ws://localhost:8080'] })
 const userPromise = new Promise(r => r('me'))
-
-const jetstreamManagerPromise =  natsClientPromise.then(c => c.jetstreamManager())
-const jetstreamClientPromise = natsClientPromise.then(c => c.jetstream())
 
 export async function watch(scope, callback, user=userPromise, domain=host) {
   user = await user
-  const subject = `${domain}_${user}_${scope}`
-
-  const jetstreamManager = await jetstreamManagerPromise
-  const jetstreamClient = await jetstreamClientPromise
-  await jetstreamManager.streams.add({ name: subject })
-
-  const c = await jetstreamClient.consumers.get(subject)
-  const historyLength = (await jetstreamManager.streams.info(subject)).state.messages
 
   ;(async () => {
-    const messages = await c.consume({ max_messages: 1000 })
+    const { messages, historyLength } = await messageQueue.process(subject(domain, user, scope))
     if (historyLength === 0) callback({ history: [], state: {}, patch: null })
 
     const history = []
     //  TODO: account for history if old messages were cleared
     for await (const message of messages) {
       if (message.seq < historyLength) {
-        history.push(decodeJSON(message.data))
+        const patch = messageQueue.decodeJSON(message.data)
+        history.push(patch)
       }
       else if (message.seq === historyLength) {
         const state = stateFromHistory(history)
         callback({ history, state, patch: null })
       }
       else {
-        callback({ patch: decodeJSON(message.data) })
+        const patch = messageQueue.decodeJSON(message.data)
+        callback({ patch })
       }
       message.ack()
     }
@@ -63,14 +51,12 @@ export async function state(scope, user=userPromise, domain=host) {
   //        send proxy that just errors on mutation
   return new PatchProxy(
     await startState,
-    patch => publish(domain, user, scope, patch)
+    patch => messageQueue.publish(subject(domain, user, scope), patch)
   )
 }
 
-async function publish(domain, user, scope, patch) {
-  const subject = `${domain}_${user}_${scope}`
-  const client = await jetstreamClientPromise
-  await client.publish(subject, encodeJSON(structuredClone(patch)))
+function subject(domain, user, scope) {
+  return `${domain}_${user}_${scope}`
 }
 
 function stateFromHistory(history) {
