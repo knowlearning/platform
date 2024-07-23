@@ -10,7 +10,7 @@ export async function synced() {
   //        main thrust is having state manager
   //        confirm that side effects have been applied
   //        for latest session mutation
-  return new Promise(r => setTimeout(r, 1000))
+  return new Promise(r => r())
 }
 
 export async function watch(scope, callback, user=userPromise, domain=host) {
