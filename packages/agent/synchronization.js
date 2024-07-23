@@ -23,16 +23,17 @@ export async function watch(scope, callback, user=userPromise, domain=host) {
     const history = []
     //  TODO: account for history if old messages were cleared
     for await (const message of messages) {
+      const patch = messageQueue.decodeJSON(message.data)
       if (message.seq < historyLength) {
-        const patch = messageQueue.decodeJSON(message.data)
         history.push(patch)
       }
       else if (message.seq === historyLength) {
+        history.push(patch)
         const state = stateFromHistory(history)
+        history.slice(0, history.length) // TODO: decide what to do with history caching
         callback({ history, state, patch: null })
       }
       else {
-        const patch = messageQueue.decodeJSON(message.data)
         callback({ patch })
       }
       message.ack()
