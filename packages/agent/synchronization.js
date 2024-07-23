@@ -33,7 +33,6 @@ export async function watch(scope, callback, user=userPromise, domain=host) {
         history.push(decodeJSON(message.data))
       }
       else if (message.seq === historyLength) {
-        //  TODO: construct state
         const state = stateFromHistory(history)
         callback({ history, state, patch: null })
       }
@@ -79,6 +78,7 @@ function stateFromHistory(history) {
     const lastResetPatchIndex = patch.findLastIndex(p => p.path.length === 0)
     if (lastResetPatchIndex > -1) state = patch[lastResetPatchIndex].value
 
-    return applyPatch(state, standardJSONPatch(patch.slice(lastResetPatchIndex + 1))).newDocument
+    const JSONPatch = standardJSONPatch(patch.slice(lastResetPatchIndex + 1))
+    return applyPatch(state, JSONPatch).newDocument
   }, {})
 }
