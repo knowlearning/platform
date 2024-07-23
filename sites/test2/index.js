@@ -28,6 +28,6 @@ mocha.run()
 
 describe(`KnowLearning Agent Tests`, function () {
   stateTest()
-  //arrayTest()
+  arrayTest()
   //watchTest()
 })
