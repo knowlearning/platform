@@ -5,6 +5,7 @@ import 'mocha/mocha.js'
 import 'mocha/mocha.css'
 
 import stateTest from '../test/tests/state.js'
+import mutateTest from '../test/tests/mutate.js'
 import arrayTest from '../test/tests/arrays.js'
 import watchTest from '../test/tests/watch.js'
 import watchDeepTest from '../test/tests/watch-deep.js'
@@ -27,6 +28,7 @@ mocha
 
 describe(`KnowLearning Agent Tests`, function () {
   stateTest()
+  mutateTest()
   arrayTest()
   watchTest()
   watchDeepTest()
