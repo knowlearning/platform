@@ -68,7 +68,6 @@ export function watch(scope, callback, user=userPromise, domain=host) {
 }
 
 export async function state(scope, user=userPromise, domain=host) {
-  user = await user
 
   let resolveStartState
   const startState = new Promise(r => resolveStartState = r)
