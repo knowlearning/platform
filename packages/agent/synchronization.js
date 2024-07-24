@@ -7,43 +7,58 @@ import resolveReference from './resolve-reference.js'
 const { host } = window.location
 const userPromise = environment().then(({ auth: { user } }) => user)
 
+const outstandingPromises = new Set()
+
 export async function synced() {
-  //  TODO: actually implement this behavior
-  //        main thrust is having state manager
-  //        confirm that side effects have been applied
-  //        for latest session mutation
-  return new Promise(r => r())
+  //  TODO: make sure all expected things are added to outstanding promises
+  await Promise.all(outstandingPromises)
 }
 
 export async function watch(scope, callback, user=userPromise, domain=host) {
+  let resolveWatchSynced
+  outstandingPromises.add(new Promise(r => resolveWatchSynced = r))
+
   user = await user
+  if (Array.isArray(scope)) return watchResolution(scope, callback, user, domain)
 
   ;(async () => {
     const subject = await resolveReference(domain, user, scope)
     const { messages, historyLength } = await messageQueue.process(subject)
-    if (historyLength === 0) callback({ history: [], state: {}, patch: null })
+    if (historyLength === 0) {
+      callback({
+        ii: 0,
+        history: [],
+        state: {},
+        patch: null
+      })
+      resolveWatchSynced()
+    }
 
     const history = []
     //  TODO: account for history if old messages were cleared
     for await (const message of messages) {
       const patch = messageQueue.decodeJSON(message.data)
-      if (message.seq < historyLength) {
+      const ii = message.seq
+      if (ii < historyLength) {
         history.push(patch)
       }
-      else if (message.seq === historyLength) {
+      else if (ii === historyLength) {
         history.push(patch)
         const state = stateFromHistory(history)
         history.slice(0, history.length) // TODO: decide what to do with history caching
-        callback({ history, state, patch: null })
+        callback({ ii, history, state, patch: null })
+        resolveWatchSynced()
       }
       else {
-        callback({ patch })
+        callback({ patch, ii })
       }
       message.ack()
     }
   })()
 
-  //  TODO: return unsubscribe function
+  return function unsubscribe() {
+    //  TODO: implement
+  }
 }
 
 export async function state(scope, user=userPromise, domain=host) {
@@ -77,4 +92,43 @@ function stateFromHistory(history) {
     const JSONPatch = standardJSONPatch(patch.slice(lastResetPatchIndex + 1))
     return applyPatch(state, JSONPatch).newDocument
   }, {})
+}
+
+
+function watchResolution(path, callback, user, domain) {
+  const id = path[0]
+  const references = path.slice(1)
+  let unwatchDeeper = () => {}
+
+  const watchCallback = ({ state }) => {
+    if (references.length === 0) {
+      callback(state)
+      return
+    }
+
+    //  TODO: check if value we care about actually changed
+    //        and ignore this update if it has not.
+    unwatchDeeper()
+
+    let value = state
+    for (let index = 0; index < references.length; index += 1) {
+      value = value[references[index]]
+      if (
+        value === null ||
+        value === undefined ||
+        index === references.length - 1
+      ) callback(value)
+      else if (isUUID(value)) {
+        unwatchDeeper = watchResolution([value, ...references.slice(index + 1)], callback, user, domain)
+        return
+      }
+    }
+  }
+
+  const unwatch = watch(id, watchCallback, user, domain)
+
+  return () => {
+    unwatch()
+    unwatchDeeper()
+  }
 }
