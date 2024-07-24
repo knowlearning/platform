@@ -98,6 +98,7 @@ export default function () {
 
         Agent.watch([id1, 'id_referencing_other_scope', 'reference_to_short_circuit', 'x'], v => {
           seenValues.push(v)
+          console.log('SEEEEEEEEEEEEEEN', seenValues)
           if (seenValues.length === 1) {
             id3State.x = 'bye bye!'
             id2State.reference_to_short_circuit = { x: 'zap!' }

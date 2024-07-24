@@ -1,4 +1,5 @@
 import PatchProxy, { standardJSONPatch } from '@knowlearning/patch-proxy'
+import { validate as isUUID } from 'uuid'
 import { applyPatch } from 'fast-json-patch'
 import * as messageQueue from './message-queue.js'
 import environment from './environment.js'
@@ -27,9 +28,18 @@ export function watch(scope, callback, user=userPromise, domain=host) {
   let closeMessageQueue
   ;(async () => {
     const subject = await resolveReference(domain, user, scope)
-    if (closed) return
+    if (closed) {
+      resolveWatchSynced()
+      return
+    }
 
     const { messages, historyLength } = await messageQueue.process(subject)
+    if (closed) {
+      resolveWatchSynced()
+      messages.close()
+      return
+    }
+
     closeMessageQueue = () => messages.close()
     const history = []
     let state = {}
@@ -41,6 +51,8 @@ export function watch(scope, callback, user=userPromise, domain=host) {
 
     //  TODO: account for history if old messages were cleared
     for await (const message of messages) {
+      if (closed) return resolveWatchSynced()
+
       const patch = messageQueue.decodeJSON(message.data)
       const ii = message.seq
       if (ii < historyLength) {
@@ -63,6 +75,7 @@ export function watch(scope, callback, user=userPromise, domain=host) {
 
   return function unwatch() {
     closed = true
+    resolveWatchSynced()
     if (closeMessageQueue) closeMessageQueue()
   }
 }
@@ -126,7 +139,8 @@ function watchResolution(path, callback, user, domain) {
         index === references.length - 1
       ) callback(value)
       else if (isUUID(value)) {
-        unwatchDeeper = watchResolution([value, ...references.slice(index + 1)], callback, user, domain)
+        const deeperReferences = [value, ...references.slice(index + 1)]
+        unwatchDeeper = watchResolution(deeperReferences, callback, user, domain)
         return
       }
     }

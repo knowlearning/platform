@@ -7,6 +7,7 @@ import 'mocha/mocha.css'
 import stateTest from '../test/tests/state.js'
 import arrayTest from '../test/tests/arrays.js'
 import watchTest from '../test/tests/watch.js'
+import watchDeepTest from '../test/tests/watch-deep.js'
 
 window.Agent = Agent
 window.expect = chai.expect
@@ -28,6 +29,7 @@ describe(`KnowLearning Agent Tests`, function () {
   stateTest()
   arrayTest()
   watchTest()
+  watchDeepTest()
 })
 
 mocha.run()
