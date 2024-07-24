@@ -139,6 +139,8 @@ function watchResolution(path, callback, user, domain) {
         index === references.length - 1
       ) {
         callback(value)
+        //  TODO: consider if we should log a warning if value is null
+        //        or undefined and there more references to traverse
         return
       }
       else if (isUUID(value)) {
