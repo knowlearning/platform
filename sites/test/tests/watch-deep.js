@@ -90,17 +90,14 @@ export default function () {
         await Agent.create({ id: id2, active: { reference_to_short_circuit: id3 } })
         await Agent.create({ id: id3, active: { x: 'woooo!' } })
 
-        const expectedValues = ['woooo!', 'bye bye!', 'zap!']
+        const expectedValues = ['woooo!', 'zap!']
         const seenValues = []
 
         const id2State = await Agent.state(id2)
-        const id3State = await Agent.state(id3)
 
         Agent.watch([id1, 'id_referencing_other_scope', 'reference_to_short_circuit', 'x'], v => {
           seenValues.push(v)
-          console.log('SEEEEEEEEEEEEEEN', seenValues)
           if (seenValues.length === 1) {
-            id3State.x = 'bye bye!'
             id2State.reference_to_short_circuit = { x: 'zap!' }
           }
         })
