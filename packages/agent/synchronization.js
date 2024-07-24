@@ -137,7 +137,10 @@ function watchResolution(path, callback, user, domain) {
         value === null ||
         value === undefined ||
         index === references.length - 1
-      ) callback(value)
+      ) {
+        callback(value)
+        return
+      }
       else if (isUUID(value)) {
         const deeperReferences = [value, ...references.slice(index + 1)]
         unwatchDeeper = watchResolution(deeperReferences, callback, user, domain)

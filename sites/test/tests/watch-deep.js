@@ -110,5 +110,29 @@ export default function () {
         expect(seenValues).to.deep.equal(expectedValues)
       }
     )
+
+    it(
+      'References into undefined values resolve as undefined',
+      async function () {
+        const id1 = uuid()
+        const id2 = uuid()
+        const id3 = uuid()
+
+        await Agent.create({ id: id1, active: { id_referencing_other_scope: id2 } })
+        await Agent.create({ id: id2, active: { reference_to_short_circuit: id3 } })
+        await Agent.create({ id: id3, active: { x: 'woooo!' } })
+
+        const expectedValues = [undefined]
+        const seenValues = []
+
+        Agent.watch([id1, 'id_referencing_other_scope', 'reference_to_short_circuit', 'x', 'does not exist', 'really does not exist'], v => {
+          seenValues.push(v)
+        })
+
+        while (seenValues.length < expectedValues.length) await pause(10)
+
+        expect(seenValues).to.deep.equal(expectedValues)
+      }
+    )
   })
 }
