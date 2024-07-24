@@ -24,10 +24,10 @@ mocha
     slow: 1000
   })
 
-mocha.run()
-
 describe(`KnowLearning Agent Tests`, function () {
   stateTest()
   arrayTest()
   watchTest()
 })
+
+mocha.run()
