@@ -1,3 +1,4 @@
+import { v4 as uuid } from 'uuid'
 import { login, logout } from './authentication.js'
 import { state, watch, synced, reset } from './synchronization.js'
 import { create } from './deprecated.js'
@@ -11,5 +12,6 @@ export default {
   watch,
   synced,
   reset,
+  uuid,
   create
 }

@@ -17,6 +17,9 @@ importers:
       nats.ws:
         specifier: ^1.29.0
         version: 1.29.0
+      uuid:
+        specifier: ^10.0.0
+        version: 10.0.0
 
 packages:
 
@@ -35,6 +38,10 @@ packages:
 
   tweetnacl@1.0.3:
     resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
+
+  uuid@10.0.0:
+    resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
+    hasBin: true
 
 snapshots:
 
@@ -55,3 +62,5 @@ snapshots:
 
   tweetnacl@1.0.3:
     optional: true
+
+  uuid@10.0.0: {}

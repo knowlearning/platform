@@ -270,5 +270,34 @@ export default function () {
       }
     )
 
+    it('Can watch updates for named scope', async function () {
+      const name = 'test-' + Agent.uuid()
+      const s = await Agent.state(name)
+      let resolve, reject
+      const p = new Promise((res, rej) => {
+        resolve = res
+        reject = rej
+      })
+      let update = 0
+      const { auth: { user }, domain } = await Agent.environment()
+      Agent.watch(name, async u => {
+        update += 1
+        if (update > 4) reject()
+        if (update === 4) {
+          await new Promise(r => setTimeout(r, 300))
+          resolve()
+        }
+      })
+      await Agent.synced()
+      s.x = 1
+      await pause()
+      s.x = 2
+      await pause()
+      s.x = 3
+      await pause()
+
+      await p
+    })
+
   })
 }
