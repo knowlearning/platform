@@ -153,3 +153,8 @@ function watchResolution(path, callback, user, domain) {
     unwatchDeeper()
   }
 }
+
+export async function reset(scope, user=userPromise, domain=host) {
+  const id = await resolveReference(domain, user, scope)
+  await messageQueue.publish(id, [{ op: 'replace', path: [], value: {} }])
+}
