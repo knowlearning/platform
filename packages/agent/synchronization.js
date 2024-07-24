@@ -18,23 +18,23 @@ export async function watch(scope, callback, user=userPromise, domain=host) {
   let resolveWatchSynced
   outstandingPromises.add(new Promise(r => resolveWatchSynced = r))
 
+  if (Array.isArray(scope)) {
+    resolveWatchSynced()
+    return watchResolution(scope, callback, user, domain)
+  }
   user = await user
-  if (Array.isArray(scope)) return watchResolution(scope, callback, user, domain)
 
   ;(async () => {
     const subject = await resolveReference(domain, user, scope)
     const { messages, historyLength } = await messageQueue.process(subject)
+    const history = []
+    let state = {}
+
     if (historyLength === 0) {
-      callback({
-        ii: 0,
-        history: [],
-        state: {},
-        patch: null
-      })
+      callback({ ii: 0, history, state: {}, patch: null})
       resolveWatchSynced()
     }
 
-    const history = []
     //  TODO: account for history if old messages were cleared
     for await (const message of messages) {
       const patch = messageQueue.decodeJSON(message.data)
@@ -44,13 +44,14 @@ export async function watch(scope, callback, user=userPromise, domain=host) {
       }
       else if (ii === historyLength) {
         history.push(patch)
-        const state = stateFromHistory(history)
+        state = stateFromHistory(history)
         history.slice(0, history.length) // TODO: decide what to do with history caching
-        callback({ ii, history, state, patch: null })
+        callback({ ii, history, state: structuredClone(state), patch: null })
         resolveWatchSynced()
       }
       else {
-        callback({ patch, ii })
+        state = applyStandardPatch(state, patch)
+        callback({ patch, ii, state: structuredClone(state) })
       }
       message.ack()
     }
@@ -85,13 +86,15 @@ export async function state(scope, user=userPromise, domain=host) {
 }
 
 function stateFromHistory(history) {
-  return history.reduce((state, patch) => {
-    const lastResetPatchIndex = patch.findLastIndex(p => p.path.length === 0)
-    if (lastResetPatchIndex > -1) state = patch[lastResetPatchIndex].value
+  return history.reduce(applyStandardPatch, {})
+}
 
-    const JSONPatch = standardJSONPatch(patch.slice(lastResetPatchIndex + 1))
-    return applyPatch(state, JSONPatch).newDocument
-  }, {})
+function applyStandardPatch(state, patch) {
+  const lastResetPatchIndex = patch.findLastIndex(p => p.path.length === 0)
+  if (lastResetPatchIndex > -1) state = patch[lastResetPatchIndex].value
+
+  const JSONPatch = standardJSONPatch(patch.slice(lastResetPatchIndex + 1))
+  return applyPatch(state, JSONPatch).newDocument
 }
 
 
