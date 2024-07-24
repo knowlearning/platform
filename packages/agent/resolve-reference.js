@@ -4,6 +4,8 @@ const references = {}
 
 //  TODO: persistent reference resolution
 export default async function resolve(domain, user, scope) {
+  user = await user
+
   if (!references[domain]) references[domain] = {}
   if (!references[domain][user]) references[domain][user] = {}
   if (!references[domain][user][scope]) {

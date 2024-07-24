@@ -14,7 +14,7 @@ export async function synced() {
   await Promise.all(outstandingPromises)
 }
 
-export async function watch(scope, callback, user=userPromise, domain=host) {
+export function watch(scope, callback, user=userPromise, domain=host) {
   let resolveWatchSynced
   outstandingPromises.add(new Promise(r => resolveWatchSynced = r))
 
@@ -22,11 +22,15 @@ export async function watch(scope, callback, user=userPromise, domain=host) {
     resolveWatchSynced()
     return watchResolution(scope, callback, user, domain)
   }
-  user = await user
 
+  let closed = false
+  let closeMessageQueue
   ;(async () => {
     const subject = await resolveReference(domain, user, scope)
+    if (closed) return
+
     const { messages, historyLength } = await messageQueue.process(subject)
+    closeMessageQueue = () => messages.close()
     const history = []
     let state = {}
 
@@ -57,8 +61,9 @@ export async function watch(scope, callback, user=userPromise, domain=host) {
     }
   })()
 
-  return function unsubscribe() {
-    //  TODO: implement
+  return function unwatch() {
+    closed = true
+    if (closeMessageQueue) closeMessageQueue()
   }
 }
 
