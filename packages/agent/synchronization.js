@@ -1,9 +1,11 @@
 import PatchProxy, { standardJSONPatch } from '@knowlearning/patch-proxy'
 import { applyPatch } from 'fast-json-patch'
 import * as messageQueue from './message-queue.js'
+import environment from './environment.js'
+import resolveReference from './resolve-reference.js'
 
 const { host } = window.location
-const userPromise = new Promise(r => r('me'))
+const userPromise = environment().then(({ auth: { user } }) => user)
 
 export async function synced() {
   //  TODO: actually implement this behavior
@@ -17,7 +19,8 @@ export async function watch(scope, callback, user=userPromise, domain=host) {
   user = await user
 
   ;(async () => {
-    const { messages, historyLength } = await messageQueue.process(subject(domain, user, scope))
+    const subject = await resolveReference(domain, user, scope)
+    const { messages, historyLength } = await messageQueue.process(subject)
     if (historyLength === 0) callback({ history: [], state: {}, patch: null })
 
     const history = []
@@ -56,16 +59,14 @@ export async function state(scope, user=userPromise, domain=host) {
     domain
   )
 
+  const subject = await resolveReference(domain, user, scope)
+
   //  TODO: only return patch proxy if user is owner, otherwise
   //        send proxy that just errors on mutation
   return new PatchProxy(
     await startState,
-    patch => messageQueue.publish(subject(domain, user, scope), patch)
+    patch => messageQueue.publish(subject, patch)
   )
-}
-
-function subject(domain, user, scope) {
-  return `${domain}_${user}_${scope}`
 }
 
 function stateFromHistory(history) {
