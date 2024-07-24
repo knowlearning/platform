@@ -59,5 +59,22 @@ export default function () {
 
       expect(updatedStateFromSecondAgent).to.deep.equal(state2)
     })
+
+    it('Can request two of the same states by uuid and await sync', async function () {
+      const id = Agent.uuid()
+      const t0 = await Agent.state(id)
+      t0.y = 1
+      const t1 = await Agent.state(id)
+      await Agent.synced()
+    })
+
+    it('Can request two of the same states by name and await synced', async function () {
+      const id = 'test'
+      const t0 = await Agent.state(id)
+      t0.y = 1
+      const t1 = await Agent.state(id)
+      //t1.hmm = 1
+      await Agent.synced()
+    })
   })
 }

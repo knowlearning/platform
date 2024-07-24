@@ -3,23 +3,6 @@ const EMBEDED_WATCHER_TEST_MODE = 'EMBEDED_WATCHER_TEST_MODE'
 export default function latestBugfixes() {
   describe('Latest Bugfixes', function () {
 
-    it('Can request two of the same states by uuid and await sync', async function () {
-      const id = Agent.uuid()
-      const t0 = await Agent.state(id)
-      t0.y = 1
-      const t1 = await Agent.state(id)
-      await Agent.synced()
-    })
-
-    it('Can request two of the same states by name and await synced', async function () {
-      const id = 'test'
-      const t0 = await Agent.state(id)
-      t0.y = 1
-      const t1 = await Agent.state(id)
-      //t1.hmm = 1
-      await Agent.synced()
-    })
-
     it('Can embed an app that successfully watches a scope controlled from above', async function () {
       const id = uuid()
       let resolve
