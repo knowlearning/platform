@@ -1,6 +1,7 @@
 import { validate as isUUID } from 'uuid'
 import environment from './environment.js'
 import * as messageQueue from './message-queue.js'
+import { watch } from './synchronization.js'
 import resolveReference, { resolveUUIDReference } from './resolve-reference.js'
 
 export default async function metadata(scope, user, domain) {
@@ -22,14 +23,13 @@ export default async function metadata(scope, user, domain) {
     }
 
     const id = await resolveReference(domain, user, scope)
-    const { created, updated } = await messageQueue.inspect(id)
-    return {
-      id,
-      name: scope,
-      owner: user,
-      domain,
-      created,
-      updated,
-      active_type: 'application/json', // TODO: resolve old scope types here
-    }
+    return new Promise(resolve => {
+      const unwatch = watch(id, ({ metadata }) => {
+         unwatch()
+         //  TODO: deprecate active_type...
+         metadata.active_type = metadata.type
+         delete metadata.type
+         resolve(metadata)
+      })
+    })
 }

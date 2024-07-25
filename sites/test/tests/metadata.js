@@ -6,6 +6,7 @@ export default function () {
       const { auth: { user }, domain } = await Agent.environment()
 
       const metadata = await Agent.metadata(id)
+      console.log(metadata)
       expect(metadata.owner).to.equal(user)
       expect(metadata.domain).to.equal(domain)
       expect(metadata.active).to.equal(undefined)

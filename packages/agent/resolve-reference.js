@@ -1,5 +1,5 @@
 import { v4 as uuid, validate as isUUID } from 'uuid'
-import * as messageQueue from './message-queue.js'
+import { publish } from './message-queue.js'
 
 const references = {}
 
@@ -24,11 +24,15 @@ export default async function resolve(domain, user, scope) {
     const scopeIsNewUUID = isUUID(scope) && !(await uuidInUse(scope))
     const id = scopeIsNewUUID ? scope : uuid()
 
-    const patch = [{ op: 'add', path: [], value: {} }]
-    await messageQueue.publish(id, patch, true)
+    const metadataValue = { domain, owner: user, scope, type: 'application/json' }
+    const patch = [
+      { metadata: true, op: 'add', path: [], value: metadataValue },
+      { op: 'add', path: [], value: {} }
+    ]
+    await publish(id, patch, true)
 
     references[domain][user][scope] = id
-    references[id] = { domain, user, scope }
+    references[id] = metadataValue
   }
 
   return references[domain][user][scope]

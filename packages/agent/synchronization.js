@@ -33,7 +33,7 @@ export function watch(scope, callback, user=userPromise, domain=host) {
       return
     }
 
-    const { messages, historyLength } = await messageQueue.process(subject)
+    const { messages, historyLength, created } = await messageQueue.process(subject)
     if (closed) {
       resolveWatchSynced()
       messages.close()
@@ -42,7 +42,16 @@ export function watch(scope, callback, user=userPromise, domain=host) {
 
     closeMessageQueue = () => messages.close()
     const history = []
+    const metadataHistory = []
     let state = {}
+    let metadata = {}
+
+    function addPatchToHistory(patch) {
+      const statePatch = patch.filter(op => !op.metadata)
+      const metadataPatch = patch.filter(op => op.metadata)
+      if (statePatch.length) history.push(statePatch)
+      if (metadataPatch.length) metadataHistory.push(metadataPatch)
+    }
 
     //  TODO: account for history if old messages were cleared
     for await (const message of messages) {
@@ -50,26 +59,36 @@ export function watch(scope, callback, user=userPromise, domain=host) {
 
       const patch = messageQueue.decodeJSON(message.data)
       if (message.seq < historyLength) {
-        history.push(patch)
+        addPatchToHistory(patch)
       }
       else if (message.seq === historyLength) {
-        history.push(patch)
+        addPatchToHistory(patch)
         state = stateFromHistory(history)
+        metadata = stateFromHistory(metadataHistory)
+        metadata.created = created
+        metadata.updated = Math.floor(message.info.timestampNanos / 1_000_000)
         history.slice(0, history.length) // TODO: decide what to do with history caching
+        metadataHistory.slice(0, metadataHistory.length) // TODO: decide what to do with history caching
         callback({
           ii: message.seq - 1,
           history,
           state: structuredClone(state),
+          metadata: structuredClone(metadata),
           patch: null
         })
         resolveWatchSynced()
       }
       else {
-        state = applyStandardPatch(state, patch)
+        const statePatch = patch.filter(op => !op.metadata)
+        const metadataPatch = patch.filter(op => op.metadata)
+        state = applyStandardPatch(state, statePatch)
+        metadata = applyStandardPatch(metadata, metadataPatch)
+        metadata.updated = message.seq
         callback({
           patch,
           ii: message.seq - 1,
-          state: structuredClone(state)
+          state: structuredClone(state),
+          metadata: structuredClone(metadata)
         })
       }
       message.ack()

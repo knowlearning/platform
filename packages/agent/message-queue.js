@@ -12,9 +12,13 @@ export async function process(subject) {
   await jetstreamManager.streams.add({ name: subject })
 
   const c = await jetstreamClient.consumers.get(subject)
-  const historyLength = (await jetstreamManager.streams.info(subject)).state.messages
+  const { last_seq: historyLength, first_ts } = (await jetstreamManager.streams.info(subject)).state
   const messages = await c.consume({ max_messages: 1000 })
-  return { messages, historyLength }
+  return {
+    messages,
+    historyLength,
+    created: new Date(first_ts).getTime()
+  }
 }
 
 export async function publish(subject, patch, expectFirstPublish) {
