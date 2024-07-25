@@ -17,13 +17,26 @@ export async function process(subject) {
   return { messages, historyLength }
 }
 
-export async function publish(subject, patch) {
+export async function publish(subject, patch, expectFirstPublish) {
   const client = await jetstreamClientPromise
-  await client.publish(subject, encodeJSON(structuredClone(patch)))
+  let options
+  if (expectFirstPublish) {
+    const jetstreamManager = await jetstreamManagerPromise
+    await jetstreamManager.streams.add({ name: subject })
+    options =  { expect: { lastSequence: 0 } }
+  }
+  // TODO: actually put in expectation for first message
+  await client.publish(subject, encodeJSON(structuredClone(patch)), options)
 }
 
 export async function inspect(subject) {
-  
+  const jetstreamManager = await jetstreamManagerPromise
+  const { first_ts, last_ts} = (await jetstreamManager.streams.info(subject)).state
+
+  return {
+    created: (new Date(first_ts)).getTime(),
+    updated: (new Date(last_ts)).getTime()
+  }
 }
 
 export { encodeJSON, decodeJSON }

@@ -1,6 +1,6 @@
 import { validate as isUUID } from 'uuid'
 import environment from './environment.js'
-
+import * as messageQueue from './message-queue.js'
 import resolveReference, { resolveUUIDReference } from './resolve-reference.js'
 
 export default async function metadata(scope, user, domain) {
@@ -22,7 +22,7 @@ export default async function metadata(scope, user, domain) {
     }
 
     const id = await resolveReference(domain, user, scope)
-    const { created, updated } = { created: Date.now(), updated: Date.now() }
+    const { created, updated } = await messageQueue.inspect(id)
     return {
       id,
       name: scope,
