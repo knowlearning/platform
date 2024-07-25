@@ -22,4 +22,8 @@ export async function publish(subject, patch) {
   await client.publish(subject, encodeJSON(structuredClone(patch)))
 }
 
+export async function inspect(subject) {
+  
+}
+
 export { encodeJSON, decodeJSON }

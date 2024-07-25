@@ -9,6 +9,8 @@ export default function () {
       expect(metadata.owner).to.equal(user)
       expect(metadata.domain).to.equal(domain)
       expect(metadata.active).to.equal(undefined)
+      expect(metadata.created).to.be.a('number')
+      expect(Date.now() - metadata.created).to.be.lessThan(1000)
       expect(metadata.created).to.equal(metadata.updated)
       expect(metadata.active_type).to.equal('application/json')
     })

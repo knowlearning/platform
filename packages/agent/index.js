@@ -3,6 +3,7 @@ import { login, logout } from './authentication.js'
 import { state, watch, synced, reset } from './synchronization.js'
 import { create } from './deprecated.js'
 import environment from './environment.js'
+import metadata from './metadata.js'
 
 export default {
   login,
@@ -11,6 +12,7 @@ export default {
   state,
   watch,
   synced,
+  metadata,
   reset,
   uuid,
   create
