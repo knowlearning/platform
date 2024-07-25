@@ -44,30 +44,33 @@ export function watch(scope, callback, user=userPromise, domain=host) {
     const history = []
     let state = {}
 
-    if (historyLength === 0) {
-      callback({ ii: 0, history, state: {}, patch: null})
-      resolveWatchSynced()
-    }
-
     //  TODO: account for history if old messages were cleared
     for await (const message of messages) {
       if (closed) return resolveWatchSynced()
 
       const patch = messageQueue.decodeJSON(message.data)
-      const ii = message.seq
-      if (ii < historyLength) {
+      if (message.seq < historyLength) {
         history.push(patch)
       }
-      else if (ii === historyLength) {
+      else if (message.seq === historyLength) {
         history.push(patch)
         state = stateFromHistory(history)
         history.slice(0, history.length) // TODO: decide what to do with history caching
-        callback({ ii, history, state: structuredClone(state), patch: null })
+        callback({
+          ii: message.seq - 1,
+          history,
+          state: structuredClone(state),
+          patch: null
+        })
         resolveWatchSynced()
       }
       else {
         state = applyStandardPatch(state, patch)
-        callback({ patch, ii, state: structuredClone(state) })
+        callback({
+          patch,
+          ii: message.seq - 1,
+          state: structuredClone(state)
+        })
       }
       message.ack()
     }
@@ -85,14 +88,14 @@ export async function state(scope, user=userPromise, domain=host) {
   let resolveStartState
   const startState = new Promise(r => resolveStartState = r)
 
+  const subject = await resolveReference(domain, user, scope)
+
   watch(
     scope,
     ({ state }) => resolveStartState(state),
     user,
     domain
   )
-
-  const subject = await resolveReference(domain, user, scope)
 
   //  TODO: only return patch proxy if user is owner, otherwise
   //        send proxy that just errors on mutation
