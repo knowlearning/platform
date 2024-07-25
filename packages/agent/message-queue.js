@@ -25,8 +25,8 @@ export async function publish(subject, patch, expectFirstPublish) {
     await jetstreamManager.streams.add({ name: subject })
     options =  { expect: { lastSequence: 0 } }
   }
-  // TODO: actually put in expectation for first message
-  await client.publish(subject, encodeJSON(structuredClone(patch)), options)
+  const message = encodeJSON(structuredClone(patch))
+  await client.publish(subject, message, options)
 }
 
 export async function inspect(subject) {
