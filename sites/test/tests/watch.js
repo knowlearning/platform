@@ -284,7 +284,7 @@ export default function () {
         update += 1
         if (update > 4) reject()
         if (update === 4) {
-          await new Promise(r => setTimeout(r, 300))
+          await new Promise(r => setTimeout(r, 100))
           resolve()
         }
       })
