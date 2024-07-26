@@ -24,7 +24,8 @@ export default async function resolve(domain, user, scope) {
     const scopeIsNewUUID = isUUID(scope) && !(await uuidInUse(scope))
     const id = scopeIsNewUUID ? scope : uuid()
 
-    const metadataValue = { domain, owner: user, scope, type: 'application/json' }
+    //  TODO: deprecate name? use only "scope?"
+    const metadataValue = { domain, owner: user, name: scope, type: 'application/json' }
     const patch = [
       { metadata: true, op: 'add', path: [], value: metadataValue },
       { op: 'add', path: [], value: {} }
