@@ -10,7 +10,7 @@ export async function resolveUUIDReference(id) {
 
 async function uuidInUse(id) {
   //  TODO: do this existing uuid reference check for real
-  await new Promise(r => setTimeout(r, 10))
+  await new Promise(r => setTimeout(r))
   return references[id]
 }
 

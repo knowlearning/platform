@@ -21,7 +21,8 @@ export async function process(subject) {
   }
 }
 
-export async function publish(subject, patch, expectFirstPublish) {
+export async function publish(subject, patch, expectFirstPublish=false, encodingNeeded=true) {
+  const message = encodingNeeded ? encodeJSON(patch) : patch
   const client = await jetstreamClientPromise
   let options
   if (expectFirstPublish) {
@@ -29,7 +30,6 @@ export async function publish(subject, patch, expectFirstPublish) {
     await jetstreamManager.streams.add({ name: subject })
     options =  { expect: { lastSequence: 0 } }
   }
-  const message = encodeJSON(structuredClone(patch))
   await client.publish(subject, message, options)
 }
 

@@ -124,8 +124,11 @@ export async function state(scope, user=userPromise, domain=host) {
   )
 }
 
-export function interact(subject, patch) {
-  return messageQueue.publish(subject, patch)
+export async function interact(scope, patch) {
+  const message = messageQueue.encodeJSON(patch)
+  const { auth: { user }, domain } = await environment()
+  const subject = await resolveReference(domain, user, scope)
+  return messageQueue.publish(subject, message, false, false)
 }
 
 function stateFromHistory(history) {
