@@ -96,10 +96,13 @@ Authorization -> Relational Mirror:resolve "DOMAIN/USER/SCOPE" to\nuuid and quer
 Authorization -> Message Queue:Access Denied or JWT token authorizing\nread/download in "DOMAIN/USER/sessions"
 State Manager -> Message Queue:Subscribe to all messages from all subjects with\nguaranteed in-order at least once delivery
 State Manager -> Relational Mirror:Update records per\ndomain config
-State Manager -> Message Queue:Insert reference to new interaction file upload\nwhen stream is large (also state snapshot)
-State Manager -> Storage:Upload new interaction messages
-State Manager -> Storage: Combine new messages\nwith old for same stream
-State Manager -> Message Queue:Clear message queue up to new reference
+State Manager -> Message Queue:Detect "large" stream, notify "coordinator" that\nthis state manager instance is handling
+State Manager -> Message Queue:Insert reference to storage file we will stream to
+State Manager -> Message Queue:Pull all messages for the large stream
+State Manager -> Storage:Stream grabbed interaction messages\nto reference file
+State Manager -> Message Queue:Insert Snapshot that includes reference into stream\nwhen we have rolled up all interaction messages
+State Manager -> Storage:On receipt of reference to stream\ntarget file, combine new file with\nold file for same stream
+State Manager -> Message Queue:Clear message queue up to the inserted reference
 Agent -> Authentication: sign me in
 Authentication -> SSO Provider: redirect to SSO provider
 SSO Provider -> Authentication: return OAuth code if\nsuccessful authentication
