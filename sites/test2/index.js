@@ -3,6 +3,8 @@ import { v1 as uuid } from 'uuid'
 import chai from 'chai/chai.js'
 import 'mocha/mocha.js'
 import 'mocha/mocha.css'
+import vuePersistentStore from '@knowlearning/agent/vuex.js'
+
 
 import stateTest from '../test/tests/state.js'
 import mutateTest from '../test/tests/mutate.js'
@@ -10,6 +12,7 @@ import arrayTest from '../test/tests/arrays.js'
 import metadataTest from '../test/tests/metadata.js'
 import watchTest from '../test/tests/watch.js'
 import watchDeepTest from '../test/tests/watch-deep.js'
+import vuexTest from '../test/tests/vuex.js'
 
 window.Agent = Agent
 window.expect = chai.expect
@@ -34,6 +37,7 @@ describe(`KnowLearning Agent Tests`, function () {
   metadataTest()
   watchTest()
   watchDeepTest()
+  vuexTest(vuePersistentStore)
 })
 
 mocha.run()

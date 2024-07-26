@@ -17,6 +17,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: '@knowlearning/agent/vuex.js',
+        replacement: __dirname + '/../../packages/agent/vuex.js'
+      },
+      {
         find: '@knowlearning/agent',
         replacement: __dirname + '/../../packages/agent/index.js'
       }

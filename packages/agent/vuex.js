@@ -1,6 +1,5 @@
 import PatchProxy from '@knowlearning/patch-proxy'
-import Agent from '../../../browser.js'
-//  TODO: consider path serialization approach. Also consider just using a mutable proxy from agent.state...
+import Agent from './index.js'
 
 const copy = x => JSON.parse(JSON.stringify(x))
 
@@ -9,17 +8,14 @@ async function scopeIsUninitialized(scope) {
   return Object.keys(await Agent.state(scope)).length === 0
 }
 
-export async function persistentVuexStore(storeDefinition, scope) {
+export default async function persistentVuexStore(storeDefinition, scope) {
   let state = copy(await Agent.state(scope))
   const scopedPaths = getScopedPaths(storeDefinition)
   const stateAttachedStore = await attachModuleState(state, storeDefinition, scopedPaths)
   const s = stateAttachedStore.state
   const originalState = s instanceof Function ? s() : s
 
-  const handlePatch = patch => {
-    patch.forEach(({ path }) => path.unshift('active'))
-    return Agent.interact(scope, patch)
-  }
+  const handlePatch = patch => Agent.interact(scope, patch)
 
   if (await scopeIsUninitialized(scope)) {
     state = copy(originalState)
@@ -64,10 +60,7 @@ async function attachModuleState(state, module, scopedPaths, path='') {
   // if our path is in scoped paths, return new Mutable proxy attached to scope
   const scope = scopedPaths[path]
   if (scope) {
-    const handlePatch = patch => {
-      patch.forEach(({ path }) => path.unshift('active'))
-      return Agent.interact(scope, patch)
-    }
+    const handlePatch = patch => Agent.interact(scope, patch)
     const initState = await Agent.state(scope)
     const ephemeralPaths = descendantPaths(path, scopedPaths)
     state = PatchProxy(copy(initState), handlePatch, ephemeralPaths)

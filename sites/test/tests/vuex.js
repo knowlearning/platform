@@ -1,4 +1,3 @@
-import { vuePersistentStore } from '@knowlearning/agents/vue.js'
 import { createStore } from 'vuex'
 
 const copy = x => JSON.parse(JSON.stringify(x))
@@ -13,7 +12,7 @@ const STORE_LEVEL_1_MODULE_START_STATE = {
   testArrModule2: [1, 2, 3, 4, 5]
 }
 
-export default function () {
+export default function (vuePersistentStore) {
   describe('Vuex Store', function () {
     const id = uuid()
     const LEVEL_1_MODULE_SCOPE = uuid()

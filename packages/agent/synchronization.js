@@ -124,6 +124,10 @@ export async function state(scope, user=userPromise, domain=host) {
   )
 }
 
+export function interact(subject, patch) {
+  return messageQueue.publish(subject, patch)
+}
+
 function stateFromHistory(history) {
   return history.reduce(applyStandardPatch, {})
 }
