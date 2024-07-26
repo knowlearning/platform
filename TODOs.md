@@ -44,14 +44,14 @@
       {
         "uuid-for-session1": {
           heartbeat: timestamp,
-          publicKey: 'xxxxxxxxxxxxx'
+          reference: uuid if embedded as uuid, or domain name
+          host: ...
           subscriptions: {
             "DOMAIN/USER/SCOPE": {
-              token: ENCRYPTED_JWT_TOKEN_FOR_NATS_CLIENT_ACCESS (written by auth service)
+              authorized: null,
               uuid: ... (written by auth service)
             },
             "uuid-for-scope": {
-              token: ENCRYPTED_JWT_TOKEN_FOR_NATS_CLIENT_ACCESS (written by auth service)
               domain: ... (written by auth service)
               user: ... (written by auth service)
               scope: ... (written by auth service)
@@ -70,7 +70,7 @@
             },
             'DOMAIN/USER/SCOPE' (new): {...}
           },
-          children: {
+          embedded: {
             "uuid-for-child-session1": {...}
           }
         }
