@@ -1,0 +1,19 @@
+services:
+  nats-server:
+    image: nats:2.9.25-alpine3.18
+    container_name: nats-server
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+      - "8080:8080"
+    volumes:
+      - ../source/nats.conf:/etc/nats/nats.conf
+    command: -c /etc/nats/nats.conf
+
+  deno-app:
+    build: ../source/authorization
+    depends_on:
+      - nats-server
+    container_name: deno-app
+    environment:
+      - NATS_SERVER_URL=nats://nats-server:4222
