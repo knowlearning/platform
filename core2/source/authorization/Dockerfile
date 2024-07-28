@@ -1,5 +1,8 @@
 FROM denoland/deno:1.43.1
 
+COPY ./index.js ./index.js
+RUN deno cache ./index.js
+
 COPY ./ ./
 
 CMD [ \
