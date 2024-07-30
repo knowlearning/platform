@@ -2,13 +2,35 @@ import { connect, JSONCodec } from 'https://deno.land/x/nats@v1.28.1/src/mod.ts'
 
 const nc = await connect({ servers: "nats://nats-server:4222" })
 
-const { decode: decodeJSON } = JSONCodec()
-const sub = nc.subscribe(">", { queue: "all-streams-queue" })
+const {
+  encode: encodeJSON,
+  decode: decodeJSON
+} = JSONCodec()
 
-for await (const m of sub) {
+const subscription = nc.subscribe(">", { queue: "all-streams-queue" })
+
+function isSession(subject) {
+  return true
+}
+
+for await (const message of subscription) {
   try {
-     console.log(decodeJSON(m.data))
-   } catch (error) {
-     console.log('error decoding JSON', m.data)
-   }
+    if (isSession(message.subject)) {
+      const patch = decodeJSON(message.data)
+      for (const { path, metadata } of patch) {
+        if (!metadata && path[path.length-2] === 'uploads') {
+          nc.publish(
+            message.subject,
+            encodeJSON([{
+              op: 'add',
+              path: [...path, 'url'],
+              value: 'URL!!!!!!!!!!!!!!!!!! from the back end...'
+            }])
+          )
+        }
+      }
+    }
+  } catch (error) {
+    console.log('error decoding JSON', error, message.data)
+  }
 }

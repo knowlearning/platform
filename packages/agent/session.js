@@ -44,7 +44,6 @@ export function uploadURL(id=uuid()) {
     sideEffectResponsePaths.set(
       pathHash,
       url => {
-        console.log('URL!!!!!!', url)
         if (!url) reject('Error getting upload url')
         else resolve(url) 
       }
@@ -52,10 +51,5 @@ export function uploadURL(id=uuid()) {
 
     const sessions = await sessionsPromise
     sessions[SESSION_ID].uploads[id] = {}
-
-    setTimeout(() => {
-      //  TODO: this is what the authorization server does!
-      sessions[SESSION_ID].uploads[id].url = 'hehe'
-    })
   })
 }
