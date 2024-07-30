@@ -5,9 +5,9 @@ export const SESSION_ID = uuid()
 
 const sideEffectResponsePaths = new Map()
 
-const sessionsPromise = state('sessions').then(async state => {
-  watch('sessions', async ({ patch, state }) => {
-    console.log('SESSION MUTATION!!!!', patch, state)
+const sessionsPromise = new Promise(async (resolve, reject) => {
+  const sessions = await state('sessions')
+  watch('sessions', async ({ patch, state, history }) => {
     if (patch) {
       patch.forEach(
         update => {
@@ -20,17 +20,18 @@ const sessionsPromise = state('sessions').then(async state => {
         }
       )
     }
+    else {
+      sessions[SESSION_ID] = {
+        reference: window.location.host,
+        subscriptions: {},
+        queries: {},
+        uploads: {},
+        downloads: {},
+        embeds: {}
+      }
+      resolve(sessions)
+    }
   })
-  await new Promise(r => setTimeout(r, 1))
-  state[SESSION_ID] = {
-    reference: window.location.host,
-    subscriptions: {},
-    queries: {},
-    uploads: {},
-    downloads: {},
-    embeds: {}
-  }
-  return state
 })
 
 export function uploadURL(id=uuid()) {
@@ -43,15 +44,18 @@ export function uploadURL(id=uuid()) {
     sideEffectResponsePaths.set(
       pathHash,
       url => {
+        console.log('URL!!!!!!', url)
         if (!url) reject('Error getting upload url')
         else resolve(url) 
       }
     )
 
     const sessions = await sessionsPromise
-
-    console.log('SESSIONS????', sessions)
-
     sessions[SESSION_ID].uploads[id] = {}
+
+    setTimeout(() => {
+      //  TODO: this is what the authorization server does!
+      sessions[SESSION_ID].uploads[id].url = 'hehe'
+    })
   })
 }
