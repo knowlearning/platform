@@ -34,7 +34,7 @@ const sessionsPromise = new Promise(async (resolve, reject) => {
   })
 })
 
-export function uploadURL(id=uuid()) {
+export function uploadURL(id=uuid(), type) {
   if (!isUUID(id)) throw new Error(`id for upload must be uuid got: ${id}`)
 
   const uploadsPath = [SESSION_ID, 'uploads', id]
@@ -45,11 +45,31 @@ export function uploadURL(id=uuid()) {
       pathHash,
       url => {
         if (!url) reject('Error getting upload url')
-        else resolve(url) 
+        else resolve(url)
       }
     )
 
     const sessions = await sessionsPromise
-    sessions[SESSION_ID].uploads[id] = {}
+    sessions[SESSION_ID].uploads[id] = { type }
+  })
+}
+
+export function downloadURL(id) {
+  if (!isUUID(id)) throw new Error(`id for download must be uuid got: ${id}`)
+
+  const downloadsPath = [SESSION_ID, 'downloads', id]
+
+  return new Promise( async (resolve, reject) => {
+    const pathHash = JSON.stringify([...downloadsPath, 'url'])
+    sideEffectResponsePaths.set(
+      pathHash,
+      url => {
+        if (!url) reject('Error getting upload url')
+        else resolve(url)
+      }
+    )
+
+    const sessions = await sessionsPromise
+    sessions[SESSION_ID].downloads[id] = {}
   })
 }

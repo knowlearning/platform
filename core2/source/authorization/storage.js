@@ -52,12 +52,13 @@ async function download(id, retries=3, internal=false) {
   //  TODO: Validation. If is not an immutable scope, download history
   //        otherwise download referenced object as here
 
+  //  TODO: also decide whether to decouple upload id from the id given here...
+
   try {
-    const [uploadId] = await redis.client.json.get(id, { path: ['$.active.id'] })
     const expires = Date.now() + 15 * 60 * 1000
     const options = { action: 'read', expires }
 
-    const [url] = await bucket.file(uploadId).getSignedUrl(options)
+    const [url] = await bucket.file(id).getSignedUrl(options)
     return directedURL(url, internal)
   }
   catch (error) {

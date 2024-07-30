@@ -21,11 +21,9 @@ for await (const message of subscription) {
       for (const { path, metadata, value } of patch) {
         if (!metadata && path[path.length-2] === 'uploads') {
           const id = path[path.length-1]
-          console.log('HMMMMMMMMM')
           //  TODO: ensure id is uuid
           const { type } = value
           const { url, info } = await upload(type, id)
-          console.log('HMMMMMMMMM', url)
           nc.publish(
             id,
             encodeJSON([
@@ -56,6 +54,20 @@ for await (const message of subscription) {
             }])
           )
         }
+        else if (!metadata && path[path.length-2] === 'downloads') {
+          const id = path[path.length-1]
+          //  TODO: ensure id is uuid
+          const url = await download(id)
+          nc.publish(
+            message.subject,
+            encodeJSON([{
+              op: 'add',
+              path: [...path, 'url'],
+              value: url
+            }])
+          )
+        }
+
       }
     }
   } catch (error) {
