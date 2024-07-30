@@ -31,6 +31,6 @@ for await (const message of subscription) {
       }
     }
   } catch (error) {
-    console.log('error decoding JSON', error, message.data)
+    console.log('error decoding JSON', error, message.subject, message.data)
   }
 }
