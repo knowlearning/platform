@@ -15,6 +15,7 @@ import watchDeepTest from '../test/tests/watch-deep.js'
 import vuexTest from '../test/tests/vuex.js'
 import uploadTest from '../test/tests/uploads.js'
 import latestBugfixesTest from './tests/latest-bugfixes.js'
+import postgresTest from '../test/tests/postgres.js'
 
 window.Agent = Agent
 window.expect = chai.expect
@@ -42,6 +43,7 @@ describe(`KnowLearning Agent Tests`, function () {
   vuexTest(vuePersistentStore)
   uploadTest()
   latestBugfixesTest()
+  postgresTest()
 })
 
 mocha.run()

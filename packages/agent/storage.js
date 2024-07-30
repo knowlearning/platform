@@ -29,9 +29,7 @@ export async function upload(info) {
 export async function download(id) {
   let mode = 'fetch'
   const promise = new Promise(async (resolve, reject) => {
-    console.log('DOWNLOADING!!!!!!!!!!!!')
     const url = await downloadURL(id)
-    console.log('using....', url)
 
     await new Promise(r => setTimeout(r))
     if (mode === 'url') resolve(url)

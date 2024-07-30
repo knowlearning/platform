@@ -36,7 +36,6 @@ export default async function resolve(domain, user, scope) {
       //        expectation for first patch failed
     })
 
-    console.log('SETTING REFERENCE', domain, user, scope, id)
     references[domain][user][scope] = id
     references[id] = metadataValue
   }

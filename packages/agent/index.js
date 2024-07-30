@@ -5,6 +5,7 @@ import { create } from './deprecated.js'
 import environment from './environment.js'
 import metadata from './metadata.js'
 import { upload, download } from './storage.js'
+import { claim, configure } from './admin.js'
 
 export default {
   login,
@@ -19,5 +20,6 @@ export default {
   uuid,
   upload,
   download,
-  create
+  create,
+  claim
 }
