@@ -1,7 +1,7 @@
 FROM denoland/deno:1.43.1
 
-COPY ./index.js ./index.js
-RUN deno cache ./index.js
+COPY ./externals.js ./externals.js
+RUN deno cache ./externals.js
 
 COPY ./ ./
 
