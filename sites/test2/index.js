@@ -13,6 +13,8 @@ import metadataTest from '../test/tests/metadata.js'
 import watchTest from '../test/tests/watch.js'
 import watchDeepTest from '../test/tests/watch-deep.js'
 import vuexTest from '../test/tests/vuex.js'
+import uploadTest from '../test/tests/uploads.js'
+import latestBugfixesTest from './tests/latest-bugfixes.js'
 
 window.Agent = Agent
 window.expect = chai.expect
@@ -38,6 +40,8 @@ describe(`KnowLearning Agent Tests`, function () {
   watchTest()
   watchDeepTest()
   vuexTest(vuePersistentStore)
+  uploadTest()
+  latestBugfixesTest()
 })
 
 mocha.run()

@@ -8,7 +8,7 @@ import resolveReference from './resolve-reference.js'
 const { host } = window.location
 const userPromise = environment().then(({ auth: { user } }) => user)
 
-const outstandingPromises = new Set()
+window.outstandingPromises = new Set()
 
 export async function synced() {
   //  TODO: make sure all expected things are added to outstanding promises

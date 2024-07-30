@@ -4,6 +4,7 @@ import { state, watch, interact, synced, reset } from './synchronization.js'
 import { create } from './deprecated.js'
 import environment from './environment.js'
 import metadata from './metadata.js'
+import { upload, download } from './storage.js'
 
 export default {
   login,
@@ -16,5 +17,7 @@ export default {
   metadata,
   reset,
   uuid,
+  upload,
+  download,
   create
 }

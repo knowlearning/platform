@@ -30,7 +30,11 @@ export default async function resolve(domain, user, scope) {
       { metadata: true, op: 'add', path: [], value: metadataValue },
       { op: 'add', path: [], value: {} }
     ]
-    await publish(id, patch, true)
+
+    await publish(id, patch, true).catch(error => {
+      //  TODO: actually pull down domain/user/scope if
+      //        expectation for first patch failed
+    })
 
     references[domain][user][scope] = id
     references[id] = metadataValue
