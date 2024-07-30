@@ -10,7 +10,7 @@ const {
 
 const subscription = nc.subscribe(">", { queue: "all-streams-queue" })
 
-function isSession(subject) {
+async function isSession(subject) {
   return true
 }
 
@@ -21,7 +21,7 @@ function ignoreSubject(subject) {
 for await (const { subject, data } of subscription) {
   if (ignoreSubject(subject)) continue
   try {
-    if (isSession(subject)) {
+    if (await isSession(subject)) {
       const patch = decodeJSON(data)
       for (const { path, metadata, value } of patch) {
         if (!metadata && path[path.length-2] === 'uploads') {

@@ -3,9 +3,9 @@ services:
     image: nats:2.9.25-alpine3.18
     container_name: nats-server
     ports:
-      - "4222:4222"
-      - "8222:8222"
-      - "8080:8080"
+      - 4222:4222
+      - 8222:8222
+      - 8080:8080
     volumes:
       - ../source/nats.conf:/etc/nats/nats.conf
     command: -c /etc/nats/nats.conf
@@ -14,7 +14,7 @@ services:
     image: fsouza/fake-gcs-server:1.47.4
     container_name: gcs-emulator
     ports:
-      - "4443:4443"
+      - 4443:4443
     volumes:
       - ./local-gcs-bucket:/data/local-gcs-bucket
     command: >
@@ -25,6 +25,16 @@ services:
       -cors-headers x-upload-content-type,x-goog-content-sha256,x-goog-resumable,x-goog-meta-user,x-goog-meta-type,x-goog-meta-name,x-goog-meta-edit,x-goog-meta-view,x-goog-meta-base,x-goog-meta-domain
       -external-url https://localhost:4443
       -public-host localhost
+
+  postgres:
+    image: postgres:alpine3.18
+    container_name: postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - ./local-gcs-bucket:/data/local-gcs-bucket
+    environment:
+      - POSTGRES_PASSWORD=insecure-development-password
 
   deno-app:
     build: ../source/authorization
