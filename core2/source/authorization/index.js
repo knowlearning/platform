@@ -14,10 +14,15 @@ function isSession(subject) {
   return true
 }
 
-for await (const message of subscription) {
+function ignoreSubject(subject) {
+  return subject.startsWith('$') || subject.startsWith('_')
+}
+
+for await (const { subject, data } of subscription) {
+  if (ignoreSubject(subject)) continue
   try {
-    if (isSession(message.subject)) {
-      const patch = decodeJSON(message.data)
+    if (isSession(subject)) {
+      const patch = decodeJSON(data)
       for (const { path, metadata, value } of patch) {
         if (!metadata && path[path.length-2] === 'uploads') {
           const id = path[path.length-1]
@@ -46,7 +51,7 @@ for await (const message of subscription) {
             ])
           )
           nc.publish(
-            message.subject,
+            subject,
             encodeJSON([{
               op: 'add',
               path: [...path, 'url'],
@@ -59,7 +64,7 @@ for await (const message of subscription) {
           //  TODO: ensure id is uuid
           const url = await download(id)
           nc.publish(
-            message.subject,
+            subject,
             encodeJSON([{
               op: 'add',
               path: [...path, 'url'],
