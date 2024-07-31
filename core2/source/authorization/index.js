@@ -22,7 +22,6 @@ for await (const { subject, data } of subscription) {
       const patch = decodeJSON(data)
       for (const { path, metadata, value } of patch) {
         if (!metadata && path[path.length-2] === 'uploads') {
-          console.log('UUUUUUUUUUUUUPLOAD?', path, metadata, value)
           const id = path[path.length-1]
           //  TODO: ensure id is uuid
           const { type } = value
