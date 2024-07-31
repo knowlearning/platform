@@ -1,16 +1,13 @@
-import { NATSClient, JSONCodec } from './externals.js'
+import { NATSClient, encodeJSON, decodeJSON } from './externals.js'
 import { upload, download } from './storage.js'
+import metadata from './metadata.js'
 
 const nc = await NATSClient({ servers: "nats://nats-server:4222" })
-
-const {
-  encode: encodeJSON,
-  decode: decodeJSON
-} = JSONCodec()
 
 const subscription = nc.subscribe(">", { queue: "all-streams-queue" })
 
 async function isSession(subject) {
+  console.log('METADATA!!!!!!!!!!!!!!!', await metadata(subject))
   return true
 }
 
@@ -76,6 +73,6 @@ for await (const { subject, data } of subscription) {
       }
     }
   } catch (error) {
-    console.log('error decoding JSON', error, message.subject, message.data)
+    console.log('error decoding JSON', error, subject, data)
   }
 }
