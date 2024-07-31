@@ -14,12 +14,19 @@ async function getFirstMessage(subject) {
     return
   }
 
-  //  TODO: make sure this is consuming only the 1 oldest message in the stream
-  const sub = await  natsClient.subscribe(subject, { max: 1 })
+  const opts = { max: 1, ackWait: 30 * 1000 }
+  const ps = await jetstreamClient.pullSubscribe(subject, { config: { durable_name: "my_consumer", deliver_group: "my_group" }, opts });
+  const messages = await ps.pull({ batch: 1, expires: 5000 })
 
-  for await (const m of sub) {
-    return decodeJSON(m.data)
+
+  let md
+  //  TODO: decide if this is good enough in a world where metadata is immutable
+  for await (const message of messages) {
+    message.ack()
+    md = decodeJSON(message.data)[0].value
+    break
   }
+  return md
 }
 
 export default async function metadata(subject) {

@@ -7,7 +7,7 @@ const nc = await NATSClient({ servers: "nats://nats-server:4222" })
 const subscription = nc.subscribe(">", { queue: "all-streams-queue" })
 
 async function isSession(subject) {
-  console.log('METADATA!!!!!!!!!!!!!!!', await metadata(subject))
+  //console.log('METADATA!!!!!!!!!!!!!!!', await metadata(subject))
   return true
 }
 
@@ -22,6 +22,7 @@ for await (const { subject, data } of subscription) {
       const patch = decodeJSON(data)
       for (const { path, metadata, value } of patch) {
         if (!metadata && path[path.length-2] === 'uploads') {
+          console.log('UUUUUUUUUUUUUPLOAD?', path, metadata, value)
           const id = path[path.length-1]
           //  TODO: ensure id is uuid
           const { type } = value
