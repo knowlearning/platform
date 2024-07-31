@@ -1,21 +1,16 @@
-import PatchProxy, { standardJSONPatch } from '@knowlearning/patch-proxy'
-import { validate as isUUID } from 'uuid'
-import { applyPatch } from 'fast-json-patch'
 import * as messageQueue from './message-queue.js'
-import environment from './environment.js'
 import resolveReference from './resolve-reference.js'
 
-const { host } = window.location
-const userPromise = environment().then(({ auth: { user } }) => user)
-
-window.outstandingPromises = new Set()
+const outstandingPromises = new Set()
 
 export async function synced() {
   //  TODO: make sure all expected things are added to outstanding promises
   await Promise.all(outstandingPromises)
 }
 
-export function watch(scope, callback, user=userPromise, domain=host) {
+const userPromise = () => environment().then(({ auth: { user } }) => user)
+
+export function watch(scope, callback, user=userPromise(), domain=HOST) {
   let resolveWatchSynced
   outstandingPromises.add(new Promise(r => resolveWatchSynced = r))
 
@@ -102,7 +97,7 @@ export function watch(scope, callback, user=userPromise, domain=host) {
   }
 }
 
-export async function state(scope, user=userPromise, domain=host) {
+export async function state(scope, user=userPromise(), domain=HOST) {
 
   let resolveStartState
   const startState = new Promise(r => resolveStartState = r)
@@ -188,7 +183,7 @@ function watchResolution(path, callback, user, domain) {
   }
 }
 
-export async function reset(scope, user=userPromise, domain=host) {
+export async function reset(scope, user=userPromise(), domain=HOST) {
   const id = await resolveReference(domain, user, scope)
   await messageQueue.publish(id, [{ op: 'replace', path: [], value: {} }])
 }

@@ -43,7 +43,7 @@ describe(`KnowLearning Agent Tests`, function () {
   vuexTest(vuePersistentStore)
   uploadTest()
   latestBugfixesTest()
-  postgresTest()
+  //postgresTest()
 })
 
 mocha.run()

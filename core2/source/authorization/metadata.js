@@ -14,22 +14,12 @@ async function getFirstMessage(subject) {
     return
   }
 
-  const opts = { max: 1, ackWait: 30 * 1000 }
-  const ps = await jetstreamClient.pullSubscribe(subject, { config: { durable_name: "my_consumer", deliver_group: "my_group" }, opts });
-  const messages = await ps.pull({ batch: 1, expires: 5000 })
+  console.log('PULLING MESSAGE FROM SUBJECT', subject, 'WITH', streamInfo.state.messages, 'MESSAGES')
 
-
-  let md
-  //  TODO: decide if this is good enough in a world where metadata is immutable
-  for await (const message of messages) {
-    message.ack()
-    md = decodeJSON(message.data)[0].value
-    break
-  }
-  return md
+  return decodeJSON(firstMessage.data)
 }
 
 export default async function metadata(subject) {
-    const firstMessage = await getFirstMessage(subject)
-    return firstMessage
+  const firstMessage = await getFirstMessage(subject)
+  return firstMessage
 }

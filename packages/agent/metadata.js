@@ -1,6 +1,3 @@
-import { validate as isUUID } from 'uuid'
-import PatchProxy from '@knowlearning/patch-proxy'
-import environment from './environment.js'
 import * as messageQueue from './message-queue.js'
 import { watch } from './synchronization.js'
 import resolveReference, { resolveUUIDReference } from './resolve-reference.js'

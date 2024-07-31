@@ -1,4 +1,3 @@
-import { v4 as uuid } from 'uuid'
 import { uploadURL, downloadURL } from "./session.js"
 
 export async function upload(info) {

@@ -1,4 +1,3 @@
-import { v4 as uuid, validate as isUUID } from 'uuid'
 import { publish } from './message-queue.js'
 
 const references = {}

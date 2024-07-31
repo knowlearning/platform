@@ -1,11 +1,9 @@
-import { v4 as uuid, validate as isUUID } from 'uuid'
 import { watch, state } from './synchronization.js'
-
-export const SESSION_ID = uuid()
 
 const sideEffectResponsePaths = new Map()
 
 const sessionsPromise = new Promise(async (resolve, reject) => {
+  await new Promise(r => setTimeout(r)) //  TODO: Remove. Currently this is necessary for environment global to be set
   const sessions = await state('sessions')
   watch('sessions', async ({ patch, state, history }) => {
     if (patch) {

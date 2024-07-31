@@ -22,7 +22,7 @@ export default defineConfig({
       },
       {
         find: '@knowlearning/agent',
-        replacement: __dirname + '/../../packages/agent/index.js'
+        replacement: __dirname + '/../../packages/agent/browser/browser.js'
       }
     ]
   }
