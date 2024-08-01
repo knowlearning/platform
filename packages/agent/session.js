@@ -20,7 +20,7 @@ const sessionsPromise = new Promise(async (resolve, reject) => {
     }
     else {
       sessions[SESSION_ID] = {
-        reference: window.location.host,
+        reference: HOST,
         subscriptions: {},
         queries: {},
         uploads: {},

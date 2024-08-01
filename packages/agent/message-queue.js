@@ -1,13 +1,3 @@
-const natsClientPromise = new Promise (resolve => {
-  setTimeout(() => {
-    connectNATS({ servers: ['ws://localhost:8080'] })
-      .then(client => resolve(client))
-  })
-})
-
-const jetstreamManagerPromise =  natsClientPromise.then(c => c.jetstreamManager())
-const jetstreamClientPromise = natsClientPromise.then(c => c.jetstream())
-
 export async function process(subject) {
   const jetstreamManager = await jetstreamManagerPromise
   const jetstreamClient = await jetstreamClientPromise
