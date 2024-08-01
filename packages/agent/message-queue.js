@@ -1,7 +1,9 @@
-import { connect, JSONCodec } from 'nats.ws'
-
-const { encode: encodeJSON, decode: decodeJSON } = JSONCodec()
-const natsClientPromise = connect({ servers: ['ws://localhost:8080'] })
+const natsClientPromise = new Promise (resolve => {
+  setTimeout(() => {
+    connectNATS({ servers: ['ws://localhost:8080'] })
+      .then(client => resolve(client))
+  })
+})
 
 const jetstreamManagerPromise =  natsClientPromise.then(c => c.jetstreamManager())
 const jetstreamClientPromise = natsClientPromise.then(c => c.jetstream())
@@ -22,7 +24,7 @@ export async function process(subject) {
 }
 
 export async function publish(subject, patch, expectFirstPublish=false, encodingNeeded=true) {
-  const message = encodingNeeded ? encodeJSON(patch) : patch
+  const message = encodingNeeded ? JSONCodec().encode(patch) : patch
   const client = await jetstreamClientPromise
   let options
   if (expectFirstPublish) {
@@ -42,5 +44,3 @@ export async function inspect(subject) {
     updated: (new Date(last_ts)).getTime()
   }
 }
-
-export { encodeJSON, decodeJSON }

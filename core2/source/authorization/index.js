@@ -1,5 +1,8 @@
 import { NATSClient, encodeJSON, decodeJSON } from './externals.js'
 import { upload, download } from './storage.js'
+import Agent from './agent/deno/deno.js'
+
+console.log('AAAAAAAAAAAAAAAAAAAAAGENT!!!!!!!!!!!!!!!!!!!!!', Agent)
 
 const nc = await NATSClient({ servers: "nats://nats-server:4222" })
 

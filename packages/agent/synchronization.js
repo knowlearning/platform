@@ -52,7 +52,7 @@ export function watch(scope, callback, user=userPromise(), domain=HOST) {
     for await (const message of messages) {
       if (closed) return resolveWatchSynced()
 
-      const patch = messageQueue.decodeJSON(message.data)
+      const patch = JSONCodec().decode(message.data)
       if (message.seq < historyLength) {
         addPatchToHistory(patch)
       }
@@ -120,7 +120,7 @@ export async function state(scope, user=userPromise(), domain=HOST) {
 }
 
 export async function interact(scope, patch) {
-  const message = messageQueue.encodeJSON(patch)
+  const message = JSONCodec().encode(patch)
   const { auth: { user }, domain } = await environment()
   const subject = await resolveReference(domain, user, scope)
   return messageQueue.publish(subject, message, false, false)
