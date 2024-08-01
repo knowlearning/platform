@@ -28,7 +28,7 @@ export default async function metadata(scope, user, domain) {
   const id = await resolveReference(domain, user, scope)
   return new Promise(resolve => {
     const unwatch = watch(id, ({ metadata }) => {
-    unwatch()
+      unwatch()
       //  TODO: deprecate active_type...
       metadata.active_type = metadata.type
       delete metadata.type
