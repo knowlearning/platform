@@ -14,6 +14,5 @@ export function encodeNATSSubject(domain, user, scope) {
 }
 
 export function decodeNATSSubject(subject) {
-  const [domain, user, scope] = subject.split('.').map(decodeNATSToken)
-  return { domain, user, scope }
+  return subject.split('.').map(decodeNATSToken)
 }

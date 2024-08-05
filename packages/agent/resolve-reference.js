@@ -1,5 +1,5 @@
 import { publish } from './message-queue.js'
-import { encodeNATSSubject } from './utils.js'
+import { decodeNATSSubject, encodeNATSSubject } from './utils.js'
 
 async function getInfoOrClaimScope(id, jsm) {
   return (
@@ -7,9 +7,9 @@ async function getInfoOrClaimScope(id, jsm) {
       .streams
       .info(id)
       .then(async info => {
-        //  TODO: use stream info to get actual domain, owner, name
-        const { domain, auth: { user } } = await environment()
-        return { domain, owner: user, name: id }
+        const subject = info.config.subjects[0]
+        const [domain, user, name] = decodeNATSSubject(subject)
+        return { domain, user, name }
       })
       .catch(async error => {
         if (error.code === '404') {
@@ -60,6 +60,9 @@ export default async function resolveReference(domain, user, scope) {
 
   if (!id) {
     if (isUUID(scope)) {
+      //  TODO: handle trying to set when scope is id owned by another person
+      //        but we want to generate another uuid for stream name, and use
+      //        scope as just the scope
       id = scope
       await jsm.streams.add({ name: scope, subjects: [subject] })
     }
