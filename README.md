@@ -129,7 +129,7 @@ participant Application
 participant Agent
 participant Message Queue
 
-Application -> Agent: State call for named scope
+Application -> Agent: State call for named or UUID scope
 Agent -> Message Queue:Resolve DOMAIN, USER, and SCOPE to UUID\nor UUID to DOMAIN, USER, and SCOPE
 Agent -> Message Queue:If UUID not set for DOMAIN, USER, and SCOPE\ntriplet, set up a stream for UUID with\n"DOMAIN.USER.SCOPE" subject
 Agent -> Message Queue: Get num messages existing in UUID's stream
