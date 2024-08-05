@@ -2,11 +2,6 @@ import { publish } from './message-queue.js'
 
 const references = {}
 
-// TODO: actual resolution check
-export async function resolveUUIDReference(id) {
-  return references[id]
-}
-
 async function uuidInUse(id) {
   //  TODO: do this existing uuid reference check for real
   await new Promise(r => setTimeout(r))
@@ -14,8 +9,28 @@ async function uuidInUse(id) {
 }
 
 //  TODO: persistent reference resolution
-export default async function resolve(domain, user, scope) {
-  user = await user
+export default async function resolveReference(domain, user, scope) {
+  const isUUIDOnlyReference = isUUID(scope) && !user && !domain
+  if (isUUIDOnlyReference) {
+    let existingReference = references[scope]
+    if (!existingReference) {
+      const env = await environment()
+      existingReference = {
+        domain: env.domain,
+        owner: env.auth.user,
+        name: scope
+      }
+    }
+    const { domain:d, owner, name } = existingReference
+    scope = name
+    user = owner
+    domain = d
+  }
+  else if (!user || !domain) {
+    const env  = await environment()
+    if (!user) user = env.auth.user
+    if (!domain) domain = env.domain
+  }
 
   if (!references[domain]) references[domain] = {}
   if (!references[domain][user]) references[domain][user] = {}

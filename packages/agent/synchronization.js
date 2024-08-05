@@ -8,9 +8,7 @@ export async function synced() {
   await Promise.all(outstandingPromises)
 }
 
-const userPromise = () => environment().then(({ auth: { user } }) => user)
-
-export function watch(scope, callback, user=userPromise(), domain=HOST) {
+export function watch(scope, callback, user, domain) {
   let resolveWatchSynced
   outstandingPromises.add(new Promise(r => resolveWatchSynced = r))
 
@@ -97,7 +95,7 @@ export function watch(scope, callback, user=userPromise(), domain=HOST) {
   }
 }
 
-export async function state(scope, user=userPromise(), domain=HOST) {
+export async function state(scope, user, domain) {
 
   let resolveStartState
   const startState = new Promise(r => resolveStartState = r)
@@ -183,7 +181,39 @@ function watchResolution(path, callback, user, domain) {
   }
 }
 
-export async function reset(scope, user=userPromise(), domain=HOST) {
+export async function reset(scope, user, domain) {
   const id = await resolveReference(domain, user, scope)
   await messageQueue.publish(id, [{ op: 'replace', path: [], value: {} }])
+}
+
+export async function metadata(scope, user, domain) {
+  const id = await resolveReference(domain, user, scope)
+  return new Promise(resolve => {
+    const unwatch = watch(id, ({ metadata }) => {
+      unwatch()
+      //  TODO: deprecate active_type...
+      metadata.active_type = metadata.type
+      delete metadata.type
+      resolve(
+        new PatchProxy(metadata, patch => {
+          if (!patch.every(isValidMetadataMutation)) {
+            throw new Error("You may only modify the type or name for a scope's metadata")
+          }
+          patch.forEach(op => {
+            op.metadata = true
+            op.path = ['type'] //  TODO: deprecate active_type and migrate to type being immutable and part of immutable name
+          })
+          messageQueue.publish(id, patch)
+        })
+      )
+    })
+  })
+}
+
+function isValidMetadataMutation({ path, op, value }) {
+  return (
+    path[0] === 'active_type'
+    && path.length === 1
+    && typeof value === 'string' || op === 'remove'
+  )
 }
