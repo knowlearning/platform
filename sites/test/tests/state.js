@@ -6,6 +6,7 @@ export default function () {
       const id = uuid()
 
       const state = await Agent.state(id)
+
       state.x = 100
       state.y = 200
 

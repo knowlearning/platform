@@ -10,6 +10,7 @@ export async function synced() {
 
 export function watch(scope, callback, user, domain) {
   let resolveWatchSynced
+  const x = Math.random()
   outstandingPromises.add(new Promise(r => resolveWatchSynced = r))
 
   if (Array.isArray(scope)) {
