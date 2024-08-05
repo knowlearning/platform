@@ -8,20 +8,16 @@ async function uuidInUse(id) {
   return references[id]
 }
 
+async function getInfoOrClaimScope(scope) {
+  const { domain, auth: { user } } = await environment()
+  return { domain, owner: user, name: scope }
+}
+
 //  TODO: persistent reference resolution
 export default async function resolveReference(domain, user, scope) {
   const isUUIDOnlyReference = isUUID(scope) && !user && !domain
   if (isUUIDOnlyReference) {
-    let existingReference = references[scope]
-    if (!existingReference) {
-      const env = await environment()
-      existingReference = {
-        domain: env.domain,
-        owner: env.auth.user,
-        name: scope
-      }
-    }
-    const { domain:d, owner, name } = existingReference
+    const { domain:d, owner, name } = references[scope] || await getInfoOrClaimScope(scope)
     scope = name
     user = owner
     domain = d
