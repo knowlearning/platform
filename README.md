@@ -120,3 +120,21 @@ Agent->Message Queue:Request upload (via mutation to sessions)
 Agent -> Storage:Download interaction file or other upload
 Agent->Storage:Upload file with authorized URL
 ```
+
+```mermaid
+sequenceDiagram
+title Message Publishing Pipeline
+
+participant Application
+participant Agent
+participant Message Queue
+
+Application -> Agent: State call for named scope
+Agent -> Message Queue:Resolve DOMAIN, USER, and SCOPE to UUID\nor UUID to DOMAIN, USER, and SCOPE
+Agent -> Message Queue:If UUID not set for DOMAIN, USER, and SCOPE\ntriplet, set up a stream for UUID with\n"DOMAIN.USER.SCOPE" subject
+Agent -> Message Queue: Get num messages existing in UUID's stream
+Agent -> Message Queue: Process messages up to num existing from last info request
+Agent -> Application: state response with proxy set up to persist changes
+Application -> Agent: JSON Patches representing updates to state
+Agent -> Message Queue: Publish updates to "DOMAIN.USER.SCOPE" subject
+```
