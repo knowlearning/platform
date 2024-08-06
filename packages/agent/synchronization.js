@@ -131,7 +131,7 @@ function stateFromHistory(history) {
 
 function applyStandardPatch(state, patch) {
   const lastResetPatchIndex = patch.findLastIndex(p => p.path.length === 0)
-  if (lastResetPatchIndex > -1) state = patch[lastResetPatchIndex].value
+  if (lastResetPatchIndex > -1) state = structuredClone(patch[lastResetPatchIndex].value)
 
   const JSONPatch = standardJSONPatch(patch.slice(lastResetPatchIndex + 1))
   return applyPatch(state, JSONPatch).newDocument
