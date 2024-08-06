@@ -10,7 +10,6 @@ export async function synced() {
 
 export function watch(scope, callback, user, domain) {
   let resolveWatchSynced
-  const x = Math.random()
   outstandingPromises.add(new Promise(r => resolveWatchSynced = r))
 
   if (Array.isArray(scope)) {
@@ -66,6 +65,7 @@ export function watch(scope, callback, user, domain) {
         callback({
           ii: message.seq - 1,
           history,
+          metadataHistory,
           state: structuredClone(state),
           metadata: structuredClone(metadata),
           patch: null

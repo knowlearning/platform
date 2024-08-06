@@ -2,24 +2,50 @@ import { NATSClient, encodeJSON, decodeJSON } from './externals.js'
 import { upload, download } from './storage.js'
 import Agent from './agent/deno/deno.js'
 
-console.log('AAAAAAAAAAAAAAAAAAAAAGENT!!!!!!!!!!!!!!!!!!!!!', Agent)
-
 const nc = await NATSClient({ servers: "nats://nats-server:4222" })
 
 const subscription = nc.subscribe(">", { queue: "all-streams-queue" })
 
-async function isSession(subject) {
-  return true
+const SESSION_ID = Agent.uuid()
+
+function isSession(subject) {
+  return subject.split('.')[2] === 'sessions'
+}
+
+function isClaim(subject) {
+  return subject.split('.')[2] === 'claims'
 }
 
 function ignoreSubject(subject) {
   return subject.startsWith('$') || subject.startsWith('_')
 }
 
-for await (const { subject, data } of subscription) {
+for await (const message of subscription) {
+  const { subject, data } = message
   if (ignoreSubject(subject)) continue
   try {
-    if (await isSession(subject)) {
+    if (isClaim(subject)) {
+      const patch = decodeJSON(data)
+      console.log('hmmmm')
+      for (const { path, metadata } of patch) {
+        if (!metadata && path.length === 1) {
+          console.log('pppppppppppppppp', SESSION_ID, message, isClaim(subject), patch)
+          nc.publish(
+            subject,
+            encodeJSON([{
+              op: 'add',
+              path: [...path, 'challenges'],
+              value: {
+                dns: '',
+                http: ''
+              }
+            }])
+          )
+        }
+      }
+      console.log('-------')
+    }
+    else if (isSession(subject)) {
       const patch = decodeJSON(data)
       for (const { path, metadata, value } of patch) {
         if (!metadata && path[path.length-2] === 'uploads') {

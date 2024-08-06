@@ -19,7 +19,7 @@ async function getInfoOrClaimScope(id, jsm) {
         }
         else throw error
       })
-    )
+  )
 }
 
 //  TODO: persistent reference resolution
@@ -28,6 +28,7 @@ export default async function resolveReference(domain, user, scope) {
   const jsm = await jetstreamManagerPromise
 
   if (isUUIDOnlyReference) {
+    const id = scope
     const { domain:d, owner, name } = await getInfoOrClaimScope(scope, jsm)
     scope = name
     user = owner
@@ -38,12 +39,12 @@ export default async function resolveReference(domain, user, scope) {
       { metadata: true, op: 'add', path: [], value: metadataValue },
       { op: 'add', path: [], value: {} }
     ]
-    await publish(scope, patch, true).catch(error => {
+    await publish(id, patch, true).catch(error => {
       console.log('ERROR publishing???', error)
       //  TODO: actually pull down domain/user/scope if
       //        expectation for first patch failed
     })
-    return scope
+    return id
   }
 
   if (!user || !domain) {
