@@ -48,7 +48,8 @@ for await (const message of subscription) {
     else if (isSession(subject)) {
       const patch = decodeJSON(data)
       for (const { path, metadata, value } of patch) {
-        if (!metadata && path[path.length-2] === 'uploads') {
+        if (metadata) continue
+        else if (path[path.length-2] === 'uploads') {
           console.log('UPLOAD??????????????????????')
           const id = path[path.length-1]
           //  TODO: ensure id is uuid
@@ -84,7 +85,7 @@ for await (const message of subscription) {
             }])
           )
         }
-        else if (!metadata && path[path.length-2] === 'downloads') {
+        else if (path[path.length-2] === 'downloads') {
           const id = path[path.length-1]
           //  TODO: ensure id is uuid
           const url = await download(id)
@@ -97,7 +98,6 @@ for await (const message of subscription) {
             }])
           )
         }
-
       }
     }
   } catch (error) {

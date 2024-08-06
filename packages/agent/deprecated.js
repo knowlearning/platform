@@ -1,6 +1,5 @@
-import { state } from './synchronization.js'
+import resolveReference from './resolve-reference.js'
 
-export async function create({ id, active }) {
-  console.warn(`Agent.create is deprecated. Please use await Agent.state('new name') to initialize state`)
-  Object.assign(await state(id), active)
+export async function create({ id=uuid(), active, active_type }) {
+  return resolveReference(undefined, undefined, id, active_type, active)
 }

@@ -23,7 +23,7 @@ async function getInfoOrClaimScope(id, jsm) {
 }
 
 //  TODO: persistent reference resolution
-export default async function resolveReference(domain, user, scope) {
+export default async function resolveReference(domain, user, scope, newType='application/json', newState={}) {
   const isUUIDOnlyReference = isUUID(scope) && !user && !domain
   const jsm = await jetstreamManagerPromise
 
@@ -34,10 +34,10 @@ export default async function resolveReference(domain, user, scope) {
     user = owner
     domain = d
     //  TODO: deprecate name? use only "scope?"
-    const metadataValue = { domain, owner: user, name: scope, type: 'application/json' }
+    const metadataValue = { domain, owner: user, name: scope, type: newType }
     const patch = [
       { metadata: true, op: 'add', path: [], value: metadataValue },
-      { op: 'add', path: [], value: {} }
+      { op: 'add', path: [], value: newState }
     ]
     await publish(id, patch, true).catch(error => {
       console.log('ERROR publishing???', error)
@@ -71,10 +71,10 @@ export default async function resolveReference(domain, user, scope) {
       id = uuid()
       await jsm.streams.add({ name: id, subjects: [subject] })
     }
-    const metadataValue = { domain, owner: user, name: scope, type: 'application/json' }
+    const metadataValue = { domain, owner: user, name: scope, type: newType }
     const patch = [
       { metadata: true, op: 'add', path: [], value: metadataValue },
-      { op: 'add', path: [], value: {} }
+      { op: 'add', path: [], value: newState }
     ]
     await publish(id, patch, true).catch(error => {
       console.log('ERROR publishing???', error)
