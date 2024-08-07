@@ -52,7 +52,7 @@ for await (const message of subscription) {
         if (metadata) continue
         else if (path[path.length-2] === 'uploads') {
           console.log('UPLOAD??????????????????????')
-          const id = path[path.length-1]
+          const { id } = value
           //  TODO: ensure id is uuid
           const { type } = value
           const { url, info } = await upload(type, id)
@@ -77,27 +77,14 @@ for await (const message of subscription) {
               }
             ])
           )
-          nc.publish(
-            subject,
-            encodeJSON([{
-              op: 'add',
-              path: [...path, 'url'],
-              value: url
-            }])
-          )
+          message.respond(encodeJSON({ value: url }))
+
         }
         else if (path[path.length-2] === 'downloads') {
-          const id = path[path.length-1]
-          //  TODO: ensure id is uuid
-          const url = await download(id)
-          nc.publish(
-            subject,
-            encodeJSON([{
-              op: 'add',
-              path: [...path, 'url'],
-              value: url
-            }])
-          )
+          console.log('DOWLOADS!!!!!!!!', value)
+          message.respond(encodeJSON({
+            value: await download(value.id)
+          }))
         }
         else if (path[path.length-2] === 'queries') {
           const id = path[path.length-1]
