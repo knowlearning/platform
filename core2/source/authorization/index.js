@@ -27,10 +27,8 @@ for await (const message of subscription) {
   try {
     if (isClaim(subject)) {
       const patch = decodeJSON(data)
-      console.log('hmmmm')
       for (const { path, metadata } of patch) {
         if (!metadata && path.length === 1) {
-          console.log('pppppppppppppppp', SESSION_ID, isClaim(subject), patch)
           nc.publish(
             subject,
             encodeJSON([{
@@ -44,14 +42,12 @@ for await (const message of subscription) {
           )
         }
       }
-      console.log('-------')
     }
     else if (isSession(subject)) {
       const patch = decodeJSON(data)
       for (const { path, metadata, value } of patch) {
         if (metadata) continue
         else if (path[path.length-2] === 'uploads') {
-          console.log('UPLOAD??????????????????????')
           const { id } = value
           //  TODO: ensure id is uuid
           const { type } = value
@@ -81,15 +77,11 @@ for await (const message of subscription) {
 
         }
         else if (path[path.length-2] === 'downloads') {
-          console.log('DOWLOADS!!!!!!!!', value)
           message.respond(encodeJSON({
             value: await download(value.id)
           }))
         }
         else if (path[path.length-2] === 'queries') {
-          const id = path[path.length-1]
-          //  TODO: ensure id is uuid
-          console.log('can we respond??????????????????????????????', message.respond)
           message.respond(encodeJSON({
             value: 'yep!!!! TODO: do something more....'
           }))

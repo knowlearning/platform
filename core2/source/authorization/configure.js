@@ -65,11 +65,8 @@ export default async function configure(domain, config, report) {
   reportState.tasks = {}
   reportState.start = Date.now()
   try {
-    console.log('DOWNLOADING!', config)
     const url = await download(config, 3, true)
-    console.log('GOT URL FOR CONFIG!!!!!!!!!!!!', url)
     const response = await fetch(url)
-    console.log('GOT RESPONSE!!!!!!!!!!', response)
     if (response.status !== 200) throw new Error('Error getting config')
     response
       .text()
