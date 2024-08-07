@@ -1,4 +1,4 @@
-import { GCSStorageClient } from './externals.js'
+import { GCSStorageClient, environment } from './externals.js'
 
 const DOWNLOAD_RETRY_INTERVAL = 1000
 
@@ -9,7 +9,7 @@ const {
   MODE,
   GC_PROJECT_ID,
   GCS_SERVICE_ACCOUNT_CREDENTIALS
-} = Deno.env.toObject()
+} = environment
 
 //  need to redirect url because of quirk in how apiEndpoint is used for constructing signed urls
 const directedURL = (url, internal) => {

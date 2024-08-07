@@ -6,6 +6,7 @@
 
 
 import { parseYAML } from './externals.js'
+import * as postgres from './postgres.js'
 import { download } from './storage.js'
 import POSTGRES_DEFAULT_TABLES from './postgres-default-tables.js'
 
@@ -75,7 +76,10 @@ export default async function configure(domain, config, report) {
       .then(parseYAML)
       .then(configuration => applyConfiguration(domain, configuration, reportState))
       .then(() => reportState.end = Date.now())
-      .catch(error => reportState.error = error.toString())
+      .catch(error => {
+        console.error(error)
+        reportState.error = error.toString()
+      })
   }
   catch (error) {
     console.error(error)
@@ -149,7 +153,7 @@ async function syncTables(domain, tables, report) {
   Object.values(tables).forEach(({type}) => typeGroups[type] = [])
 
   //  TODO: do in chunks...
-  const allIds = await redis.client.sendCommand(['smembers', domain])
+  const allIds = [] //await redis.client.sendCommand(['smembers', domain])
 
   const typeBatchSize = 10_000
 
@@ -164,9 +168,9 @@ async function syncTables(domain, tables, report) {
     const start = batchNum * typeBatchSize
     const end = start + typeBatchSize
     const batchIds = allIds.slice(start, end)
-    const transaction = redis.client.multi()
-    batchIds.forEach(id => transaction.json.get(id, { path: [`$.active_type`] }))
-    const batchTypes = await transaction.exec()
+    //const transaction = redis.client.multi()
+    //batchIds.forEach(id => transaction.json.get(id, { path: [`$.active_type`] }))
+    const batchTypes = []//await transaction.exec()
 
     for (let idNum = 0; idNum < batchIds.length; idNum += 1) {
       const id = batchIds[idNum]
@@ -203,14 +207,14 @@ async function syncTables(domain, tables, report) {
       const batchSize = 100_000
       //  too many transactions queued up will trigger a "RangeError: Too many elements passed to Promise.all"
       for (let batchNum=0; batchNum * batchSize < rows.length; batchNum += 1) {
-        const transaction = redis.client.multi()
+        //const transaction = redis.client.multi()
         //  TODO: limit fetched data to data in table columns
         const start = batchNum * batchSize
         const end = start + batchSize
         const batch = rows.slice(start, end)
-        batch.forEach( id => transaction.json.get(id) )
+        //batch.forEach( id => transaction.json.get(id) )
         tableTasks.push(`Fetching ${batch.length} states to sync`)
-        const states = await transaction.exec()
+        const states = []//await transaction.exec()
 
         tableTasks.push(`Assembling sync query for ${states.length} states`)
         const rowsToInsert = []
