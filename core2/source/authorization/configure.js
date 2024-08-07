@@ -7,9 +7,10 @@
 
 import { parseYAML } from './externals.js'
 import { download } from './storage.js'
+import POSTGRES_DEFAULT_TABLES from './postgres-default-tables.js'
+
 /* TODO: bring back
 import * as postgres from '../postgres.js'
-import POSTGRES_DEFAULT_TABLES from '../postgres-default-tables.js'
 import configuration from '../configuration.js'
 */
 import Agent from './agent/deno/deno.js'
