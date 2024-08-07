@@ -1,8 +1,30 @@
-import environment from './browser/environment.js'
-import { watch, state } from './synchronization.js'
+import { watch, state, synced } from './synchronization.js'
 import { encodeNATSSubject } from './utils.js'
 
 const sideEffectResponsePaths = new Map()
+
+const sessionInitialized = new Promise(async resolve => {
+  await new Promise(r => setTimeout(r))
+  const env = await environment()
+  const nc = await natsClientPromise
+
+  //  TODO: perhaps allow messageQueue.publish to be request?
+  const subject = encodeNATSSubject(env.domain, env.auth.user, 'sessions')
+  const patch = [{
+    op: 'add',
+    path: [SESSION_ID],
+    value: {
+      reference: HOST,
+      subscriptions: {},
+      queries: {},
+      uploads: {},
+      downloads: {},
+      embeds: {}
+    }
+  }]
+  await nc.publish(subject, JSONCodec().encode(patch))
+  resolve()
+})
 
 const sessionsPromise = new Promise(async (resolve, reject) => {
   await new Promise(r => setTimeout(r)) //  TODO: Remove. Currently this is necessary for environment global to be set
@@ -21,14 +43,7 @@ const sessionsPromise = new Promise(async (resolve, reject) => {
       )
     }
     else {
-      sessions[SESSION_ID] = {
-        reference: HOST,
-        subscriptions: {},
-        queries: {},
-        uploads: {},
-        downloads: {},
-        embeds: {}
-      }
+      await sessionInitialized
       resolve(sessions)
     }
   })
@@ -74,7 +89,8 @@ export function downloadURL(id) {
   })
 }
 
-export async function query(query, params, domain) {
+async function updateSession(field, value) {
+  await sessionInitialized
   const nc = await natsClientPromise
   const id = uuid()
   const env = await environment()
@@ -83,12 +99,27 @@ export async function query(query, params, domain) {
   const subject = encodeNATSSubject(env.domain, env.auth.user, 'sessions')
   const patch = [{
     op: 'add',
-    path: [SESSION_ID, 'queries', id],
-    value: { query, params, domain }
+    path: [SESSION_ID, field, id],
+    value
   }]
-  console.log('REQUESTING!', query, params)
-  const response = await nc.request(subject, JSONCodec().encode(patch))
-  console.log('RESPONED!!!', response)
+  const messages = await nc.requestMany(subject, JSONCodec().encode(patch), {
+    max: 2, // one is a jetstream consumer response
+    timeout: 1000
+  })
+
+  let response
+  for await (const msg of messages) {
+    const r = JSONCodec().decode(msg.data)
+    if (r.value) {
+      response = r.value
+      break
+    }
+  }
 
   return response
+
+}
+
+export async function query(query, params, domain) {
+  return updateSession('queries', {query, params, domain})
 }

@@ -103,14 +103,9 @@ for await (const message of subscription) {
           const id = path[path.length-1]
           //  TODO: ensure id is uuid
           console.log('can we respond??????????????????????????????', message.respond)
-          nc.publish(
-            subject,
-            encodeJSON([{
-              op: 'add',
-              path: [...path, 'response'],
-              value: Agent.uuid()
-            }])
-          )
+          message.respond(encodeJSON({
+            value: 'yep!!!! TODO: do something more....'
+          }))
         }
       }
     }
