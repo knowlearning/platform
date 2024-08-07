@@ -44,15 +44,12 @@ async function updateSession(field, value) {
 
   //  TODO: perhaps allow messageQueue.publish to be request?
   const subject = encodeNATSSubject(env.domain, env.auth.user, 'sessions')
-  const patch = [{
-    op: 'add',
-    path: [SESSION_ID, field, id],
-    value
-  }]
-  const messages = await nc.requestMany(subject, JSONCodec().encode(patch), {
+  const patch = [{ op: 'add', path: [SESSION_ID, field, id], value }]
+  const requestManyOptions = {
     max: 2, // one is a jetstream consumer response
     timeout: 1000
-  })
+  }
+  const messages = await nc.requestMany(subject, JSONCodec().encode(patch), requestManyOptions)
 
   let response
   for await (const msg of messages) {
@@ -64,5 +61,4 @@ async function updateSession(field, value) {
   }
 
   return response
-
 }
