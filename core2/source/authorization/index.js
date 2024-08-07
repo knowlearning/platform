@@ -99,6 +99,18 @@ for await (const message of subscription) {
             }])
           )
         }
+        else if (path[path.length-2] === 'queries') {
+          const id = path[path.length-1]
+          //  TODO: ensure id is uuid
+          nc.publish(
+            subject,
+            encodeJSON([{
+              op: 'add',
+              path: [...path, 'response'],
+              value: Agent.uuid()
+            }])
+          )
+        }
       }
     }
     else {

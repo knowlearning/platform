@@ -71,3 +71,26 @@ export function downloadURL(id) {
     sessions[SESSION_ID].downloads[id] = {}
   })
 }
+
+export function query(query, params, domain) {
+  const id = uuid()
+  const queryPath = [SESSION_ID, 'queries', id]
+
+  return new Promise( async (resolve, reject) => {
+    const pathHash = JSON.stringify([...queryPath, 'response'])
+    sideEffectResponsePaths.set(
+      pathHash,
+      response => {
+        if (!response) reject('error getting query response')
+        else resolve(response)
+      }
+    )
+
+    const sessions = await sessionsPromise
+    sessions[SESSION_ID].queries[id] = {
+      query,
+      params,
+      domain
+    }
+  })
+}
