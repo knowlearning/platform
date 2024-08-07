@@ -102,6 +102,7 @@ for await (const message of subscription) {
         else if (path[path.length-2] === 'queries') {
           const id = path[path.length-1]
           //  TODO: ensure id is uuid
+          console.log('can we respond??????????????????????????????', message.respond)
           nc.publish(
             subject,
             encodeJSON([{

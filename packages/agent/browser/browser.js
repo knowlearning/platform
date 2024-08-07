@@ -6,7 +6,7 @@ import { login, logout } from './authentication.js'
 import GenericAgent from '../index.js'
 import { connect, JSONCodec } from 'nats.ws'
 
-const natsClientPromise = connect({ servers: ['ws://localhost:8080'] })
+window.natsClientPromise = connect({ servers: ['ws://localhost:8080'] })
 
 //  TODO: remove necessity to make these global
 window.jetstreamManagerPromise =  natsClientPromise.then(c => c.jetstreamManager())

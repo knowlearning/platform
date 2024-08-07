@@ -1,4 +1,6 @@
+import environment from './browser/environment.js'
 import { watch, state } from './synchronization.js'
+import { encodeNATSSubject } from './utils.js'
 
 const sideEffectResponsePaths = new Map()
 
@@ -72,25 +74,21 @@ export function downloadURL(id) {
   })
 }
 
-export function query(query, params, domain) {
+export async function query(query, params, domain) {
+  const nc = await natsClientPromise
   const id = uuid()
-  const queryPath = [SESSION_ID, 'queries', id]
+  const env = await environment()
 
-  return new Promise( async (resolve, reject) => {
-    const pathHash = JSON.stringify([...queryPath, 'response'])
-    sideEffectResponsePaths.set(
-      pathHash,
-      response => {
-        if (!response) reject('error getting query response')
-        else resolve(response)
-      }
-    )
+  //  TODO: perhaps allow messageQueue.publish to be request?
+  const subject = encodeNATSSubject(env.domain, env.auth.user, 'sessions')
+  const patch = [{
+    op: 'add',
+    path: [SESSION_ID, 'queries', id],
+    value: { query, params, domain }
+  }]
+  console.log('REQUESTING!', query, params)
+  const response = await nc.request(subject, JSONCodec().encode(patch))
+  console.log('RESPONED!!!', response)
 
-    const sessions = await sessionsPromise
-    sessions[SESSION_ID].queries[id] = {
-      query,
-      params,
-      domain
-    }
-  })
+  return response
 }
