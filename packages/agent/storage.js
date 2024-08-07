@@ -1,7 +1,8 @@
 import { uploadURL, downloadURL } from "./session.js"
 
 export async function upload(info) {
-  const { browser, type, data, id=uuid(), name } = info || {}
+  if (!info.id) info.id = uuid()
+  const { browser, type, data } = info || {}
   if (browser) {
     const file = await selectFile(info)
     if (!file) return
@@ -20,7 +21,7 @@ export async function upload(info) {
     const response = await fetch(url, {method: 'PUT', headers, body: data})
     const { ok, statusText } = response
 
-    if (ok) return id
+    if (ok) return info.id
     else throw new Error(statusText)
   }
 }

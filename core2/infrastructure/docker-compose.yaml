@@ -23,6 +23,7 @@ services:
     container_name: gcs-emulator
     ports:
       - 4443:4443
+      - 8000:8000
     volumes:
       - ./local-gcs-bucket:/data/local-gcs-bucket
     command: >
@@ -51,7 +52,7 @@ services:
     container_name: deno-app
     environment:
       - NATS_SERVER_URL=nats://nats-server:422
-      - INTERNAL_GCS_API_ENDPOINT=https://localhost:4443
+      - INTERNAL_GCS_API_ENDPOINT=http://gcs-emulator:8000
       - EXTERNAL_GCS_API_ENDPOINT=https://localhost:4443
       - GCS_BUCKET_NAME=local-gcs-bucket
       - MODE=local

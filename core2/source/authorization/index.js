@@ -1,6 +1,7 @@
 import { NATSClient, encodeJSON, decodeJSON } from './externals.js'
 import { upload, download } from './storage.js'
 import Agent from './agent/deno/deno.js'
+import configure from './configure.js'
 
 const nc = await NATSClient({ servers: "nats://nats-server:4222" })
 
@@ -29,7 +30,7 @@ for await (const message of subscription) {
       console.log('hmmmm')
       for (const { path, metadata } of patch) {
         if (!metadata && path.length === 1) {
-          console.log('pppppppppppppppp', SESSION_ID, message, isClaim(subject), patch)
+          console.log('pppppppppppppppp', SESSION_ID, isClaim(subject), patch)
           nc.publish(
             subject,
             encodeJSON([{
@@ -98,6 +99,13 @@ for await (const message of subscription) {
             }])
           )
         }
+      }
+    }
+    else {
+      const patch = decodeJSON(data)
+      if (patch.length === 2 && patch[0].metadata && patch[0].value.type === 'application/json;type=domain-config') {
+        const { config, report, domain } = patch[1].value
+        configure(domain, config, report)
       }
     }
   } catch (error) {

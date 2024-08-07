@@ -1,7 +1,11 @@
 import { publish } from './message-queue.js'
 import { decodeNATSSubject, encodeNATSSubject } from './utils.js'
 
-async function getInfoOrClaimScope(id, jsm) {
+async function getInfoOrClaimScope(id, jsm, depth=0) {
+  if (depth > 3) throw new Error('Failed to get info or claim scope', id)
+
+  await new Promise(r => setTimeout(r, depth*100))
+
   return (
     jsm
       .streams
@@ -14,8 +18,18 @@ async function getInfoOrClaimScope(id, jsm) {
       .catch(async error => {
         if (error.code === '404') {
           const { domain, auth: { user } } = await environment()
-          await jsm.streams.add({ name: id, subjects: [encodeNATSSubject(domain, user, id)] })
-          return { domain, owner: user, name: id }
+          return (
+            jsm
+              .streams
+              .add({ name: id, subjects: [encodeNATSSubject(domain, user, id)] })
+              .then(() => ({ domain, owner: user, name: id }))
+              .catch(async error => {
+                if (error.api_error?.err_code === 10058) {
+                  return getInfoOrClaimScope(id, jsm, depth+1)
+                }
+                else throw error
+              })
+          )
         }
         else throw error
       })
