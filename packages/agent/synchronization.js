@@ -56,7 +56,6 @@ export function watch(scope, callback, user, domain) {
       }
       else if (message.seq === historyLength) {
         addPatchToHistory(patch)
-        console.log(history)
         state = stateFromHistory(history)
         metadata = stateFromHistory(metadataHistory)
         metadata.created = created

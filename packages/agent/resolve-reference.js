@@ -54,9 +54,10 @@ export default async function resolveReference(domain, user, scope, newType='app
       { op: 'add', path: [], value: newState }
     ]
     await publish(id, patch, true).catch(error => {
-      console.log('ERROR publishing???', error)
-      //  TODO: actually pull down domain/user/scope if
-      //        expectation for first patch failed
+      if (error.api_error?.err_code === 10071) {
+        // means already initialized
+      }
+      else throw error
     })
     return id
   }
@@ -83,7 +84,12 @@ export default async function resolveReference(domain, user, scope, newType='app
     }
     else {
       id = uuid()
-      await jsm.streams.add({ name: id, subjects: [subject] })
+      await jsm.streams.add({ name: id, subjects: [subject] }).catch(error => {
+        if (error.api_error?.err_code === 10065) {
+          // stream already exists
+        }
+        else throw error
+      })
     }
     const metadataValue = { domain, owner: user, name: scope, type: newType }
     const patch = [
@@ -91,7 +97,10 @@ export default async function resolveReference(domain, user, scope, newType='app
       { op: 'add', path: [], value: newState }
     ]
     await publish(id, patch, true).catch(error => {
-      console.log('ERROR publishing???', error)
+      if (error.api_error?.err_code === 10071) {
+        // means already initialized
+      }
+      else throw error
       //  TODO: actually pull down domain/user/scope if
       //        expectation for first patch failed
     })

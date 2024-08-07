@@ -1,13 +1,37 @@
-import { NATSClient, encodeJSON, decodeJSON } from './externals.js'
+import { NATSClient, encodeJSON, decodeJSON, encodeString, decodeString } from './externals.js'
 import { upload, download } from './storage.js'
-import Agent from './agent/deno/deno.js'
+import { decodeNATSSubject } from './agent/utils.js'
 import configure from './configure.js'
 
 const nc = await NATSClient({ servers: "nats://nats-server:4222" })
 
-const subscription = nc.subscribe(">", { queue: "all-streams-queue" })
 
-const SESSION_ID = Agent.uuid()
+const jsm = await nc.jetstreamManager()
+const js = await nc.jetstream()
+
+;(async () => {
+  await jsm.streams.add({ name: 'postgres-metadata' })
+  const oc = await js.consumers.get('postgres-metadata')
+  const messages = await oc.consume()
+  for await (const message of messages) {
+    const { subject, update } = decodeJSON(message.data)
+    const [domain, owner, name] = decodeNATSSubject(subject)
+    console.log('create or insert', {...update, domain, owner, name })
+  }
+})()
+
+
+
+
+
+
+
+
+
+
+
+
+const subscription = nc.subscribe(">", { queue: "all-streams-queue" })
 
 function isSession(subject) {
   return subject.split('.')[2] === 'sessions'
@@ -18,7 +42,10 @@ function isClaim(subject) {
 }
 
 function ignoreSubject(subject) {
-  return subject.startsWith('$') || subject.startsWith('_')
+  return subject.startsWith('$') ||
+    subject.startsWith('_') ||
+    subject === 'postgres-metadata' ||
+    subject.split('.').length !== 3
 }
 
 for await (const message of subscription) {
@@ -95,6 +122,20 @@ for await (const message of subscription) {
         configure(domain, config, report)
       }
     }
+    const patch = decodeJSON(data)
+    const metadataPatch = patch.filter(({metadata})=> metadata)
+    if (metadataPatch.length) {
+      const update = metadataPatch.reduce((acc, { path, value }) => {
+        if (path.length) {
+          acc[path[0]] = value
+          return acc
+        }
+        else return value
+      }, {})
+      //  TODO: gather all updated fields for metadata
+      js.publish('postgres-metadata', encodeJSON({subject, update}))
+    }
+    //  TODO: push metadata updates to a stream
   } catch (error) {
     console.log('error decoding JSON', error, subject, data)
   }
