@@ -138,3 +138,66 @@ Agent -> Application: state response with proxy set up to persist changes
 Application -> Agent: JSON Patches representing updates to state
 Agent -> Message Queue: Publish updates to "DOMAIN.USER.SCOPE" subject
 ```
+
+```mermaid
+sequenceDiagram
+
+  participant OAuth SSO Provider
+  participant auth.knowlearning.systems
+  actor DOMAIN application
+  participant Browser Agent
+  participant NATS Cluster
+  participant Authorization
+
+  DOMAIN application ->> Browser Agent: login(PROVIDER)
+  activate Browser Agent
+  Browser Agent ->> Browser Agent: save window.location.path<br>to localStorage as ORIGINAL_PATH
+  Browser Agent ->> auth.knowlearning.systems: Initiate login by directing browser to<br>https://auth.knowlearning.systems/[PROVIDER]/[STATE]
+  deactivate Browser Agent
+  activate auth.knowlearning.systems
+  auth.knowlearning.systems ->>+OAuth SSO Provider: Construct OAuth 2.0 request for PROVIDER
+  deactivate auth.knowlearning.systems
+  OAuth SSO Provider -->>-auth.knowlearning.systems: Send OAuth 2 Code on auth success
+  activate auth.knowlearning.systems
+  auth.knowlearning.systems ->> auth.knowlearning.systems: create ENCRYPTED_TOKEN using<br>public key from Authorization server
+  auth.knowlearning.systems -->> Browser Agent: Open Browser agent at https://DOMAIN/auth/STATE/ENCRYPTED_TOKEN
+  deactivate auth.knowlearning.systems
+  activate Browser Agent
+  Browser Agent ->> Browser Agent: Save ENCRYPTED_TOKEN into<br>local storage under "token" key
+  Browser Agent ->> DOMAIN application: Open https://DOMAIN/ORIGINAL_PATH
+  deactivate Browser Agent
+  activate DOMAIN application
+  activate Authorization
+  DOMAIN application ->> Browser Agent: load agent script
+  activate Browser Agent
+  alt "token" in localStorage
+    Browser Agent ->> Browser Agent: Remove "token" from<br>localStorage
+    Browser Agent ->> Authorization: fetch NATS credential with ENCRYPTED_TOKEN<br>to establish new session
+    Authorization ->> Authorization: Decrypt<br>ENCRYPTED_TOKEN<br>with secret key
+    Authorization ->> OAuth SSO Provider: Use OAuth SSO Provider token uri to supply code in exchage for token
+    OAuth SSO Provider -->> Authorization: JSON Web Token (JWT) response
+    Authorization ->> Authorization: Validate JWT and associate<br>user with new Session Cookie
+  else no "token" in localStorage
+    Browser Agent ->> Authorization: fetch NATS credential relying on "session" cookie
+  end
+  Authorization -->> Browser Agent: NATS credential for Session Cookie
+  deactivate Authorization
+  Browser Agent ->> NATS Cluster: Create connection with credential
+  activate NATS Cluster
+  NATS Cluster -->> Browser Agent: Connection Established
+  opt watch new scope
+    Browser Agent ->> NATS Cluster: Request all messages on stream for scope
+    loop message available
+        NATS Cluster -->> Browser Agent: next message
+        alt seq < STREAM_SIZE
+          Browser Agent ->> Browser Agent: store as message history
+        else seq = STREAM_SIZE
+          Browser Agent ->> Browser Agent: Compute current state and resolve promise
+        else seq > STREAM_SIZE
+        end
+    end
+  end
+  deactivate Browser Agent
+  deactivate DOMAIN application
+  deactivate NATS Cluster
+```
