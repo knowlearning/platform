@@ -1,23 +1,4 @@
 services:
-  nats-server:
-    image: nats:2.9.25-alpine3.18
-    container_name: nats-server
-    ports:
-      - 4222:4222
-      - 8222:8222
-      - 8080:8080
-    volumes:
-      - ../source/nats.conf:/etc/nats/nats.conf
-    command: -c /etc/nats/nats.conf
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 256M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
-
   gcs-emulator:
     image: fsouza/fake-gcs-server:1.47.4
     container_name: gcs-emulator
@@ -45,12 +26,13 @@ services:
     environment:
       - POSTGRES_PASSWORD=insecure-development-password
 
-  deno-app:
+  authorizer:
     build: ../source/authorization
-    depends_on:
-      - nats-server
-    container_name: deno-app
+    ports:
+      - 8765:8765
+    container_name: authorizer
     environment:
+      - AUTHORIZE_PORT=8765
       - NATS_SERVER_URL=nats://nats-server:422
       - INTERNAL_GCS_API_ENDPOINT=http://gcs-emulator:8000
       - EXTERNAL_GCS_API_ENDPOINT=https://localhost:4443
@@ -64,6 +46,33 @@ services:
       - POSTGRES_PASSWORD=insecure-development-password
     volumes:
       - ../../packages/agent:/agent
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8765/"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  nats-server:
+    image: nats:2.9.25-alpine3.18
+    container_name: nats-server
+    ports:
+      - 4222:4222
+      - 8222:8222
+      - 8080:8080
+    volumes:
+      - ../source/nats.conf:/etc/nats/nats.conf
+    command: -c /etc/nats/nats.conf
+    depends_on:
+      authorizer:
+          condition: service_healthy
     deploy:
       resources:
         limits:

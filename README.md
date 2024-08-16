@@ -163,7 +163,7 @@ sequenceDiagram
   auth.knowlearning.systems -->> Browser Agent: Open Browser agent at https://DOMAIN/auth/STATE/ENCRYPTED_TOKEN
   deactivate auth.knowlearning.systems
   activate Browser Agent
-  Browser Agent ->> Browser Agent: Save ENCRYPTED_TOKEN into<br>local storage under "token" key
+  Browser Agent ->> Browser Agent: Save ENCRYPTED_TOKEN<br>into localStorage for DOMAIN
   Browser Agent ->> DOMAIN application: Open https://DOMAIN/ORIGINAL_PATH
   deactivate Browser Agent
   activate DOMAIN application
@@ -171,33 +171,53 @@ sequenceDiagram
   DOMAIN application ->> Browser Agent: load agent script
   activate Browser Agent
   alt "token" in localStorage
-    Browser Agent ->> Browser Agent: Remove "token" from<br>localStorage
-    Browser Agent ->> Authorization: fetch NATS credential with ENCRYPTED_TOKEN<br>to establish new session
+    Browser Agent ->> Browser Agent: Remove ENCRYPTED_TOKEN from<br>localStorage
+    Browser Agent ->> Authorization: fetch NATS_CREDENTIAL with ENCRYPTED_TOKEN<br>to establish new session
     Authorization ->> Authorization: Decrypt<br>ENCRYPTED_TOKEN<br>with secret key
     Authorization ->> OAuth SSO Provider: Use OAuth SSO Provider token uri to supply code in exchage for token
     OAuth SSO Provider -->> Authorization: JSON Web Token (JWT) response
     Authorization ->> Authorization: Validate JWT and associate<br>user with new Session Cookie
+    Authorization ->> NATS Cluster: Associate new NATS_CREDENTIAL with OAUTH user<br>(allows writing and reading DOMAIN.USER.>)
+    Authorization -->> Browser Agent: NATS_CREDENTIAL and matching Session Cookie
   else no "token" in localStorage
-    Browser Agent ->> Authorization: fetch NATS credential relying on "session" cookie
+    Browser Agent ->> Authorization: fetch NATS_CREDENTIAL relying on "session" cookie
+    alt existing session cookie
+      Authorization -->> Browser Agent: NATS_CREDENTIAL for Session Cookie
+    else no existing session cookie
+      Authorization -->> Browser Agent: NATS_CREDENTIAL and matching Session Cookie for new anonymous user
+    end
   end
-  Authorization -->> Browser Agent: NATS credential for Session Cookie
   deactivate Authorization
-  Browser Agent ->> NATS Cluster: Create connection with credential
+  Browser Agent ->> NATS Cluster: Create connection with NATS_CREDENTIAL
   activate NATS Cluster
   NATS Cluster -->> Browser Agent: Connection Established
-  opt watch new scope
+  opt watch SCOPE
+    DOMAIN application ->> Browser Agent: call watch() or state()
+    alt SCOPE owned by other user
+      Browser Agent ->> Authorization: request authorization
+      alt Authorization successful
+        Authorization ->> NATS Cluster: add read permission for NATS_CREDENTIAL
+        Authorization -->> Browser Agent: Authorized response
+      else Authorization unsuccessful
+        Authorization -->> Browser Agent: Unauthorized response
+      end
+    end
+    break if authorization failed
+      Browser Agent -->> DOMAIN application: throw unauthorized error
+    end
     Browser Agent ->> NATS Cluster: Request all messages on stream for scope
     loop message available
         NATS Cluster -->> Browser Agent: next message
         alt seq < STREAM_SIZE
           Browser Agent ->> Browser Agent: store as message history
         else seq = STREAM_SIZE
-          Browser Agent ->> Browser Agent: Compute current state and resolve promise
+          Browser Agent -->> DOMAIN application: Compute current state and resolve promise with state and history
         else seq > STREAM_SIZE
+          Browser Agent ->> DOMAIN application: Call callback with updated state and patch info
         end
     end
   end
   deactivate Browser Agent
   deactivate DOMAIN application
   deactivate NATS Cluster
-```
+  ```

@@ -1,10 +1,33 @@
-import { NATSClient, encodeJSON, decodeJSON, encodeString, decodeString } from './externals.js'
+import { NATSClient, encodeJSON, decodeJSON, serve, environment } from './externals.js'
 import { upload, download } from './storage.js'
 import { decodeNATSSubject } from './agent/utils.js'
 import configure from './configure.js'
 
-const nc = await NATSClient({ servers: "nats://nats-server:4222" })
 
+const { AUTHORIZE_PORT } = environment
+
+const handler = request => {
+  const url = new URL(request.url);
+  if (url.pathname === "/authorize") {
+    console.log('GOT REQUEST!!!!!!', request)
+    return new Response("Hello, World!", { status: 200 })
+  } else  {
+    return new Response('', { status: 200 })
+  }
+}
+
+console.log("HTTP web server running. Access it at: http://localhost:8000/");
+await serve(handler, { port: AUTHORIZE_PORT })
+
+
+
+
+
+
+
+
+await new Promise(r => setTimeout(r, 3000))
+const nc = await NATSClient({ servers: "nats://nats-server:4222" })
 
 const jsm = await nc.jetstreamManager()
 const js = await nc.jetstream()
