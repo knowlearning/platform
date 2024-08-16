@@ -70,9 +70,6 @@ services:
     volumes:
       - ../source/nats.conf:/etc/nats/nats.conf
     command: -c /etc/nats/nats.conf
-    depends_on:
-      authorizer:
-          condition: service_healthy
     deploy:
       resources:
         limits:

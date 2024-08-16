@@ -149,6 +149,7 @@ sequenceDiagram
   participant NATS Cluster
   participant Authorization
 
+  Authorizer ->> NATS Cluster: subscribe to $SYS.REQ.ACCOUNT.*.CLAIMS.LOOKUP
   DOMAIN application ->> Browser Agent: login(PROVIDER)
   activate Browser Agent
   Browser Agent ->> Browser Agent: save window.location.path<br>to localStorage as ORIGINAL_PATH
@@ -188,15 +189,19 @@ sequenceDiagram
     end
   end
   deactivate Authorization
-  Browser Agent ->> NATS Cluster: Create connection with NATS_CREDENTIAL
   activate NATS Cluster
+  Browser Agent ->> NATS Cluster: Create connection with NATS_CREDENTIAL
+  NATS Cluster -->> Authorizer: $SYS.REQ.ACCOUNT.*.CLAIMS.LOOKUP message
+  activate Authorizer
+  Authorizer ->> NATS Cluster: $SYS.REQ.ACCOUNT.*.CLAIMS.LOOKUP message response
+  deactivate Authorizer
   NATS Cluster -->> Browser Agent: Connection Established
   opt watch SCOPE
     DOMAIN application ->> Browser Agent: call watch() or state()
     alt SCOPE owned by other user
       Browser Agent ->> Authorization: request authorization
       alt Authorization successful
-        Authorization ->> NATS Cluster: add read permission for NATS_CREDENTIAL
+        Authorization ->> NATS Cluster: add read permission for NATS_CREDENTIAL<br>by publishing to $SYS.REQ.CLAIMS.UPDATE
         Authorization -->> Browser Agent: Authorized response
       else Authorization unsuccessful
         Authorization -->> Browser Agent: Unauthorized response
@@ -220,4 +225,4 @@ sequenceDiagram
   deactivate Browser Agent
   deactivate DOMAIN application
   deactivate NATS Cluster
-  ```
+```
