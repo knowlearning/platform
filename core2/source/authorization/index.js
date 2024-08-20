@@ -1,10 +1,14 @@
-import { NATSClient, encodeJSON, decodeJSON, serve, environment } from './externals.js'
+import { NATSClient, encodeJSON, decodeJSON, serve, environment, NKeyFromSeed } from './externals.js'
 import { upload, download } from './storage.js'
 import { decodeNATSSubject } from './agent/utils.js'
-import configure from './configure.js'
+//import configure from './configure.js'
 
 
-const { AUTHORIZE_PORT } = environment
+const {
+  AUTHORIZE_PORT,
+  NATS_AUTH_USER_NKEY_PUBLIC,
+  NATS_AUTH_USER_NKEY_PRIVATE
+} = environment
 
 const handler = request => {
   const url = new URL(request.url);
@@ -16,18 +20,14 @@ const handler = request => {
   }
 }
 
-console.log("HTTP web server running. Access it at: http://localhost:8000/");
+console.log('HTTP web server running. Access it at: http://localhost:8000/')
 await serve(handler, { port: AUTHORIZE_PORT })
 
-
-
-
-
-
-
-
-await new Promise(r => setTimeout(r, 3000))
-const nc = await NATSClient({ servers: "nats://nats-server:4222" })
+const nc = await NATSClient({
+  servers: "nats://nats-server:4222",
+  nkey: NATS_AUTH_USER_NKEY_PUBLIC,
+  sigCB: nonce => NKeyFromSeed(Buffer.from(NATS_AUTH_USER_NKEY_PRIVATE)).sign(nonce)
+})
 
 const jsm = await nc.jetstreamManager()
 const js = await nc.jetstream()

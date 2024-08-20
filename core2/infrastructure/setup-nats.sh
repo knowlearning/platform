@@ -1,7 +1,12 @@
-websocket {
-  port: 8080
-  no_tls: true
-}
+#
+#  Set up auth callout
+#
+################################
+
+
+nsc generate nkey --account # gives secret and public key
+
+# create nats.conf
 
 accounts {
   global_account: {
@@ -10,13 +15,11 @@ accounts {
       { nkey: UAKEFMDW6OPGHW3AO5SXYTQHJTIVS5SZZ6ORRBD64W7IR45WC3I7RJZX }
     ]
   }
-  SYS: {}
 }
-system_account: SYS
 
 authorization {
   auth_callout {
-    issuer: AC2FL73REBUZ7VTAAREV4Y7GMHUBDHC26YKHP4VQANVABKGWFAA2G2G7
+    issuer: # public key of nkey generated above
     auth_users: [ auth ]
     account: global_account
   }

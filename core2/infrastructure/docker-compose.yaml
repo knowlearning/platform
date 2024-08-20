@@ -44,13 +44,14 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=insecure-development-password
+      - NATS_AUTH_USER_NKEY_PUBLIC=${NATS_AUTH_USER_NKEY_PUBLIC}
+      - NATS_AUTH_USER_NKEY_PRIVATE=${NATS_AUTH_USER_NKEY_PRIVATE}
     volumes:
       - ../../packages/agent:/agent
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8765/"]
-      interval: 2s
-      timeout: 2s
-      retries: 5
+    depends_on:
+      - postgres
+      - gcs-emulator
+      - nats-server
     deploy:
       resources:
         limits:
@@ -61,7 +62,7 @@ services:
           memory: 128M
 
   nats-server:
-    image: nats:2.9.25-alpine3.18
+    image: nats:2.10.18
     container_name: nats-server
     ports:
       - 4222:4222

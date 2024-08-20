@@ -1,5 +1,11 @@
 import { Storage as GCSStorageClient } from 'npm:@google-cloud/storage@5.18.2'
-import { connect as NATSClient, JSONCodec, StringCodec } from 'https://deno.land/x/nats@v1.28.1/src/mod.ts'
+import {
+  connect as NATSClient,
+  JSONCodec,
+  StringCodec
+} from 'https://deno.land/x/nats@v1.28.2/src/mod.ts'
+import { fromSeed as NKeyFromSeed } from "npm:@nats-io/nkeys";
+
 import { parse as parseYAML } from 'https://deno.land/std@0.207.0/yaml/mod.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
 import * as pg from "https://deno.land/x/postgres@v0.17.1/mod.ts";
@@ -36,6 +42,7 @@ export {
   pg,
   serve,
   escapePostgresLiteral,
+  NKeyFromSeed,
   environment,
   randomBytes,
   parseYAML,
