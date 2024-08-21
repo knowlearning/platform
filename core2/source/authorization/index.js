@@ -1,4 +1,13 @@
-import { NATSClient, encodeJSON, decodeJSON, serve, environment, nkeyAuthenticator } from './externals.js'
+import {
+  NATSClient,
+  encodeJSON,
+  decodeJSON,
+  serve,
+  environment,
+  nkeyAuthenticator,
+  decodeString,
+  decodeJWT
+} from './externals.js'
 import { upload, download } from './storage.js'
 import { decodeNATSSubject } from './agent/utils.js'
 //import configure from './configure.js'
@@ -52,19 +61,18 @@ nc.publish("whatever", encodeJSON({ hello: 'world' }))
 console.log('published...')
 
 const sub = nc.subscribe("$SYS.REQ.USER.AUTH", {
-  callback: (err, msg) => {
+  callback: async (err, msg) => {
     if (err) {
       console.log("subscription error", err.message)
       return
     }
 
-    const name = msg.subject.substring(6);
-    console.log('GOT SYS REQ USER AUTH REQUEST.............', name)
-    msg.respond(`hello, ${name}`);
+    const jwt = await decodeJWT(decodeString(msg.data))
+    console.log('TODO: respond with new JWT outlining permissions...', jwt)
+
+    msg.respond('hello')
   },
 })
-
-
 
 
 

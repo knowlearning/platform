@@ -8,9 +8,10 @@ import { nkeyAuthenticator } from "https://deno.land/x/nats@v1.28.2/nats-base-cl
 
 import { parse as parseYAML } from 'https://deno.land/std@0.207.0/yaml/mod.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
-import * as pg from "https://deno.land/x/postgres@v0.17.1/mod.ts";
+import * as pg from "https://deno.land/x/postgres@v0.17.1/mod.ts"
 import nodePostres from 'npm:pg@8.11.0'
-import { serve } from "https://deno.land/std@0.202.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.202.0/http/server.ts"
+import { decode as decodeJWT } from 'npm:nats-jwt@0.0.9'
 
 /* for agent dependencies */
 import { validate as isUUID } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
@@ -51,5 +52,6 @@ export {
   decodeJSON,
   encodeString,
   decodeString,
+  decodeJWT,
   GCSStorageClient
 }
