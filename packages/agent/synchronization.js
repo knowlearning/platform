@@ -103,7 +103,9 @@ export async function state(scope, user, domain) {
   let resolveStartState
   const startState = new Promise(r => resolveStartState = r)
 
+  console.log('RESOLVING REFERENCE....', domain, user, scope)
   const subject = await resolveReference(domain, user, scope)
+  console.log('RESOLVED....', domain, user, scope)
 
   watch(
     scope,

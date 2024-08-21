@@ -33,6 +33,24 @@ const js = await nc.jetstream()
 })()
 */
 
+nc.subscribe("whatever", {
+  callback: (err, msg) => {
+    if (err) {
+      console.log("subscription error", err.message)
+      return
+    }
+
+    console.log('GOT WHATEVER PUBLISH...')
+
+    const name = msg.subject.substring(6)
+    msg.respond(`hello, ${name}`)
+  }
+})
+
+console.log('publishing')
+nc.publish("whatever", encodeJSON({ hello: 'world' }))
+console.log('published...')
+
 const sub = nc.subscribe("$SYS.REQ.USER.AUTH", {
   callback: (err, msg) => {
     if (err) {
@@ -40,12 +58,11 @@ const sub = nc.subscribe("$SYS.REQ.USER.AUTH", {
       return
     }
 
-    console.log('GOT SYS REQ USER AUTH REQUEST.............')
-
     const name = msg.subject.substring(6);
+    console.log('GOT SYS REQ USER AUTH REQUEST.............', name)
     msg.respond(`hello, ${name}`);
   },
-});
+})
 
 
 

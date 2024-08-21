@@ -39,7 +39,9 @@ async function getInfoOrClaimScope(id, jsm, depth=0) {
 //  TODO: persistent reference resolution
 export default async function resolveReference(domain, user, scope, newType='application/json', newState={}) {
   const isUUIDOnlyReference = isUUID(scope) && !user && !domain
+  console.log('JSM????')
   const jsm = await jetstreamManagerPromise
+  console.log('JSM!!!', jsm)
 
   if (isUUIDOnlyReference) {
     const id = scope
