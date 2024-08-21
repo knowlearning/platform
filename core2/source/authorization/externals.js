@@ -4,7 +4,7 @@ import {
   JSONCodec,
   StringCodec
 } from 'https://deno.land/x/nats@v1.28.2/src/mod.ts'
-import { fromSeed as NKeyFromSeed } from "npm:@nats-io/nkeys";
+import { nkeyAuthenticator } from "https://deno.land/x/nats@v1.28.2/nats-base-client/authenticator.ts";
 
 import { parse as parseYAML } from 'https://deno.land/std@0.207.0/yaml/mod.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
@@ -42,7 +42,7 @@ export {
   pg,
   serve,
   escapePostgresLiteral,
-  NKeyFromSeed,
+  nkeyAuthenticator,
   environment,
   randomBytes,
   parseYAML,

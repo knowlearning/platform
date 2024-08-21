@@ -1,4 +1,4 @@
-import { NATSClient, encodeJSON, decodeJSON, serve, environment, NKeyFromSeed } from './externals.js'
+import { NATSClient, encodeJSON, decodeJSON, serve, environment, nkeyAuthenticator } from './externals.js'
 import { upload, download } from './storage.js'
 import { decodeNATSSubject } from './agent/utils.js'
 //import configure from './configure.js'
@@ -10,25 +10,14 @@ const {
   NATS_AUTH_USER_NKEY_PRIVATE
 } = environment
 
-const handler = request => {
-  const url = new URL(request.url);
-  if (url.pathname === "/authorize") {
-    console.log('GOT REQUEST!!!!!!', request)
-    return new Response("Hello, World!", { status: 200 })
-  } else  {
-    return new Response('', { status: 200 })
-  }
-}
-
-console.log('HTTP web server running. Access it at: http://localhost:8000/')
-await serve(handler, { port: AUTHORIZE_PORT })
-
 const nc = await NATSClient({
   servers: "nats://nats-server:4222",
-  nkey: NATS_AUTH_USER_NKEY_PUBLIC,
-  sigCB: nonce => NKeyFromSeed(Buffer.from(NATS_AUTH_USER_NKEY_PRIVATE)).sign(nonce)
+  authenticator: nkeyAuthenticator(new TextEncoder().encode(NATS_AUTH_USER_NKEY_PRIVATE))
 })
 
+console.log('GOT CLIENT....')
+
+/*
 const jsm = await nc.jetstreamManager()
 const js = await nc.jetstream()
 
@@ -42,7 +31,21 @@ const js = await nc.jetstream()
     console.log('create or insert', {...update, domain, owner, name })
   }
 })()
+*/
 
+const sub = nc.subscribe("$SYS.REQ.USER.AUTH", {
+  callback: (err, msg) => {
+    if (err) {
+      console.log("subscription error", err.message)
+      return
+    }
+
+    console.log('GOT SYS REQ USER AUTH REQUEST.............')
+
+    const name = msg.subject.substring(6);
+    msg.respond(`hello, ${name}`);
+  },
+});
 
 
 
@@ -163,3 +166,17 @@ for await (const message of subscription) {
     console.log('error decoding JSON', error, subject, data)
   }
 }
+
+
+const handler = request => {
+  const url = new URL(request.url);
+  if (url.pathname === "/authorize") {
+    console.log('GOT REQUEST!!!!!!', request)
+    return new Response("Hello, World!", { status: 200 })
+  } else  {
+    return new Response('', { status: 200 })
+  }
+}
+
+console.log('HTTP web server running. Access it at: http://localhost:8000/')
+await serve(handler, { port: AUTHORIZE_PORT })

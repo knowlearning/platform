@@ -20,7 +20,9 @@ export function watch(scope, callback, user, domain) {
   let closed = false
   let closeMessageQueue
   ;(async () => {
+    console.log('RESOLVING REFERENCE', domain, user, scope)
     const subject = await resolveReference(domain, user, scope)
+    console.log('RESOLVED', subject)
     if (closed) {
       resolveWatchSynced()
       return

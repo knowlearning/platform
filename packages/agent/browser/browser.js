@@ -4,9 +4,12 @@ import { applyPatch } from 'fast-json-patch'
 import environment from './environment.js'
 import { login, logout } from './authentication.js'
 import GenericAgent from '../index.js'
-import { connect, JSONCodec } from 'nats.ws'
+import { connect, JSONCodec, nkeyAuthenticator } from 'nats.ws'
 
-window.natsClientPromise = connect({ servers: ['ws://localhost:8080'] })
+window.natsClientPromise = connect({
+  servers: ['ws://localhost:8080'],
+  authenticator: nkeyAuthenticator(new TextEncoder().encode('SUACOOVJMKSEL2GNFKD2R2PCP4D5TZIJVG4BEWGLWP5OSPOEULMZBCZFBQ'))
+})
 
 //  TODO: remove necessity to make these global
 window.jetstreamManagerPromise =  natsClientPromise.then(c => c.jetstreamManager())
