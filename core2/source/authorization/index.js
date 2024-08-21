@@ -5,18 +5,23 @@ import {
   serve,
   environment,
   nkeyAuthenticator,
+  nkeysFromSeed,
   decodeString,
-  decodeJWT
+  decodeJWT,
+  encodeJWT,
+  encodeAuthorizationResponse,
+  encodeString
 } from './externals.js'
 import { upload, download } from './storage.js'
 import { decodeNATSSubject } from './agent/utils.js'
 //import configure from './configure.js'
 
-
 const {
   AUTHORIZE_PORT,
   NATS_AUTH_USER_NKEY_PUBLIC,
-  NATS_AUTH_USER_NKEY_PRIVATE
+  NATS_AUTH_USER_NKEY_PRIVATE,
+  NATS_ISSUER_NKEY_PUBLIC,
+  NATS_ISSUER_NKEY_PRIVATE
 } = environment
 
 const nc = await NATSClient({
@@ -40,7 +45,6 @@ const js = await nc.jetstream()
     console.log('create or insert', {...update, domain, owner, name })
   }
 })()
-*/
 
 nc.subscribe("whatever", {
   callback: (err, msg) => {
@@ -60,7 +64,9 @@ console.log('publishing')
 nc.publish("whatever", encodeJSON({ hello: 'world' }))
 console.log('published...')
 
-const sub = nc.subscribe("$SYS.REQ.USER.AUTH", {
+*/
+
+nc.subscribe("$SYS.REQ.USER.AUTH", {
   callback: async (err, msg) => {
     if (err) {
       console.log("subscription error", err.message)
@@ -68,10 +74,52 @@ const sub = nc.subscribe("$SYS.REQ.USER.AUTH", {
     }
 
     const jwt = await decodeJWT(decodeString(msg.data))
-    console.log('TODO: respond with new JWT outlining permissions...', jwt)
 
-    msg.respond('hello')
-  },
+    const userPrefix = `localhost:5122.me`
+
+    const signer = nkeysFromSeed(new TextEncoder().encode(NATS_ISSUER_NKEY_PRIVATE))
+
+    const user = jwt.nats.user_nkey
+    const server = jwt.nats.server_id.id
+
+    const response = await encodeJWT('ed25519-nkey', {
+      iss: NATS_ISSUER_NKEY_PUBLIC,
+      iat: Math.floor(Date.now() / 1000),
+      aud: server,
+      sub: user,
+      name: user,
+      nats: {
+        type: 'authorization_response',
+        issuer_account: NATS_ISSUER_NKEY_PUBLIC,
+        jwt: await encodeJWT('ed25519-nkey', {
+          sub: user,
+          name: user,
+          aud: server,
+          iss: NATS_ISSUER_NKEY_PUBLIC,
+          iat: Math.floor(Date.now() / 1000),
+          nats: {
+            issuer_account: NATS_ISSUER_NKEY_PUBLIC,
+            sub: {
+              Allow: [
+                `${userPrefix}.>`,  // Publishing to streams on this domain
+              ]
+            },
+            pub: {
+              Allow: [
+                "$JS.API.INFO", // General JS Info
+                `${userPrefix}.>`,  // Publishing to streams on this domain
+                `$JS.API.STREAM.INFO.${userPrefix}.>`, // Getting info on chat_messages stream
+                `$JS.API.CONSUMER.CREATE.${userPrefix}.>`, // Creating consumers on chat_messages stream
+                `$JS.API.CONSUMER.MSG.NEXT.${userPrefix}.>`, // Creating consumers on chat_messages stream
+              ]
+            }
+          }
+        }, signer)
+      }
+    }, signer)
+
+    msg.respond(response)
+  }
 })
 
 

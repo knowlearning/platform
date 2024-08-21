@@ -8,8 +8,7 @@ import { connect, JSONCodec, nkeyAuthenticator } from 'nats.ws'
 
 window.natsClientPromise = connect({
   servers: ['ws://localhost:8080'],
-  user: 'user',
-  pass: 'pass'
+  token: 'asdffdsa'
 })
 
 //  TODO: remove necessity to make these global
