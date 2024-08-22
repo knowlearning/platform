@@ -33,7 +33,6 @@ console.log('GOT CLIENT....')
 const jsm = await nc.jetstreamManager()
 const js = await nc.jetstream()
 
-/*
 
 ;(async () => {
   await jsm.streams.add({ name: 'postgres-metadata' })
@@ -45,26 +44,6 @@ const js = await nc.jetstream()
     console.log('create or insert', {...update, domain, owner, name })
   }
 })()
-
-nc.subscribe("whatever", {
-  callback: (err, msg) => {
-    if (err) {
-      console.log("subscription error", err.message)
-      return
-    }
-
-    console.log('GOT WHATEVER PUBLISH...')
-
-    const name = msg.subject.substring(6)
-    msg.respond(`hello, ${name}`)
-  }
-})
-
-console.log('publishing')
-nc.publish("whatever", encodeJSON({ hello: 'world' }))
-console.log('published...')
-
-*/
 
 nc.subscribe("$SYS.REQ.USER.AUTH", {
   callback: async (err, msg) => {
@@ -245,7 +224,11 @@ for await (const message of subscription) {
         else return value
       }, {})
       //  TODO: gather all updated fields for metadata
-      js.publish('postgres-metadata', encodeJSON({subject, update}))
+      js
+        .publish('postgres-metadata', encodeJSON({subject, update}))
+        .catch(error => {
+          console.log('ERROR POSTING TO POSTGRES METADATA', error)
+        })
     }
     //  TODO: push metadata updates to a stream
   } catch (error) {
