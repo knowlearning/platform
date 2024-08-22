@@ -89,34 +89,40 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
       sub: user,
       name: user,
       nats: {
+        version: 2,
         type: 'authorization_response',
-        issuer_account: NATS_ISSUER_NKEY_PUBLIC,
         jwt: await encodeJWT('ed25519-nkey', {
           sub: user,
           name: user,
-          aud: server,
+          aud: 'global_account',
           iss: NATS_ISSUER_NKEY_PUBLIC,
           iat: Math.floor(Date.now() / 1000),
+          issuer_account: NATS_ISSUER_NKEY_PUBLIC,
           nats: {
-            issuer_account: NATS_ISSUER_NKEY_PUBLIC,
-            sub: {
-              Allow: [
-                `${userPrefix}.>`,  // Publishing to streams on this domain
-              ]
-            },
-            pub: {
-              Allow: [
-                "$JS.API.INFO", // General JS Info
-                `${userPrefix}.>`,  // Publishing to streams on this domain
-                `$JS.API.STREAM.INFO.${userPrefix}.>`, // Getting info on chat_messages stream
-                `$JS.API.CONSUMER.CREATE.${userPrefix}.>`, // Creating consumers on chat_messages stream
-                `$JS.API.CONSUMER.MSG.NEXT.${userPrefix}.>`, // Creating consumers on chat_messages stream
-              ]
+            version: 2,
+            type: 'user',
+            permissions: {
+              sub: {
+                allow: [
+                  `${userPrefix}.>`,  // Publishing to streams on this domain
+                ]
+              },
+              pub: {
+                allow: [
+                  "$JS.API.INFO", // General JS Info
+                  `${userPrefix}.>`,  // Publishing to streams on this domain
+                  `$JS.API.STREAM.INFO.${userPrefix}.>`, // Getting info on chat_messages stream
+                  `$JS.API.CONSUMER.CREATE.${userPrefix}.>`, // Creating consumers on chat_messages stream
+                  `$JS.API.CONSUMER.MSG.NEXT.${userPrefix}.>`, // Creating consumers on chat_messages stream
+                ]
+              }
             }
           }
         }, signer)
       }
     }, signer)
+
+    console.log('RESPONDING!', response)
 
     msg.respond(response)
   }
