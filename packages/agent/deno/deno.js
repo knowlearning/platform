@@ -5,7 +5,10 @@ import { connect, JSONCodec } from 'npm:nats.ws@1.29.0'
 import environment from './environment.js'
 import GenericAgent from '../index.js'
 
-window.natsClientPromise = connect({ servers: ['ws://nats-server:8080'] })
+window.natsClientPromise = connect({
+  servers: ['ws://nats-server:8080'],
+  token: 'asdffdsa'
+})
 const uuid = () => crypto.randomUUID()
 
 //  TODO: remove necessity to make these global

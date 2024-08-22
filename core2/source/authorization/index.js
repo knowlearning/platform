@@ -30,10 +30,10 @@ const nc = await NATSClient({
 })
 
 console.log('GOT CLIENT....')
-
-/*
 const jsm = await nc.jetstreamManager()
 const js = await nc.jetstream()
+
+/*
 
 ;(async () => {
   await jsm.streams.add({ name: 'postgres-metadata' })
@@ -109,11 +109,14 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
             },
             pub: {
               allow: [
+                `${userPrefix}.>`,  // Publishing to subjects for this user on this domain
                 "$JS.API.INFO", // General JS Info
-                `${userPrefix}.>`,  // Publishing to streams on this domain
-                `$JS.API.STREAM.INFO.${userPrefix}.>`, // Getting info on chat_messages stream
-                `$JS.API.CONSUMER.CREATE.${userPrefix}.>`, // Creating consumers on chat_messages stream
-                `$JS.API.CONSUMER.MSG.NEXT.${userPrefix}.>`, // Creating consumers on chat_messages stream
+                //  TODO: the below should probably be added iteratively as ownership is established
+                `$JS.API.STREAM.INFO.>`,
+                `$JS.API.STREAM.NAMES`,
+                `$JS.API.STREAM.CREATE.>`,
+                `$JS.API.CONSUMER.CREATE.>`,
+                `$JS.API.CONSUMER.MSG.NEXT.>`,
               ]
             },
             resp: {
@@ -126,7 +129,6 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
         }, signer)
       }
     }, signer)
-
     console.log('RESPONDING!', response)
 
     msg.respond(response)

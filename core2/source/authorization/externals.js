@@ -5,8 +5,6 @@ import {
   StringCodec
 } from 'https://deno.land/x/nats@v1.28.2/src/mod.ts'
 import { nkeyAuthenticator } from "https://deno.land/x/nats@v1.28.2/nats-base-client/authenticator.ts";
-//import { fromSeed as nkeysFromSeed } from 'https://deno.land/x/nkeys@v1.2.0-4/src/mod.ts'
-
 import { parse as parseYAML } from 'https://deno.land/std@0.207.0/yaml/mod.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
 import * as pg from "https://deno.land/x/postgres@v0.17.1/mod.ts"
