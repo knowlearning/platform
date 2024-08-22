@@ -93,30 +93,35 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
         type: 'authorization_response',
         jwt: await encodeJWT('ed25519-nkey', {
           sub: user,
-          name: user,
+          name: 'me',
+          jti: 'ZYJV3UUUNG22E5RNP6DEY5F6LUEQEPMP57ZX2ONRTM2ASIWNFRLQ', // TODO: Necessary?
           aud: 'global_account',
           iss: NATS_ISSUER_NKEY_PUBLIC,
           iat: Math.floor(Date.now() / 1000),
-          issuer_account: NATS_ISSUER_NKEY_PUBLIC,
           nats: {
             version: 2,
             type: 'user',
-            permissions: {
-              sub: {
-                allow: [
-                  `${userPrefix}.>`,  // Publishing to streams on this domain
-                ]
-              },
-              pub: {
-                allow: [
-                  "$JS.API.INFO", // General JS Info
-                  `${userPrefix}.>`,  // Publishing to streams on this domain
-                  `$JS.API.STREAM.INFO.${userPrefix}.>`, // Getting info on chat_messages stream
-                  `$JS.API.CONSUMER.CREATE.${userPrefix}.>`, // Creating consumers on chat_messages stream
-                  `$JS.API.CONSUMER.MSG.NEXT.${userPrefix}.>`, // Creating consumers on chat_messages stream
-                ]
-              }
-            }
+            sub: {
+              allow: [
+                `${userPrefix}.>`,  // Publishing to streams on this domain
+                `_INBOX.>` // TODO: restrict to only the reply inbox necessary
+              ]
+            },
+            pub: {
+              allow: [
+                "$JS.API.INFO", // General JS Info
+                `${userPrefix}.>`,  // Publishing to streams on this domain
+                `$JS.API.STREAM.INFO.${userPrefix}.>`, // Getting info on chat_messages stream
+                `$JS.API.CONSUMER.CREATE.${userPrefix}.>`, // Creating consumers on chat_messages stream
+                `$JS.API.CONSUMER.MSG.NEXT.${userPrefix}.>`, // Creating consumers on chat_messages stream
+              ]
+            },
+            resp: {
+              max: 1
+            },
+            subs: -1,
+            data: -1,
+            payload: -1
           }
         }, signer)
       }
