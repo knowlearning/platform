@@ -4,7 +4,7 @@ import { applyPatch } from 'fast-json-patch'
 import environment from './environment.js'
 import { login, logout } from './authentication.js'
 import GenericAgent from '../index.js'
-import { connect, JSONCodec, nkeyAuthenticator } from 'nats.ws'
+import { connect, JSONCodec } from 'nats.ws'
 
 window.natsClientPromise = connect({
   servers: ['ws://localhost:8080'],

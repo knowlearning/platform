@@ -14,7 +14,7 @@ import {
 } from './externals.js'
 import { upload, download } from './storage.js'
 import { decodeNATSSubject } from './agent/utils.js'
-//import configure from './configure.js'
+import configure from './configure.js'
 
 const {
   AUTHORIZE_PORT,
@@ -83,12 +83,14 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
             sub: {
               allow: [
                 `${userPrefix}.>`,  // Publishing to streams on this domain
+                `core.me.>`,
                 `_INBOX.>` // TODO: restrict to only the reply inbox necessary
               ]
             },
             pub: {
               allow: [
                 `${userPrefix}.>`,  // Publishing to subjects for this user on this domain
+                `core.me.>`,
                 "$JS.API.INFO", // General JS Info
                 //  TODO: the below should probably be added iteratively as ownership is established
                 `$JS.API.STREAM.INFO.>`,
