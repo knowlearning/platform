@@ -38,15 +38,16 @@ const js = await nc.jetstream()
 
 ;(async () => {
   await jsm.streams.add({ name: 'postgres-sync' })
-  return
   const oc = await js.consumers.get('postgres-sync')
   const messages = await oc.consume()
+
+  
   for await (const message of messages) {
-    const id = decodeString(message.data)
-    const metadata = await Agent.metadata(id)
-    const state = await Agent.state(id)
-    const { columns } = postgresDefaultTables.metadata
     try {
+      const id = decodeString(message.data)
+      //const metadata = await Agent.metadata(id)
+      //const state = await Agent.state(id)
+      const { columns } = postgresDefaultTables.metadata
       //  TODO: ensure at least metadata table is configured for domain
       const [query, params] = postgres.setRow(metadata.domain, 'metadata', columns, id, metadata)
       await postgres.query(metadata.domain, query, params)
@@ -59,6 +60,15 @@ const js = await nc.jetstream()
     }
   }
 })()
+
+
+
+
+
+
+
+
+
 
 nc.subscribe("$SYS.REQ.USER.AUTH", {
   callback: async (err, msg) => {

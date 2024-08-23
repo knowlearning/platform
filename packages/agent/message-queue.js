@@ -21,7 +21,7 @@ export async function publish(id, patch, expectFirstPublish=false, encodingNeede
   const subject = info.config.subjects[0]
 
   const client = await jetstreamClientPromise
-  //console.log('PUBLISHING!!!!!!!!!!!!!!!', id, subject, patch)
+  console.log('PUBLISHING!!!!!!!!!!!!!!!', id, subject, patch)
   await client.publish(subject, message, options)
 }
 

@@ -1,3 +1,4 @@
+import resolveReference from './resolve-reference.js'
 import { encodeNATSSubject } from './utils.js'
 
 
@@ -6,6 +7,7 @@ const sessionInitialized = new Promise(async resolve => {
   const env = await environment()
   const nc = await natsClientPromise
 
+  await resolveReference(env.domain, env.auth.user, 'sessions')
   //  TODO: perhaps allow messageQueue.publish to be request?
   const subject = encodeNATSSubject(env.domain, env.auth.user, 'sessions')
   const patch = [{
