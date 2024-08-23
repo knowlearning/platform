@@ -2,7 +2,6 @@ import {
   NATSClient,
   encodeJSON,
   decodeJSON,
-  serve,
   environment,
   nkeyAuthenticator,
   nkeysFromSeed,
@@ -13,14 +12,9 @@ import {
 } from './externals.js'
 import { upload, download } from './storage.js'
 import { decodeNATSSubject } from './agent/utils.js'
-import configure from './configure.js'
-import * as postgres from './postgres.js'
-import postgresDefaultTables from './postgres-default-tables.js'
-import Agent from './agent/deno/deno.js'
+//import configure from './configure.js'
 
 const {
-  AUTHORIZE_PORT,
-  NATS_AUTH_USER_NKEY_PUBLIC,
   NATS_AUTH_USER_NKEY_PRIVATE,
   NATS_ISSUER_NKEY_PUBLIC,
   NATS_ISSUER_NKEY_PRIVATE
@@ -35,40 +29,7 @@ console.log('GOT CLIENT....')
 const jsm = await nc.jetstreamManager()
 const js = await nc.jetstream()
 
-
-;(async () => {
-  await jsm.streams.add({ name: 'postgres-sync' })
-  const oc = await js.consumers.get('postgres-sync')
-  const messages = await oc.consume()
-
-  
-  for await (const message of messages) {
-    try {
-      const id = decodeString(message.data)
-      //const metadata = await Agent.metadata(id)
-      //const state = await Agent.state(id)
-      const { columns } = postgresDefaultTables.metadata
-      //  TODO: ensure at least metadata table is configured for domain
-      const [query, params] = postgres.setRow(metadata.domain, 'metadata', columns, id, metadata)
-      await postgres.query(metadata.domain, query, params)
-      // TODO: push update to any other configured tables
-      message.ack()
-    }
-    catch (error) {
-      message.ack()
-      console.log('ERRROR SETTING METADATA!', error)
-    }
-  }
-})()
-
-
-
-
-
-
-
-
-
+await jsm.streams.add({ name: 'postgres-sync' })
 
 nc.subscribe("$SYS.REQ.USER.AUTH", {
   callback: async (err, msg) => {
@@ -142,15 +103,7 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
   }
 })
 
-
-
-
-
-
-
-
-
-const subscription = nc.subscribe(">", { queue: "all-streams-queue" })
+const subscription = js.subscribe(">", { queue: "all-streams-queue" })
 
 function isSession(subject) {
   return subject.split('.')[2] === 'sessions'
@@ -163,7 +116,7 @@ function isClaim(subject) {
 function ignoreSubject(subject) {
   return subject.startsWith('$') ||
     subject.startsWith('_') ||
-    subject === 'postgres-metadata' ||
+    subject === 'postgres-sync' ||
     subject.split('.').length !== 3
 }
 
@@ -243,7 +196,7 @@ for await (const message of subscription) {
     }
     const [domain] = decodeNATSSubject(subject)
     if (domain !== 'core') {
-      console.log(subject, decodeJSON(data))
+      console.log('MESSAGE RECEIVED!!!!!!!!!!!!!!!!!!', message.headers?.status, subject, decodeJSON(data))
       const id = await jsm.streams.find(subject)
       js
         .publish('postgres-sync', encodeString(id))
@@ -253,17 +206,3 @@ for await (const message of subscription) {
     console.log('error decoding JSON', error, subject, data)
   }
 }
-
-
-const handler = request => {
-  const url = new URL(request.url);
-  if (url.pathname === "/authorize") {
-    console.log('GOT REQUEST!!!!!!', request)
-    return new Response("Hello, World!", { status: 200 })
-  } else  {
-    return new Response('', { status: 200 })
-  }
-}
-
-console.log('HTTP web server running. Access it at: http://localhost:8000/')
-await serve(handler, { port: AUTHORIZE_PORT })

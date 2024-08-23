@@ -12,8 +12,8 @@ async function getInfoOrClaimScope(id, jsm, depth=0) {
       .info(id)
       .then(async info => {
         const subject = info.config.subjects[0]
-        const [domain, user, name] = decodeNATSSubject(subject)
-        return { domain, owner: user, name }
+        const [domain, owner, name] = decodeNATSSubject(subject)
+        return { domain, owner, name }
       })
       .catch(async error => {
         if (error.code === '404') {
@@ -43,7 +43,9 @@ export default async function resolveReference(domain, user, scope, newType='app
 
   if (isUUIDOnlyReference) {
     const id = scope
+    console.log('GETTING INFO OR CLAIMING SCOPE', domain, user, scope)
     const { domain:d, owner, name } = await getInfoOrClaimScope(scope, jsm)
+    console.log('GOT INFO OR CLAIMED SCOPE', domain, user, scope, d, owner, name)
     scope = name
     user = owner
     domain = d
