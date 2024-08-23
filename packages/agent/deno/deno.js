@@ -6,10 +6,12 @@ import environment from './environment.js'
 import GenericAgent from '../index.js'
 
 window.natsClientPromise = new Promise(async r => {
+  //  TODO: remove this. it is here to delay agent connection
+  //        until the auth server can spin up
   await new Promise(r => setTimeout(r, 500))
   r(connect({
     servers: ['ws://nats-server:8080'],
-    token: 'asdffdsa'
+    token: 'deno-asdffdsa'
   }))
 })
 

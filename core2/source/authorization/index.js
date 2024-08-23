@@ -9,12 +9,14 @@ import {
   decodeString,
   decodeJWT,
   encodeJWT,
-  encodeAuthorizationResponse,
   encodeString
 } from './externals.js'
 import { upload, download } from './storage.js'
 import { decodeNATSSubject } from './agent/utils.js'
 import configure from './configure.js'
+import * as postgres from './postgres.js'
+import postgresDefaultTables from './postgres-default-tables.js'
+import Agent from './agent/deno/deno.js'
 
 const {
   AUTHORIZE_PORT,
@@ -35,13 +37,29 @@ const js = await nc.jetstream()
 
 
 ;(async () => {
-  await jsm.streams.add({ name: 'postgres-metadata' })
-  const oc = await js.consumers.get('postgres-metadata')
+  await jsm.streams.add({ name: 'postgres-sync' })
+  const oc = await js.consumers.get('postgres-sync')
   const messages = await oc.consume()
   for await (const message of messages) {
-    const { subject, update } = decodeJSON(message.data)
-    const [domain, owner, name] = decodeNATSSubject(subject)
-    console.log('create or insert', {...update, domain, owner, name })
+    const id = decodeString(message.data)
+    console.log('GETTING METADATA')
+    const metadata = await Agent.metadata(id)
+    console.log('GOT METADATA', metadata)
+    console.log('GETTING STATE')
+    const state = await Agent.state(id)
+    console.log('GOT STATE', state)
+    console.log('HANDLING SYNC MESSAGE', id, state)
+    const { columns } = postgresDefaultTables.metadata
+    try {
+      //  TODO: ensure at least metadata table is configured for domain
+      const [query, params] = postgres.setRow(metadata.domain, 'metadata', columns, id, metadata)
+      await postgres.query(metadata.domain, query, params)
+      // TODO: push update to any other configured tables
+      message.ack()
+    }
+    catch (error) {
+      console.log('ERRROR SETTING METADATA!', error)
+    }
   }
 })()
 
@@ -60,6 +78,9 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
 
     const user = jwt.nats.user_nkey
     const server = jwt.nats.server_id.id
+    const token = jwt.nats.client_info.user
+
+    const isCore = token.startsWith('deno-')
 
     const response = await encodeJWT('ed25519-nkey', {
       iss: NATS_ISSUER_NKEY_PUBLIC,
@@ -82,15 +103,13 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
             type: 'user',
             sub: {
               allow: [
-                `${userPrefix}.>`,  // Publishing to streams on this domain
-                `core.me.>`,
+                isCore ? `core.me.>` : `${userPrefix}.>`,  // Publishing to streams on this domain
                 `_INBOX.>` // TODO: restrict to only the reply inbox necessary
               ]
             },
             pub: {
               allow: [
-                `${userPrefix}.>`,  // Publishing to subjects for this user on this domain
-                `core.me.>`,
+                isCore ? `core.me.>` : `${userPrefix}.>`,  // Publishing to subjects for this user on this domain
                 "$JS.API.INFO", // General JS Info
                 //  TODO: the below should probably be added iteratively as ownership is established
                 `$JS.API.STREAM.INFO.>`,
@@ -215,24 +234,14 @@ for await (const message of subscription) {
         configure(domain, config, report)
       }
     }
-    const patch = decodeJSON(data)
-    const metadataPatch = patch.filter(({metadata})=> metadata)
-    if (metadataPatch.length) {
-      const update = metadataPatch.reduce((acc, { path, value }) => {
-        if (path.length) {
-          acc[path[0]] = value
-          return acc
-        }
-        else return value
-      }, {})
-      //  TODO: gather all updated fields for metadata
+    const [domain] = decodeNATSSubject(subject)
+    if (domain !== 'core') {
+      console.log(subject, decodeJSON(data))
+      const id = await jsm.streams.find(subject)
       js
-        .publish('postgres-metadata', encodeJSON({subject, update}))
-        .catch(error => {
-          console.log('ERROR POSTING TO POSTGRES METADATA', error)
-        })
+        .publish('postgres-sync', encodeString(id))
+        .catch(error => console.log('ERROR POSTING TO POSTGRES METADATA', error))
     }
-    //  TODO: push metadata updates to a stream
   } catch (error) {
     console.log('error decoding JSON', error, subject, data)
   }
