@@ -47,19 +47,22 @@ export default async function resolveReference(domain, user, scope, newType='app
     scope = name
     user = owner
     domain = d
-    //  TODO: deprecate name? use only "scope?"
-    const metadataValue = { domain, owner: user, name: scope, type: newType }
-    const patch = [
-      { metadata: true, op: 'add', path: [], value: metadataValue },
-      { op: 'add', path: [], value: newState }
-    ]
-    await publish(id, patch, true).catch(error => {
-      if (error.api_error?.err_code === 10071) {
-        // means already initialized
-      }
-      else throw error
-    })
-    return id
+    const env = await environment()
+    if (env.domain === domain && env.auth.user === owner) {
+      //  TODO: deprecate name? use only "scope?"
+      const metadataValue = { domain, owner: user, name: scope, type: newType }
+      const patch = [
+        { metadata: true, op: 'add', path: [], value: metadataValue },
+        { op: 'add', path: [], value: newState }
+      ]
+      await publish(id, patch, true).catch(error => {
+        if (error.api_error?.err_code === 10071) {
+          // means already initialized
+        }
+        else throw error
+      })
+    }
+    return { id, domain, scope, user }
   }
 
   if (!user || !domain) {
@@ -91,21 +94,23 @@ export default async function resolveReference(domain, user, scope, newType='app
         else throw error
       })
     }
-    const metadataValue = { domain, owner: user, name: scope, type: newType }
-    const patch = [
-      { metadata: true, op: 'add', path: [], value: metadataValue },
-      { op: 'add', path: [], value: newState }
-    ]
-    await publish(id, patch, true).catch(error => {
-      if (error.api_error?.err_code === 10071) {
-        // means already initialized
-      }
-      else throw error
-      //  TODO: actually pull down domain/user/scope if
-      //        expectation for first patch failed
-    })
-
+    const env = await environment()
+    if (env.domain === domain && env.auth.user === user) {
+      const metadataValue = { domain, owner: user, name: scope, type: newType }
+      const patch = [
+        { metadata: true, op: 'add', path: [], value: metadataValue },
+        { op: 'add', path: [], value: newState }
+      ]
+      await publish(id, patch, true).catch(error => {
+        if (error.api_error?.err_code === 10071) {
+          // means already initialized
+        }
+        else throw error
+        //  TODO: actually pull down domain/user/scope if
+        //        expectation for first patch failed
+      })
+    }
   }
 
-  return id
+  return { id, user, domain, scope }
 }

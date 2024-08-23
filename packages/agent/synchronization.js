@@ -20,13 +20,13 @@ export function watch(scope, callback, user, domain) {
   let closed = false
   let closeMessageQueue
   ;(async () => {
-    const subject = await resolveReference(domain, user, scope)
+    const { id } = await resolveReference(domain, user, scope)
     if (closed) {
       resolveWatchSynced()
       return
     }
 
-    const { messages, historyLength, created } = await messageQueue.process(subject)
+    const { messages, historyLength, created } = await messageQueue.process(id)
     if (closed) {
       resolveWatchSynced()
       messages.close()
@@ -101,7 +101,7 @@ export async function state(scope, user, domain) {
   let resolveStartState
   const startState = new Promise(r => resolveStartState = r)
 
-  const subject = await resolveReference(domain, user, scope)
+  const { id } = await resolveReference(domain, user, scope)
 
   watch(
     scope,
@@ -110,19 +110,18 @@ export async function state(scope, user, domain) {
     domain
   )
 
-  //  TODO: only return patch proxy if user is owner, otherwise
-  //        send proxy that just errors on mutation
   return new PatchProxy(
     await startState,
-    patch => messageQueue.publish(subject, patch)
+    patch => messageQueue.publish(id, patch)
   )
+
 }
 
 export async function interact(scope, patch) {
   const message = JSONCodec().encode(patch)
   const { auth: { user }, domain } = await environment()
-  const subject = await resolveReference(domain, user, scope)
-  return messageQueue.publish(subject, message, false, false)
+  const { id } = await resolveReference(domain, user, scope)
+  return messageQueue.publish(id, message, false, false)
 }
 
 function stateFromHistory(history) {
@@ -183,12 +182,12 @@ function watchResolution(path, callback, user, domain) {
 }
 
 export async function reset(scope, user, domain) {
-  const id = await resolveReference(domain, user, scope)
+  const { id } = await resolveReference(domain, user, scope)
   await messageQueue.publish(id, [{ op: 'replace', path: [], value: {} }])
 }
 
 export async function metadata(scope, user, domain) {
-  const id = await resolveReference(domain, user, scope)
+  const { id } = await resolveReference(domain, user, scope)
   return new Promise(resolve => {
     const unwatch = watch(id, ({ metadata }) => {
       unwatch()

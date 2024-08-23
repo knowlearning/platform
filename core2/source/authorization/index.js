@@ -38,17 +38,13 @@ const js = await nc.jetstream()
 
 ;(async () => {
   await jsm.streams.add({ name: 'postgres-sync' })
+  return
   const oc = await js.consumers.get('postgres-sync')
   const messages = await oc.consume()
   for await (const message of messages) {
     const id = decodeString(message.data)
-    console.log('GETTING METADATA')
     const metadata = await Agent.metadata(id)
-    console.log('GOT METADATA', metadata)
-    console.log('GETTING STATE')
     const state = await Agent.state(id)
-    console.log('GOT STATE', state)
-    console.log('HANDLING SYNC MESSAGE', id, state)
     const { columns } = postgresDefaultTables.metadata
     try {
       //  TODO: ensure at least metadata table is configured for domain
@@ -58,6 +54,7 @@ const js = await nc.jetstream()
       message.ack()
     }
     catch (error) {
+      message.ack()
       console.log('ERRROR SETTING METADATA!', error)
     }
   }
@@ -103,13 +100,13 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
             type: 'user',
             sub: {
               allow: [
-                isCore ? `core.me.>` : `${userPrefix}.>`,  // Publishing to streams on this domain
+                isCore ? `>` : `${userPrefix}.>`,  // Publishing to streams on this domain
                 `_INBOX.>` // TODO: restrict to only the reply inbox necessary
               ]
             },
             pub: {
               allow: [
-                isCore ? `core.me.>` : `${userPrefix}.>`,  // Publishing to subjects for this user on this domain
+                isCore ? `>` : `${userPrefix}.>`,  // Publishing to subjects for this user on this domain
                 "$JS.API.INFO", // General JS Info
                 //  TODO: the below should probably be added iteratively as ownership is established
                 `$JS.API.STREAM.INFO.>`,
