@@ -13,7 +13,7 @@ async function getInfoOrClaimScope(id, jsm, depth=0) {
       .then(async info => {
         const subject = info.config.subjects[0]
         const [domain, user, name] = decodeNATSSubject(subject)
-        return { domain, user, name }
+        return { domain, owner: user, name }
       })
       .catch(async error => {
         if (error.code === '404') {
