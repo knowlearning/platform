@@ -103,7 +103,7 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
   }
 })
 
-const subscription = js.subscribe(">", { queue: "all-streams-queue" })
+const subscription = nc.subscribe(">", { queue: "all-streams-queue" })
 
 function isSession(subject) {
   return subject.split('.')[2] === 'sessions'
