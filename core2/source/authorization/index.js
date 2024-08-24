@@ -130,17 +130,7 @@ for await (const message of subscription) {
       const patch = decodeJSON(data)
       for (const { path, metadata } of patch) {
         if (!metadata && path.length === 1) {
-          nc.publish(
-            subject,
-            encodeJSON([{
-              op: 'add',
-              path: [...path, 'challenges'],
-              value: {
-                dns: '',
-                http: ''
-              }
-            }])
-          )
+          message.respond({dns: '', http: ''})
         }
       }
     }
@@ -199,7 +189,7 @@ for await (const message of subscription) {
     const [domain] = decodeNATSSubject(subject)
     if (domain !== 'core' && !decodeString(message._msg.reply).startsWith('$JS.ACK')) {
       //  Sensing the $JS.ACK prefix is a janky hack for avoiding replay messages
-      console.log('MESSAGE RECEIVED!!!!!!!!!!!!!!!!!!', decodeString(message._msg.reply), domain, decodeString(message._rdata), subject)
+      console.log('MESSAGE RECEIVED!!!!!!!!!!!!!!!!!!', "reply-" + decodeString(message._msg.reply), domain, decodeString(message._rdata), subject)
       const id = await jsm.streams.find(subject)
       js
         .publish('postgres-sync', encodeString(id))
