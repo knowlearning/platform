@@ -3,6 +3,7 @@ import {
   environment,
   nkeyAuthenticator,
   decodeString,
+  jetstream, jetstreamManager
 } from './externals.js'
 import * as postgres from './postgres.js'
 import postgresDefaultTables from './postgres-default-tables.js'
@@ -22,8 +23,8 @@ const nc = await NATSClient({
 })
 
 console.log('GOT CLIENT....')
-const jsm = await nc.jetstreamManager()
-const js = await nc.jetstream()
+const jsm = await jetstreamManager(nc)
+const js = await jetstream(nc)
 
 const oc = await js.consumers.get('postgres-sync')
 const messages = await oc.consume()

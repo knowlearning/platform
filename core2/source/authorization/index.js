@@ -8,7 +8,9 @@ import {
   decodeString,
   decodeJWT,
   encodeJWT,
-  encodeString
+  encodeString,
+  jetstream,
+  jetstreamManager
 } from './externals.js'
 import { upload, download } from './storage.js'
 import { decodeNATSSubject } from './agent/utils.js'
@@ -26,10 +28,10 @@ const nc = await NATSClient({
 })
 
 console.log('GOT CLIENT....')
-const jsm = await nc.jetstreamManager()
-const js = await nc.jetstream()
+const jsm = await jetstreamManager(nc)
+const js = await jetstream(nc)
 
-await jsm.streams.add({ name: 'postgres-sync' })
+await jsm.streams.add({ name: 'postgres-sync', subjects: ['postgres-sync'] })
 
 nc.subscribe("$SYS.REQ.USER.AUTH", {
   callback: async (err, msg) => {
@@ -71,13 +73,13 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
             type: 'user',
             sub: {
               allow: [
-                isCore ? `>` : `${userPrefix}.>`,  // Publishing to streams on this domain
+                isCore ? `core.me.>` : `${userPrefix}.>`,  // Publishing to streams on this domain
                 `_INBOX.>` // TODO: restrict to only the reply inbox necessary
               ]
             },
             pub: {
               allow: [
-                isCore ? `>` : `${userPrefix}.>`,  // Publishing to subjects for this user on this domain
+                isCore ? `core.me.>` : `${userPrefix}.>`,  // Publishing to subjects for this user on this domain
                 "$JS.API.INFO", // General JS Info
                 //  TODO: the below should probably be added iteratively as ownership is established
                 `$JS.API.STREAM.INFO.>`,
@@ -196,7 +198,7 @@ for await (const message of subscription) {
     }
     const [domain] = decodeNATSSubject(subject)
     if (domain !== 'core') {
-      console.log('MESSAGE RECEIVED!!!!!!!!!!!!!!!!!!', message.headers?.status, subject, decodeJSON(data))
+      console.log('MESSAGE RECEIVED!!!!!!!!!!!!!!!!!!', decodeString(message._rdata), subject)
       const id = await jsm.streams.find(subject)
       js
         .publish('postgres-sync', encodeString(id))

@@ -1,9 +1,6 @@
 import { Storage as GCSStorageClient } from 'npm:@google-cloud/storage@5.18.2'
-import {
-  connect as NATSClient,
-  JSONCodec,
-  StringCodec
-} from 'https://deno.land/x/nats@v1.28.2/src/mod.ts'
+import { connect as NATSClient } from "jsr:@nats-io/nats-transport-deno@3.0.0-5"
+import { jetstream, jetstreamManager } from "jsr:@nats-io/jetstream@3.0.0-9"
 import { nkeyAuthenticator } from "https://deno.land/x/nats@v1.28.2/nats-base-client/authenticator.ts";
 import { parse as parseYAML } from 'https://deno.land/std@0.207.0/yaml/mod.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
@@ -16,7 +13,7 @@ import { fromSeed as nkeysFromSeed, decode as decodeJWT, encode as encodeJWT, en
 import { validate as isUUID } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
 import PatchProxy, { standardJSONPatch } from 'npm:@knowlearning/patch-proxy@1.3.2'
 import fastJSONPatch from 'npm:fast-json-patch@3.1.1'
-import { connect, JSONCodec as jc } from 'npm:nats.ws@1.29.0'
+import { JSONCodec, StringCodec } from 'npm:nats.ws@1.29.0'
 
 const escapePostgresLiteral = nodePostres.escapeLiteral
 
@@ -47,6 +44,7 @@ export {
   randomBytes,
   parseYAML,
   NATSClient,
+  jetstream, jetstreamManager,
   encodeJSON,
   decodeJSON,
   encodeString,
