@@ -43,9 +43,7 @@ export default async function resolveReference(domain, user, scope, newType='app
 
   if (isUUIDOnlyReference) {
     const id = scope
-    console.log('GETTING INFO OR CLAIMING SCOPE', domain, user, scope)
     const { domain:d, owner, name } = await getInfoOrClaimScope(scope, jsm)
-    console.log('GOT INFO OR CLAIMED SCOPE', domain, user, scope, d, owner, name)
     scope = name
     user = owner
     domain = d

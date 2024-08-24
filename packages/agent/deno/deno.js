@@ -11,7 +11,7 @@ window.natsClientPromise = new Promise(async r => {
   await new Promise(r => setTimeout(r, 500))
   r(connect({
     servers: ['ws://nats-server:8080'],
-    token: 'deno-asdffdsa'
+    token: `${(await environment()).auth.user}`
   }))
 })
 

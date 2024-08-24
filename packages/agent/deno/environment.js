@@ -1,7 +1,7 @@
 //  TODO: implement
 export default async function() {
   return {
-    auth: { user: 'me' },
+    auth: { user: `deno-user${Math.random().toString().slice(2)}` },
     domain: 'core'
   }
 }

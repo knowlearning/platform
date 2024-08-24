@@ -8,7 +8,7 @@ import { connect, JSONCodec } from 'nats.ws'
 
 window.natsClientPromise = connect({
   servers: ['ws://localhost:8080'],
-  token: 'asdffdsa'
+  token: 'me'
 })
 
 natsClientPromise.then(c => console.log(c))

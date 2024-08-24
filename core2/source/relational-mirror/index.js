@@ -29,7 +29,6 @@ const js = await jetstream(nc)
 const oc = await js.consumers.get('postgres-sync')
 const messages = await oc.consume()
 
-
 for await (const message of messages) {
   try {
     message.ack()

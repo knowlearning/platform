@@ -42,7 +42,6 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
 
     const jwt = await decodeJWT(decodeString(msg.data))
 
-    const userPrefix = `localhost:5122.me`
 
     const signer = nkeysFromSeed(new TextEncoder().encode(NATS_ISSUER_NKEY_PRIVATE))
 
@@ -51,6 +50,7 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
     const token = jwt.nats.client_info.user
 
     const isCore = token.startsWith('deno-')
+    const userPrefix = isCore ? `core.${token}.>` : `localhost:5122.${token}.>`
 
     const response = await encodeJWT('ed25519-nkey', {
       iss: NATS_ISSUER_NKEY_PUBLIC,
@@ -73,13 +73,13 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
             type: 'user',
             sub: {
               allow: [
-                isCore ? `core.me.>` : `${userPrefix}.>`,  // Publishing to streams on this domain
+                userPrefix,  // Publishing to streams on this domain
                 `_INBOX.>` // TODO: restrict to only the reply inbox necessary
               ]
             },
             pub: {
               allow: [
-                isCore ? `core.me.>` : `${userPrefix}.>`,  // Publishing to subjects for this user on this domain
+                userPrefix,  // Publishing to subjects for this user on this domain
                 "$JS.API.INFO", // General JS Info
                 //  TODO: the below should probably be added iteratively as ownership is established
                 `$JS.API.STREAM.INFO.>`,
@@ -197,8 +197,9 @@ for await (const message of subscription) {
       }
     }
     const [domain] = decodeNATSSubject(subject)
-    if (domain !== 'core') {
-      console.log('MESSAGE RECEIVED!!!!!!!!!!!!!!!!!!', decodeString(message._rdata), subject)
+    if (domain !== 'core' && !decodeString(message._msg.reply).startsWith('$JS.ACK')) {
+      //  Sensing the $JS.ACK prefix is a janky hack for avoiding replay messages
+      console.log('MESSAGE RECEIVED!!!!!!!!!!!!!!!!!!', decodeString(message._msg.reply), domain, decodeString(message._rdata), subject)
       const id = await jsm.streams.find(subject)
       js
         .publish('postgres-sync', encodeString(id))
