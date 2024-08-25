@@ -35,8 +35,12 @@ for await (const message of messages) {
     const id = decodeString(message.data)
     //const metadata = await Agent.metadata(id)
     console.log('GETTING STATE!!!!!!!!!!!!!!!!!!!!', id)
-    const state = await Agent.state(id)
-    console.log('GOT STATE!!!!!!!!!!!!!!!!!!!!', state)
+    Agent
+      .state(id)
+      .then(state => {
+        console.log('GOT STATE!!!!!!!!!!!!!!!!!!!!', state)
+      })
+      .catch('ISSUE GETTING STATE!', id)
     /*
     const { columns } = postgresDefaultTables.metadata
     //  TODO: ensure at least metadata table is configured for domain
