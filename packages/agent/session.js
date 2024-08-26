@@ -15,6 +15,7 @@ const sessionInitialized = new Promise(async resolve => {
     path: [SESSION_ID],
     value: {
       reference: HOST,
+      claims: {},
       subscriptions: {},
       queries: {},
       uploads: {},
@@ -38,7 +39,7 @@ export async function query(query, params, domain) {
   return updateSession('queries', {query, params, domain})
 }
 
-async function updateSession(field, value) {
+export async function updateSession(field, value) {
   await sessionInitialized
   const nc = await natsClientPromise
   const id = uuid()

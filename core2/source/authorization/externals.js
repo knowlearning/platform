@@ -10,7 +10,7 @@ import { serve } from "https://deno.land/std@0.202.0/http/server.ts"
 import { fromSeed as nkeysFromSeed, decode as decodeJWT, encode as encodeJWT, encodeAuthorizationResponse } from 'npm:nats-jwt@0.0.9'
 
 /* for agent dependencies */
-import { validate as isUUID } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
+import { validate as isUUID, v4 as uuid } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
 import PatchProxy, { standardJSONPatch } from 'npm:@knowlearning/patch-proxy@1.3.2'
 import fastJSONPatch from 'npm:fast-json-patch@3.1.1'
 import { JSONCodec, StringCodec } from 'npm:nats.ws@1.29.0'
@@ -53,5 +53,6 @@ export {
   encodeJWT,
   encodeAuthorizationResponse,
   nkeysFromSeed,
+  uuid,
   GCSStorageClient
 }

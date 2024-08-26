@@ -197,7 +197,7 @@ postgres:
 
       console.log('AWAITING REPORT....')
       await endOfReport(report)
-      console.log('AWAITING REPORT.... DONE!')
+      console.log('REPORT!!!!!!!!!!!!!!!', await Agent.state(report))
       //  TODO: some way to certify that our user has been set as domain admin
     })
 

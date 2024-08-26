@@ -14,7 +14,7 @@ import {
 } from './externals.js'
 import { upload, download } from './storage.js'
 import { decodeNATSSubject } from './agent/utils.js'
-//import configure from './configure.js'
+import configure from './configure.js'
 
 const {
   NATS_AUTH_USER_NKEY_PRIVATE,
@@ -50,7 +50,10 @@ nc.subscribe("$SYS.REQ.USER.AUTH", {
     const token = jwt.nats.client_info.user
 
     const isCore = token.startsWith('deno-')
-    const userPrefix = isCore ? `core.${token}.>` : `localhost:5122.${token}.>`
+    //  TODO: core should have ability to write into user scopes?
+    //        Establishing that concept is okay, since we're pretty
+    //        sure we'll need it for migrations and such anyway...
+    const userPrefix = isCore || true ? `>` : `localhost:5122.${token}.>`
 
     const response = await encodeJWT('ed25519-nkey', {
       iss: NATS_ISSUER_NKEY_PUBLIC,
@@ -111,10 +114,6 @@ function isSession(subject) {
   return subject.split('.')[2] === 'sessions'
 }
 
-function isClaim(subject) {
-  return subject.split('.')[2] === 'claims'
-}
-
 function ignoreSubject(subject) {
   return subject.startsWith('$') ||
     subject.startsWith('_') ||
@@ -126,15 +125,7 @@ for await (const message of subscription) {
   const { subject, data } = message
   if (ignoreSubject(subject)) continue
   try {
-    if (isClaim(subject)) {
-      const patch = decodeJSON(data)
-      for (const { path, metadata } of patch) {
-        if (!metadata && path.length === 1) {
-          message.respond({dns: '', http: ''})
-        }
-      }
-    }
-    else if (isSession(subject)) {
+    if (isSession(subject)) {
       const patch = decodeJSON(data)
       for (const { path, metadata, value } of patch) {
         if (metadata) continue
@@ -177,6 +168,9 @@ for await (const message of subscription) {
             value: 'yep!!!! TODO: do something more....'
           }))
         }
+        else if (path[path.length-2] === 'claims') {
+          message.respond(encodeJSON({ dns: '', http: '' }))
+        }
       }
     }
     else {
@@ -187,7 +181,10 @@ for await (const message of subscription) {
       }
     }
     const [domain] = decodeNATSSubject(subject)
-    if (domain !== 'core' && !decodeString(message._msg.reply).startsWith('$JS.ACK')) {
+    if ( domain !== 'core'
+      && !decodeString(message._msg.reply).startsWith('$JS.ACK')
+      && !decodeString(message._msg.reply).startsWith('_INBOX.')
+    ) {
       //  Sensing the $JS.ACK prefix is a janky hack for avoiding replay messages
       console.log('MESSAGE RECEIVED!!!!!!!!!!!!!!!!!!', "reply-" + decodeString(message._msg.reply), domain, decodeString(message._rdata), subject)
       const id = await jsm.streams.find(subject)
