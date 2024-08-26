@@ -226,3 +226,103 @@ sequenceDiagram
   deactivate DOMAIN application
   deactivate NATS Cluster
 ```
+
+```
+@startuml
+
+participant "SSO Provider" as SSO
+participant "KnowLearning Auth Service" as AUTHN
+participant "Domain Application" as App
+participant "KnowLearning Agent" as Agent
+participant "NATS Cluster" as NATS
+participant "Authorizer" as AUTHZ
+participant "Relational Mirror" as SQLMirror
+participant "Postgres DB" as postgres
+participant "Google Cloud Storage" as GCS
+
+AUTHZ -> NATS: Subscribe to $SYS.REQ.USER.AUTH
+AUTHZ -> SQLMirror: Subscribe to updates.>
+activate App
+App -> Agent: Agent.login(PARTICIPANT)
+deactivate App
+activate Agent
+Agent -> Agent: Save window.location.path\nto localStorage under STATE
+Agent -> AUTHN: open: https://auth.knowlearning.systems/[PROVIDER]/[STATE]
+deactivate Agent
+activate AUTHN
+AUTHN -> SSO: Constructu OAuth 2.0 request for PROVIDER
+deactivate AUTHN
+activate SSO
+AUTHN <-- SSO: Send OAuth 2.0 Code on auth success
+deactivate SSO
+activate AUTHN
+AUTHN -> AUTHN: Construct ENCRYPTED_TOKEN using\nAuthorizer's public key
+AUTHN -> Agent: open: https://DOMAIN/auth/STATE/ENCRYPTED_TOKEN
+deactivate AUTHN
+activate Agent
+Agent -> Agent: Save ENCRYPTED_TOKEN into localStorage
+Agent -> App: open: https://DOMAIN/ORIGINAL_PATH
+deactivate Agent
+activate App
+App -> Agent: Load agent scripts
+activate Agent
+alt ENCRYPTED_TOKEN in localStorage
+  Agent -> Agent: remove ENCRYPTED_TOKEN from localStorage
+  Agent -> AUTHZ: associate ENCRYPTED_TOKEN with SESSION cookie
+  Agent <-- AUTHZ: set httponly and secure SESSION cookie
+  Agent -> NATS: Create client connection with ENCRYPTED_TOKEN
+  NATS --> AUTHZ: publish $SYS.REQ.USER.AUTH with ENCRYPTED_TOKEN
+  AUTHZ -> AUTHZ: Decrypt ENCRYPTED_TOKEN\nwith private key
+  AUTHZ -> SSO: Use SSO OAuth Provider token uri to get token from code
+  SSO --> AUTHZ: Signed JWT
+  AUTHZ -> AUTHZ: Validate JWT and associate JWT with SESSION
+  AUTHZ --> NATS: Respond with permissioned JWT
+else ENCRYPTED_TOKEN not in localStorage
+  Agent -> AUTHZ: httponly and secure SESSION cookie in POST request with TOKEN
+  AUTHZ -> AUTHZ: associate TOKEN with existing SESSION cookie\nand use the associated JWT (or associate new\nanonymous account JWT)
+  Agent -> NATS: Create client connection with TOKEN
+  NATS --> AUTHZ: publish $SYS.REQ.USER.AUTH with TOKEN
+  AUTHZ -> AUTHZ: get JWT associated with TOKEN
+  AUTHZ --> NATS: Respond with permissioned JWT
+end
+
+opt watch SCOPE
+  App -> Agent: Agent.watch(scope, callback, user?, domain?)
+  alt SCOPE owned by other user
+    Agent -> AUTHZ: request authorization to subscribe to SCOPE
+    AUTHZ -> NATS: new JWT for client with additional subscription access
+    Agent <-- AUTHZ: authorization result
+  end
+  
+  break if authorization failed
+    Agent -> App: throw unauthorized error
+  end
+  
+  Agent -> NATS: Request all messages on stream for scope
+  Agent -> NATS: get info for stream and store current num messages as STREAM_SIZE
+
+  loop message available
+    NATS --> Agent: next message
+    alt message.seq < STREAM_SIZE
+      Agent -> Agent: Store in HISTORY
+    else message.seq = STREAM_SIZE
+      Agent --> App: Compute current state and callback({ state, history, patch: null })
+    else message.seq > STREAM_SIZE
+      Agent --> App: Compute current state and callback({ state, patch })
+    end
+  end
+end
+
+opt get state for scope
+  App -> Agent: Agent.state(scope, user?, domain?)
+  Agent -> Agent: call Agent.watch to get current state
+  Agent --> App: first state as a proxy that publishes updates
+  opt on mutate proxy
+    Agent -> NATS: publish patch to DOMAIN.USER.SCOPE
+  end
+end
+
+deactivate Agent
+deactivate App
+@enduml
+```
