@@ -19,9 +19,7 @@ async function getInfoOrClaimScope(id, jsm, depth=0) {
         if (error.code === '404') {
           const { domain, auth: { user } } = await environment()
           return (
-            jsm
-              .streams
-              .add({ name: id, subjects: [encodeNATSSubject(domain, user, id)] })
+            createStream(id, domain, user, id)
               .then(() => ({ domain, owner: user, name: id }))
               .catch(async error => {
                 if (error.api_error?.err_code === 10058) {
@@ -34,6 +32,12 @@ async function getInfoOrClaimScope(id, jsm, depth=0) {
         else throw error
       })
   )
+}
+
+async function createStream(id, domain, user, scope) {
+  const jsm = await jetstreamManagerPromise
+  const subject = encodeNATSSubject(domain, user, scope)
+  return jsm.streams.add({ name: id, subjects: [subject], republish: { src: subject, dest: `updates.${subject}` } })
 }
 
 //  TODO: persistent reference resolution
@@ -83,11 +87,11 @@ export default async function resolveReference(domain, user, scope, newType='app
       //        but we want to generate another uuid for stream name, and use
       //        scope as just the scope
       id = scope
-      await jsm.streams.add({ name: scope, subjects: [subject] })
+      await createStream(id, domain, user, scope)
     }
     else {
       id = uuid()
-      await jsm.streams.add({ name: id, subjects: [subject] }).catch(error => {
+      await createStream(id, domain, user, scope).catch(error => {
         if (error.api_error?.err_code === 10065) {
           // stream already exists
         }

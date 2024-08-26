@@ -26,7 +26,7 @@ console.log('GOT CLIENT....')
 const jsm = await jetstreamManager(nc)
 const js = await jetstream(nc)
 
-const oc = await js.consumers.get('postgres-sync')
+const oc = await js.consumers.get('updates')
 const messages = await oc.consume()
 
 for await (const message of messages) {

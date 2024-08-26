@@ -17,7 +17,7 @@ const nc = await NATSClient({
 console.log('GOT CLIENT....')
 const jsm = await jetstreamManager(nc)
 
-await jsm.streams.add({ name: 'postgres-sync', subjects: ['postgres-sync'] })
+await jsm.streams.add({ name: 'updates', subjects: ['updates.>'] })
 
 nc.subscribe("$SYS.REQ.USER.AUTH", { callback: handleAuthRequest })
 nc.subscribe(">", { queue: "all-streams-queue", callback: handleSideEffects })
