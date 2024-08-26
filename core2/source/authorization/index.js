@@ -1,26 +1,13 @@
 import {
   NATSClient,
-  encodeJSON,
-  decodeJSON,
   environment,
   nkeyAuthenticator,
-  nkeysFromSeed,
-  decodeString,
-  decodeJWT,
-  encodeJWT,
-  encodeString,
-  jetstream,
   jetstreamManager
 } from './externals.js'
-import { upload, download } from './storage.js'
-import { decodeNATSSubject } from './agent/utils.js'
-import configure from './configure.js'
+import handleSideEffects from './handle-side-effects.js'
+import handleAuthRequest from './handle-auth-request.js'
 
-const {
-  NATS_AUTH_USER_NKEY_PRIVATE,
-  NATS_ISSUER_NKEY_PUBLIC,
-  NATS_ISSUER_NKEY_PRIVATE
-} = environment
+const { NATS_AUTH_USER_NKEY_PRIVATE } = environment
 
 const nc = await NATSClient({
   servers: "nats://nats-server:4222",
@@ -29,170 +16,8 @@ const nc = await NATSClient({
 
 console.log('GOT CLIENT....')
 const jsm = await jetstreamManager(nc)
-const js = await jetstream(nc)
 
 await jsm.streams.add({ name: 'postgres-sync', subjects: ['postgres-sync'] })
 
-nc.subscribe("$SYS.REQ.USER.AUTH", {
-  callback: async (err, msg) => {
-    if (err) {
-      console.log("subscription error", err.message)
-      return
-    }
-
-    const jwt = await decodeJWT(decodeString(msg.data))
-
-
-    const signer = nkeysFromSeed(new TextEncoder().encode(NATS_ISSUER_NKEY_PRIVATE))
-
-    const user = jwt.nats.user_nkey
-    const server = jwt.nats.server_id.id
-    const token = jwt.nats.client_info.user
-
-    const isCore = token.startsWith('deno-')
-    //  TODO: core should have ability to write into user scopes?
-    //        Establishing that concept is okay, since we're pretty
-    //        sure we'll need it for migrations and such anyway...
-    const userPrefix = isCore || true ? `>` : `localhost:5122.${token}.>`
-
-    const response = await encodeJWT('ed25519-nkey', {
-      iss: NATS_ISSUER_NKEY_PUBLIC,
-      iat: Math.floor(Date.now() / 1000),
-      aud: server,
-      sub: user,
-      name: user,
-      nats: {
-        version: 2,
-        type: 'authorization_response',
-        jwt: await encodeJWT('ed25519-nkey', {
-          sub: user,
-          name: 'me',
-          jti: 'ZYJV3UUUNG22E5RNP6DEY5F6LUEQEPMP57ZX2ONRTM2ASIWNFRLQ', // TODO: Necessary?
-          aud: 'global_account',
-          iss: NATS_ISSUER_NKEY_PUBLIC,
-          iat: Math.floor(Date.now() / 1000),
-          nats: {
-            version: 2,
-            type: 'user',
-            sub: {
-              allow: [
-                userPrefix,  // Publishing to streams on this domain
-                `_INBOX.>` // TODO: restrict to only the reply inbox necessary
-              ]
-            },
-            pub: {
-              allow: [
-                userPrefix,  // Publishing to subjects for this user on this domain
-                "$JS.API.INFO", // General JS Info
-                //  TODO: the below should probably be added iteratively as ownership is established
-                `$JS.API.STREAM.INFO.>`,
-                `$JS.API.STREAM.NAMES`,
-                `$JS.API.STREAM.CREATE.>`,
-                `$JS.API.CONSUMER.CREATE.>`,
-                `$JS.API.CONSUMER.MSG.NEXT.>`,
-              ]
-            },
-            resp: {
-              max: 1
-            },
-            subs: -1,
-            data: -1,
-            payload: -1
-          }
-        }, signer)
-      }
-    }, signer)
-    console.log('RESPONDING!', response)
-
-    msg.respond(response)
-  }
-})
-
-const subscription = nc.subscribe(">", { queue: "all-streams-queue" })
-
-function isSession(subject) {
-  return subject.split('.')[2] === 'sessions'
-}
-
-function ignoreSubject(subject) {
-  return subject.startsWith('$') ||
-    subject.startsWith('_') ||
-    subject === 'postgres-sync' ||
-    subject.split('.').length !== 3
-}
-
-for await (const message of subscription) {
-  const { subject, data } = message
-  if (ignoreSubject(subject)) continue
-  try {
-    if (isSession(subject)) {
-      const patch = decodeJSON(data)
-      for (const { path, metadata, value } of patch) {
-        if (metadata) continue
-        else if (path[path.length-2] === 'uploads') {
-          const { id } = value
-          //  TODO: ensure id is uuid
-          const { type } = value
-          const { url, info } = await upload(type, id)
-          nc.publish(
-            id,
-            encodeJSON([
-              {
-                metadata: true,
-                op: 'add',
-                path: [],
-                value: {
-                  domain: 'TODO: add upload domain',
-                  user: 'core',
-                  scope: id,
-                  type
-                }
-              },
-              {
-                op: 'add',
-                path: [],
-                value: info
-              }
-            ])
-          )
-          message.respond(encodeJSON({ value: url }))
-
-        }
-        else if (path[path.length-2] === 'downloads') {
-          message.respond(encodeJSON({
-            value: await download(value.id)
-          }))
-        }
-        else if (path[path.length-2] === 'queries') {
-          message.respond(encodeJSON({
-            value: 'yep!!!! TODO: do something more....'
-          }))
-        }
-        else if (path[path.length-2] === 'claims') {
-          message.respond(encodeJSON({ dns: '', http: '' }))
-        }
-      }
-    }
-    else {
-      const patch = decodeJSON(data)
-      if (patch.length === 2 && patch[0].metadata && patch[0].value.type === 'application/json;type=domain-config') {
-        const { config, report, domain } = patch[1].value
-        configure(domain, config, report)
-      }
-    }
-    const [domain] = decodeNATSSubject(subject)
-    if ( domain !== 'core'
-      && !decodeString(message._msg.reply).startsWith('$JS.ACK')
-      && !decodeString(message._msg.reply).startsWith('_INBOX.')
-    ) {
-      //  Sensing the $JS.ACK prefix is a janky hack for avoiding replay messages
-      console.log('MESSAGE RECEIVED!!!!!!!!!!!!!!!!!!', "reply-" + decodeString(message._msg.reply), domain, decodeString(message._rdata), subject)
-      const id = await jsm.streams.find(subject)
-      js
-        .publish('postgres-sync', encodeString(id))
-        .catch(error => console.log('ERROR POSTING TO POSTGRES METADATA', error))
-    }
-  } catch (error) {
-    console.log('error decoding JSON', error, subject, data)
-  }
-}
+nc.subscribe("$SYS.REQ.USER.AUTH", { callback: handleAuthRequest })
+nc.subscribe(">", { queue: "all-streams-queue", callback: handleSideEffects })
