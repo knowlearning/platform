@@ -71,7 +71,7 @@ for await (const message of messages) {
         await
           Agent
             .state(domain, 'core', 'core')
-            .then(({ configuration }) => {
+            .then(async ({ configuration }) => {
               //  TODO: watch instead of fetch
               const typeToTable = (
                 Object
@@ -81,14 +81,21 @@ for await (const message of messages) {
                     return prev
                   }, {})
               )
-              if (typeToTable[metadata.active_type]) {
-                console
-                  .log(
-                    'TIME TO SET!!!!!!!!!!!!!!!!!!!!!!!!!!!',
-                    metadata.active_type,
-                    typeToTable,
-                    decodeJSON(message.data)
-                  )
+              const relevantTableConfig = typeToTable[metadata.active_type]
+              if (relevantTableConfig) {
+                const { name, columns } = relevantTableConfig
+                await Promise.all(
+                  decodeJSON(message.data)
+                    .filter(({ metadata, path }) => {
+                      //  TODO: handle deep set into columns of type JSON
+                      if (metadata || path.length > 1) return
+                      return columns[path[0]]
+                    })
+                    .map(async ({ op, path, value }) => {
+                      const data = op === 'add' || op === 'replace' ? value : null
+                      await postgres.setColumn(domain, name, path[0], id, data)
+                    })
+                )
               }
             })
       })
