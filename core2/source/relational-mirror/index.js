@@ -35,9 +35,13 @@ for await (const message of messages) {
   try {
     message.ack() // TODO: better guarantees that still have good throughput...
     const subject = message.subject.slice(message.subject.indexOf('.') + 1)
-    const  id = await jsm.streams.find(subject)
 
     const [domain, user, name] = decodeNATSSubject(subject)
+    if (domain === 'core') continue
+
+    console.log('GETTING ID FOR SUBJECT', subject)
+    const  id = await jsm.streams.find(subject)
+    console.log('GOT ID FOR SUBJECT', subject, id)
 
     Agent
       .metadata(id)
@@ -64,8 +68,29 @@ for await (const message of messages) {
               }
               else throw error
             })
-        })
-      console.log('PROCESSED!', id)
+
+        console.log('GETTING CORE CONFIGURATION FOR DOMAIN', domain)
+        await
+          Agent
+            .state(domain, 'core', 'core')
+            .then(({ configuration }) => {
+              //  TODO: watch instead of fetch
+              const typeToTable = (
+                Object
+                  .entries(configuration?.postgres?.tables || {})
+                  .reduce((prev, [name, { type, columns, indices }]) => {
+                    prev[type] = { name, columns, indices }
+                    return prev
+                  }, {})
+              )
+              if (typeToTable[metadata.active_type]) {
+                console.log('TIME TO SET!!!!!!!!!!!!!!!!!!!!!!!!!!!', typeToTable)
+              }
+            })
+        console.log('PROCESSED!', id)
+      })
+
+      console.log('PROCESSING!', id)
   }
   catch (error) {
     message.ack()

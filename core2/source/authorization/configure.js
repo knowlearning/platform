@@ -84,7 +84,11 @@ export default async function configure(domain, config, report) {
   }
 }
 
-export async function applyConfiguration(domain, { postgres, agent }, report) {
+export async function applyConfiguration(domain, configuration, report) {
+  const { postgres, agent } = configuration
+  const domainInfo = await Agent.state(domain)
+  domainInfo.configuration = { postgres, agent }
+
   const tasks = []
   if (postgres) tasks.push(() => configurePostgres(domain, postgres, report))
   //if (agent) configureAgent(domain, agent, report)

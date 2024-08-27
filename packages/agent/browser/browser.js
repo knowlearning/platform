@@ -15,6 +15,9 @@ natsClientPromise.then(c => console.log(c))
 
 //  TODO: remove necessity to make these global
 window.jetstreamManagerPromise =  natsClientPromise.then(c => c.jetstreamManager())
+
+jetstreamManagerPromise.then(jsm => window.jsm = jsm)
+
 window.jetstreamClientPromise = natsClientPromise.then(c => c.jetstream())
 window.JSONCodec = JSONCodec
 window.HOST = window.location.host

@@ -7,6 +7,8 @@ import {
 import handleSideEffects from './handle-side-effects.js'
 import handleAuthRequest from './handle-auth-request.js'
 
+window.CORE_HACK = 'TODO: REMOVE THIS HACK SHORTCUT'
+
 const { NATS_AUTH_USER_NKEY_PRIVATE } = environment
 
 const nc = await NATSClient({

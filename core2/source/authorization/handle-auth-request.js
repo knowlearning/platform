@@ -25,7 +25,7 @@ export default async function(err, msg) {
   const server = jwt.nats.server_id.id
   const token = jwt.nats.client_info.user
 
-  const isCore = token.startsWith('deno-')
+  const isCore = token.startsWith('deno-') || token === 'core'
   //  TODO: core should have ability to write into user scopes?
   //        Establishing that concept is okay, since we're pretty
   //        sure we'll need it for migrations and such anyway...

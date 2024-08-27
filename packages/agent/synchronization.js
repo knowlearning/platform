@@ -20,17 +20,32 @@ export function watch(scope, callback, user, domain) {
   let closed = false
   let closeMessageQueue
   ;(async () => {
-    const { id } = await resolveReference(domain, user, scope)
+    const { id, user: owner, domain: d, scope: s } = await resolveReference(domain, user, scope)
+    user = owner
+    domain = d
+    scope = s
     if (closed) {
       resolveWatchSynced()
       return
     }
 
     const { messages, historyLength, created } = await messageQueue.process(id)
+
     if (closed) {
       resolveWatchSynced()
       messages.close()
       return
+    }
+
+    if (historyLength === 0) {
+      callback({
+        ii: 0,
+        history: [],
+        metadataHistory: [],
+        state: {},
+        metadata:  { domain, owner: user, name: scope}, //  TODO: more...
+        patch: null
+      })
     }
 
     closeMessageQueue = () => messages.close()
@@ -46,8 +61,11 @@ export function watch(scope, callback, user, domain) {
       if (metadataPatch.length) metadataHistory.push(metadataPatch)
     }
 
+    console.log('ABOUT TO PROCESS MESSAGES FOR', domain, user, scope, id)
+
     //  TODO: account for history if old messages were cleared
     for await (const message of messages) {
+      console.log('message for', domain, user, scope, JSONCodec().decode(message.data))
       if (closed) return resolveWatchSynced()
 
       const patch = JSONCodec().decode(message.data)
@@ -55,6 +73,7 @@ export function watch(scope, callback, user, domain) {
         addPatchToHistory(patch)
       }
       else if (message.seq === historyLength) {
+        console.log('GONNA CALL CALLBACK!!!', domain, user, scope)
         addPatchToHistory(patch)
         state = stateFromHistory(history)
         metadata = stateFromHistory(metadataHistory)
@@ -103,7 +122,7 @@ export async function state(scope, user, domain) {
 
   console.log('RESOLVING REFERENCE', scope, user, domain)
   const { id } = await resolveReference(domain, user, scope)
-  console.log('RESOLVED REFERENCE', scope, user, domain, id)
+  console.log('RESOLVED!!!!!!!!!!!', scope, user, domain, id)
 
   watch(
     scope,
