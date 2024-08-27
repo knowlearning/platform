@@ -288,34 +288,48 @@ end
 
 opt watch SCOPE
   App -> Agent: Agent.watch(scope, callback, user?, domain?)
+  Agent -> AUTHZ: resolve scope info from scope, user?, domain?
   alt SCOPE owned by other user
-    Agent -> AUTHZ: request authorization to subscribe to SCOPE
-    AUTHZ -> NATS: new JWT for client with additional subscription access
-    Agent <-- AUTHZ: authorization result
-  end
-  
-  break if authorization failed
-    Agent -> App: throw unauthorized error
-  end
-  
-  Agent -> NATS: Request all messages on stream for scope
-  Agent -> NATS: get info for stream and store current num messages as STREAM_SIZE
-
-  loop message available
-    NATS --> Agent: next message
-    alt message.seq < STREAM_SIZE
-      Agent -> Agent: Store in HISTORY
-    else message.seq = STREAM_SIZE
-      Agent --> App: Compute current state and callback({ state, history, patch: null })
-    else message.seq > STREAM_SIZE
-      Agent --> App: Compute current state and callback({ state, patch })
+    AUTHZ -> postgres: query for user access
+    postgres --> AUTHZ: access result
+    alt user has access
+      AUTHZ -> NATS: new JWT for client with additional subscription access
+      AUTHZ --> Agent: { id, domain, user, name }
+    else user denied Access
+      AUTHZ --> Agent: Access Denied
     end
+  else SCOPE owned by user
+    AUTHZ -> NATS: query for id of existing stream with SCOPE
+    NATS --> AUTHZ: existing stream id or none
+    opt if no exiting stream
+      AUTHZ -> NATS: create stream with new id to match
+    end
+    AUTHZ --> Agent: { id, domain, user, name }
+  end
+
+  alt authorized
+    Agent -> NATS: Request all messages on stream for scope
+    Agent -> NATS: get info for stream and store current num messages as STREAM_SIZE
+
+    loop message available
+      NATS --> Agent: next message
+      alt message.seq < STREAM_SIZE
+        Agent -> Agent: Store in HISTORY
+      else message.seq = STREAM_SIZE
+        Agent --> App: Compute current state and callback({ state, history, patch: null })
+      else message.seq > STREAM_SIZE
+        Agent --> App: Compute current state and callback({ state, patch })
+      end
+    end
+  else unauthorized
+    Agent -> App: throw unauthorized error
+  else
   end
 end
 
 opt get state for scope
   App -> Agent: Agent.state(scope, user?, domain?)
-  Agent -> Agent: call Agent.watch to get current state
+  Agent -> Agent: call Agent.watch to get current state, then unwatch
   Agent --> App: first state as a proxy that publishes updates
   opt on mutate proxy
     Agent -> NATS: publish patch to DOMAIN.USER.SCOPE
