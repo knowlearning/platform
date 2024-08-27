@@ -61,11 +61,8 @@ export function watch(scope, callback, user, domain) {
       if (metadataPatch.length) metadataHistory.push(metadataPatch)
     }
 
-    console.log('ABOUT TO PROCESS MESSAGES FOR', domain, user, scope, id)
-
     //  TODO: account for history if old messages were cleared
     for await (const message of messages) {
-      console.log('message for', domain, user, scope, JSONCodec().decode(message.data))
       if (closed) return resolveWatchSynced()
 
       const patch = JSONCodec().decode(message.data)
@@ -73,7 +70,6 @@ export function watch(scope, callback, user, domain) {
         addPatchToHistory(patch)
       }
       else if (message.seq === historyLength) {
-        console.log('GONNA CALL CALLBACK!!!', domain, user, scope)
         addPatchToHistory(patch)
         state = stateFromHistory(history)
         metadata = stateFromHistory(metadataHistory)
@@ -120,9 +116,7 @@ export async function state(scope, user, domain) {
   let resolveStartState
   const startState = new Promise(r => resolveStartState = r)
 
-  console.log('RESOLVING REFERENCE', scope, user, domain)
   const { id } = await resolveReference(domain, user, scope)
-  console.log('RESOLVED!!!!!!!!!!!', scope, user, domain, id)
 
   watch(
     scope,
