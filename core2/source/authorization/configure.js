@@ -195,10 +195,10 @@ async function syncTables(domain, tables, report) {
 
     tableTasks.push(`Creating ${Object.keys(indices).length} indices`)
 
-    await Object.entries(indices).map(async ([name, { column }]) =>  {
+    await Promise.all(Object.entries(indices).map(async ([name, { column }]) =>  {
       tableTasks.push(`Creating index named ${name} on ${table} for ${column}`)
       await postgres.createIndex(domain, name, table, column)
-    })
+    }))
 
     if (rows.length > 0) {
       const batchSize = 100_000

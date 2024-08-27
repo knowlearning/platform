@@ -3,7 +3,9 @@ import {
   environment,
   nkeyAuthenticator,
   decodeString,
-  jetstream, jetstreamManager
+  decodeNATSSubject,
+  jetstream,
+  jetstreamManager
 } from './externals.js'
 import * as postgres from './postgres.js'
 import postgresDefaultTables from './postgres-default-tables.js'
@@ -31,23 +33,39 @@ const messages = await oc.consume()
 
 for await (const message of messages) {
   try {
-    message.ack()
-    const id = decodeString(message.data)
-    //const metadata = await Agent.metadata(id)
-    console.log('GETTING STATE!!!!!!!!!!!!!!!!!!!!', id)
+    message.ack() // TODO: better guarantees that still have good throughput...
+    const subject = message.subject.slice(message.subject.indexOf('.') + 1)
+    const  id = await jsm.streams.find(subject)
+
+    const [domain, user, name] = decodeNATSSubject(subject)
+
     Agent
-      .state(id)
-      .then(state => {
-        console.log('GOT STATE!!!!!!!!!!!!!!!!!!!!', state)
-      })
-      .catch('ISSUE GETTING STATE!', id)
-    /*
-    const { columns } = postgresDefaultTables.metadata
-    //  TODO: ensure at least metadata table is configured for domain
-    const [query, params] = postgres.setRow(metadata.domain, 'metadata', columns, id, metadata)
-    await postgres.query(metadata.domain, query, params)
-    // TODO: push update to any other configured tables
-    */
+      .metadata(id)
+      .then(async metadata => {
+        const { columns } = postgresDefaultTables.metadata
+        const [statement, args] = postgres.setRow(domain, 'metadata', columns, id, {...metadata, domain, user, name, id})
+
+        await
+          postgres
+            .query(domain, statement, args)
+            .catch(async error => {
+              if (error.fields.code === '42P01') { // table not set up
+                //  TODO: share code with authorization server configure script...
+                const { columns, indices } = postgresDefaultTables.metadata
+                await postgres.createTable(domain, 'metadata', columns)
+                await Promise.all(
+                  Object
+                    .entries(indices)
+                    .map(([name, { column }]) => {
+                      return postgres.createIndex(domain, name, 'metadata', column)
+                    })
+                )
+                return postgres.query(domain, statement, args)
+              }
+              else throw error
+            })
+        })
+      console.log('PROCESSED!', id)
   }
   catch (error) {
     message.ack()
