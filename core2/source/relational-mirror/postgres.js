@@ -191,7 +191,6 @@ async function removeColumn(database, table, column) {
   return query(database, `ALTER TABLE ${purifiedName(table)} DROP COLUMN ${purifiedName(column)}`)
 }
 
-//  TODO: change to setRow
 function setRow(domain, table, columns, id, state, firstParamIndex=1) {
   const data = table === 'metadata' ? state : state.active
 
@@ -235,7 +234,16 @@ async function setColumn(domain, table, column, id, value) {
       ? new Date(value)
       : value
 
-  return query(domain, `UPDATE ${purifiedName(table)} SET ${purifiedName(column)} = $1 WHERE id = $2`, [value, id])
+  const t = purifiedName(table)
+  const c = purifiedName(column)
+  const queryText = `
+    INSERT INTO ${t} (id, ${c})
+    VALUES ($2, $1)
+    ON CONFLICT (id)
+    DO UPDATE SET ${c} = EXCLUDED.${c}
+  `
+
+  return query(domain, queryText, [value, id])
 }
 
 export {
