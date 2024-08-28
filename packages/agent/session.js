@@ -37,8 +37,8 @@ export async function downloadURL(id) {
 
 export async function query(query, params, domain) {
   const result = await updateSession('queries', {query, params, domain})
-  console.log('RESUUUUUULT', result)
-  return result
+  //  TODO: handle errors
+  return result.rows
 }
 
 export async function updateSession(field, value) {

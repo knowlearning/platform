@@ -213,6 +213,7 @@ postgres:
     })
 
     it('Can retrieve expected record from test table type', async function () {
+      await pause(500)
       expect(await Agent.query('my-test-table-entries'))
         .to.deep.equal([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
     })

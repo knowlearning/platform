@@ -41,6 +41,7 @@ export default async function handleSideEffects(error, message) {
           respond({ value: await download(value.id) })
         }
         else if (path[path.length-2] === 'queries') {
+          console.log('query!!!!', path, value, patch)
           const [domain, user] = decodeNATSSubject(subject)
           //  TODO: handle cross domain queries
           try {
