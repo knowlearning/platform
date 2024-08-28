@@ -93,6 +93,7 @@ for await (const message of messages) {
                     })
                     .map(async ({ op, path, value }) => {
                       const data = op === 'add' || op === 'replace' ? value : null
+                      console.log('SETTING COLUMN!!!!!!!!!!!!!!!!!!!!!!!!!!!', domain, name, path[0], id, data)
                       await postgres.setColumn(domain, name, path[0], id, data)
                     })
                 )

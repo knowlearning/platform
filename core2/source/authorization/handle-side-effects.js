@@ -1,9 +1,11 @@
 import {
   encodeJSON,
-  decodeJSON
+  decodeJSON,
+  decodeNATSSubject
 } from './externals.js'
 import { upload, download } from './storage.js'
 import configure from './configure.js'
+import configuredQuery from './configured-query.js'
 import Agent from './agent/deno/deno.js'
 
 function isSession(subject) {
@@ -22,6 +24,7 @@ export default async function handleSideEffects(error, message) {
   if (ignoreSubject(subject)) return
 
   try {
+    const respond = response => message.respond(encodeJSON(response))
     if (isSession(subject)) {
       const patch = decodeJSON(data)
       for (const { path, metadata, value } of patch) {
@@ -32,18 +35,23 @@ export default async function handleSideEffects(error, message) {
           const { type } = value
           const { url, info } = await upload(type, id)
           Agent.create({ id, active: info })
-          message.respond(encodeJSON({ value: url }))
-
+          respond({ value: url })
         }
         else if (path[path.length-2] === 'downloads') {
-          message.respond(encodeJSON({
-            value: await download(value.id)
-          }))
+          respond({ value: await download(value.id) })
         }
         else if (path[path.length-2] === 'queries') {
-          message.respond(encodeJSON({
-            value: 'yep!!!! TODO: do something more....'
-          }))
+          const [domain, user] = decodeNATSSubject(subject)
+          //  TODO: handle cross domain queries
+          try {
+            const { query } = value
+            const { rows } = await configuredQuery(domain, domain, query, [], user)
+            respond({ value: { rows } })
+          }
+          catch (error) {
+            console.log('error executing postgres query!!!!!', error)
+            respond({ error: 'TODO: pass expected error' })
+          }
         }
         else if (path[path.length-2] === 'claims') {
           message.respond(encodeJSON({ dns: '', http: '' }))
