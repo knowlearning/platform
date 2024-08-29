@@ -1,5 +1,6 @@
 import resolveReference from './resolve-reference.js'
 import { encodeNATSSubject } from './utils.js'
+import { publish } from './message-queue.js'
 
 
 const sessionInitialized = new Promise(async resolve => {
@@ -51,20 +52,11 @@ export async function updateSession(field, value) {
   //  TODO: perhaps allow messageQueue.publish to be request?
   const subject = encodeNATSSubject(env.domain, env.auth.user, 'sessions')
   const patch = [{ op: 'add', path: [SESSION_ID, field, id], value }]
-  const requestManyOptions = {
-    max: 2, // one is a jetstream consumer response
-    timeout: 1000
-  }
-  const messages = await nc.requestMany(subject, JSONCodec().encode(patch), requestManyOptions)
+  const { id: sessionId } = await resolveReference(null, null, 'sessions')
 
-  let response
-  for await (const msg of messages) {
-    const r = JSONCodec().decode(msg.data)
-    if (r.value) {
-      response = r.value
-      break
-    }
-  }
-
-  return response
+  return new Promise( (resolve, reject) => publish(sessionId, patch, false, true, (error, response) => {
+    console.log('GOT RESPONSE!!!!', response)
+    if (error) reject(error)
+    else resolve(response.value)
+  }))
 }

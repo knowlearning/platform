@@ -7,16 +7,21 @@ import { upload, download } from './storage.js'
 import configure from './configure.js'
 import configuredQuery from './configured-query.js'
 import handleRelationalUpdate from './handle-postgres-mirror.js'
+import { nc } from './nats.js'
 import Agent from './agent/deno/deno.js'
 
 function isSession(subject) {
-  return subject.split('.')[3] === 'sessions'
+  return subject.split('.')[4] === 'sessions'
 }
 
 export default async function handleSideEffects(error, message) {
   const { subject, data } = message
   try {
-    const respond = response => message.respond(encodeJSON(response))
+    const respond = response => {
+      const responseSubject = `responses.${subject.substring(subject.indexOf('.') + 1)}`
+      console.log('RESPONDING TO', responseSubject, response)
+      nc.publish(responseSubject, encodeJSON(response))
+    }
     if (isSession(subject)) {
       const patch = decodeJSON(data)
       for (const { path, metadata, value } of patch) {

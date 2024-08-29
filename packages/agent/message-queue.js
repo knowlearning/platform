@@ -12,16 +12,33 @@ export async function process(id) {
   }
 }
 
-export async function publish(id, patch, expectFirstPublish=false, encodingNeeded=true) {
+export async function publish(id, patch, expectFirstPublish=false, encodingNeeded=true, callback=()=>{}) {
   const message = encodingNeeded ? JSONCodec().encode(patch) : patch
   const options = expectFirstPublish ? { expect: { lastSequence: 0 } } : undefined
 
   const jsm = await jetstreamManagerPromise
   const info = await jsm.streams.info(id)
   const subject = info.config.subjects[0]
+  const nc = await natsClientPromise
 
   const client = await jetstreamClientPromise
-  await client.publish(subject, message, options)
+  const sideEffectHandled = new Promise((resolve, reject) => {
+    // TODO: unsubscribe
+    nc.subscribe(`responses.${subject}`, {
+      callback: async (error, message) => {
+        if (error) {
+          callback(error)
+          reject(error)
+        }
+        else {
+          const response = message.json()
+          callback(null, response)
+          resolve(message.json())
+        }
+      }
+    })
+  })
+  return client.publish(subject, message, options)
 }
 
 export async function inspect(subject) {

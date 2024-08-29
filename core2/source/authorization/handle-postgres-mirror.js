@@ -10,7 +10,7 @@ export default async function handleRelationalUpdate(message) {
   const [domain, user, name] = decodeNATSSubject(subject)
   if (domain === 'core') return
 
-  const  id = await jsm.streams.find(subject)
+  const  id = await jsm.streams.find(subject.substring(subject.indexOf('.') + 1))
 
   await Agent
     .metadata(id)

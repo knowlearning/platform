@@ -5,4 +5,4 @@ import { nc } from './nats.js'
 window.CORE_HACK = 'TODO: REMOVE THIS HACK SHORTCUT'
 
 nc.subscribe("$SYS.REQ.USER.AUTH", { callback: handleAuthRequest })
-nc.subscribe("patch.>", { queue: "all-streams-queue", callback: handleSideEffects })
+nc.subscribe("effects.patch.>", { queue: "all-streams-queue", callback: handleSideEffects })

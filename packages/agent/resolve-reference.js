@@ -37,7 +37,7 @@ async function getInfoOrClaimScope(id, jsm, depth=0) {
 async function createStream(id, domain, user, scope) {
   const jsm = await jetstreamManagerPromise
   const subject = encodeNATSSubject(domain, user, scope)
-  return jsm.streams.add({ name: id, subjects: [subject], republish: { src: subject, dest: `updates.${subject}` } })
+  return jsm.streams.add({ name: id, subjects: [subject], republish: { src: subject, dest: `effects.${subject}` } })
 }
 
 //  TODO: persistent reference resolution
