@@ -15,7 +15,7 @@ function isSession(subject) {
 function ignoreSubject(subject) {
   return subject.startsWith('$') ||
     subject.startsWith('_') ||
-    subject === 'postgres-sync' ||
+    subject === 'updates.' ||
     subject.split('.').length !== 3
 }
 
@@ -41,7 +41,7 @@ export default async function handleSideEffects(error, message) {
           respond({ value: await download(value.id) })
         }
         else if (path[path.length-2] === 'queries') {
-          console.log('query!!!!', path, value, patch)
+          console.log('query!!!!', subject, path, value, patch)
           const [domain, user] = decodeNATSSubject(subject)
           //  TODO: handle cross domain queries
           try {

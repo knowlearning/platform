@@ -1,16 +1,18 @@
 import { validate as isUUID } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
 import PatchProxy, { standardJSONPatch } from 'npm:@knowlearning/patch-proxy@1.3.2'
 import fastJSONPatch from 'npm:fast-json-patch@3.1.1'
-import { connect, JSONCodec } from 'npm:nats.ws@1.29.0'
+import { connect } from "jsr:@nats-io/transport-deno@3.0.0-7"
+import { jetstream, jetstreamManager } from "jsr:@nats-io/jetstream@3.0.0-9"
 import environment from './environment.js'
 import GenericAgent from '../index.js'
+import { JSONCodec } from 'npm:nats.ws@1.29.0'
 
 window.natsClientPromise = new Promise(async r => {
   //  TODO: remove this. it is here to delay agent connection
   //        until the auth server can spin up
   await new Promise(r => setTimeout(r, 2000))
   r(connect({
-    servers: ['ws://nats-server:8080'],
+    servers: ['nats://nats-server:4222'],
     token: `${(await environment()).auth.user}`
   }))
 })
@@ -18,8 +20,8 @@ window.natsClientPromise = new Promise(async r => {
 const uuid = () => crypto.randomUUID()
 
 //  TODO: remove necessity to make these global
-window.jetstreamManagerPromise =  natsClientPromise.then(c => c.jetstreamManager())
-window.jetstreamClientPromise = natsClientPromise.then(c => c.jetstream())
+window.jetstreamManagerPromise =  natsClientPromise.then(c => jetstreamManager(c))
+window.jetstreamClientPromise = natsClientPromise.then(c => jetstream(c))
 window.JSONCodec = JSONCodec
 window.HOST = 'core'
 window.isUUID = isUUID

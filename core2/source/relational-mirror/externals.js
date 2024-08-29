@@ -1,5 +1,5 @@
 import { Storage as GCSStorageClient } from 'npm:@google-cloud/storage@5.18.2'
-import { connect as NATSClient } from "jsr:@nats-io/nats-transport-deno@3.0.0-5"
+import { connect as NATSClient } from "jsr:@nats-io/transport-deno@3.0.0-7"
 import { jetstream, jetstreamManager } from "jsr:@nats-io/jetstream@3.0.0-9"
 import { nkeyAuthenticator } from "https://deno.land/x/nats@v1.28.2/nats-base-client/authenticator.ts";
 import { parse as parseYAML } from 'https://deno.land/std@0.207.0/yaml/mod.ts'
