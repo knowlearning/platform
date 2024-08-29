@@ -10,9 +10,9 @@ export function decodeNATSToken(str) {
 }
 
 export function encodeNATSSubject(domain, user, scope) {
-  return [domain, user, scope].map(encodeNATSToken).join('.')
+  return ['patch', domain, user, scope].map(encodeNATSToken).join('.')
 }
 
 export function decodeNATSSubject(subject) {
-  return subject.split('.').map(decodeNATSToken)
+  return subject.split('.').slice(1).map(decodeNATSToken)
 }

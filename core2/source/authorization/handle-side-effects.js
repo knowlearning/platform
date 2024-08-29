@@ -9,20 +9,11 @@ import configuredQuery from './configured-query.js'
 import Agent from './agent/deno/deno.js'
 
 function isSession(subject) {
-  return subject.split('.')[2] === 'sessions'
-}
-
-function ignoreSubject(subject) {
-  return subject.startsWith('$') ||
-    subject.startsWith('_') ||
-    subject === 'updates.' ||
-    subject.split('.').length !== 3
+  return subject.split('.')[3] === 'sessions'
 }
 
 export default async function handleSideEffects(error, message) {
   const { subject, data } = message
-  if (ignoreSubject(subject)) return
-
   try {
     const respond = response => message.respond(encodeJSON(response))
     if (isSession(subject)) {

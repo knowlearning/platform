@@ -22,6 +22,4 @@ const jsm = await jetstreamManager(nc)
 await jsm.streams.add({ name: 'updates', subjects: ['updates.>'] })
 
 nc.subscribe("$SYS.REQ.USER.AUTH", { callback: handleAuthRequest })
-//nc.subscribe("localhost:5122.>", { queue: "all-streams-queue", callback: handleSideEffects })
-//nc.subscribe("core.>", { queue: "all-streams-queue", callback: handleSideEffects })
-nc.subscribe(">", { queue: "all-streams-queue", callback: handleSideEffects })
+nc.subscribe("patch.>", { queue: "all-streams-queue", callback: handleSideEffects })
