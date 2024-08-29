@@ -12,7 +12,7 @@ export default async function handleRelationalUpdate(message) {
 
   const  id = await jsm.streams.find(subject)
 
-  Agent
+  await Agent
     .metadata(id)
     .then(async metadata => {
       const { columns } = postgresDefaultTables.metadata
