@@ -6,6 +6,7 @@ import {
 import { upload, download } from './storage.js'
 import configure from './configure.js'
 import configuredQuery from './configured-query.js'
+import handleRelationalUpdate from './handle-postgres-mirror.js'
 import Agent from './agent/deno/deno.js'
 
 function isSession(subject) {
@@ -46,7 +47,7 @@ export default async function handleSideEffects(error, message) {
           }
         }
         else if (path[path.length-2] === 'claims') {
-          message.respond(encodeJSON({ dns: '', http: '' }))
+          respond({ dns: '', http: '' })
         }
       }
     }
@@ -56,6 +57,8 @@ export default async function handleSideEffects(error, message) {
         const { config, report, domain } = patch[1].value
         configure(domain, config, report)
       }
+      await handleRelationalUpdate(message)
+      respond({})
     }
   } catch (error) {
     console.log('error decoding JSON', error, subject, data)

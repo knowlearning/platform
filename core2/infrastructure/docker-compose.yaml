@@ -63,39 +63,6 @@ services:
           cpus: '1'
           memory: 1G
 
-  relational-mirror:
-    build: ../source/relational-mirror
-    container_name: relational-mirror
-    environment:
-      - AUTHORIZE_PORT=8765
-      - NATS_SERVER_URL=nats://nats-server:422
-      - INTERNAL_GCS_API_ENDPOINT=http://gcs-emulator:8000
-      - EXTERNAL_GCS_API_ENDPOINT=https://localhost:4443
-      - GCS_BUCKET_NAME=local-gcs-bucket
-      - MODE=local
-      - GC_PROJECT_ID=fakeprojectforemulator
-      - GCS_SERVICE_ACCOUNT_CREDENTIALS={"client_email":"example@example.com","private_key":"-----BEGIN RSA PRIVATE KEY-----\nMIICWwIBAAKBgHLBIr2p6z4uQIH0/UeTaKFoS1P7r6pWJJ8Xu6NoKw90fq/8feyt\n2GSAm9ATjpl0D5JtO1GZdGnL0ZWCiTm0Umwk0uLiv+9TPByEJQGWm0uL76UZdDIq\n+QhJ4vvBkBda+szw1h9g7l9z/Zsf7VwcnsTex2FjkaEsBtkPzRri0BNrAgMBAAEC\ngYBf2j+AmWwr9kpfwxnFLbYaDJnPPs5Ow8G3OgW7yokdUbt4mLk+dz/nQx3jQlK8\njxtqvd7sm/eHX35jGjQxhRPKoteqx7E1mFrw/Rj/IBiRsjf/gZTc07YWs0UuSGpt\nkhbcE7m9eG1nEC8Cje45tQQRHCo+f8ycGa7m3rZVUC2P4QJBAOTpXv4RSKraXPjx\njfEw9cCIMsGb9vqS3OgBZHjZ3Tfy06tSW3RvbK7k3aoVPOL+rPqjgd7t3YmZIMIn\nZ17ANSkCQQCAVX84RQzNspkrGW5Fvs1/3JM66gmPPkSN3mdXte2InJdv0auAn8LK\nh8ZoHqnqFrwvLDGz0fpIUUQAQVWeeuJzAkB4MybjSFYdCO6a9dQv2yKgR6RHT8tf\nhjCjTt/gKZ5k24hURLmrKTsrlxfiUKaZF1vjfGocklCrCRJPgPthoJIJAkBJuFNX\ncJr1QqYoEvi8iemkjIHq8uxA4+UfleXJhdGIi2OWsVwSjDOqgipgP1UeCqdZdcqr\nYHCkwEIO33kei7qvAkEApPxgWNEAe5iv/HoIxkumc/+Xjp/K8nF3Fi9xgHAYc7Oa\nVYD4cO4HhFEhHIGVAwJBCEoupxYLKxrNq1+exW3Tmg==\n-----END RSA PRIVATE KEY-----","public_key":"-----BEGIN PUBLIC KEY-----\nMIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgHLBIr2p6z4uQIH0/UeTaKFoS1P7\nr6pWJJ8Xu6NoKw90fq/8feyt2GSAm9ATjpl0D5JtO1GZdGnL0ZWCiTm0Umwk0uLi\nv+9TPByEJQGWm0uL76UZdDIq+QhJ4vvBkBda+szw1h9g7l9z/Zsf7VwcnsTex2Fj\nkaEsBtkPzRri0BNrAgMBAAE=\n-----END PUBLIC KEY-----"}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=insecure-development-password
-      - NATS_AUTH_USER_NKEY_PUBLIC=${NATS_AUTH_USER_NKEY_PUBLIC}
-      - NATS_AUTH_USER_NKEY_PRIVATE=${NATS_AUTH_USER_NKEY_PRIVATE}
-      - NATS_ISSUER_NKEY_PUBLIC=${NATS_ISSUER_NKEY_PUBLIC}
-      - NATS_ISSUER_NKEY_PRIVATE=${NATS_ISSUER_NKEY_PRIVATE}
-    volumes:
-      - ../../packages/agent:/agent
-    depends_on:
-      - authorizer
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-        reservations:
-          cpus: '1'
-          memory: 1G
-
   nats-server:
     image: nats:2.10.18
     container_name: nats-server
