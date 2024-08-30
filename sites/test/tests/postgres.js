@@ -352,6 +352,7 @@ postgres:
     })
 
     it('Can get expected result from re-configured table', async function () {
+      await Agent.synced()
       expect(
         await Agent.query('my-reconfigured-test-table-entries')
       )

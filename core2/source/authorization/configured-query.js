@@ -59,6 +59,8 @@ export default async function (requestingDomain, targetDomain, queryName, params
         }
       })
 
+    console.log('about to query!', targetDomain, queryBody, queryParams)
+
     return postgres.query(targetDomain, queryBody, queryParams, true).catch(error => {
       //  TODO: this type of error should probably make it to the admin interface
       console.warn('POSTGRES QUERY ERROR', requestingDomain, targetDomain, error)
