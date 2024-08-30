@@ -4,8 +4,8 @@ import resolveReference from './resolve-reference.js'
 const outstandingPromises = new Set()
 
 export async function synced() {
-  //  TODO: make sure all expected things are added to outstanding promises
-  await Promise.all([...outstandingPromises, ...messageQueue.pending])
+  const pending = messageQueue.pending.values().map(({ promise }) => promise)
+  await Promise.all([...outstandingPromises, ...pending])
 }
 
 export function watch(scope, callback, user, domain) {

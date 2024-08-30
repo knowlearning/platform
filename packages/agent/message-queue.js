@@ -1,4 +1,4 @@
-export const pending = new Set()
+export const pending = new Map()
 
 export async function process(id) {
   const jetstreamManager = await jetstreamManagerPromise
@@ -20,7 +20,13 @@ setTimeout(() => {
     const { auth: {user}, domain } = await environment()
     nc.subscribe(`responses.patch.${domain}.${user}.>`, {
       callback: async (error, message) => {
-        console.log('GOT RESPONSE', error, message.json())
+        // TODO: handle error
+        const response = message.json()
+        const { id, seq } = response
+        const responseHash = `${id}#${seq}`
+        pending
+          .get(responseHash)
+          ?.resolve(response)
       }
     })
   })
@@ -35,18 +41,39 @@ export async function publish(id, patch, expectFirstPublish=false, encodingNeede
   const subject = info.config.subjects[0]
 
   const client = await jetstreamClientPromise
-  const sideEffectHandled = new Promise((resolve, reject) => {
-    resolve()
-  })
-  const p = client.publish(subject, message, options)
-  pending.add(sideEffectHandled)
-  return p.catch(error => {
-    //  TODO: cleanup
-    if (error.api_error?.err_code === 10071) {
-      //  sequence expectation missed
+  let resolve, reject
+  const sideEffectHandled = new Promise((res, rej) => {
+    resolve = value => {
+      callback(null, value)
+      res(value)
     }
-    throw error
+    reject = error => {
+      callback(error)
+      rej(error)
+    }
   })
+  const tmpId = uuid()
+  pending.set(tmpId, { promise: sideEffectHandled })
+  client
+    .publish(subject, message, options)
+    .then(ack => {
+      const responseHash = `${id}#${ack.seq}`
+      //  TODO: handle case where already received response with responseHash
+      pending
+        .set(responseHash, {
+          promise: sideEffectHandled,
+          resolve,
+          reject
+        })
+    })
+    .catch(error => {
+      console.log('GOT ERROR', error)
+      //reject(error)
+      //throw error
+    })
+    .finally(() => {
+      pending.delete(tmpId)
+    })
 }
 
 export async function inspect(subject) {

@@ -78,7 +78,6 @@ export default async function(err, msg) {
       }, signer)
     }
   }, signer)
-  console.log('RESPONDING!', response)
 
   msg.respond(response)
 }

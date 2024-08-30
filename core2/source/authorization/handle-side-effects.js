@@ -18,7 +18,6 @@ export default async function handleSideEffects(error, message) {
   const { subject, data } = message
   try {
     const respond = response => {
-      console.log('RESPONDING', message.headers)
       const id = message.headers.headers.get('Nats-Stream')[0]
       const seq = parseInt(message.headers.headers.get('Nats-Sequence')[0])
       const responseSubject = `responses.${subject.substring(subject.indexOf('.') + 1)}`

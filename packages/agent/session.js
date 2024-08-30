@@ -45,17 +45,12 @@ export async function query(query, params, domain) {
 
 export async function updateSession(field, value) {
   await sessionInitialized
-  const nc = await natsClientPromise
   const id = uuid()
-  const env = await environment()
 
-  //  TODO: perhaps allow messageQueue.publish to be request?
-  const subject = encodeNATSSubject(env.domain, env.auth.user, 'sessions')
   const patch = [{ op: 'add', path: [SESSION_ID, field, id], value }]
   const { id: sessionId } = await resolveReference(null, null, 'sessions')
 
   return new Promise( (resolve, reject) => publish(sessionId, patch, false, true, (error, response) => {
-    console.log('GOT RESPONSE!!!!', response)
     if (error) reject(error)
     else resolve(response.value)
   }))

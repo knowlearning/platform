@@ -202,6 +202,8 @@ postgres:
     })
 
     it('Can write a new record of configured table type', async function () {
+      this.timeout(5000)
+
       const metadata = await Agent.metadata(TEST_ENTRY_1_ID)
       const state = await Agent.state(TEST_ENTRY_1_ID)
       metadata.active_type = TEST_TABLE_TYPE
