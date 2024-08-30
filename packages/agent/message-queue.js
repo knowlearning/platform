@@ -1,3 +1,5 @@
+export const pending = new Set()
+
 export async function process(id) {
   const jetstreamManager = await jetstreamManagerPromise
   const jetstreamClient = await jetstreamClientPromise
@@ -22,11 +24,14 @@ export async function publish(id, patch, expectFirstPublish=false, encodingNeede
   const nc = await natsClientPromise
 
   const client = await jetstreamClientPromise
+  let cleanUp
   const sideEffectHandled = new Promise((resolve, reject) => {
-    //  TODO: use 1 subscription for session
+    cleanUp = () => {
+      subscription.unsubscribe()
+      pending.delete(sideEffectHandled)
+    }
     const subscription = nc.subscribe(`responses.${subject}`, {
       callback: async (error, message) => {
-        subscription.unsubscribe()
         if (error) {
           callback(error)
           reject(error)
@@ -36,12 +41,19 @@ export async function publish(id, patch, expectFirstPublish=false, encodingNeede
           callback(null, response)
           resolve(message.json())
         }
+        cleanUp()
       }
     })
   })
   const p = client.publish(subject, message, options)
-//  await sideEffectHandled
-  return p
+  pending.add(sideEffectHandled)
+  return p.catch(error => {
+    if (error.api_error?.err_code === 10071) {
+      //  sequence expectation missed
+      cleanUp()
+    }
+    throw error
+  })
 }
 
 export async function inspect(subject) {

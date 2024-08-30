@@ -5,7 +5,7 @@ const outstandingPromises = new Set()
 
 export async function synced() {
   //  TODO: make sure all expected things are added to outstanding promises
-  await Promise.all(outstandingPromises)
+  await Promise.all([...outstandingPromises, ...messageQueue.pending])
 }
 
 export function watch(scope, callback, user, domain) {
