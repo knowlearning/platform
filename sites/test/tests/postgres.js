@@ -219,181 +219,181 @@ postgres:
     })
 
 
-//     it('Can retrieve expected record from test table type in an embedded context', async function () {
-//       let resolve
-//       const done = new Promise(r => resolve = r)
-//       const iframe = document.createElement('iframe')
-//       iframe.style = "border: none; width: 0; height: 0;"
-//       document.body.appendChild(iframe)
+    // it('Can retrieve expected record from test table type in an embedded context', async function () {
+    //   let resolve
+    //   const done = new Promise(r => resolve = r)
+    //   const iframe = document.createElement('iframe')
+    //   iframe.style = "border: none; width: 0; height: 0;"
+    //   document.body.appendChild(iframe)
 
-//       const { on } = Agent.embed({ id: TEST_ENTRY_1_ID, mode: EMBEDED_QUERY_TEST_MODE }, iframe)
+    //   const { on } = Agent.embed({ id: TEST_ENTRY_1_ID, mode: EMBEDED_QUERY_TEST_MODE }, iframe)
 
-//       let closeInfo
-//       on('close', info => {
-//         closeInfo = info
-//         document.body.removeChild(iframe)
-//         resolve()
-//       })
+    //   let closeInfo
+    //   on('close', info => {
+    //     closeInfo = info
+    //     document.body.removeChild(iframe)
+    //     resolve()
+    //   })
 
-//       await done
-//       expect(closeInfo).to.deep.equal([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
-//     })
-// /*
-//     it('Can resolve many parallel queries at once', async function () {
-//       this.timeout(5000)
-//       const numParallelQueries = 1000
-//       const queries = []
-//       const expectedValues = []
-//       for (let i=0; i<numParallelQueries; i++) {
-//         queries.push(Agent.query('my-test-table-entries'))
-//         expectedValues.push([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
-//       }
-//       const results = await Promise.all(queries)
-//       expect(expectedValues).to.deep.equal(results)
-//     })
+    //   await done
+    //   expect(closeInfo).to.deep.equal([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
+    // })
+/*
+    it('Can resolve many parallel queries at once', async function () {
+      this.timeout(5000)
+      const numParallelQueries = 1000
+      const queries = []
+      const expectedValues = []
+      for (let i=0; i<numParallelQueries; i++) {
+        queries.push(Agent.query('my-test-table-entries'))
+        expectedValues.push([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
+      }
+      const results = await Promise.all(queries)
+      expect(expectedValues).to.deep.equal(results)
+    })
 
-//     it('Can resolve many parallel queries at once embedded', async function () {
-//       this.timeout(5000)
-//       console.log('>>>> BEGIN QUERY TEST PARENT')
-//       let resolve
-//       const done = new Promise(r => resolve = r)
-//       const iframe = document.createElement('iframe')
-//       iframe.style = "border: none; width: 0; height: 0;"
-//       document.body.appendChild(iframe)
+    it('Can resolve many parallel queries at once embedded', async function () {
+      this.timeout(5000)
+      console.log('>>>> BEGIN QUERY TEST PARENT')
+      let resolve
+      const done = new Promise(r => resolve = r)
+      const iframe = document.createElement('iframe')
+      iframe.style = "border: none; width: 0; height: 0;"
+      document.body.appendChild(iframe)
 
-//       const { on } = Agent.embed({ id: TEST_ENTRY_1_ID, mode: EMBEDED_PARALLEL_QUERY_TEST_MODE }, iframe)
+      const { on } = Agent.embed({ id: TEST_ENTRY_1_ID, mode: EMBEDED_PARALLEL_QUERY_TEST_MODE }, iframe)
 
-//       let closeInfo
+      let closeInfo
 
-//       on('close', info => {
-//         closeInfo = info
-//         document.body.removeChild(iframe)
-//         resolve()
-//       })
+      on('close', info => {
+        closeInfo = info
+        document.body.removeChild(iframe)
+        resolve()
+      })
 
-//       console.log('>>>> AWAITING INNER DONE')
-//       await done
-//       expect(closeInfo).to.deep.equal(null)
-//     })
-// */
-//     it('Throws an error in the embedded context on an embedded query error', async function () {
-//       this.timeout(2000)
-//       let resolve
-//       const done = new Promise(r => resolve = r)
-//       const iframe = document.createElement('iframe')
-//       iframe.style = "border: none; width: 0; height: 0;"
-//       document.body.appendChild(iframe)
+      console.log('>>>> AWAITING INNER DONE')
+      await done
+      expect(closeInfo).to.deep.equal(null)
+    })
+*/
+    // it('Throws an error in the embedded context on an embedded query error', async function () {
+    //   this.timeout(2000)
+    //   let resolve
+    //   const done = new Promise(r => resolve = r)
+    //   const iframe = document.createElement('iframe')
+    //   iframe.style = "border: none; width: 0; height: 0;"
+    //   document.body.appendChild(iframe)
 
-//       const { on } = Agent.embed({ id: TEST_ENTRY_1_ID, mode: EMBEDED_QUERY_ERROR_TEST_MODE }, iframe)
+    //   const { on } = Agent.embed({ id: TEST_ENTRY_1_ID, mode: EMBEDED_QUERY_ERROR_TEST_MODE }, iframe)
 
-//       let closeInfo
+    //   let closeInfo
 
-//       on('close', info => {
-//         closeInfo = info
-//         document.body.removeChild(iframe)
-//         resolve()
-//       })
+    //   on('close', info => {
+    //     closeInfo = info
+    //     document.body.removeChild(iframe)
+    //     resolve()
+    //   })
 
-//       await done
-//       expect(closeInfo).to.deep.equal(null)
-//     })
+    //   await done
+    //   expect(closeInfo).to.deep.equal(null)
+    // })
 
-//     it('Can call functions in queries', async function () {
-//       expect(await Agent.query('test-function-call'))
-//       .to.deep.equal([{ id: TEST_ENTRY_0_ID }])
-//     })
+    it('Can call functions in queries', async function () {
+      expect(await Agent.query('test-function-call'))
+      .to.deep.equal([{ id: TEST_ENTRY_0_ID }])
+    })
 
-//     it('Can query metadata for scopes created after configuration', async function () {
-//       const response = await Agent.query('my-test-table-entries-metadata')
-//       const { auth: { user }, domain } = await Agent.environment()
+    it('Can query metadata for scopes created after configuration', async function () {
+      const response = await Agent.query('my-test-table-entries-metadata')
+      const { auth: { user }, domain } = await Agent.environment()
 
-//       expect(response.length).to.equal(1)
-//       expect(response[0].id).to.deep.equal(TEST_ENTRY_1_ID)
-//       expect(response[0].ii).to.equal(1)
-//       expect(response[0].domain).to.equal(domain)
-//       expect(response[0].active_type).to.equal(TEST_TABLE_TYPE)
-//       expect(response[0].owner).to.equal(user)
-//       expect(response[0].active_size).to.equal(701)
-//       expect(response[0].storage_size).to.equal(0)
-//     })
+      expect(response.length).to.equal(1)
+      expect(response[0].id).to.deep.equal(TEST_ENTRY_1_ID)
+      //expect(response[0].ii).to.equal(1)
+      expect(response[0].domain).to.equal(domain)
+      expect(response[0].active_type).to.equal(TEST_TABLE_TYPE)
+      expect(response[0].owner).to.equal(user)
+      //expect(response[0].active_size).to.equal(701)
+      //expect(response[0].storage_size).to.equal(0)
+    })
 
-//     it('Can query metadata for scopes created before configuration', async function () {
-//       const response = await Agent.query('my-test-table-previous-entries-metadata')
-//       const { auth: { user }, domain } = await Agent.environment()
+    it('Can query metadata for scopes created before configuration', async function () {
+      const response = await Agent.query('my-test-table-previous-entries-metadata')
+      const { auth: { user }, domain } = await Agent.environment()
 
-//       expect(response.length).to.equal(1)
-//       expect(response[0].id).to.deep.equal(TEST_ENTRY_0_ID)
-//       expect(response[0].ii).to.equal(1)
-//       expect(response[0].domain).to.equal(domain)
-//       expect(response[0].active_type).to.equal(TEST_TABLE_TYPE)
-//       expect(response[0].owner).to.equal(user)
-//       expect(response[0].active_size).to.equal(671)
-//       expect(response[0].storage_size).to.equal(0)
-//     })
+      expect(response.length).to.equal(1)
+      expect(response[0].id).to.deep.equal(TEST_ENTRY_0_ID)
+      expect(response[0].ii).to.equal(1)
+      expect(response[0].domain).to.equal(domain)
+      expect(response[0].active_type).to.equal(TEST_TABLE_TYPE)
+      expect(response[0].owner).to.equal(user)
+      expect(response[0].active_size).to.equal(671)
+      expect(response[0].storage_size).to.equal(0)
+    })
 
-//     it('Can re-configure a domain', async function () {
-//       this.timeout(5000)
+    it('Can re-configure a domain', async function () {
+      this.timeout(5000)
 
-//       const { domain } = await Agent.environment()
+      const { domain } = await Agent.environment()
 
-//       const config = await Agent.upload({
-//         name: 'test domain config 2',
-//         type: 'application/yaml',
-//         data: CONFIGURATION_2
-//       })
-//       const report = uuid()
+      const config = await Agent.upload({
+        name: 'test domain config 2',
+        type: 'application/yaml',
+        data: CONFIGURATION_2
+      })
+      const report = uuid()
 
-//       await Agent.create({
-//         active_type: DOMAIN_CONFIG_TYPE,
-//         active: { config, report, domain }
-//       })
+      await Agent.create({
+        active_type: DOMAIN_CONFIG_TYPE,
+        active: { config, report, domain }
+      })
 
-//       await endOfReport(report)
-//     })
+      await endOfReport(report)
+    })
 
-//     it('Can get expected result from re-configured table', async function () {
-//       expect(
-//         await Agent.query('my-reconfigured-test-table-entries')
-//       )
-//       .to.deep.equal(
-//         [{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }]
-//       )
-//     })
+    it('Can get expected result from re-configured table', async function () {
+      expect(
+        await Agent.query('my-reconfigured-test-table-entries')
+      )
+      .to.deep.equal(
+        [{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }]
+      )
+    })
 
-//     it('Can query metadata for scopes created after re-configuration', async function () {
-//       const metadata = await Agent.metadata(TEST_ENTRY_2_ID)
-//       metadata.active_type = TEST_TABLE_TYPE
-//       const state = await Agent.state(TEST_ENTRY_2_ID)
-//       Object.assign(state, TEST_ENTRY_2)
-//       await Agent.synced()
+    it('Can query metadata for scopes created after re-configuration', async function () {
+      const metadata = await Agent.metadata(TEST_ENTRY_2_ID)
+      metadata.active_type = TEST_TABLE_TYPE
+      const state = await Agent.state(TEST_ENTRY_2_ID)
+      Object.assign(state, TEST_ENTRY_2)
+      await Agent.synced()
 
-//       expect( await Agent.query('my-test-table-entry-after-reconfig') )
-//         .to.deep.equal( [{ id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 }] )
-//     })
+      expect( await Agent.query('my-test-table-entry-after-reconfig') )
+        .to.deep.equal( [{ id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 }] )
+    })
 
-//     it('Can create and query text array columns', async function () {
-//       const metadata = await Agent.metadata(TEST_ENTRY_3_ID)
-//       metadata.active_type = TEST_TABLE_TYPE
-//       const state = await Agent.state(TEST_ENTRY_3_ID)
-//       Object.assign(state, TEST_ENTRY_3)
-//       await Agent.synced()
+    it('Can create and query text array columns', async function () {
+      const metadata = await Agent.metadata(TEST_ENTRY_3_ID)
+      metadata.active_type = TEST_TABLE_TYPE
+      const state = await Agent.state(TEST_ENTRY_3_ID)
+      Object.assign(state, TEST_ENTRY_3)
+      await Agent.synced()
 
-//       expect( await Agent.query('text-array-test-query') )
-//         .to.deep.equal( [{ id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 }] )
-//     })
+      expect( await Agent.query('text-array-test-query') )
+        .to.deep.equal( [{ id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 }] )
+    })
 
-//     it('Cannot query old tables', async function () {
-//       let erroredExpectedly = false
-//       let error
-//       try {
-//         const state = await Agent.query('my-old-test-table')
-//       }
-//       catch (e) {
-//         erroredExpectedly = e.error === '42P01'
-//         error = e
-//       }
-//       if (!erroredExpectedly) throw new Error(`Expected postgres 42P01 error on query involving new table; received ${error}`)
-//     })
+    it('Cannot query old tables', async function () {
+      let erroredExpectedly = false
+      let error
+      try {
+        const state = await Agent.query('my-old-test-table')
+      }
+      catch (e) {
+        erroredExpectedly = e.error === '42P01'
+        error = e
+      }
+      if (!erroredExpectedly) throw new Error(`Expected postgres 42P01 error on query involving new table; received ${error}`)
+    })
 
   })
 }
