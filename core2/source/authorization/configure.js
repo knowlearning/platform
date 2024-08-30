@@ -124,13 +124,14 @@ async function syncTables(domain, tables, report) {
 
   const existingTableNames = existingTables.map(({tablename}) => tablename)
   const removedTables = existingTableNames.filter(name => !tables[name])
-
   //  initialize table task queues
   removedTables.forEach(name => report.tasks.postgres.tables[name] = [])
   Object.keys(tables).forEach(name => report.tasks.postgres.tables[name] = [])
 
+  console.log('REMOVING TABLES....', domain, report)
+
   //  delete existing tables not in tables
-  const removeTablePromises = (
+  await Promise.all(
     removedTables
       .map(async name => {
         const tableTasks = report.tasks.postgres.tables[name]
@@ -146,8 +147,7 @@ async function syncTables(domain, tables, report) {
         }
       })
   )
-
-  await Promise.all(removeTablePromises)
+  console.log('REMOVED TABLES....', domain, report)
 
   const typeGroups = {}
 
@@ -181,9 +181,29 @@ async function syncTables(domain, tables, report) {
   }
   prepTasks.push('Done')
 
+  //  Don't need to sync metadata table
+  delete tables.metadata
   //  create tables and supply columns for column updates
-  const tableEntries = Object.entries(tables)
-
+  await Promise.all(
+    Object
+      .entries(tables)
+      .map(async ([table, { type, columns={}, indices={} }]) => {
+        const tableTasks = report.tasks.postgres.tables[table]
+        const orderedColumns = Object.keys(columns)
+        tableTasks.push('Creating')
+        await postgres.createTable(domain, table, columns)
+        tableTasks.push('Fetching syncable states from metadata')
+        await Promise.all(Object.entries(indices).map(async ([name, { column }]) =>  {
+          tableTasks.push(`Creating index named ${name} on ${table} for ${column}`)
+          await postgres.createIndex(domain, name, table, column)
+        }))
+        tableTasks.push(`Done`)
+        //  TODO: get ids for type from query to metadata
+        //        then update all rows. In future only make updates
+        //        that need to be made
+      })
+  )
+/*
   for (let tableNum = 0; tableNum < tableEntries.length; tableNum += 1) {
     const [table, { type, columns={}, indices={} }] = tableEntries[tableNum]
     const tableTasks = report.tasks.postgres.tables[table]
@@ -243,8 +263,7 @@ async function syncTables(domain, tables, report) {
         await batchInsertRows(domain, table, orderedColumns, rowsToInsert, paramsToInsert)
       }
     }
-    tableTasks.push(`Done`)
-  }
+*/
 }
 
 function rowString(start, numEntries) {
