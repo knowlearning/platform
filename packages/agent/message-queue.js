@@ -23,6 +23,7 @@ export async function publish(id, patch, expectFirstPublish=false, encodingNeede
 
   const client = await jetstreamClientPromise
   const sideEffectHandled = new Promise((resolve, reject) => {
+    //  TODO: use 1 subscription for session
     const subscription = nc.subscribe(`responses.${subject}`, {
       callback: async (error, message) => {
         subscription.unsubscribe()
