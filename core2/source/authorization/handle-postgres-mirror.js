@@ -7,7 +7,7 @@ import { jsm } from './nats.js'
 export default async function handleRelationalUpdate(message) {
   const { subject } = message
 
-  const [domain, user, name] = decodeNATSSubject(subject)
+  const [domain, user, name] = decodeNATSSubject(subject.substring(subject.indexOf('.') + 1))
   if (domain === 'core') return
 
   const  id = await jsm.streams.find(subject.substring(subject.indexOf('.') + 1))

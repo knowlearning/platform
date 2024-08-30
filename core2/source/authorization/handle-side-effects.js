@@ -19,7 +19,6 @@ export default async function handleSideEffects(error, message) {
   try {
     const respond = response => {
       const responseSubject = `responses.${subject.substring(subject.indexOf('.') + 1)}`
-      console.log('RESPONDING TO', responseSubject, response)
       nc.publish(responseSubject, encodeJSON(response))
     }
     if (isSession(subject)) {
@@ -38,8 +37,8 @@ export default async function handleSideEffects(error, message) {
           respond({ value: await download(value.id) })
         }
         else if (path[path.length-2] === 'queries') {
-          console.log('query!!!!', subject, path, value, patch)
-          const [domain, user] = decodeNATSSubject(subject)
+          const [domain, user] = decodeNATSSubject(subject.substring(subject.indexOf('.') + 1))
+          console.log('query!!!!', domain, subject, path, value, patch)
           //  TODO: handle cross domain queries
           try {
             const { query } = value
@@ -60,6 +59,7 @@ export default async function handleSideEffects(error, message) {
       const patch = decodeJSON(data)
       if (patch.length === 2 && patch[0].metadata && patch[0].value.type === 'application/json;type=domain-config') {
         const { config, report, domain } = patch[1].value
+        console.log('CONFIGURING DOMAAAAAAAAAAAAAAIIIIIIIIINNNNNNN!!!!!!!!!!!!!!', domain, config, report)
         configure(domain, config, report)
       }
       await handleRelationalUpdate(message)

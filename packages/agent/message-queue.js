@@ -38,7 +38,9 @@ export async function publish(id, patch, expectFirstPublish=false, encodingNeede
       }
     })
   })
-  return client.publish(subject, message, options)
+  const p = client.publish(subject, message, options)
+//  await sideEffectHandled
+  return p
 }
 
 export async function inspect(subject) {
