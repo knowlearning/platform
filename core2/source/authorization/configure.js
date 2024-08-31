@@ -197,7 +197,25 @@ async function syncTables(domain, tables, report) {
           tableTasks.push(`Creating index named ${name} on ${table} for ${column}`)
           await postgres.createIndex(domain, name, table, column)
         }))
+        const { rows: idsForType } = await postgres.query(domain, 'SELECT id FROM metadata WHERE active_type = $1', [type])
+        await Promise.all(idsForType.map(async ({ id }) => {
+          const state = await Agent.state(id)
+          console.log('BATCH INSERTING ROWS!')
+
+          await batchInsertRows(domain, table, orderedColumns, [id], [
+            id,
+            ...orderedColumns
+              .map(column => {
+                const value = state[column]
+                if (value === undefined) return null
+                else if (columns[column] === 'TIMESTAMP') return new Date(value)
+                else return value
+              })
+          ])
+          console.log('SCOPE OF TYPE', type, id, state)
+        }))
         tableTasks.push(`Done`)
+
         //  TODO: get ids for type from query to metadata
         //        then update all rows. In future only make updates
         //        that need to be made

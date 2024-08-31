@@ -42,8 +42,6 @@ export default async function (requestingDomain, targetDomain, queryName, params
   if (typeof queryDefinition === 'string') queryBody = queryDefinition
   else if (queryDefinition?.body) queryBody = queryDefinition.body
 
-  console.log('query body!!!!!!!!!!!!!!!!!!!',  queryName, queryBody)
-
   if (queryBody) {
     const namedParams = { DOMAIN: targetDomain }
     if (user) namedParams.REQUESTER = user
@@ -58,8 +56,6 @@ export default async function (requestingDomain, targetDomain, queryName, params
           queryBody = queryBody.replaceAll(`$${param}`, `$${queryParams.length}`)
         }
       })
-
-    console.log('about to query!', targetDomain, queryBody, queryParams)
 
     return postgres.query(targetDomain, queryBody, queryParams, true).catch(error => {
       //  TODO: this type of error should probably make it to the admin interface
