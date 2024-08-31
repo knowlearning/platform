@@ -52,6 +52,6 @@ export async function updateSession(field, value) {
 
   return new Promise( (resolve, reject) => publish(sessionId, patch, false, true, (error, response) => {
     if (error) reject(error)
-    else resolve(response.value)
+    else resolve(response)
   }))
 }

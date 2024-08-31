@@ -24,9 +24,17 @@ setTimeout(() => {
         const response = message.json()
         const { id, seq } = response
         const responseHash = `${id}#${seq}`
-        pending
-          .get(responseHash)
-          ?.resolve(response)
+        console.log('ERROR IN RESPONSE????', response.error)
+        if (response.error) {
+          pending
+            .get(responseHash)
+            ?.reject({ error: response.error })
+        }
+        else {
+          pending
+            .get(responseHash)
+            ?.resolve(response.value)
+        }
       }
     })
   })

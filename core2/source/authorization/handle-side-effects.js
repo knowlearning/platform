@@ -43,8 +43,13 @@ export default async function handleSideEffects(error, message) {
           //  TODO: handle cross domain queries
           try {
             const { query } = value
-            const { rows } = await configuredQuery(domain, domain, query, [], user)
-            respond({ value: { rows } })
+            try {
+              const { rows } = await configuredQuery(domain, domain, query, [], user)
+              respond({ value: { rows }, error })
+            }
+            catch (error) {
+              respond({ error: error.code })
+            }
           }
           catch (error) {
             console.log('error executing postgres query!!!!!', error)
