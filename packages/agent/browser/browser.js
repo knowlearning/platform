@@ -40,8 +40,8 @@ catch (e) { embedded = true }
 const baseAgent = embedded ? EmbeddedAgent() : GenericAgent
 
 export default {
-  ...baseAgent,
   environment,
+  ...baseAgent,
   login,
   logout,
   embed,

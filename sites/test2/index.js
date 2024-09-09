@@ -5,7 +5,6 @@ import 'mocha/mocha.js'
 import 'mocha/mocha.css'
 import vuePersistentStore from '@knowlearning/agent/vuex.js'
 
-
 import stateTest from '../test/tests/state.js'
 import mutateTest from '../test/tests/mutate.js'
 import arrayTest from '../test/tests/arrays.js'
@@ -18,32 +17,42 @@ import latestBugfixesTest from './tests/latest-bugfixes.js'
 import postgresTest from '../test/tests/postgres.js'
 
 window.Agent = Agent
-window.expect = chai.expect
-window.uuid = uuid
-window.pause = ms => new Promise(r => setTimeout(r, ms))
-window.Agent2 = Agent //  TODO: use isolated agents
-window.Agent3 = Agent //  TODO: use isolated agents
 
-chai.config.truncateThreshold = 0; // disable truncating
+const { mode } = await Agent.environment()
 
-mocha
-  .setup({
-    ui: 'bdd',
-    reporter: 'HTML',
-    slow: 1000
+if (mode === 'EMBEDED_QUERY_TEST_MODE') {
+  const result = await Agent.query('my-test-table-entries')
+  Agent.close(result)
+}
+else {
+  window.expect = chai.expect
+  window.uuid = uuid
+  window.pause = ms => new Promise(r => setTimeout(r, ms))
+  window.Agent2 = Agent //  TODO: use isolated agents
+  window.Agent3 = Agent //  TODO: use isolated agents
+
+  chai.config.truncateThreshold = 0; // disable truncating
+
+  mocha
+    .setup({
+      ui: 'bdd',
+      reporter: 'HTML',
+      slow: 1000
+    })
+
+  describe(`KnowLearning Agent Tests`, function () {
+    stateTest()
+    mutateTest()
+    arrayTest()
+    metadataTest()
+    watchTest()
+    watchDeepTest()
+    vuexTest(vuePersistentStore)
+    uploadTest()
+    latestBugfixesTest()
+    console.log('IS AGENT EMBEDDED???', Agent.embedded)
+    if (!Agent.embedded) postgresTest()
   })
 
-describe(`KnowLearning Agent Tests`, function () {
-  stateTest()
-  mutateTest()
-  arrayTest()
-  metadataTest()
-  watchTest()
-  watchDeepTest()
-  vuexTest(vuePersistentStore)
-  uploadTest()
-  latestBugfixesTest()
-  postgresTest()
-})
-
-mocha.run()
+  mocha.run()
+}
