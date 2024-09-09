@@ -221,25 +221,25 @@ postgres:
     })
 
 
-    // it('Can retrieve expected record from test table type in an embedded context', async function () {
-    //   let resolve
-    //   const done = new Promise(r => resolve = r)
-    //   const iframe = document.createElement('iframe')
-    //   iframe.style = "border: none; width: 0; height: 0;"
-    //   document.body.appendChild(iframe)
+    it('Can retrieve expected record from test table type in an embedded context', async function () {
+      let resolve
+      const done = new Promise(r => resolve = r)
+      const iframe = document.createElement('iframe')
+      iframe.style = "border: none; width: 0; height: 0;"
+      document.body.appendChild(iframe)
 
-    //   const { on } = Agent.embed({ id: TEST_ENTRY_1_ID, mode: EMBEDED_QUERY_TEST_MODE }, iframe)
+      const { on } = Agent.embed({ id: TEST_ENTRY_1_ID, mode: EMBEDED_QUERY_TEST_MODE }, iframe)
 
-    //   let closeInfo
-    //   on('close', info => {
-    //     closeInfo = info
-    //     document.body.removeChild(iframe)
-    //     resolve()
-    //   })
+      let closeInfo
+      on('close', info => {
+        closeInfo = info
+        document.body.removeChild(iframe)
+        resolve()
+      })
 
-    //   await done
-    //   expect(closeInfo).to.deep.equal([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
-    // })
+      await done
+      expect(closeInfo).to.deep.equal([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
+    })
 /*
     it('Can resolve many parallel queries at once', async function () {
       this.timeout(5000)

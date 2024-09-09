@@ -4,7 +4,6 @@
 //import domainAgent from '../domain-agent.js'
 ///import * as redis from '../redis.js'
 
-
 import { parseYAML } from './externals.js'
 import * as postgres from './postgres.js'
 import { download } from './storage.js'
@@ -128,8 +127,6 @@ async function syncTables(domain, tables, report) {
   removedTables.forEach(name => report.tasks.postgres.tables[name] = [])
   Object.keys(tables).forEach(name => report.tasks.postgres.tables[name] = [])
 
-  console.log('REMOVING TABLES....', domain, report)
-
   //  delete existing tables not in tables
   await Promise.all(
     removedTables
@@ -147,7 +144,6 @@ async function syncTables(domain, tables, report) {
         }
       })
   )
-  console.log('REMOVED TABLES....', domain, report)
 
   const typeGroups = {}
 
@@ -200,7 +196,6 @@ async function syncTables(domain, tables, report) {
         const { rows: idsForType } = await postgres.query(domain, 'SELECT id FROM metadata WHERE active_type = $1', [type])
         await Promise.all(idsForType.map(async ({ id }) => {
           const state = await Agent.state(id)
-          console.log('BATCH INSERTING ROWS!')
 
           await batchInsertRows(domain, table, orderedColumns, [id], [
             id,
@@ -212,7 +207,6 @@ async function syncTables(domain, tables, report) {
                 else return value
               })
           ])
-          console.log('SCOPE OF TYPE', type, id, state)
         }))
         tableTasks.push(`Done`)
 

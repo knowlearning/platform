@@ -4,7 +4,9 @@ import { applyPatch } from 'fast-json-patch'
 import environment from './environment.js'
 import { login, logout } from './authentication.js'
 import GenericAgent from '../index.js'
+import EmbeddedAgent from './embedded-agent.js'
 import { connect, JSONCodec } from 'nats.ws'
+import embed from './embed.js'
 
 window.natsClientPromise = connect({
   servers: ['ws://localhost:8080'],
@@ -29,10 +31,19 @@ window.standardJSONPatch = standardJSONPatch
 window.environment = environment
 window.SESSION_ID = uuid()
 
+
+let embedded
+
+try { embedded = window.self !== window.top }
+catch (e) { embedded = true }
+
+const baseAgent = embedded ? EmbeddedAgent() : GenericAgent
+
 export default {
-  ...GenericAgent,
+  ...baseAgent,
   environment,
   login,
   logout,
+  embed,
   uuid
 }

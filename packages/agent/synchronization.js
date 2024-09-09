@@ -10,7 +10,19 @@ export async function synced() {
 
 export function watch(scope, callback, user, domain) {
   let resolveWatchSynced
-  outstandingPromises.add(new Promise(r => resolveWatchSynced = r))
+  let rejectWatchSynced
+  const watchSyncedPromise = new Promise((resolve, reject) => {
+    resolveWatchSynced = resolve
+    rejectWatchSynced = reject
+  })
+  watchSyncedPromise.catch(error => {
+    //  TODO: handle appropriately (probably want to return watchSyncedPromise
+    //        from watch() call and add unwatch function to that, or callback with error?)
+    console.warn('error syncing watch', scope, user, domain)
+    console.log(history, metadataHistory)
+    console.error(error)
+  })
+  outstandingPromises.add(watchSyncedPromise)
 
   if (Array.isArray(scope)) {
     resolveWatchSynced()
@@ -19,6 +31,10 @@ export function watch(scope, callback, user, domain) {
 
   let closed = false
   let closeMessageQueue
+  const history = []
+  const metadataHistory = []
+  let state = {}
+  let metadata = {}
   ;(async () => {
     const { id, user: owner, domain: d, scope: s } = await resolveReference(domain, user, scope)
     user = owner
@@ -38,6 +54,7 @@ export function watch(scope, callback, user, domain) {
     }
 
     if (historyLength === 0) {
+      resolveWatchSynced()
       callback({
         ii: 0,
         history: [],
@@ -49,10 +66,6 @@ export function watch(scope, callback, user, domain) {
     }
 
     closeMessageQueue = () => messages.close()
-    const history = []
-    const metadataHistory = []
-    let state = {}
-    let metadata = {}
 
     function addPatchToHistory(patch) {
       const statePatch = patch.filter(op => !op.metadata)
@@ -70,35 +83,46 @@ export function watch(scope, callback, user, domain) {
         addPatchToHistory(patch)
       }
       else if (message.seq === historyLength) {
-        addPatchToHistory(patch)
-        state = stateFromHistory(history)
-        metadata = stateFromHistory(metadataHistory)
-        metadata.created = created
-        metadata.updated = Math.floor(message.info.timestampNanos / 1_000_000)
-        history.slice(0, history.length) // TODO: decide what to do with history caching
-        metadataHistory.slice(0, metadataHistory.length) // TODO: decide what to do with history caching
-        callback({
-          ii: message.seq - 1,
-          history,
-          metadataHistory,
-          state: structuredClone(state),
-          metadata: structuredClone(metadata),
-          patch: null
-        })
-        resolveWatchSynced()
+        try {
+          addPatchToHistory(patch)
+          state = stateFromHistory(history)
+          metadata = stateFromHistory(metadataHistory)
+          metadata.created = created
+          metadata.updated = Math.floor(message.info.timestampNanos / 1_000_000)
+          history.slice(0, history.length) // TODO: decide what to do with history caching
+          metadataHistory.slice(0, metadataHistory.length) // TODO: decide what to do with history caching
+          callback({
+            ii: message.seq - 1,
+            history,
+            metadataHistory,
+            state: structuredClone(state),
+            metadata: structuredClone(metadata),
+            patch: null
+          })
+          resolveWatchSynced()
+        }
+        catch (error) {
+          rejectWatchSynced(error)
+          break
+        }
       }
       else {
-        const statePatch = patch.filter(op => !op.metadata)
-        const metadataPatch = patch.filter(op => op.metadata)
-        state = applyStandardPatch(state, statePatch)
-        metadata = applyStandardPatch(metadata, metadataPatch)
-        metadata.updated = message.seq
-        callback({
-          patch,
-          ii: message.seq - 1,
-          state: structuredClone(state),
-          metadata: structuredClone(metadata)
-        })
+        try {
+          const statePatch = patch.filter(op => !op.metadata)
+          const metadataPatch = patch.filter(op => op.metadata)
+          state = applyStandardPatch(state, statePatch)
+          metadata = applyStandardPatch(metadata, metadataPatch)
+          metadata.updated = message.seq
+          callback({
+            patch,
+            ii: message.seq - 1,
+            state: structuredClone(state),
+            metadata: structuredClone(metadata)
+          })
+        }
+        catch (error) {
+          break
+        }
       }
       message.ack()
     }
