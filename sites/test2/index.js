@@ -15,7 +15,9 @@ import vuexTest from '../test/tests/vuex.js'
 import uploadTest from '../test/tests/uploads.js'
 import latestBugfixesTest from './tests/latest-bugfixes.js'
 import postgresTest from '../test/tests/postgres.js'
-import namespacedEmbeddings from '../test/tests/namespaced-embeddings.js'
+import namespacedEmbeddingsTest from '../test/tests/namespaced-embeddings.js'
+import environmentTest from '../test/tests/environment.js'
+import multiAgentTest from '../test/tests/multi-agent.js'
 
 window.Agent = Agent
 
@@ -91,11 +93,10 @@ else if (mode === 'EMBEDED_SCOPE_NAMESPACE_ALLOW_TEST_MODE') {
   const s = await Agent.state(unnamespacedScope)
   s.modifiedInEmbed = true
 }
-/* TODO: enable the tests for these modes!
 else if (mode === 'EMBEDDED_ENVIRONMENT_TEST_MODE') {
   const id = uuid()
   Agent.close(await Agent.environment(id))
-}*/
+}
 else if (!mode) {
   window.expect = chai.expect
   window.uuid = uuid
@@ -123,7 +124,9 @@ else if (!mode) {
     uploadTest()
     latestBugfixesTest()
     if (!Agent.embedded) postgresTest()
-    namespacedEmbeddings()
+    namespacedEmbeddingsTest()
+    environmentTest()
+    multiAgentTest()
   })
 
   mocha.run()
