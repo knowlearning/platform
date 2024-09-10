@@ -54,7 +54,8 @@ export {
   encodeAuthorizationResponse,
   nkeysFromSeed,
   uuid,
-  GCSStorageClient
+  GCSStorageClient,
+  isUUID
 }
 
 const charToEnc = { '%'  : '%25', '\u0000': '%00'   , '*'  : '%2A', '>'  : '%3E', '.'  : '%2E', ' '  : '%20' }

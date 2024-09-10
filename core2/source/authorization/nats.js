@@ -2,6 +2,7 @@ import {
   NATSClient,
   environment,
   nkeyAuthenticator,
+  jetstream,
   jetstreamManager
 } from './externals.js'
   
@@ -14,7 +15,8 @@ const nc = await NATSClient({
 
 console.log('GOT CLIENT....')
 const jsm = await jetstreamManager(nc)
+const js = await jetstream(nc)
 
 await jsm.streams.add({ name: 'updates', subjects: ['updates.>'] })
 
-export { nc, jsm }
+export { nc, jsm, js }
