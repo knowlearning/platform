@@ -178,26 +178,21 @@ postgres:
     it('Can claim and configure domain', async function () {
       const { domain } = await Agent.environment()
 
-      console.log('CLAIMING....')
       await Agent.claim(domain)
-
-      console.log('UPLOADING!')
 
       const config = await Agent.upload({
         name: 'test domain config',
         type: 'application/yaml',
         data: CONFIGURATION_1
       })
-      console.log('UPLOADED~', config)
+
       const report = uuid()
       await Agent.create({
         active_type: DOMAIN_CONFIG_TYPE,
         active: { config, report, domain }
       })
 
-      console.log('AWAITING REPORT....')
       await endOfReport(report)
-      console.log('REPORT!!!!!!!!!!!!!!!', await Agent.state(report))
       //  TODO: some way to certify that our user has been set as domain admin
     })
 
@@ -388,13 +383,14 @@ postgres:
     it('Cannot query old tables', async function () {
       let erroredExpectedly = false
       let error
-      try {
-        const state = await Agent.query('my-old-test-table')
-      }
-      catch (e) {
-        erroredExpectedly = e.error === '42P01'
-        error = e
-      }
+      await
+        Agent
+          .query('my-old-test-table')
+          .catch(e => {
+            erroredExpectedly = e.error === '42P01'
+            error = e
+          })
+
       if (!erroredExpectedly) throw new Error(`Expected postgres 42P01 error on query involving new table; received ${error}`)
     })
 

@@ -13,8 +13,6 @@ window.natsClientPromise = connect({
   token: 'me'
 })
 
-natsClientPromise.then(c => console.log(c))
-
 //  TODO: remove necessity to make these global
 window.jetstreamManagerPromise =  natsClientPromise.then(c => c.jetstreamManager())
 

@@ -65,7 +65,6 @@ export default function latestBugfixes() {
       const historyLengthPromise = new Promise(r => resolveHistoryLength = r)
       const unwatch = Agent.watch(id, ({ history }) => {
         unwatch()
-        console.log('history????', history)
         resolveHistoryLength(history.length)
       })
 

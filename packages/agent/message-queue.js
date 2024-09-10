@@ -24,7 +24,6 @@ setTimeout(() => {
         const response = message.json()
         const { id, seq } = response
         const responseHash = `${id}#${seq}`
-        console.log('ERROR IN RESPONSE????', response.error)
         if (response.error) {
           pending
             .get(responseHash)
@@ -53,11 +52,13 @@ export async function publish(id, patch, expectFirstPublish=false, encodingNeede
   const sideEffectHandled = new Promise((res, rej) => {
     resolve = value => {
       pending.delete(responseHash)
+      pending.delete(tmpId)
       callback(null, value)
       res(value)
     }
     reject = error => {
       pending.delete(responseHash)
+      pending.delete(tmpId)
       callback(error)
       rej(error)
     }
@@ -66,26 +67,25 @@ export async function publish(id, patch, expectFirstPublish=false, encodingNeede
   let responseHash
   pending.set(tmpId, { promise: sideEffectHandled })
 
-  client
-    .publish(subject, message, options)
-    .then(ack => {
-      responseHash = `${id}#${ack.seq}`
-      //  TODO: handle case where already received response with responseHash
-      pending
-        .set(responseHash, {
-          promise: sideEffectHandled,
-          resolve,
-          reject
-        })
-    })
-    .catch(error => {
-      console.log('GOT ERROR', error)
-      //reject(error)
-      //throw error
-    })
-    .finally(() => {
-      pending.delete(tmpId)
-    })
+  return (
+    client
+      .publish(subject, message, options)
+      .then(ack => {
+        responseHash = `${id}#${ack.seq}`
+        //  TODO: handle case where already received response with responseHash
+        pending
+          .set(responseHash, {
+            promise: sideEffectHandled,
+            resolve,
+            reject
+          })
+        return sideEffectHandled
+      })
+      .catch(error => {
+        reject(error)
+        return sideEffectHandled
+      })
+    )
 }
 
 export async function inspect(subject) {

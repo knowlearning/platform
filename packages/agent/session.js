@@ -37,9 +37,7 @@ export async function downloadURL(id) {
 }
 
 export async function query(query, params, domain) {
-  console.log('UPDATING SESSION!!!!!!!!!!', query, params, domain)
   const result = await updateSession('queries', {query, params, domain})
-  //  TODO: handle errors
   return result.rows
 }
 
@@ -51,10 +49,7 @@ export async function updateSession(field, value) {
   const { id: sessionId } = await resolveReference(null, null, 'sessions')
 
   return new Promise( (resolve, reject) => publish(sessionId, patch, false, true, (error, response) => {
-    if (error) {
-      console.warn('REJECTING SESSION UPDATE PUBLISH', error)
-      reject(error)
-    }
+    if (error) reject(error)
     else resolve(response)
   }))
 }
