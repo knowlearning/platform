@@ -29,7 +29,6 @@ else if (mode === 'EMBEDED_WATCHER_TEST_MODE') {
   const states = []
   const unwatch = Agent.watch(id, update => {
     const { state } = update
-    console.log('UPDATE!!!!!!!!!!!!', update)
     states.push(state)
     if (state.done) {
       Agent.close(JSON.parse(JSON.stringify(states)))
@@ -37,7 +36,6 @@ else if (mode === 'EMBEDED_WATCHER_TEST_MODE') {
     }
   })
 }
-/* TODO: enable the tests for these modes!
 else if (mode === 'EMBEDED_QUERY_ERROR_TEST_MODE') {
   try {
     const response = await Agent.query('no-query-named-this')
@@ -47,6 +45,7 @@ else if (mode === 'EMBEDED_QUERY_ERROR_TEST_MODE') {
     Agent.close(null)
   }
 }
+/* TODO: enable the tests for these modes!
 else if (mode === 'EMBEDED_PARALLEL_QUERY_TEST_MODE') {
   const numParallelQueries = 1000
   const queries = []

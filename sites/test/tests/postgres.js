@@ -278,27 +278,27 @@ postgres:
       expect(closeInfo).to.deep.equal(null)
     })
 */
-    // it('Throws an error in the embedded context on an embedded query error', async function () {
-    //   this.timeout(2000)
-    //   let resolve
-    //   const done = new Promise(r => resolve = r)
-    //   const iframe = document.createElement('iframe')
-    //   iframe.style = "border: none; width: 0; height: 0;"
-    //   document.body.appendChild(iframe)
+    it('Throws an error in the embedded context on an embedded query error', async function () {
+      this.timeout(2000)
+      let resolve
+      const done = new Promise(r => resolve = r)
+      const iframe = document.createElement('iframe')
+      iframe.style = "border: none; width: 0; height: 0;"
+      document.body.appendChild(iframe)
 
-    //   const { on } = Agent.embed({ id: TEST_ENTRY_1_ID, mode: EMBEDED_QUERY_ERROR_TEST_MODE }, iframe)
+      const { on } = Agent.embed({ id: TEST_ENTRY_1_ID, mode: EMBEDED_QUERY_ERROR_TEST_MODE }, iframe)
 
-    //   let closeInfo
+      let closeInfo
 
-    //   on('close', info => {
-    //     closeInfo = info
-    //     document.body.removeChild(iframe)
-    //     resolve()
-    //   })
+      on('close', info => {
+        closeInfo = info
+        document.body.removeChild(iframe)
+        resolve()
+      })
 
-    //   await done
-    //   expect(closeInfo).to.deep.equal(null)
-    // })
+      await done
+      expect(closeInfo).to.deep.equal(null)
+    })
 
     it('Can call functions in queries', async function () {
       expect(await Agent.query('test-function-call'))

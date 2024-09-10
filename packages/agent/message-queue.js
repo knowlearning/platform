@@ -52,20 +52,24 @@ export async function publish(id, patch, expectFirstPublish=false, encodingNeede
   let resolve, reject
   const sideEffectHandled = new Promise((res, rej) => {
     resolve = value => {
+      pending.delete(responseHash)
       callback(null, value)
       res(value)
     }
     reject = error => {
+      pending.delete(responseHash)
       callback(error)
       rej(error)
     }
   })
   const tmpId = uuid()
+  let responseHash
   pending.set(tmpId, { promise: sideEffectHandled })
+
   client
     .publish(subject, message, options)
     .then(ack => {
-      const responseHash = `${id}#${ack.seq}`
+      responseHash = `${id}#${ack.seq}`
       //  TODO: handle case where already received response with responseHash
       pending
         .set(responseHash, {

@@ -51,7 +51,10 @@ export async function updateSession(field, value) {
   const { id: sessionId } = await resolveReference(null, null, 'sessions')
 
   return new Promise( (resolve, reject) => publish(sessionId, patch, false, true, (error, response) => {
-    if (error) reject(error)
+    if (error) {
+      console.warn('REJECTING SESSION UPDATE PUBLISH', error)
+      reject(error)
+    }
     else resolve(response)
   }))
 }
