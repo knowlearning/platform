@@ -87,13 +87,3 @@ export async function publish(id, patch, expectFirstPublish=false, encodingNeede
       })
     )
 }
-
-export async function inspect(subject) {
-  const jetstreamManager = await jetstreamManagerPromise
-  const { first_ts, last_ts} = (await jetstreamManager.streams.info(subject)).state
-
-  return {
-    created: (new Date(first_ts)).getTime(),
-    updated: (new Date(last_ts)).getTime()
-  }
-}
