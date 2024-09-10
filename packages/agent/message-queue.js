@@ -39,13 +39,19 @@ setTimeout(() => {
   })
 })
 
+const subjectCache = {}
+
 export async function publish(id, patch, expectFirstPublish=false, encodingNeeded=true, callback=()=>{}) {
   const message = encodingNeeded ? JSONCodec().encode(patch) : patch
   const options = expectFirstPublish ? { expect: { lastSequence: 0 } } : undefined
 
-  const jsm = await jetstreamManagerPromise
-  const info = await jsm.streams.info(id)
-  const subject = info.config.subjects[0]
+  let subject = subjectCache[id]
+  if (!subject) {
+    const jsm = await jetstreamManagerPromise
+    const info = await jsm.streams.info(id)
+    subject = info.config.subjects[0]
+    subjectCache[id] = subject
+  }
 
   const client = await jetstreamClientPromise
   let resolve, reject

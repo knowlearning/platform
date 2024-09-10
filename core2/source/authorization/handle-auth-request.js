@@ -59,13 +59,12 @@ export default async function(err, msg) {
           pub: {
             allow: [
               userPrefix,  // Publishing to subjects for this user on this domain
-              "$JS.API.INFO", // General JS Info
-              //  TODO: the below should probably be added iteratively as ownership is established
               `$JS.API.STREAM.INFO.>`,
-              `$JS.API.STREAM.NAMES`,
-              `$JS.API.STREAM.CREATE.>`,
-              `$JS.API.CONSUMER.CREATE.>`,
-              `$JS.API.CONSUMER.MSG.NEXT.>`,
+              // `$JS.API.INFO`,
+              // `$JS.API.STREAM.NAMES`,
+              // `$JS.API.STREAM.CREATE.>`,
+              // `$JS.API.CONSUMER.CREATE.>`,
+              // `$JS.API.CONSUMER.MSG.NEXT.>`,
             ]
           },
           resp: {
