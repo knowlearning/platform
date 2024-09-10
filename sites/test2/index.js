@@ -45,7 +45,6 @@ else if (mode === 'EMBEDED_QUERY_ERROR_TEST_MODE') {
     Agent.close(null)
   }
 }
-/* TODO: enable the tests for these modes!
 else if (mode === 'EMBEDED_PARALLEL_QUERY_TEST_MODE') {
   const numParallelQueries = 1000
   const queries = []
@@ -55,6 +54,7 @@ else if (mode === 'EMBEDED_PARALLEL_QUERY_TEST_MODE') {
   const results = await Promise.all(queries)
   Agent.close(null)
 }
+/* TODO: enable the tests for these modes!
 else if (mode === 'EMBEDED_SCOPE_NAMESPACE_TEST_MODE') {
   const scope ='some-namespaced-scope-name'
   Agent.watch(scope, async ({ state }) => {

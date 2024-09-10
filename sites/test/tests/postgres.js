@@ -240,7 +240,7 @@ postgres:
       await done
       expect(closeInfo).to.deep.equal([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
     })
-/*
+
     it('Can resolve many parallel queries at once', async function () {
       this.timeout(5000)
       const numParallelQueries = 1000
@@ -277,7 +277,7 @@ postgres:
       await done
       expect(closeInfo).to.deep.equal(null)
     })
-*/
+
     it('Throws an error in the embedded context on an embedded query error', async function () {
       this.timeout(2000)
       let resolve
