@@ -15,6 +15,7 @@ import vuexTest from '../test/tests/vuex.js'
 import uploadTest from '../test/tests/uploads.js'
 import latestBugfixesTest from './tests/latest-bugfixes.js'
 import postgresTest from '../test/tests/postgres.js'
+import namespacedEmbeddings from '../test/tests/namespaced-embeddings.js'
 
 window.Agent = Agent
 
@@ -54,11 +55,14 @@ else if (mode === 'EMBEDED_PARALLEL_QUERY_TEST_MODE') {
   const results = await Promise.all(queries)
   Agent.close(null)
 }
-/* TODO: enable the tests for these modes!
 else if (mode === 'EMBEDED_SCOPE_NAMESPACE_TEST_MODE') {
   const scope ='some-namespaced-scope-name'
+  let closed = false
   Agent.watch(scope, async ({ state }) => {
-    if (state.modified && state.modifiedInEmbed) Agent.close(JSON.parse(JSON.stringify(state)))
+    if (state.modified && state.modifiedInEmbed && !closed) {
+      closed = true
+      Agent.close(JSON.parse(JSON.stringify(state)))
+    }
   })
   const s = await Agent.state(scope)
   s.modifiedInEmbed = true
@@ -66,15 +70,19 @@ else if (mode === 'EMBEDED_SCOPE_NAMESPACE_TEST_MODE') {
 else if (mode === 'EMBEDED_SCOPE_NAMESPACE_ALLOW_TEST_MODE') {
   const scope ='some-namespaced-scope-name'
   const unnamespacedScope = 'this-avoids-namespacing/' + scope
+  let closed = false
   Agent.watch(unnamespacedScope, async ({ state: unnamespacedState }) => {
 
     if (unnamespacedState.modifiedInEmbed) {
       Agent.watch(scope, async ({ state: namespacedState }) => {
       //  TODO: FIX: the namespace is "[object, Object]" since we're allowing a richer namespace object with an allow list
-        if (namespacedState.modified && namespacedState.modifiedInEmbed) Agent.close(JSON.parse(JSON.stringify({
-          unnamespacedState,
-          namespacedState
-        })))
+        if (namespacedState.modified && namespacedState.modifiedInEmbed && !closed) {
+          closed = true
+          Agent.close(JSON.parse(JSON.stringify({
+            unnamespacedState,
+            namespacedState
+          })))
+        }
       })
       const s = await Agent.state(scope)
       s.modifiedInEmbed = true
@@ -83,11 +91,12 @@ else if (mode === 'EMBEDED_SCOPE_NAMESPACE_ALLOW_TEST_MODE') {
   const s = await Agent.state(unnamespacedScope)
   s.modifiedInEmbed = true
 }
+/* TODO: enable the tests for these modes!
 else if (mode === 'EMBEDDED_ENVIRONMENT_TEST_MODE') {
   const id = uuid()
   Agent.close(await Agent.environment(id))
 }*/
-else {
+else if (!mode) {
   window.expect = chai.expect
   window.uuid = uuid
   window.pause = ms => new Promise(r => setTimeout(r, ms))
@@ -114,7 +123,11 @@ else {
     uploadTest()
     latestBugfixesTest()
     if (!Agent.embedded) postgresTest()
+    namespacedEmbeddings()
   })
 
   mocha.run()
+}
+else {
+  console.warn('UNRECOGNIZED MODE', mode)
 }

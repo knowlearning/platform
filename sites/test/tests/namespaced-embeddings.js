@@ -1,7 +1,7 @@
 const EMBEDED_SCOPE_NAMESPACE_TEST_MODE = 'EMBEDED_SCOPE_NAMESPACE_TEST_MODE'
 const EMBEDED_SCOPE_NAMESPACE_ALLOW_TEST_MODE = 'EMBEDED_SCOPE_NAMESPACE_ALLOW_TEST_MODE'
 
-export default function latestBugfixes() {
+export default function() {
   describe('Namespaced Embedded State', function () {
     it('Forces embedded frames state requests to have namespaces', async function () {
       const id = uuid()
