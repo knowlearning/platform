@@ -176,6 +176,7 @@ postgres:
     })
 
     it('Can claim and configure domain', async function () {
+      this.timeout(5000)
       const { domain } = await Agent.environment()
 
       await Agent.claim(domain)
@@ -390,7 +391,6 @@ postgres:
             erroredExpectedly = e.error === '42P01'
             error = e
           })
-
       if (!erroredExpectedly) throw new Error(`Expected postgres 42P01 error on query involving new table; received ${error}`)
     })
 

@@ -39,10 +39,14 @@ export default function latestBugfixes() {
 
       let resolveExpectedUpdates
       const expectedUpdatesPromise = new Promise(r => resolveExpectedUpdates = r)
+      let resolveFirstUpdate
+      const firstUpdatePromise = new Promise(r => resolveFirstUpdate = r)
+
 
       const id = uuid()
       Agent
         .watch(id, async update => {
+          resolveFirstUpdate()
           updateOrder.push(update.ii)
           if (updateOrder.length === expectedUpdateOrder.length) {
             await new Promise(r => setTimeout(r, 10))
@@ -51,6 +55,7 @@ export default function latestBugfixes() {
         })
       const state = await Agent.state(id)
 
+      await firstUpdatePromise
       state.x = 1
       await pause()
       state.y = 2
