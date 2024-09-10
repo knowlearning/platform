@@ -12,7 +12,6 @@ function copy(value) {
 }
 
 export default function embed(environment, iframe) {
-  const watchers = {}
   const postMessageQueue = []
   const listeners = {}
   let frameLoaded = false
@@ -70,13 +69,13 @@ export default function embed(environment, iframe) {
 
       const statePromise = Agent.state(namespacedScope, user, domain)
 
-      const key = `${ domain || ''}/${user || ''}/${namespacedScope}`
-      if (!watchers[key]) {
-        watchers[key] = Agent.watch(namespacedScope, m => postMessage({ ...m, scope }), user, domain)
-      }
-
       if (listeners.state) listeners.state({ scope })
       sendDown(await statePromise)
+    }
+    else if (type === 'watch') {
+      const { scope, user, domain } = message
+      const namespacedScope = getNamespacedScope(environment.namespace, scope)
+      Agent.watch(namespacedScope, sendDown, user, domain)
     }
     else if (type === 'patch') {
       const { root, scopes } = message
