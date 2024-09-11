@@ -6,7 +6,7 @@ import {
 import { upload, download } from './storage.js'
 import configure from './configure.js'
 import configuredQuery from './configured-query.js'
-import handleRelationalUpdate from './handle-postgres-mirror.js'
+import handleRelationalUpdate from './handle-relational-update.js'
 import { nc } from './nats.js'
 import Agent from './agent/deno/deno.js'
 

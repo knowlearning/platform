@@ -5,39 +5,66 @@ import Agent from './agent/deno/deno.js'
 import { jsm } from './nats.js'
 
 export default async function handleRelationalUpdate(message) {
-  const { subject } = message
+  const { subject, data } = message
 
   const [domain, user, name] = decodeNATSSubject(subject.substring(subject.indexOf('.') + 1))
   if (domain === 'core') return
 
   const  id = await jsm.streams.find(subject.substring(subject.indexOf('.') + 1))
 
+  const patch = decodeJSON(data)
+  const metadataPatch = patch.filter(op => op.metadata)
+
+  if (metadataPatch.length) {
+    const columnValues = {}
+
+    metadataPatch.forEach(({ op, path, value }) => {
+      if (op === 'add' || op === 'replace') {
+        if (path.length === 0) {
+          Object.assign(columnValues, value)
+        }
+        else if (path.length === 1) {
+          columnValues[path[0]] = value
+        }
+      }
+      else if (op === 'remove') {
+        if (path.length === 1) {
+          columnValues[path[0]] = null
+        }
+      }
+    })
+
+    console.log('METADATA UPDATES', metadataPatch)
+    await Agent
+      .metadata(id)
+      .then(async metadata => {
+        const { columns } = postgresDefaultTables.metadata
+        const [statement, args] = postgres.setRow(domain, 'metadata', columns, id, {...metadata, domain, user, name, id})
+        await
+          postgres
+            .query(domain, statement, args)
+            .catch(async error => {
+              if (error.fields.code === '42P01') { // table not set up
+                //  TODO: share code with authorization server configure script...
+                const { columns, indices } = postgresDefaultTables.metadata
+                await postgres.createTable(domain, 'metadata', columns)
+                await Promise.all(
+                  Object
+                    .entries(indices)
+                    .map(([name, { column }]) => {
+                      return postgres.createIndex(domain, name, 'metadata', column)
+                    })
+                )
+                return postgres.query(domain, statement, args)
+              }
+              else throw error
+            })
+      })
+  }
+
   await Agent
     .metadata(id)
     .then(async metadata => {
-      const { columns } = postgresDefaultTables.metadata
-      const [statement, args] = postgres.setRow(domain, 'metadata', columns, id, {...metadata, domain, user, name, id})
-
-      await
-        postgres
-          .query(domain, statement, args)
-          .catch(async error => {
-            if (error.fields.code === '42P01') { // table not set up
-              //  TODO: share code with authorization server configure script...
-              const { columns, indices } = postgresDefaultTables.metadata
-              await postgres.createTable(domain, 'metadata', columns)
-              await Promise.all(
-                Object
-                  .entries(indices)
-                  .map(([name, { column }]) => {
-                    return postgres.createIndex(domain, name, 'metadata', column)
-                  })
-              )
-              return postgres.query(domain, statement, args)
-            }
-            else throw error
-          })
-
       await
         Agent
           .state(domain, 'core', 'core')

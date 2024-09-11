@@ -192,7 +192,7 @@ async function removeColumn(database, table, column) {
 }
 
 function setRow(domain, table, columns, id, state, firstParamIndex=1) {
-  const data = table === 'metadata' ? state : state.active
+  const data = state
 
   if (!data) {
     return [
