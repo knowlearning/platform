@@ -1,6 +1,6 @@
 import { environment } from './externals.js'
 import * as postgres from './postgres.js'
-import Agent from './agent/deno/deno.js'
+import domainConfiguration from './domain-configuration.js'
 
 const { MODE, ADMIN_DOMAIN } = environment
 
@@ -24,7 +24,7 @@ export default async function (requestingDomain, targetDomain, queryName, params
     return postgres.query(targetDomain, queryName, params, true)
   }
 
-  const { configuration } = await Agent.state(targetDomain, 'core', 'core')
+  const configuration = await domainConfiguration(targetDomain)
   let queryDefinition
 
 

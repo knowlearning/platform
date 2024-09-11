@@ -29,6 +29,7 @@ export default function () {
       state.x = 100
       state.y = 200
 
+      await Agent.synced()
       const firstAgentRetrievedState = await Agent.state(name)
       expect(firstAgentRetrievedState).to.deep.equal(state)
 
