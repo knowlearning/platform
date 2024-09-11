@@ -3,15 +3,22 @@ import * as postgres from './postgres.js'
 import postgresDefaultTables from './postgres-default-tables.js'
 import domainConfiguration from './domain-configuration.js'
 import { jsm } from './nats.js'
-import Agent from './agent/deno/deno.js'
+
+const cache = {}
+function subjectToUUID(subject) {
+  if (!cache[subject]) cache[subject] = jsm.streams.find(subject)
+  return cache[subject]
+}
 
 export default async function handleRelationalUpdate(message) {
   const { subject, data } = message
 
-  const [domain, user, name] = decodeNATSSubject(subject.substring(subject.indexOf('.') + 1))
+  const originalSubject = subject.substring(subject.indexOf('.') + 1)
+
+  const [domain, user, name] = decodeNATSSubject(originalSubject)
   if (domain === 'core') return
 
-  const  id = await jsm.streams.find(subject.substring(subject.indexOf('.') + 1))
+  const id = await subjectToUUID(originalSubject)
 
   const patch = decodeJSON(data)
   const metadataPatch = patch.filter(op => op.metadata)
@@ -75,8 +82,9 @@ export default async function handleRelationalUpdate(message) {
       }, {})
   )
 
-  const metadata = await Agent.metadata(id)
-  const relevantTableConfig = typeToTable[metadata.active_type]
+  const { rows: [{ active_type }] } = await postgres.query(domain, 'SELECT active_type FROM metadata WHERE id = $1', [id])
+
+  const relevantTableConfig = typeToTable[active_type]
   if (relevantTableConfig) {
     const { name, columns } = relevantTableConfig
     await Promise.all(
@@ -89,7 +97,7 @@ export default async function handleRelationalUpdate(message) {
         .map(async ({ op, path, value }) => {
           if (path.length === 0) {
             const data = op === 'add' || op === 'replace' ? value : {}
-            const [statement, params] = postgres.setRow(domain, name, columns, id, { ...value, id })
+            const [statement, params] = postgres.setRow(domain, name, columns, id, { ...data, id })
             postgres.query(domain, statement, params)
           }
           else {
