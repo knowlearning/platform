@@ -1,8 +1,18 @@
-//  TODO: persistent reference resolution
-export default async function resolveReference(domain, user, scope, newType, newState) {
-  const client = await natsClientPromise
-  const { domain: envDomain, auth: { user: envUser }} = await environment()
+const cache = {}
 
-  const response = await client.request('resolve', JSONCodec().encode({ domain, user, scope, newType, newState, envDomain, envUser }))
-  return response.json()
+export default async function resolveReference(domain, user, scope, newType, newState) {
+  const key = JSON.stringify([domain, user, scope])
+
+  if (!cache[key]) cache[key] = (async () => {
+    const client = await natsClientPromise
+    const env = await environment()
+    const envDomain = env.domain
+    const envUser = env.auth.user
+
+    const requestInfo = { domain, user, scope, newType, newState, envDomain, envUser }
+    const response = await client.request('resolve', JSONCodec().encode(requestInfo))
+    return response.json()
+  })()
+
+  return cache[key]
 }

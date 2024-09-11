@@ -10,6 +10,7 @@ export default function () {
       expect(state).to.deep.equal({})
       Object.assign(state, newValues)
 
+      await Agent.synced()
       const finalState = await Agent.state(id)
       expect(finalState).to.deep.equal(newValues)
     })
@@ -26,6 +27,7 @@ export default function () {
       const newValues = { arr: [1, 2, 3] }
       Object.assign(state, newValues)
 
+      await Agent.synced()
       const finalState = await Agent.state(id)
       expect(finalState).to.deep.equal(newValues)
     })
@@ -38,6 +40,7 @@ export default function () {
       state.arr.push(4)
 
       const expectedValues = { arr: [1, 2, 3, 4] }
+      await Agent.synced()
       const finalState = await Agent.state(id)
       expect(finalState).to.deep.equal(expectedValues)
     })
@@ -50,6 +53,7 @@ export default function () {
       state.arr.splice(1, 1)
 
       const expectedValues = { arr: [1, 3] }
+      await Agent.synced()
       const finalState = await Agent.state(id)
       expect(finalState).to.deep.equal(expectedValues)
     })
@@ -59,6 +63,7 @@ export default function () {
       const state = await Agent.state(id)
       state.testObj = {}
       state.testObj.testVal = 1000
+      await Agent.synced()
       const resultState = await Agent.state(id)
       expect(resultState).to.deep.equal({ testObj: { testVal: 1000 } })
     })
@@ -88,6 +93,7 @@ export default function () {
       Object.assign(state, newValues)
       Agent.reset(id)
 
+      await Agent.synced()
       const resetState = await Agent.state(id)
       expect(resetState).to.deep.equal({})
     })

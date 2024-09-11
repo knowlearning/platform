@@ -10,6 +10,7 @@ export default function () {
       state.x = 100
       state.y = 200
 
+      await Agent.synced()
       const firstAgentRetrievedState = await Agent.state(id)
       await Agent.synced()
       const secondAgentRetrievedState = await Agent2.state(id)

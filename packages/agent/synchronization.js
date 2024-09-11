@@ -142,9 +142,12 @@ export async function state(scope, user, domain) {
 
   const { id } = await resolveReference(domain, user, scope)
 
-  watch(
+  const unwatch = watch(
     scope,
-    ({ state }) => resolveStartState(state),
+    ({ state }) => {
+      unwatch()
+      resolveStartState(state)
+    },
     user,
     domain
   )

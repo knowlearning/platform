@@ -55,8 +55,6 @@ export async function publish(id, patch, expectFirstPublish=false, encodingNeede
       return info.config.subjects[0]
     })()
   }
-  const subject = await subjectCache[id]
-  const client = await jetstreamClientPromise
   let resolve, reject
   const sideEffectHandled = new Promise((res, rej) => {
     resolve = value => {
@@ -75,6 +73,9 @@ export async function publish(id, patch, expectFirstPublish=false, encodingNeede
   const tmpId = uuid()
   let responseHash
   pending.set(tmpId, { promise: sideEffectHandled })
+
+  const subject = await subjectCache[id]
+  const client = await jetstreamClientPromise
 
   return (
     client

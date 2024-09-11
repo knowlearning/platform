@@ -38,6 +38,8 @@ export default function (vuePersistentStore) {
     it(
       'Persists the expected root store data',
       async function () {
+        await pause(10)
+        await Agent.synced()
         const saved = await Agent.state(id)
         expect(saved).to.deep.equal(STORE_START_STATE)
       }
