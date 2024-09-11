@@ -34,32 +34,30 @@ export default async function handleRelationalUpdate(message) {
       }
     })
 
-    console.log('METADATA UPDATES', metadataPatch)
-    await Agent
-      .metadata(id)
-      .then(async metadata => {
-        const { columns } = postgresDefaultTables.metadata
-        const [statement, args] = postgres.setRow(domain, 'metadata', columns, id, {...metadata, domain, user, name, id})
-        await
-          postgres
-            .query(domain, statement, args)
-            .catch(async error => {
-              if (error.fields.code === '42P01') { // table not set up
-                //  TODO: share code with authorization server configure script...
-                const { columns, indices } = postgresDefaultTables.metadata
-                await postgres.createTable(domain, 'metadata', columns)
-                await Promise.all(
-                  Object
-                    .entries(indices)
-                    .map(([name, { column }]) => {
-                      return postgres.createIndex(domain, name, 'metadata', column)
-                    })
-                )
-                return postgres.query(domain, statement, args)
-              }
-              else throw error
-            })
-      })
+    // TODO: deprecate active_type
+    columnValues.active_type = columnValues.type
+
+    const columnsToUpdate = (
+      Object
+        .entries(postgresDefaultTables.metadata.columns)
+        .reduce((prev, [columnName, columnType]) => {
+          if (columnValues[columnName] !== undefined) {
+            prev[columnName] = columnType
+          }
+          return prev
+        }, {})
+    )
+
+    if (Object.keys(columnsToUpdate).length) {
+      const [statement, args] = postgres.setRow(domain, 'metadata', columnsToUpdate, id, columnValues)
+      await
+        postgres
+          .query(domain, statement, args)
+          .catch(async error => {
+            await handleMetadataSetError(domain, error)
+            await postgres.query(domain, statement, args)
+          })
+    }
   }
 
   await Agent
@@ -103,4 +101,20 @@ export default async function handleRelationalUpdate(message) {
             }
           })
     })
+}
+
+async function handleMetadataSetError(domain, error) {
+  if (error.fields.code === '42P01') { // table not set up
+    //  TODO: share code with authorization server configure script...
+    const { columns, indices } = postgresDefaultTables.metadata
+    await postgres.createTable(domain, 'metadata', columns)
+    await Promise.all(
+      Object
+        .entries(indices)
+        .map(([name, { column }]) => {
+          return postgres.createIndex(domain, name, 'metadata', column)
+        })
+    )
+  }
+  else throw error
 }

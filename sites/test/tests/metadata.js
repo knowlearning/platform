@@ -22,6 +22,7 @@ export default function () {
       const md1 = await Agent.metadata(id)
 
       md1.active_type = DEMO_TYPE
+      await Agent.synced()
       //md1.name = 'Demo name'
 
       const md2 = await Agent.metadata(id)
