@@ -45,14 +45,17 @@ export async function publish(id, patch, expectFirstPublish=false, encodingNeede
   const message = encodingNeeded ? JSONCodec().encode(patch) : patch
   const options = expectFirstPublish ? { expect: { lastSequence: 0 } } : undefined
 
-  let subject = subjectCache[id]
-  if (!subject) {
-    const jsm = await jetstreamManagerPromise
-    const info = await jsm.streams.info(id)
-    subject = info.config.subjects[0]
-    subjectCache[id] = subject
+  if (!subjectCache[id]) {
+    subjectCache[id] = (async () => {
+      const jsm = await jetstreamManagerPromise
+      const info = await jsm.streams.info(id)
+      if (info.config.subjects.length > 1) {
+        console.warn('UNEXPECTED NUMBER OF SUBJECTS FOR', id)
+      }
+      return info.config.subjects[0]
+    })()
   }
-
+  const subject = await subjectCache[id]
   const client = await jetstreamClientPromise
   let resolve, reject
   const sideEffectHandled = new Promise((res, rej) => {
