@@ -37,6 +37,9 @@ export default async function handleRelationalUpdate(message) {
 
     // TODO: deprecate active_type
     columnValues.active_type = columnValues.type
+    if (columnValues.domain) columnValues.domain = domain // immutable
+    if (columnValues.user) columnValues.user = user // immutable
+    if (columnValues.name) columnValues.name = name // immutable
 
     const columnsToUpdate = (
       Object
@@ -61,43 +64,41 @@ export default async function handleRelationalUpdate(message) {
     }
   }
 
-  await Agent
-    .metadata(id)
-    .then(async metadata => {
-      const configuration = await domainConfiguration(domain)
+  const configuration = await domainConfiguration(domain)
 
-      const typeToTable = (
-        Object
-          .entries(configuration?.postgres?.tables || {})
-          .reduce((prev, [name, { type, columns, indices }]) => {
-            prev[type] = { name, columns, indices }
-            return prev
-          }, {})
-      )
-      const relevantTableConfig = typeToTable[metadata.active_type]
-      if (relevantTableConfig) {
-        const { name, columns } = relevantTableConfig
-        await Promise.all(
-          decodeJSON(message.data)
-            .filter(({ metadata, path }) => {
-              //  TODO: handle deep set into columns of type JSON
-              if (metadata || path.length > 1) return
-              return columns[path[0]]
-            })
-            .map(async ({ op, path, value }) => {
-              if (path.length === 0) {
-                const data = op === 'add' || op === 'replace' ? value : {}
-                const [statement, params] = postgres.setRow(domain, name, columns, id, { ...value, id })
-                postgres.query(domain, statement, params)
-              }
-              else {
-                const data = op === 'add' || op === 'replace' ? value : null
-                await postgres.setColumn(domain, name, path[0], id, data)
-              }
-            })
-        )
-      }
-    })
+  const typeToTable = (
+    Object
+      .entries(configuration?.postgres?.tables || {})
+      .reduce((prev, [name, { type, columns, indices }]) => {
+        prev[type] = { name, columns, indices }
+        return prev
+      }, {})
+  )
+
+  const metadata = await Agent.metadata(id)
+  const relevantTableConfig = typeToTable[metadata.active_type]
+  if (relevantTableConfig) {
+    const { name, columns } = relevantTableConfig
+    await Promise.all(
+      decodeJSON(message.data)
+        .filter(({ metadata, path }) => {
+          //  TODO: handle deep set into columns of type JSON
+          if (metadata || path.length > 1) return
+          return columns[path[0]]
+        })
+        .map(async ({ op, path, value }) => {
+          if (path.length === 0) {
+            const data = op === 'add' || op === 'replace' ? value : {}
+            const [statement, params] = postgres.setRow(domain, name, columns, id, { ...value, id })
+            postgres.query(domain, statement, params)
+          }
+          else {
+            const data = op === 'add' || op === 'replace' ? value : null
+            await postgres.setColumn(domain, name, path[0], id, data)
+          }
+        })
+    )
+  }
 }
 
 async function handleMetadataSetError(domain, error) {
