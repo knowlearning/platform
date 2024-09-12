@@ -1,0 +1,10 @@
+AUTHORIZE_PORT=8765
+NATS_SERVER_URL=nats://nats-server:422
+INTERNAL_GCS_API_ENDPOINT=http://gcs-emulator:8000
+EXTERNAL_GCS_API_ENDPOINT=https://localhost:4443
+GCS_BUCKET_NAME=local-gcs-bucket
+MODE=local
+GC_PROJECT_ID=fakeprojectforemulator
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
