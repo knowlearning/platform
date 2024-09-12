@@ -82,16 +82,15 @@
 
 
 
-- [ ] somehow get list of streams that are "too large"
-  - ? how to determine what is too large
-  - ? how to pull this info
-- [ ] for each of those streams:
-  - [ ] insert ref to upload of rolled up history using nats client
-    - [ ] get back sequence number (seq) of insert
-      - ? is that given back by default?
-  - [ ] upload stream's history into that ref
-  - [ ] upload rolled up state as last line of upload
-  - [ ] when upload confirmed
-   - [ ] remove history up to seq
-- [ ] close
-  - [ ] run this as a scheduled job
+- [ ] on update of stream
+  - [ ] check size of stream with (await jsm.streams.info("ee2ce013-b66a-41d4-9fb7-f23d91777c40")).state.bytes
+  - [ ] if "too large" compact it
+
+    - [ ] insert ref to upload of rolled up history using nats client
+      - [ ] get back sequence number (seq) of insert
+    - [ ] upload stream's history into that ref
+    - [ ] upload rolled up state as last line of upload
+    - [ ] when upload confirmed
+    - [ ] remove history up to seq
+  - [ ] close
+    - [ ] run this as a scheduled job
