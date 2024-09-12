@@ -78,3 +78,20 @@
         "uuid-for-session3": {...}
         "uuid-for-session4": {...}
       }
+
+
+
+
+- [ ] somehow get list of streams that are "too large"
+  - ? how to determine what is too large
+  - ? how to pull this info
+- [ ] for each of those streams:
+  - [ ] insert ref to upload of rolled up history using nats client
+    - [ ] get back sequence number (seq) of insert
+      - ? is that given back by default?
+  - [ ] upload stream's history into that ref
+  - [ ] upload rolled up state as last line of upload
+  - [ ] when upload confirmed
+   - [ ] remove history up to seq
+- [ ] close
+  - [ ] run this as a scheduled job

@@ -60,7 +60,7 @@ export function watch(scope, callback, user, domain) {
         history: [],
         metadataHistory: [],
         state: {},
-        metadata:  { domain, owner: user, name: scope}, //  TODO: more...
+        metadata:  { id, domain, owner: user, name: scope}, //  TODO: more...
         patch: null
       })
     }
@@ -96,7 +96,7 @@ export function watch(scope, callback, user, domain) {
             history,
             metadataHistory,
             state: structuredClone(state),
-            metadata: structuredClone(metadata),
+            metadata: { ...structuredClone(metadata), id },
             patch: null
           })
           resolveWatchSynced()

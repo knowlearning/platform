@@ -40,14 +40,6 @@ services:
       - postgres
       - gcs-emulator
       - nats-server
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          cpus: '2'
-          memory: 2G
 
   nats-server:
     image: nats:2.10.18
@@ -59,11 +51,3 @@ services:
     volumes:
       - ../source/nats.conf:/etc/nats/nats.conf
     command: -c /etc/nats/nats.conf
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          cpus: '2'
-          memory: 2G
