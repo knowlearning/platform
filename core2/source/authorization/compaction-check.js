@@ -11,7 +11,7 @@ export default async function compactionCheck(subject) {
   const id = await jsm.streams.find(subject)
   const size = (await jsm.streams.info(id)).state.bytes
 
-  if (size > 1000 && !currentlyCompacting[subject]) {
+  if (size > 5000 && !currentlyCompacting[subject]) {
     currentlyCompacting[subject] = true
     compact(subject, id)
       .catch(error => console.warn('ERROR COMPACTING', subject, id, error))
@@ -43,6 +43,6 @@ async function compact(subject) {
   })
 
   if (response.status === 200) {
-    // TODO: purge all messages up to seq
+    await jsm.streams.purge(stream, { seq: seq-1 })
   }
 }
