@@ -60,7 +60,8 @@ export default async function(err, msg) {
             allow: [
               userPrefix,  // Publishing to subjects for this user on this domain
               `$JS.API.STREAM.INFO.>`,
-              // `$JS.API.INFO`,
+              // TODO: REMOVE FOR CLIENTS EXCEPT FOR CORE (needed to do jsm.streams.find)
+              `$JS.API.INFO`,
               // `$JS.API.STREAM.NAMES`,
               // `$JS.API.STREAM.CREATE.>`,
               // `$JS.API.CONSUMER.CREATE.>`,

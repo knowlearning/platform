@@ -7,7 +7,7 @@ import { upload, download } from './storage.js'
 import configure from './configure.js'
 import configuredQuery from './configured-query.js'
 import handleRelationalUpdate from './handle-relational-update.js'
-import { nc } from './nats.js'
+import { nc, js, jsm } from './nats.js'
 import Agent from './agent/deno/deno.js'
 
 function isSession(subject) {
@@ -16,11 +16,12 @@ function isSession(subject) {
 
 export default async function handleSideEffects(error, message) {
   const { subject, data } = message
+  const originalSubject = subject.substring(subject.indexOf('.') + 1)
   try {
     const respond = response => {
       const id = message.headers.headers.get('Nats-Stream')[0]
       const seq = parseInt(message.headers.headers.get('Nats-Sequence')[0])
-      const responseSubject = `responses.${subject.substring(subject.indexOf('.') + 1)}`
+      const responseSubject = `responses.${originalSubject}`
       nc.publish(responseSubject, encodeJSON({...response, id, seq}))
     }
     if (isSession(subject)) {
@@ -69,9 +70,44 @@ export default async function handleSideEffects(error, message) {
         configure(domain, config, report)
       }
       await handleRelationalUpdate(message)
+      compactionCheck(originalSubject)
+        .catch(error => {
+          console.warn('ERROR in compaction check', error)
+        })
       respond({})
     }
   } catch (error) {
     console.log('error decoding JSON', error, subject, data)
   }
+}
+
+const currentlyCompacting = {}
+
+async function compactionCheck(subject) {
+  if (currentlyCompacting[subject]) return
+
+  const id = await jsm.streams.find(subject)
+  const size = (await jsm.streams.info(id)).state.bytes
+
+  if (size > 1000 && !currentlyCompacting[subject]) {
+    currentlyCompacting[subject] = true
+    compact(subject, id)
+      .catch(error => console.warn('ERROR COMPACTING', subject, id, error))
+      .finally(() => currentlyCompacting[subject] = false)
+  }
+}
+
+async function compact(subject) {
+  const uploadId = Agent.uuid()
+  const uploadURL = await Agent.upload({ id: uploadId })
+  const { seq, stream } = await js.publish(subject, JSONCodec().encode([{ metadata: true, op: 'add', path: ['snapshot'], value: uploadId }]))
+  const messages = await (await js.consumers.get(stream)).consume()
+  let file = ''
+  for await (const message of messages) {
+    if (message.seq === seq) break
+
+    file += JSON.stringify(message.json()) + '\n'
+  }
+  await fetch(uploadURL.replace('https://localhost:4443', 'http://gcs-emulator:8000'), { method: 'POST', body: file })
+  messages.close()
 }
