@@ -12,13 +12,15 @@ const {
 } = environment
 
 //  need to redirect url because of quirk in how apiEndpoint is used for constructing signed urls
-const directedURL = (url, internal) => {
+const directedURL = (url, internal, type) => {
   if (MODE === 'local') {
     if (internal) {
       const [bucketId, objectId] = (new URL(url)).pathname.slice(1).split('/')
       //  signed urls have issues when not coming from configured -public-domain
       //  in fake-gcs-server
-      return `${INTERNAL_GCS_API_ENDPOINT}/storage/v1/b/${bucketId}/o/${objectId}?alt=media`
+      //  so we have to execute through other available router handlers...
+      const end = type === 'upload' ? `?uploadType=media&name=${objectId}` : `/${objectId}`
+      return `${INTERNAL_GCS_API_ENDPOINT}/${type}/storage/v1/b/${bucketId}/o` + end
     }
     else return `${EXTERNAL_GCS_API_ENDPOINT}/${url.split('/').slice(3).join('/')}`
   }
@@ -43,7 +45,7 @@ async function upload(contentType, id, internal=false) {
     contentType
   }
   const [url] = await bucket.file(id).getSignedUrl(options)
-  return { url: directedURL(url, internal), info }
+  return { url: directedURL(url, internal, 'upload'), info }
 }
 
 async function download(id, retries=3, internal=false) {
@@ -59,7 +61,7 @@ async function download(id, retries=3, internal=false) {
     const options = { action: 'read', expires }
 
     const [url] = await bucket.file(id).getSignedUrl(options)
-    return directedURL(url, internal)
+    return directedURL(url, internal, 'download')
   }
   catch (error) {
     console.warn('Error getting download url', error, id)

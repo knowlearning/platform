@@ -99,15 +99,28 @@ async function compactionCheck(subject) {
 
 async function compact(subject) {
   const uploadId = Agent.uuid()
-  const uploadURL = await Agent.upload({ id: uploadId })
   const { seq, stream } = await js.publish(subject, JSONCodec().encode([{ metadata: true, op: 'add', path: ['snapshot'], value: uploadId }]))
   const messages = await (await js.consumers.get(stream)).consume()
   let file = ''
+
   for await (const message of messages) {
     if (message.seq === seq) break
 
     file += JSON.stringify(message.json()) + '\n'
   }
-  await fetch(uploadURL.replace('https://localhost:4443', 'http://gcs-emulator:8000'), { method: 'POST', body: file })
   messages.close()
+
+  const type = 'text/plain'
+  const { url, info } = await upload(type, uploadId, true)
+  await Agent.create({ id: uploadId, active: info })
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': type },
+    body: file
+  })
+
+  if (response.status === 200) {
+    // TODO: purge all messages up to seq
+  }
 }

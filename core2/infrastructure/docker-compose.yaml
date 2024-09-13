@@ -1,6 +1,6 @@
 services:
   gcs-emulator:
-    image: fsouza/fake-gcs-server:1.47.4
+    image: fsouza/fake-gcs-server:1.49.3
     container_name: gcs-emulator
     ports:
       - 4443:4443
