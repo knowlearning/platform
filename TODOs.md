@@ -84,7 +84,7 @@
 
 - [X] on update of stream
   - [X] check size of stream
-  - [ ] if "too large" compact it
+  - [X] if "too large" compact it
     - [X] insert ref to upload of rolled up history using nats client
       - [X] get back sequence number (seq) of insert
     - [X] upload stream's history into that ref
