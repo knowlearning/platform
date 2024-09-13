@@ -28,7 +28,11 @@ async function compact(subject) {
   for await (const message of messages) {
     if (message.seq === seq) break
 
-    file += JSON.stringify(message.json()) + '\n'
+    const timestamp = Math.round(message.info.timestampNanos/1_000_000)
+    const serializedPatch = JSON.stringify(message.json())
+
+    file += `${timestamp} ${serializedPatch}\n`
+    message.ack()
   }
   messages.close()
 
