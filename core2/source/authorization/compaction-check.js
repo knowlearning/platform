@@ -31,7 +31,7 @@ async function compact(subject) {
     const timestamp = Math.round(message.info.timestampNanos/1_000_000)
     const serializedPatch = JSON.stringify(message.json())
 
-    file += `${timestamp} ${serializedPatch}\n`
+    file += `${message.seq} ${timestamp} ${serializedPatch}\n`
     message.ack()
   }
   messages.close()
