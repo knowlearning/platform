@@ -35,6 +35,8 @@ const randomBytes = (size, encoding) => {
 
 const environment = Deno.env.toObject()
 
+const applyPatch = fastJSONPatch.applyPatch
+
 export {
   pg,
   serve,
@@ -55,6 +57,8 @@ export {
   nkeysFromSeed,
   uuid,
   GCSStorageClient,
+  standardJSONPatch,
+  applyPatch,
   isUUID
 }
 
