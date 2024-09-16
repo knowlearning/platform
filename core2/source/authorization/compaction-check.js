@@ -1,6 +1,6 @@
 import { encodeJSON, applyPatch, standardJSONPatch } from './externals.js'
 import { js, jsm } from './nats.js'
-import { upload, download } from './storage.js'
+import { upload, download, concat } from './storage.js'
 import Agent from './agent/deno/deno.js'
 
 const currentlyCompacting = {}
@@ -21,7 +21,9 @@ export default async function compactionCheck(subject) {
 
 async function compact(subject) {
   const uploadId = Agent.uuid()
-  const { seq, stream } = await js.publish(subject, encodeJSON([{ metadata: true, op: 'add', path: ['snapshot'], value: uploadId }]))
+  const composeId = Agent.uuid()
+  let previousSnapshotId
+  const { seq, stream } = await js.publish(subject, encodeJSON([{ metadata: true, op: 'add', path: ['snapshot'], value: composeId }]))
   const messages = await (await js.consumers.get(stream)).consume()
   let file = ''
   let state, metadata
@@ -33,6 +35,7 @@ async function compact(subject) {
       const snapshot = await getSnapshotState(patch)
       state = snapshot.state
       metadata = snapshot.metadata
+      previousSnapshotId = snapshot.last
       console.log('STATE SNAPSHOT!!!!!!!!!!', state, metadata)
     }
 
@@ -50,11 +53,12 @@ async function compact(subject) {
   file += JSON.stringify([
     { metadata: true, op: 'replace', path: [], value: metadata },
     { op: 'replace', path: [], value: state }
-  ])
+  ]) + '\n'
 
   const type = 'text/plain'
-  const { url, info } = await upload(type, uploadId, true)
-  await Agent.create({ id: uploadId, active: info })
+  const targetId = previousSnapshotId ? uploadId : composeId
+  const { url, info } = await upload(type, targetId, true)
+  await Agent.create({ id: targetId, active: info })
 
   const response = await fetch(url, {
     method: 'POST',
@@ -63,6 +67,10 @@ async function compact(subject) {
   })
 
   if (response.status === 200) {
+    // TODO: compose the new file and old file (if exists
+    if (previousSnapshotId) {
+      await concat([previousSnapshotId, uploadId], composeId)
+    }
     await jsm.streams.purge(stream, { seq })
   }
 }
@@ -82,7 +90,7 @@ async function getSnapshotState(patch) {
         state = applyStandardPatch(state, patch.filter(op => !op.metadata))
       }
     })
-    return { state, metadata }
+    return { state, metadata, last: snapshotId }
   }
   else return { state, metadata }
 }

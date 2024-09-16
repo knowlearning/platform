@@ -74,4 +74,8 @@ async function download(id, retries=3, internal=false) {
   }
 }
 
-export { upload, download }
+function concat(sourceIds, targetId) {
+  return bucket.combine(sourceIds, targetId)
+}
+
+export { upload, download, concat }
