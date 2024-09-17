@@ -10,6 +10,7 @@ import configuredQuery from './configured-query.js'
 import handleRelationalUpdate from './handle-relational-update.js'
 import compactionCheck from './compaction-check.js'
 import Agent from './agent/deno/deno.js'
+import { client as redis } from './redis.js'
 
 function isSession(subject) {
   return subject.split('.')[4] === 'sessions'

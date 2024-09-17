@@ -12,7 +12,7 @@ window.natsClientPromise = new Promise(async r => {
   //        until the auth server can spin up
   await new Promise(r => setTimeout(r, 2000))
   r(connect({
-    servers: ['nats://nats-server:4222'],
+    servers: ['nats://nats:4222'],
     token: `${(await environment()).auth.user}`
   }))
 })

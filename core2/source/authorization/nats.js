@@ -9,11 +9,11 @@ import {
 const { NATS_AUTH_USER_NKEY_PRIVATE } = environment
 
 const nc = await NATSClient({
-  servers: "nats://nats-server:4222",
+  servers: "nats://nats:4222",
   authenticator: nkeyAuthenticator(new TextEncoder().encode(NATS_AUTH_USER_NKEY_PRIVATE))
 })
 
-console.log('GOT CLIENT....')
+console.log('NATS CONNECTED!')
 const jsm = await jetstreamManager(nc)
 const js = await jetstream(nc)
 

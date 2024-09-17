@@ -8,6 +8,7 @@ import * as pg from "https://deno.land/x/postgres@v0.17.1/mod.ts"
 import nodePostres from 'npm:pg@8.11.0'
 import { serve } from "https://deno.land/std@0.202.0/http/server.ts"
 import { fromSeed as nkeysFromSeed, decode as decodeJWT, encode as encodeJWT, encodeAuthorizationResponse } from 'npm:nats-jwt@0.0.9'
+import { createClient as createRedisClient } from 'npm:redis@4.2.0'
 
 /* for agent dependencies */
 import { validate as isUUID, v4 as uuid } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
@@ -58,6 +59,7 @@ export {
   uuid,
   GCSStorageClient,
   standardJSONPatch,
+  createRedisClient,
   applyPatch,
   isUUID
 }

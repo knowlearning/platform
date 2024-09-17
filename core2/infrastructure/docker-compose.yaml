@@ -39,11 +39,12 @@ services:
     depends_on:
       - postgres
       - gcs-emulator
-      - nats-server
+      - nats
+      - redis
 
-  nats-server:
+  nats:
     image: nats:2.10.18
-    container_name: nats-server
+    container_name: nats
     ports:
       - 4222:4222
       - 8222:8222
@@ -51,3 +52,12 @@ services:
     volumes:
       - ../source/nats.conf:/etc/nats/nats.conf
     command: -c /etc/nats/nats.conf
+
+  redis:
+    image: redis:7.4.0
+    container_name: redis
+    ports:
+      - 6379:6379
+    env_file:
+      - ./.credentials/development
+      - ./environment/development
