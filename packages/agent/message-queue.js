@@ -10,7 +10,7 @@ export async function process(id, sequence) {
     ack_policy: "explicit"
   })
   const { last_seq: historyLength, first_ts } = (await jetstreamManager.streams.info(id)).state
-  const messages = await c.consume({ max_messages: 1000 })
+  const messages = await c.consume()
   return {
     messages,
     historyLength,

@@ -1,4 +1,4 @@
-import { state, watch, metadata, interact, synced, reset } from './synchronization.js'
+import { state, watch, metadata, interact, synced, reset, history } from './synchronization.js'
 import { create } from './deprecated.js'
 import { upload, download } from './storage.js'
 import { claim } from './admin.js'
@@ -15,5 +15,6 @@ export default {
   metadata,
   upload,
   download,
+  history,
   claim
 }
