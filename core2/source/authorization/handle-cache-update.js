@@ -65,3 +65,7 @@ export default async function handleCacheUpdate(id, message) {
 
   await transaction.exec()
 }
+
+export function getState(id) {
+  return redis.json.get(id)
+}

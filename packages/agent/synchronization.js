@@ -1,5 +1,6 @@
 import * as messageQueue from './message-queue.js'
 import resolveReference from './resolve-reference.js'
+import { subscribe } from './session.js'
 
 const outstandingPromises = new Set()
 

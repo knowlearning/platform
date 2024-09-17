@@ -41,6 +41,10 @@ export async function query(query, params, domain) {
   return result.rows
 }
 
+export async function subscribe(id) {
+  return updateSession('subscriptions', { id })
+}
+
 export async function updateSession(field, value) {
   await sessionInitialized
   const id = uuid()
