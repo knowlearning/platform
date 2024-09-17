@@ -90,8 +90,8 @@ export function watch(scope, callback, user, domain) {
       else if (message.seq === historyLength) {
         try {
           addPatchToHistory(patch)
-          state = stateFromHistory(history)
-          metadata = stateFromHistory(metadataHistory)
+          state = history.reduce(applyStandardPatch, state)
+          metadata = metadataHistory.reduce(applyStandardPatch, metadata)
           metadata.created = created
           metadata.updated = Math.floor(message.info.timestampNanos / 1_000_000)
           history.slice(0, history.length) // TODO: decide what to do with history caching
@@ -169,10 +169,6 @@ export async function interact(scope, patch) {
   const { auth: { user }, domain } = await environment()
   const { id } = await resolveReference(domain, user, scope)
   return messageQueue.publish(id, message, false, false)
-}
-
-function stateFromHistory(history) {
-  return history.reduce(applyStandardPatch, {})
 }
 
 function applyStandardPatch(state, patch) {
