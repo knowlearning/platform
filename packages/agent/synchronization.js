@@ -45,7 +45,6 @@ export function watch(scope, callback, user, domain) {
     }
 
     let { state, metadata, sequence } = await subscribe(id) || { state: {}, metadata: { id, domain, owner: user, name: scope}, sequence: 0 }
-    console.log('STATE STARTING FROM', sequence, metadata, state)
 
     const { messages, historyLength, created } = await messageQueue.process(id, sequence+1)
 
@@ -77,11 +76,8 @@ export function watch(scope, callback, user, domain) {
     }
 
     //  TODO: account for history if old messages were cleared
-    console.log('STARTING!!!!!!!!!!!!!!!!!!!', sequence)
     for await (const message of messages) {
       if (closed) return resolveWatchSynced()
-
-      console.log(sequence, message.seq)
 
       const patch = JSONCodec().decode(message.data)
       if (message.seq < historyLength) {
