@@ -183,7 +183,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
               states[qualifiedScope] = await states[qualifiedScope]
 
               if (states[qualifiedScope].ii + 1 !== message.ii) {
-                console.warn('OUT OF ORDER WATCHER RECEIVED', qualifiedScope, states[qualifiedScope], message)
+                //console.warn('OUT OF ORDER WATCHER RECEIVED', qualifiedScope, states[qualifiedScope], message)
                 return
               }
 

@@ -79,7 +79,7 @@ export default function({ metadata, environment, state, watchers, synced, sentUp
     }
     const watcherIndex = watchers[key].findIndex(x => x === fn)
     if (watcherIndex > -1) watchers[key].splice(watcherIndex, 1)
-    else console.warn('TRIED TO REMOVE WATCHER THAT DOES NOT EXIST', key, fn)
+    //else console.warn('TRIED TO REMOVE WATCHER THAT DOES NOT EXIST', key, fn)
   }
 
   return [ watch, removeWatcher ]
