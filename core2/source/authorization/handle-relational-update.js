@@ -2,23 +2,14 @@ import { decodeNATSSubject, decodeJSON } from './externals.js'
 import * as postgres from './postgres.js'
 import postgresDefaultTables from './postgres-default-tables.js'
 import domainConfiguration from './domain-configuration.js'
-import { jsm } from './nats.js'
 
-const cache = {}
-function subjectToUUID(subject) {
-  if (!cache[subject]) cache[subject] = jsm.streams.find(subject)
-  return cache[subject]
-}
-
-export default async function handleRelationalUpdate(message) {
+export default async function handleRelationalUpdate(id, message) {
   const { subject, data } = message
 
   const originalSubject = subject.substring(subject.indexOf('.') + 1)
 
   const [domain, user, name] = decodeNATSSubject(originalSubject)
   if (domain === 'core') return
-
-  const id = await subjectToUUID(originalSubject)
 
   const patch = decodeJSON(data)
   const metadataPatch = patch.filter(op => op.metadata)

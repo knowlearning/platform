@@ -10,7 +10,7 @@ import configuredQuery from './configured-query.js'
 import handleRelationalUpdate from './handle-relational-update.js'
 import compactionCheck from './compaction-check.js'
 import Agent from './agent/deno/deno.js'
-import { client as redis } from './redis.js'
+import handleCacheUpdate from './handle-cache-update.js'
 
 function isSession(subject) {
   return subject.split('.')[4] === 'sessions'
@@ -19,12 +19,12 @@ function isSession(subject) {
 export default async function handleSideEffects(error, message) {
   const { subject, data } = message
   const originalSubject = subject.substring(subject.indexOf('.') + 1)
+  const streamId = message.headers.headers.get('Nats-Stream')[0]
   try {
     const respond = response => {
-      const id = message.headers.headers.get('Nats-Stream')[0]
       const seq = parseInt(message.headers.headers.get('Nats-Sequence')[0])
       const responseSubject = `responses.${originalSubject}`
-      nc.publish(responseSubject, encodeJSON({...response, id, seq}))
+      nc.publish(responseSubject, encodeJSON({...response, id: streamId, seq}))
     }
     if (isSession(subject)) {
       const patch = decodeJSON(data)
@@ -71,7 +71,8 @@ export default async function handleSideEffects(error, message) {
         console.log('CONFIGURING DOMAAAAAAAAAAAAAAIIIIIIIIINNNNNNN!!!!!!!!!!!!!!', domain, config, report)
         configure(domain, config, report)
       }
-      await handleRelationalUpdate(message)
+      await handleRelationalUpdate(streamId, message)
+      await handleCacheUpdate(streamId, message)
       compactionCheck(originalSubject)
         .catch(error => {
           console.warn('ERROR in compaction check', error)

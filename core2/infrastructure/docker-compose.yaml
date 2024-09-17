@@ -54,7 +54,7 @@ services:
     command: -c /etc/nats/nats.conf
 
   redis:
-    image: redis:7.4.0
+    image: redis/redis-stack:7.4.0-v0
     container_name: redis
     ports:
       - 6379:6379
