@@ -14,20 +14,21 @@ const MOVE_SCRIPT = `
   redis.call('JSON.ARRINSERT', key, path, to_index, castedMoveValue)
 `
 
-function arrayPathRepresentationToJSONPath(arrayPath) {
-  return arrayPath.length ? `$[${arrayPath.map(JSON.stringify).join('][')}]` : '$'
+function arrayPathRepresentationToJSONPath(arrayPath, metadata) {
+const prefix = metadata ? `$['metadata']` :`$['state']`
+  return arrayPath.length ? `${prefix}[${arrayPath.map(JSON.stringify).join('][')}]` : prefix
 }
 
-export default async function handleCacheUpdate(id, message) {
+export default async function handleCacheUpdate(id, message, seq) {
   //  TODO: decide what to do on cache miss
 
   const transaction = redis.multi()
-  transaction.json.set(id, '$', {}, { NX: true }) // initialize state to empty object if does not exist
+  transaction.json.set(id, '$', { state: {}, metadata: {}, sequence: 0 }, { NX: true }) // initialize state to empty object if does not exist
   const patch = decodeJSON(message.data)
 
   for (let i=0; i<patch.length; i++) {
-    const { op, path, from, value } = patch[i]
-    const JSONPath = arrayPathRepresentationToJSONPath(path)
+    const { op, path, from, value, metadata } = patch[i]
+    const JSONPath = arrayPathRepresentationToJSONPath(path, metadata)
     if (op === 'add') {
       if (JSONPath.match(/\[\-1\]$/)) { // if is to end of array then append
         transaction.json.arrAppend(id, JSONPath.slice(0,-2), value)
@@ -57,15 +58,17 @@ export default async function handleCacheUpdate(id, message) {
       //  TODO: remove above limitation
       const fromIndex = from[from.length - 1]
       const toIndex = path[path.length - 1]
-      const arrayPath = arrayPathRepresentationToJSONPath(path.slice(0, -1))
+      const arrayPath = arrayPathRepresentationToJSONPath(path.slice(0, -1), metadata)
       const params = { keys: [id], arguments: [arrayPath, ''+fromIndex, ''+toIndex] }
       transaction.eval(MOVE_SCRIPT, params)
     }
   }
 
+  transaction.json.set(id, `$['sequence']`, seq) //  TODO: this is an opportunity to ensure sequence is applied in order
+
   await transaction.exec()
 }
 
-export function getState(id) {
+export function getCache(id) {
   return redis.json.get(id)
 }

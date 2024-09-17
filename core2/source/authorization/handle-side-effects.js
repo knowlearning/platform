@@ -10,7 +10,7 @@ import configuredQuery from './configured-query.js'
 import handleRelationalUpdate from './handle-relational-update.js'
 import compactionCheck from './compaction-check.js'
 import Agent from './agent/deno/deno.js'
-import handleCacheUpdate, { getState } from './handle-cache-update.js'
+import handleCacheUpdate, { getCache } from './handle-cache-update.js'
 
 function isSession(subject) {
   return subject.split('.')[4] === 'sessions'
@@ -41,7 +41,7 @@ export default async function handleSideEffects(error, message) {
           respond({ value: url })
         }
         else if (path[path.length-2] === 'subscriptions') {
-          respond({ value: await getState(value.id) })
+          respond({ value: await getCache(value.id) })
         }
         else if (path[path.length-2] === 'downloads') {
           respond({ value: await download(value.id) })
@@ -71,7 +71,7 @@ export default async function handleSideEffects(error, message) {
         configure(domain, config, report)
       }
       await handleRelationalUpdate(streamId, message)
-      await handleCacheUpdate(streamId, message)
+      await handleCacheUpdate(streamId, message, seq)
       compactionCheck(originalSubject)
         .catch(error => {
           console.warn('ERROR in compaction check', error)

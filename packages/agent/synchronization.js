@@ -34,8 +34,6 @@ export function watch(scope, callback, user, domain) {
   let closeMessageQueue
   const history = []
   const metadataHistory = []
-  let state = {}
-  let metadata = {}
   ;(async () => {
     const { id, user: owner, domain: d, scope: s } = await resolveReference(domain, user, scope)
     user = owner
@@ -46,7 +44,10 @@ export function watch(scope, callback, user, domain) {
       return
     }
 
-    const { messages, historyLength, created } = await messageQueue.process(id)
+    let { state, metadata, sequence } = await subscribe(id) || { state: {}, metadata: { id, domain, owner: user, name: scope}, sequence: 0 }
+    console.log('STATE STARTING FROM', sequence, metadata, state)
+
+    const { messages, historyLength, created } = await messageQueue.process(id, sequence+1)
 
     if (closed) {
       resolveWatchSynced()
@@ -54,14 +55,14 @@ export function watch(scope, callback, user, domain) {
       return
     }
 
-    if (historyLength === 0) {
+    if (historyLength <= sequence) {
       resolveWatchSynced()
       callback({
-        ii: 0,
+        ii: sequence-1,
         history: [],
         metadataHistory: [],
-        state: {},
-        metadata:  { id, domain, owner: user, name: scope}, //  TODO: more...
+        state: structuredClone(state),
+        metadata: { ...structuredClone(metadata), created }, //  TODO: more...
         patch: null
       })
     }
@@ -76,8 +77,11 @@ export function watch(scope, callback, user, domain) {
     }
 
     //  TODO: account for history if old messages were cleared
+    console.log('STARTING!!!!!!!!!!!!!!!!!!!', sequence)
     for await (const message of messages) {
       if (closed) return resolveWatchSynced()
+
+      console.log(sequence, message.seq)
 
       const patch = JSONCodec().decode(message.data)
       if (message.seq < historyLength) {
