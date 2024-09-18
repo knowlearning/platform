@@ -262,23 +262,24 @@ export async function history(scope, user, domain) {
   const lines = []
   const messages = await c.consume()
   for await (const message of messages) {
-    const data = message.json()
-    if (previousBlob === undefined && data[0].metadata && data[0].path[0] === 'snapshot') {
-      const id = data[0].path['0'].value
-      previousBlob = Agent.download(id).then(r => r.body)
+    const patch = message.json()
+    if (!previousBlob) {
+      if (patch[0].metadata && patch[0].path[0] === 'snapshot') {
+        previousBlob = Agent.download(patch[0].value).then(r => r.blob())
+      }
+      else previousBlob = new Blob([])
     }
-    else previousBlob = null
 
     const { seq, di: { timestampNanos } } = message
     const timestamp = Math.round(timestampNanos/1_000_000)
 
-    lines.push(`${seq} ${timestamp} ${JSON.stringify(data)}\n`)
+    lines.push(`${seq} ${timestamp} ${JSON.stringify(patch)}\n`)
 
     if (message.seq === last_seq) break
   }
 
   const blob = new Blob(lines, { type: 'text/plain' })
-  return new Blob([await previousBlob || '', blob], { type: 'text/plain' })
+  return new Blob([await previousBlob, blob], { type: 'text/plain' })
 }
 
 function isValidMetadataMutation({ path, op, value }) {

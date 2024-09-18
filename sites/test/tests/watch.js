@@ -23,7 +23,6 @@ export default function () {
             }
           })
 
-        await pause(100)
         await Agent.synced()
         state.x = 1
         await pause()
@@ -291,7 +290,6 @@ export default function () {
           resolve()
         }
       })
-      await pause(100)
       await Agent.synced()
       s.x = 1
       await pause()
@@ -325,7 +323,6 @@ export default function () {
       })
 
       on('open', async () => {
-        await pause(100)
         await Agent.synced()
         state.y = 2
         await pause()
@@ -361,7 +358,6 @@ export default function () {
       })
 
       on('open', async () => {
-        await pause(100)
         await Agent.synced()
         state.y = 2
         await pause()
@@ -393,7 +389,6 @@ export default function () {
       })
 
       on2('open', async () => {
-        await pause(100)
         await Agent.synced()
         state.x += 1
         await pause()

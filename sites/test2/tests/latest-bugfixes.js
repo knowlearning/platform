@@ -66,14 +66,14 @@ export default function latestBugfixes() {
 
       expect(updateOrder).to.deep.equal(expectedUpdateOrder)
 
-      let resolveHistoryLength
-      const historyLengthPromise = new Promise(r => resolveHistoryLength = r)
-      const unwatch = Agent.watch(id, ({ history }) => {
-        unwatch()
-        resolveHistoryLength(history.length)
-      })
+      const historyLength = await (
+        Agent
+          .history(id)
+          .then(blob => blob.text())
+          .then(text => text.split('\n').length - 1)
+      )
 
-      expect(await historyLengthPromise).to.equal(4)
+      expect(historyLength).to.equal(4)
 
     })
 
