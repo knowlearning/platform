@@ -3,9 +3,11 @@ import { applyPatch } from 'fast-json-patch'
 import { getToken, login, logout } from './auth.js'
 import GenericAgent from '../generic/index.js'
 
+const TEST_DOMAIN = 'tests.knowlearning.systems'
 const SECURE = window.location.protocol === 'https:'
 const DEVELOPMENT_HOST = `localhost:3200${ SECURE ? '1' : '2' }`
-const REMOTE_HOST = localStorage.getItem('mode') === 'staging' ? 'api.staging.knowlearning.systems' : 'api.knowlearning.systems'
+const ENVIRONMENT_API_HOST = localStorage.getItem('API_HOST')
+const REMOTE_HOST = window.location.hostname === TEST_DOMAIN && ENVIRONMENT_API_HOST ? ENVIRONMENT_API_HOST : 'api.knowlearning.systems'
 
 function isLocal() { return localStorage.getItem('api') === 'local' }
 
