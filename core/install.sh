@@ -1,6 +1,9 @@
-sudo apt update
-sudo apt install git
-git clone https://github.com/knowlearning/platform.git
+# TODO: Run these before the rest of the script
+# sudo apt update
+# sudo apt install git
+# git clone https://github.com/knowlearning/platform.git
+
+apt install nodejs npm
 git clone https://github.com/knowlearning/tests.git
 
 # Add Docker's official GPG key:
