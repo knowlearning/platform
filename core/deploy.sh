@@ -13,10 +13,10 @@ if [ -z "$1" ] || [ "$1" = "--setup" ]; then
 
   echo 'Deploying Development Profile To Local Cluster'
 
-  npm --prefix ../sites/test     run dev &
-  npm --prefix ../sites/admin    run dev &
-  npm --prefix ../sites/embed    run dev &
-  npm --prefix ../sites/sequence run dev &
+  # npm --prefix ../sites/test     run dev &
+  # npm --prefix ../sites/admin    run dev &
+  # npm --prefix ../sites/embed    run dev &
+  # npm --prefix ../sites/sequence run dev &
 
   skaffold dev \
     --profile development \
