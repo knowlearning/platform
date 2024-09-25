@@ -6,6 +6,9 @@
 apt install nodejs npm
 npm install -g artillery@latest
 
+sudo npx playwright install-deps
+npx playwright install
+
 git clone https://github.com/knowlearning/tests.git
 
 # Add Docker's official GPG key:
