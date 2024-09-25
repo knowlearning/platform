@@ -4,6 +4,8 @@
 # git clone https://github.com/knowlearning/platform.git
 
 apt install nodejs npm
+npm install -g artillery@latest
+
 git clone https://github.com/knowlearning/tests.git
 
 # Add Docker's official GPG key:
