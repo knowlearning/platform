@@ -42,46 +42,39 @@ const config = {
   password: POSTGRES_PASSWORD
 }
 
-const clients = {}
+const clientPools = {}
 
 async function client(domain) {
-  if (clients[domain]) return clients[domain]
-
-  const database = domain === 'postgres' ? 'postgres' : domainToDbName(domain)
-
-  if (domain !== 'postgres') {
-    //  Create database for domain on-demand
-    try {
-      await query('postgres', `CREATE DATABASE "${database}"`)
-    }
-    catch (error) {
-      if (!ignorableErrors[error.fields.code]) {
-        console.log('ERROR CREATING DATABASE!!!!!', error)
+  if (clientPools[domain]) return clientPools[domain]
+  return clientPools[domain] = new Promise(async resolve => {
+    const database = domain === 'postgres' ? 'postgres' : domainToDbName(domain)
+    if (domain !== 'postgres') {
+      //  Create database for domain on-demand
+      try {
+        await query('postgres', `CREATE DATABASE "${database}"`)
+        query(domain, 'CREATE EXTENSION IF NOT EXISTS plpgsql')
+          .catch(error => console.warn(`error creating plpgsql extension for ${database}`, error))
+      }
+      catch (error) {
+        console.log(error)
+        if (!ignorableErrors[error.fields.code]) {
+          console.log('ERROR CREATING DATABASE!!!!!', error)
+        }
       }
     }
-  }
-
-  clients[domain] = new Promise(resolve => {
-    const retry = error => {
-      if (error) console.log('error connecting to postgres', error)
-      const client = new pg.Client({ ...config, database })
-      client
-        .connect()
-        .then(() => {
-          resolve(client)
-          query(domain, 'CREATE EXTENSION IF NOT EXISTS plpgsql')
-        })
-        .catch(async () => setTimeout(retry, 1000))
-    }
-    retry()
+    resolve(new pg.Pool({ ...config, database }, 20, true))
   })
-
-  return clients[domain]
 }
 
 async function query(database, text, values, rowMode) {
-  const c = await client(database)
-  return c.queryObject(text, values)
+  const c = await (await client(database)).connect()
+  let result
+  try {
+    result = await c.queryObject(text, values)
+  } finally {
+    c.release()
+  }
+  return result
 }
 
 async function createTable(domain, table, columns) {

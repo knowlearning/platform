@@ -1,7 +1,7 @@
 import { parse as parseYAML } from 'https://deno.land/std@0.207.0/yaml/mod.ts'
 import { validate as isUUID } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
 import { createClient as createRedisClient } from 'npm:redis@4.2.0'
-import * as pg from "https://deno.land/x/postgres@v0.17.1/mod.ts";
+import * as pg from "https://deno.land/x/postgres@v0.19.3/mod.ts";
 import nodePostres from 'npm:pg@8.11.0'
 import jwkToPem from 'npm:jwk-to-pem@2.0.5'
 import jwt from 'npm:jsonwebtoken@8.5.1'
