@@ -6,13 +6,14 @@ const { MODE, ADMIN_DOMAIN } = environment
 
 const domainAdmin = async () => false
 
+//  TODO: consider using client connection id rather than user for query connection hashing key
 export default async function (requestingDomain, targetDomain, queryName, params, user) {
   if (
     requestingDomain === ADMIN_DOMAIN
     && queryName !== 'current-config'
     && user === 'f74e9cb3-2b53-4c85-9b0c-f1d61b032b3f'
   ) {
-    return postgres.query(targetDomain, queryName, params, true)
+    return postgres.query(targetDomain, queryName, params, user)
   }
 
   if (
@@ -21,7 +22,7 @@ export default async function (requestingDomain, targetDomain, queryName, params
     && (MODE === 'local' || user === await domainAdmin(targetDomain))
   ) {
     //  TODO: ensure read-only client
-    return postgres.query(targetDomain, queryName, params, true)
+    return postgres.query(targetDomain, queryName, params, user)
   }
 
   const configuration = await domainConfiguration(targetDomain)
@@ -57,7 +58,7 @@ export default async function (requestingDomain, targetDomain, queryName, params
         }
       })
 
-    return postgres.query(targetDomain, queryBody, queryParams, true).catch(error => {
+    return postgres.query(targetDomain, queryBody, queryParams, user).catch(error => {
       //  TODO: this type of error should probably make it to the admin interface
       console.warn('POSTGRES QUERY ERROR', requestingDomain, targetDomain, error)
       const e = new Error(error.fields?.message)

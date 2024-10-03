@@ -54,10 +54,10 @@ export default async function handleRelationalUpdate(id, message) {
       const [statement, args] = postgres.setRow(domain, 'metadata', columnsToUpdate, id, columnValues)
       await
         postgres
-          .query(domain, statement, args)
+          .query(domain, statement, args, user)
           .catch(async error => {
             await handleMetadataSetError(domain, error)
-            await postgres.query(domain, statement, args)
+            await postgres.query(domain, statement, args, user)
           })
     }
   }
@@ -73,7 +73,7 @@ export default async function handleRelationalUpdate(id, message) {
       }, {})
   )
 
-  const { rows: [{ active_type }] } = await postgres.query(domain, 'SELECT active_type FROM metadata WHERE id = $1', [id])
+  const active_type = await activeType(domain, user, id)
 
   const relevantTableConfig = typeToTable[active_type]
   if (relevantTableConfig) {
@@ -89,7 +89,7 @@ export default async function handleRelationalUpdate(id, message) {
           if (path.length === 0) {
             const data = op === 'add' || op === 'replace' ? value : {}
             const [statement, params] = postgres.setRow(domain, name, columns, id, { ...data, id })
-            postgres.query(domain, statement, params)
+            postgres.query(domain, statement, params, user)
           }
           else {
             const data = op === 'add' || op === 'replace' ? value : null
@@ -114,4 +114,14 @@ async function handleMetadataSetError(domain, error) {
     )
   }
   else throw error
+}
+
+async function activeType(domain, connectionHashKey, id, retries=0) {
+  //  if the scope was just created, in a different db client, it might not be available yet
+  //  TODO: consinder implications of a user's session being served by multiple db connections... perhaps want to conistently hash to 1
+  if (retries > 3) return null
+  if (retries) await new Promise(r => setTimeout(r, retries * 50))
+  const { rows: [match] } = await postgres.query(domain, 'SELECT active_type FROM metadata WHERE id = $1', [id], connectionHashKey)
+  if (!match) return activeType(domain, id, retries + 1)
+  return match.active_type
 }

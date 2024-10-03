@@ -43,45 +43,58 @@ const config = {
   password: POSTGRES_PASSWORD
 }
 
-const clients = {}
+const clientPools = {}
 
-async function client(domain) {
-  if (clients[domain]) return clients[domain]
-
-  const database = domain === 'postgres' ? 'postgres' : domainToDbName(domain)
-
-  if (domain !== 'postgres') {
-    //  Create database for domain on-demand
-    try {
-      await query('postgres', `CREATE DATABASE "${database}"`)
-    }
-    catch (error) {
-      if (!ignorableErrors[error.fields.code]) {
-        console.log('ERROR CREATING DATABASE!!!!!', error)
+async function clientPool(domain) {
+  if (clientPools[domain]) return clientPools[domain]
+  return clientPools[domain] = new Promise(async resolve => {
+    const database = domain === 'postgres' ? 'postgres' : domainToDbName(domain)
+    if (domain !== 'postgres') {
+      //  Create database for domain on-demand
+      try {
+        await query('postgres', `CREATE DATABASE "${database}"`)
+        query(domain, 'CREATE EXTENSION IF NOT EXISTS plpgsql')
+          .catch(error => console.warn(`error creating plpgsql extension for ${database}`, error))
+      }
+      catch (error) {
+        console.log(error)
+        if (!ignorableErrors[error.fields.code]) {
+          console.log('ERROR CREATING DATABASE!!!!!', error)
+        }
       }
     }
-  }
-
-  clients[domain] = new Promise(resolve => {
-    const retry = error => {
-      if (error) console.log('error connecting to postgres', error)
-      const client = new pg.Client({ ...config, database })
-      client
-        .connect()
-        .then(() => {
-          resolve(client)
-          query(domain, 'CREATE EXTENSION IF NOT EXISTS plpgsql')
-        })
-        .catch(async () => setTimeout(retry, 1000))
-    }
-    retry()
+    resolve(new pg.Pool({ ...config, database }, 20, true))
   })
-
-  return clients[domain]
 }
 
-async function query(database, text, values, rowMode) {
-  const c = await client(database)
+const hashToConnection = {}
+const databaseToConnections = {}
+
+//  TODO: properly release connections from each database's pool
+async function connectionForHashKey(database, connectionHashKey) {
+  const fullKey = database + '/' + connectionHashKey
+  if (hashToConnection[fullKey]) return hashToConnection[fullKey]
+  if (!clientPools[database]) clientPools[database] = clientPool(database)
+
+  return hashToConnection[fullKey] = new Promise(async resolve => {
+    const pool = await clientPools[database]
+    if (pool.available > 0 ) {
+      const connection = pool.connect()
+      if (!databaseToConnections[database]) databaseToConnections[database] = []
+      databaseToConnections[database].push(connection)
+      resolve(connection)
+    }
+    else {
+      const dbConnections = databaseToConnections[database]
+      const connection = dbConnections[Math.floor(Math.random() * dbConnections.length)]
+      resolve(connection)
+    }
+  })
+}
+
+async function query(database, text, values, connectionHashKey) {
+  //  TODO: use connection hash key
+  const c = await connectionForHashKey(database, connectionHashKey)
   return c.queryObject(text, values)
 }
 
