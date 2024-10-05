@@ -21,8 +21,6 @@ services:
     container_name: postgres
     ports:
       - 5432:5432
-    volumes:
-      - ./local-gcs-bucket:/data/local-gcs-bucket
     environment:
       - POSTGRES_PASSWORD=insecure-development-password
 

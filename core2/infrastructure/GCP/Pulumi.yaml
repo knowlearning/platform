@@ -1,0 +1,4 @@
+name: core-gcp
+runtime: nodejs
+config:
+  gcp:project: opensourcelearningplatform

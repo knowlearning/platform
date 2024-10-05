@@ -1,0 +1,9 @@
+{
+  "name": "pulumi-gcp-deploy",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@pulumi/gcp": "^6.67.1",
+    "@pulumi/pulumi": "^3.135.1"
+  }
+}
