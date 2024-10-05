@@ -9,6 +9,20 @@ const startupScript = fs.readFileSync('../install/nats.sh', 'utf8');
 const zone = "us-central1-a";
 const region = "us-central1";
 
+// Create a firewall rule to allow traffic on port 4222
+const firewall = new gcp.compute.Firewall("nats-firewall", {
+    network: "default",
+    allows: [
+        {
+            protocol: "tcp",
+            ports: ["4222"],
+        },
+    ],
+    sourceRanges: ["0.0.0.0/0"],
+    targetTags: ["nats-backend"],
+});
+
+
 // Create an instance template with the startup script and network tags
 const instanceTemplate = new gcp.compute.InstanceTemplate("nats-instance-template", {
     machineType: "e2-micro",
@@ -31,7 +45,7 @@ const instanceTemplate = new gcp.compute.InstanceTemplate("nats-instance-templat
 });
 
 // Create a managed instance group using the template
-const instanceGroupManager = new gcp.compute.RegionInstanceGroupManager("nats-node-group-manager", {
+const instanceGroupManager = new gcp.compute.RegionInstanceGroupManager("nats-node-region-group-manager", {
     region,
     baseInstanceName: "nats-node",
     versions: [{
@@ -40,33 +54,20 @@ const instanceGroupManager = new gcp.compute.RegionInstanceGroupManager("nats-no
 });
 
 // Configure auto-scaling for the instance group
-const autoscaler = new gcp.compute.RegionAutoscaler("autoscaler", {
+const autoscaler = new gcp.compute.RegionAutoscaler("nats-region-autoscaler", {
     region,
     target: instanceGroupManager.id,
     autoscalingPolicy: {
         maxReplicas: 5,
-        minReplicas: 1,
+        minReplicas: 3,
         cpuUtilization: {
             target: 0.6,
         },
     },
 });
 
-// Create a firewall rule to allow traffic on port 4222
-const firewall = new gcp.compute.Firewall("nats-firewall", {
-    network: "default",
-    allows: [
-        {
-            protocol: "tcp",
-            ports: ["4222"],
-        },
-    ],
-    sourceRanges: ["0.0.0.0/0"],
-    targetTags: ["nats-backend"],
-});
-
 // Create a health check for the load balancer (TCP)
-const healthCheck = new gcp.compute.RegionHealthCheck("nats-health-check", {
+const healthCheck = new gcp.compute.RegionHealthCheck("nats-region-health-check", {
     region,
     checkIntervalSec: 5,
     timeoutSec: 5,
@@ -78,7 +79,7 @@ const healthCheck = new gcp.compute.RegionHealthCheck("nats-health-check", {
 });
 
 // Create a backend service pointing to the instance group
-const backendService = new gcp.compute.RegionBackendService("nats-backend-service", {
+const backendService = new gcp.compute.RegionBackendService("nats-region-backend-service", {
     protocol: "TCP",
     loadBalancingScheme: "EXTERNAL",
     region: region,
