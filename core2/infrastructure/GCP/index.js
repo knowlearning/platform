@@ -15,7 +15,7 @@ const firewall = new gcp.compute.Firewall("nats-firewall", {
     allows: [
         {
             protocol: "tcp",
-            ports: ["4222"],
+            ports: ["4222", "8222"],
         },
     ],
     sourceRanges: ["0.0.0.0/0"],
@@ -101,7 +101,7 @@ const forwardingRule = new gcp.compute.ForwardingRule("nats-forwarding-rule", {
     loadBalancingScheme: "EXTERNAL",
     ipAddress: staticIP.address,
     ipProtocol: "TCP",
-    ports: ["4222"],
+    ports: ["4222", "8222"],
     backendService: backendService.id,
     region: region,
 });
