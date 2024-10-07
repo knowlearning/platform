@@ -1,110 +1,69 @@
-import * as pulumi from "@pulumi/pulumi";
 import * as gcp from "@pulumi/gcp";
-import fs from "fs";
+import * as pulumi from "@pulumi/pulumi";
+import * as fs from "fs";
 
-// Read the startup script from an external file
-const startupScript = fs.readFileSync('../install/nats.sh', 'utf8');
+// Define configuration values
+const config = new pulumi.Config();
+const region = config.require("region") || "us-central1";
+const zone = config.require("zone") || "us-central1-a";
+const machineType = config.get("machineType") || "e2-micro";
+const desiredSize = config.getNumber("desiredSize") || 3; // Number of initial instances
 
-// Define the zone and region
-const zone = "us-central1-a";
-const region = "us-central1";
+// Read the NATS configuration file
+const natsConfigScript = fs.readFileSync("nats-server.conf", "utf-8");
 
-// Create a firewall rule to allow traffic on port 4222
-const firewall = new gcp.compute.Firewall("nats-firewall", {
-    network: "default",
-    allows: [
-        {
-            protocol: "tcp",
-            ports: ["4222", "8222"],
-        },
-    ],
-    sourceRanges: ["0.0.0.0/0"],
-    targetTags: ["nats-backend"],
-});
-
-
-// Create an instance template with the startup script and network tags
+// Create an instance template to define the NATS instances
 const instanceTemplate = new gcp.compute.InstanceTemplate("nats-instance-template", {
-    machineType: "e2-micro",
-    disks: [
-        {
-            boot: true,
-            sourceImage: 'debian-cloud/debian-12',
-            autoDelete: true
-        },
-    ],
-    networkInterfaces: [
-        {
-            network: "default",
-            // No external IP needed for instances behind a load balancer
-            accessConfigs: [],
-        },
-    ],
-    metadataStartupScript: startupScript + '\n/nats-server',
-    tags: ["nats-backend"],
+    machineType: machineType,
+    disks: [{
+        boot: true,
+        autoDelete: true,
+        sourceImage: "debian-cloud/debian-12"
+    }],
+    networkInterfaces: [{
+        network: "default",
+        accessConfigs: [{}], // To allow external access (e.g., NAT)
+    }],
+    metadataStartupScript: `
+        #! /bin/bash
+        sudo apt-get update
+        sudo apt-get install -y wget
+        wget https://github.com/nats-io/nats-server/releases/download/v2.8.4/nats-server-v2.8.4-linux-amd64.tar.gz
+        tar -xvzf nats-server-v2.8.4-linux-amd64.tar.gz
+        sudo mv nats-server-v2.8.4-linux-amd64/nats-server /usr/local/bin/nats-server
+
+        echo '${natsConfigScript}' > nats-server.conf
+
+        # Start NATS server with cluster configuration
+        nats-server -c nats-server.conf &
+    `,
+    serviceAccount: {
+        scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    },
 });
 
-// Create a managed instance group using the template
-const instanceGroupManager = new gcp.compute.RegionInstanceGroupManager("nats-node-region-group-manager", {
-    region,
-    baseInstanceName: "nats-node",
+// Create an instance group manager to handle scaling and management
+const instanceGroupManager = new gcp.compute.InstanceGroupManager("nats-instance-group", {
+    baseInstanceName: "nats-instance",
     versions: [{
-        instanceTemplate: instanceTemplate.selfLink,
-    }]
+        instanceTemplate: instanceTemplate.selfLinkUnique,
+    }],
+    zone
 });
 
-// Configure auto-scaling for the instance group
-const autoscaler = new gcp.compute.RegionAutoscaler("nats-region-autoscaler", {
-    region,
+// Define an autoscaler to scale the NATS instances based on CPU utilization
+const autoscaler = new gcp.compute.Autoscaler("nats-autoscaler", {
+    zone: zone,
     target: instanceGroupManager.id,
     autoscalingPolicy: {
-        maxReplicas: 5,
-        minReplicas: 3,
+        maxReplicas: 5, // Set a maximum number of instances
+        minReplicas: 3, // Minimum number of instances
         cpuUtilization: {
-            target: 0.6,
+            target: 0.6, // Scale out when average CPU is above 60%
         },
     },
 });
 
-// Create a health check for the load balancer (TCP)
-const healthCheck = new gcp.compute.RegionHealthCheck("nats-region-health-check", {
-    region,
-    checkIntervalSec: 5,
-    timeoutSec: 5,
-    healthyThreshold: 2,
-    unhealthyThreshold: 2,
-    tcpHealthCheck: {
-        port: 4222,
-    }
-});
-
-// Create a backend service pointing to the instance group
-const backendService = new gcp.compute.RegionBackendService("nats-region-backend-service", {
-    protocol: "TCP",
-    loadBalancingScheme: "EXTERNAL",
-    region: region,
-    backends: [
-        {
-            group: instanceGroupManager.instanceGroup,
-        },
-    ],
-    healthChecks: [healthCheck.id],
-});
-
-// Allocate a regional static IP address
-const staticIP = new gcp.compute.Address("nats-static-ip", {
-    region: region,
-});
-
-// Create a forwarding rule to route traffic to the backend service
-const forwardingRule = new gcp.compute.ForwardingRule("nats-forwarding-rule", {
-    loadBalancingScheme: "EXTERNAL",
-    ipAddress: staticIP.address,
-    ipProtocol: "TCP",
-    ports: ["4222", "8222"],
-    backendService: backendService.id,
-    region: region,
-});
-
-// Export the static IP address
-export const loadBalancerIP = staticIP.address;
+// Export the instance group name and instance template link
+export const instanceGroup = instanceGroupManager.name;
+export const templateLink = instanceTemplate.selfLink;

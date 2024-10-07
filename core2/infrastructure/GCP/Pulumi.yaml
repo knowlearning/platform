@@ -1,4 +1,6 @@
-name: core-gcp
+name: nats-gcp
 runtime: nodejs
 config:
   gcp:project: opensourcelearningplatform
+  nats-gcp:region: us-central1
+  nats-gcp:zone: us-central1-a
