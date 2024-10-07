@@ -10,10 +10,8 @@ const region = config.require("region") || "us-central1";
 const zone = config.require("zone") || "us-central1-a";
 const machineType = config.get("machineType") || "e2-micro";
 
-// 1. Reserve a Static External IP Address
 const staticIp = new gcp.compute.Address("nats-cluster-load-balancer", {
     addressType: "INTERNAL",
-    // Optional: Specify a specific IP address by uncommenting the next line
     address: LOAD_BALANCER_IP,
     region
 });
@@ -56,17 +54,17 @@ const instanceTemplate = new gcp.compute.InstanceTemplate("nats-instance-templat
 });
 
 // Create an instance group manager to handle scaling and management
-const instanceGroupManager = new gcp.compute.InstanceGroupManager("nats-instance-group", {
+const instanceGroupManager = new gcp.compute.RegionInstanceGroupManager("nats-instance-group", {
     baseInstanceName: "nats-instance",
     versions: [{
         instanceTemplate: instanceTemplate.selfLinkUnique,
     }],
-    zone
+    region
 });
 
 // Define an autoscaler to scale the NATS instances based on CPU utilization
-const autoscaler = new gcp.compute.Autoscaler("nats-autoscaler", {
-    zone: zone,
+const autoscaler = new gcp.compute.RegionAutoscaler("nats-autoscaler", {
+    region,
     target: instanceGroupManager.id,
     autoscalingPolicy: {
         maxReplicas: 5, // Set a maximum number of instances
@@ -75,6 +73,35 @@ const autoscaler = new gcp.compute.Autoscaler("nats-autoscaler", {
             target: 0.6, // Scale out when average CPU is above 60%
         },
     },
+});
+
+const healthCheck = new gcp.compute.HealthCheck('nats-cluster-health-check', {
+    checkIntervalSec: 5,
+    timeoutSec: 5,
+    healthyThreshold: 2,
+    unhealthyThreshold: 2,
+    tcpHealthCheck: { // Changed from httpHealthCheck to tcpHealthCheck
+        port: 6222, // Port to perform the TCP health check
+    },
+    region: region,
+});
+
+const backendService = new gcp.compute.RegionBackendService('nats-cluster-backend-service', {
+    protocol: "TCP",
+    backends: [{
+        group: instanceGroupManager.instanceGroup,
+    }],
+    healthChecks: [healthCheck.id],
+    loadBalancingScheme: "INTERNAL",
+    region: region,
+});
+
+const forwardingRule = new gcp.compute.ForwardingRule('nats-cluster-forwarding-rule', {
+    loadBalancingScheme: "INTERNAL",
+    ports: ["6222"],
+    ipAddress: staticIp.address,
+    backendService: backendService.id,
+    region: region,
 });
 
 export const staticIpAddress = staticIp.address
