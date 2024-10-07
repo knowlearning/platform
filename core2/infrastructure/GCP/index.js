@@ -2,12 +2,21 @@ import * as gcp from "@pulumi/gcp";
 import * as pulumi from "@pulumi/pulumi";
 import * as fs from "fs";
 
+const LOAD_BALANCER_IP = "10.128.0.14"
+
 // Define configuration values
 const config = new pulumi.Config();
 const region = config.require("region") || "us-central1";
 const zone = config.require("zone") || "us-central1-a";
 const machineType = config.get("machineType") || "e2-micro";
-const desiredSize = config.getNumber("desiredSize") || 3; // Number of initial instances
+
+// 1. Reserve a Static External IP Address
+const staticIp = new gcp.compute.Address("nats-cluster-load-balancer", {
+    addressType: "INTERNAL",
+    // Optional: Specify a specific IP address by uncommenting the next line
+    address: LOAD_BALANCER_IP,
+    region
+});
 
 // Read the NATS configuration file
 const natsConfigScript = fs.readFileSync("nats-server.conf", "utf-8");
@@ -26,6 +35,10 @@ const instanceTemplate = new gcp.compute.InstanceTemplate("nats-instance-templat
     }],
     metadataStartupScript: `
         #! /bin/bash
+
+        SELF_INTERNAL_URL="$(hostname):6222"
+        LOAD_BALANCER_URL="nats-route://${LOAD_BALANCER_IP}:6222"
+
         sudo apt-get update
         sudo apt-get install -y wget
         wget https://github.com/nats-io/nats-server/releases/download/v2.8.4/nats-server-v2.8.4-linux-amd64.tar.gz
@@ -64,6 +77,4 @@ const autoscaler = new gcp.compute.Autoscaler("nats-autoscaler", {
     },
 });
 
-// Export the instance group name and instance template link
-export const instanceGroup = instanceGroupManager.name;
-export const templateLink = instanceTemplate.selfLink;
+export const staticIpAddress = staticIp.address
