@@ -41,7 +41,7 @@ services:
       - redis
 
   nats:
-    image: nats:2.10.18
+    image: nats:2.10.21
     container_name: nats
     ports:
       - 4222:4222

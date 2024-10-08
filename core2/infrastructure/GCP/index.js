@@ -36,11 +36,10 @@ const instanceTemplate = new gcp.compute.InstanceTemplate("nats-instance-templat
     metadataStartupScript: `
         #! /bin/sh
 
-        SELF_INTERNAL_URL="$(hostname):6222"
-
         sudo apt-get update
         sudo apt-get install -y wget
         wget https://github.com/nats-io/nats-server/releases/download/${NATS_VERSION}/nats-server-${NATS_VERSION}-linux-amd64.tar.gz
+        # TODO: validate download
         tar -xvzf nats-server-${NATS_VERSION}-linux-amd64.tar.gz
         sudo mv nats-server-${NATS_VERSION}-linux-amd64/nats-server /usr/local/bin/nats-server
 
@@ -62,7 +61,7 @@ const instanceTemplate = new gcp.compute.InstanceTemplate("nats-instance-templat
         sed -i "s|DYNAMIC_CLUSTER_ROUTES|$formatted_routes|g" nats-server.conf
 
         # Start NATS server with cluster configuration
-        nats-server -c nats-server.conf &
+        SERVER_NAME="$(hostname)" CLUSTER_ADVERTISE_URL="$($current_ip):6222" nats-server -c nats-server.conf &
     `,
     serviceAccount: {
         scopes: ["https://www.googleapis.com/auth/cloud-platform"],
