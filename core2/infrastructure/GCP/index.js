@@ -3,6 +3,7 @@ import * as pulumi from "@pulumi/pulumi";
 import * as fs from "fs";
 
 const LOAD_BALANCER_IP = "10.128.0.14"
+const NATS_VERSION = "v2.10.21"
 
 // Define configuration values
 const config = new pulumi.Config();
@@ -39,9 +40,9 @@ const instanceTemplate = new gcp.compute.InstanceTemplate("nats-instance-templat
 
         sudo apt-get update
         sudo apt-get install -y wget
-        wget https://github.com/nats-io/nats-server/releases/download/v2.8.4/nats-server-v2.8.4-linux-amd64.tar.gz
-        tar -xvzf nats-server-v2.8.4-linux-amd64.tar.gz
-        sudo mv nats-server-v2.8.4-linux-amd64/nats-server /usr/local/bin/nats-server
+        wget https://github.com/nats-io/nats-server/releases/download/${NATS_VERSION}/nats-server-${NATS_VERSION}-linux-amd64.tar.gz
+        tar -xvzf nats-server-${NATS_VERSION}-linux-amd64.tar.gz
+        sudo mv nats-server-${NATS_VERSION}-linux-amd64/nats-server /usr/local/bin/nats-server
 
         echo '${natsConfigScript}' > nats-server.conf
 
