@@ -1,15 +1,11 @@
 import * as gcp from "@pulumi/gcp";
-import * as pulumi from "@pulumi/pulumi";
 import * as fs from "fs";
 
 const LOAD_BALANCER_IP = "10.128.0.14"
 const NATS_VERSION = "v2.10.21"
 
-// Define configuration values
-const config = new pulumi.Config();
-const region = config.require("region") || "us-central1";
-const zone = config.require("zone") || "us-central1-a";
-const machineType = config.get("machineType") || "e2-micro";
+const region = "us-central1"
+const machineType = "e2-micro"
 
 //  TODO: remove static ip and load balancer...
 const staticIp = new gcp.compute.Address("nats-cluster-load-balancer", {

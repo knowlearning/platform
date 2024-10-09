@@ -12,7 +12,7 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-    basicSsl()
+//    basicSsl()
   ],
   resolve: {
     alias: [

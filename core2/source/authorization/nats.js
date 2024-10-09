@@ -9,7 +9,7 @@ import {
 const { NATS_AUTH_USER_NKEY_PRIVATE } = environment
 
 const nc = await NATSClient({
-  servers: "nats://nats:4222",
+  servers: "nats://34.171.149.140:4222",
   authenticator: nkeyAuthenticator(new TextEncoder().encode(NATS_AUTH_USER_NKEY_PRIVATE))
 })
 
