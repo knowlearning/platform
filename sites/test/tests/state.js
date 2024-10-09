@@ -4,16 +4,23 @@ export default function () {
 
     it('Can set a state, then retrieve the updated state', async function () {
       const id = uuid()
-
+console.log('PRE GETTING FIRST STATE')
       const state = await Agent.state(id)
+      console.log('POST GETTING FIRST STATE')
 
       state.x = 100
       state.y = 200
 
+console.log('PRE GETTING FIRST SYNC')
       await Agent.synced()
+console.log('PRE GETTING SECOND STATE')
       const firstAgentRetrievedState = await Agent.state(id)
+console.log('POST GETTING SECOND STATE')
       await Agent.synced()
+console.log('POST GETTING SECOND SYNC')
+console.log('PRE GETTING THIRD STATE')
       const secondAgentRetrievedState = await Agent2.state(id)
+console.log('POST GETTING THIRD STATE')
 
       expect(firstAgentRetrievedState).to.deep.equal(state)
       expect(state).to.deep.equal(secondAgentRetrievedState)

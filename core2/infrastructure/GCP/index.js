@@ -20,6 +20,7 @@ const natsConfigScript = fs.readFileSync("nats-server.conf", "utf-8");
 // Create an instance template to define the NATS instances
 const instanceTemplate = new gcp.compute.InstanceTemplate("nats-instance-template", {
     machineType: machineType,
+//    tags: ["nats-server"],
     disks: [{
         boot: true,
         autoDelete: true,
@@ -114,5 +115,16 @@ const forwardingRule = new gcp.compute.ForwardingRule('nats-cluster-forwarding-r
     backendService: backendService.id,
     region: region,
 });
+
+// const natsFirewallRule = new gcp.compute.Firewall("nats-firewall-rule", {
+//     network: 'default',
+//     allows: [{
+//         protocol: "tcp",
+//         ports: ["4222", "8222", "8080"]
+//     }],
+//     sourceRanges: ["0.0.0.0/0"],
+//     direction: "INGRESS",
+//     targetTags: ["nats-server"],
+// });
 
 export const staticIpAddress = staticIp.address
