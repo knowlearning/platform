@@ -6,10 +6,10 @@ import {
   jetstreamManager
 } from './externals.js'
   
-const { NATS_AUTH_USER_NKEY_PRIVATE } = environment
+const { NATS_AUTH_USER_NKEY_PRIVATE, NATS_CLUSTER_HOST } = environment
 
 const nc = await NATSClient({
-  servers: "nats://34.171.149.140:4222",
+  servers: NATS_CLUSTER_HOST,
   authenticator: nkeyAuthenticator(new TextEncoder().encode(NATS_AUTH_USER_NKEY_PRIVATE))
 })
 

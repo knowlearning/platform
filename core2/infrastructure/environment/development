@@ -1,5 +1,5 @@
 AUTHORIZE_PORT=8765
-NATS_SERVER_URL=nats://nats:422
+NATS_CLUSTER_HOST=nats://nats:4222
 INTERNAL_GCS_API_ENDPOINT=http://gcs-emulator:8000
 EXTERNAL_GCS_API_ENDPOINT=https://localhost:4443
 GCS_BUCKET_NAME=local-gcs-bucket

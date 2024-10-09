@@ -9,7 +9,7 @@ import { connect, JSONCodec } from 'nats.ws'
 import embed from './embed.js'
 
 window.natsClientPromise = connect({
-  servers: ['ws://34.171.149.140:8080/'],
+  servers: [window.NATS_WS_CLUSTER_HOST || 'ws://localhost:8080/' ],
   token: 'me'
 })
 
