@@ -1,18 +1,18 @@
 import * as gcp from "@pulumi/gcp";
 import * as fs from "fs";
 
-const LOAD_BALANCER_IP = "10.128.0.14"
 const NATS_VERSION = "v2.10.21"
+const REGION_STATIC_IP = "35.226.122.224"
 
 const region = "us-central1"
 const machineType = "e2-micro"
 
 //  TODO: remove static ip and load balancer...
-const staticIp = new gcp.compute.Address("nats-cluster-load-balancer", {
-    addressType: "INTERNAL",
-    address: LOAD_BALANCER_IP,
-    region
-});
+// const staticIp = new gcp.compute.Address("nats-cluster-load-balancer", {
+//     addressType: "INTERNAL",
+//     address: LOAD_BALANCER_IP,
+//     region
+// });
 
 // Read the NATS configuration file
 const natsConfigScript = fs.readFileSync("nats-server.conf", "utf-8");
@@ -87,34 +87,35 @@ const autoscaler = new gcp.compute.RegionAutoscaler("nats-autoscaler", {
     },
 });
 
-const healthCheck = new gcp.compute.HealthCheck('nats-cluster-health-check', {
-    checkIntervalSec: 5,
-    timeoutSec: 5,
-    healthyThreshold: 2,
-    unhealthyThreshold: 2,
-    tcpHealthCheck: { // Changed from httpHealthCheck to tcpHealthCheck
-        port: 6222, // Port to perform the TCP health check
-    },
-    region: region,
-});
+// const healthCheck = new gcp.compute.HealthCheck('nats-cluster-health-check', {
+//     checkIntervalSec: 5,
+//     timeoutSec: 5,
+//     healthyThreshold: 2,
+//     unhealthyThreshold: 2,
+//     tcpHealthCheck: { // Changed from httpHealthCheck to tcpHealthCheck
+//         port: 6222, // Port to perform the TCP health check
+//     },
+//     region: region,
+// });
 
-const backendService = new gcp.compute.RegionBackendService('nats-cluster-backend-service', {
-    protocol: "TCP",
-    backends: [{
-        group: instanceGroupManager.instanceGroup,
-    }],
-    healthChecks: [healthCheck.id],
-    loadBalancingScheme: "INTERNAL",
-    region: region,
-});
+// const backendService = new gcp.compute.RegionBackendService('nats-cluster-backend-service', {
+//     protocol: "TCP",
+//     backends: [{
+//         group: instanceGroupManager.instanceGroup,
+//     }],
+//     healthChecks: [healthCheck.id],
+//     loadBalancingScheme: "INTERNAL",
+//     region: region,
+// });
 
-const forwardingRule = new gcp.compute.ForwardingRule('nats-cluster-forwarding-rule', {
-    loadBalancingScheme: "INTERNAL",
-    ports: ["6222"],
-    ipAddress: staticIp.address,
-    backendService: backendService.id,
-    region: region,
-});
+// //  TODO: necessary?
+// new gcp.compute.ForwardingRule('nats-cluster-forwarding-rule', {
+//     loadBalancingScheme: "INTERNAL",
+//     ports: ["6222"],
+//     ipAddress: staticIp.address,
+//     backendService: backendService.id,
+//     region: region,
+// });
 
 // const natsFirewallRule = new gcp.compute.Firewall("nats-firewall-rule", {
 //     network: 'default',
@@ -127,4 +128,39 @@ const forwardingRule = new gcp.compute.ForwardingRule('nats-cluster-forwarding-r
 //     targetTags: ["nats-server"],
 // });
 
-export const staticIpAddress = staticIp.address
+const lbStaticIp = new gcp.compute.Address("nats-cluster-static-ip", {
+    name: "nats-cluster-static-ip",
+    addressType: "EXTERNAL",
+    address: REGION_STATIC_IP,
+    region
+});
+
+const natsHealthCheck = new gcp.compute.RegionHealthCheck("nats-tcp-health-check", {
+    name: "nats-tcp-health-check",
+    region,
+    tcpHealthCheck: { port: 4222 },
+    checkIntervalSec: 5,
+    timeoutSec: 5,
+    healthyThreshold: 2,
+    unhealthyThreshold: 2
+});
+
+const regionBackendService = new gcp.compute.RegionBackendService("nats-region-backend-service", {
+    name: "nats-region-backend-service",
+    protocol: "TCP",
+    region,
+    loadBalancingScheme: "EXTERNAL",
+    backends: [{ group: instanceGroupManager.instanceGroup }],
+    healthChecks: [natsHealthCheck.id]
+});
+
+new gcp.compute.ForwardingRule("nats-forwarding-rule", {
+    name: "nats-forwarding-rule",
+    loadBalancingScheme: "EXTERNAL",
+    backendService: regionBackendService.id,
+    ipAddress: lbStaticIp.address,
+    region: lbStaticIp.region,
+    ports: ["8080", "4222"]
+});
+
+export const staticIpAddress = lbStaticIp.address
