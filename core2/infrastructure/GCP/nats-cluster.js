@@ -1,7 +1,7 @@
 import * as gcp from "@pulumi/gcp";
 import * as fs from "fs";
 
-export default function ({ NATS_VERSION,  REGION_STATIC_IP, region, machineType }) {
+export default function ({ NATS_VERSION, region, machineType }) {
     // Read the NATS configuration file
     const natsConfigScript = fs.readFileSync("nats-server.conf", "utf-8")
 

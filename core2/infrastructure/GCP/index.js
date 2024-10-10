@@ -10,7 +10,6 @@ const machineType = "e2-micro"
 
 const { instanceGroup } = natsCluster({
     NATS_VERSION,
-    REGION_STATIC_IP,
     region,
     machineType
 })
