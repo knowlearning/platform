@@ -1,12 +1,6 @@
 import * as gcp from "@pulumi/gcp";
 
 export default function ({ REGION_STATIC_IP, region, ports, group  }) {
-    const lbStaticIp = new gcp.compute.Address("nats-cluster-static-ip", {
-        name: "nats-cluster-static-ip",
-        addressType: "EXTERNAL",
-        address: REGION_STATIC_IP,
-        region
-    })
 
     const natsHealthCheck = new gcp.compute.RegionHealthCheck("nats-tcp-health-check", {
         name: "nats-tcp-health-check",
@@ -31,10 +25,9 @@ export default function ({ REGION_STATIC_IP, region, ports, group  }) {
         name: "nats-forwarding-rule",
         loadBalancingScheme: "EXTERNAL",
         backendService: regionBackendService.id,
-        ipAddress: lbStaticIp.address,
-        region: lbStaticIp.region,
+        ipAddress: REGION_STATIC_IP,
+        region,
         ports
     })
 
-    return lbStaticIp
 }
