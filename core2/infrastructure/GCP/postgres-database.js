@@ -1,6 +1,6 @@
 import * as gcp from "@pulumi/gcp"
 
-export default function ({ POSTGRES_IP_ADDRESS, region }) {
+export default function ({ POSTGRES_IP_ADDRESS, region, zone }) {
     new gcp.compute.Address("postgres-static-ip", {
         address: POSTGRES_IP_ADDRESS,
         addressType: "INTERNAL",
@@ -23,7 +23,7 @@ export default function ({ POSTGRES_IP_ADDRESS, region }) {
 
     new gcp.compute.Instance("postgres-instance", {
         machineType: "e2-micro",
-        zone: `${region}-a`,
+        zone,
         bootDisk: { initializeParams: { image: "debian-cloud/debian-12" } },
         networkInterfaces: [{
             network: 'default',
@@ -40,10 +40,10 @@ export default function ({ POSTGRES_IP_ADDRESS, region }) {
             sudo -u postgres psql -c "CREATE DATABASE mydb;"
             sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE mydb TO myuser;"
             # Listen for all addresses to allow external connections within VPC
-            echo "listen_addresses='*'" | sudo tee -a /etc/postgresql/11/main/postgresql.conf
-            sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/g" /etc/postgresql/11/main/postgresql.conf
+            echo "listen_addresses='*'" | sudo tee -a /etc/postgresql/15/main/postgresql.conf
+            sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/g" /etc/postgresql/15/main/postgresql.conf
             sudo tee -a /etc/postgresql/15/main/pg_hba.conf <<EOL
-host    all             all             10.0.0.0/24            md5
+host    all             all             0.0.0.0/0            trust
 EOL
             sudo systemctl restart postgresql
         `,

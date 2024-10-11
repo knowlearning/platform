@@ -1,6 +1,6 @@
 import * as gcp from "@pulumi/gcp"
 
-export default function ({ REDIS_IP_ADDRESS, region }) {
+export default function ({ REDIS_IP_ADDRESS, region, zone }) {
     new gcp.compute.Address("redis-static-ip", {
         address: REDIS_IP_ADDRESS,
         addressType: "INTERNAL",
@@ -23,7 +23,7 @@ export default function ({ REDIS_IP_ADDRESS, region }) {
 
     const redisInstance = new gcp.compute.Instance("redis-instance", {
         machineType: "e2-micro",
-        zone: `${region}-a`,
+        zone,
         bootDisk: { initializeParams: { image: "debian-cloud/debian-12" } },
         networkInterfaces: [
             {

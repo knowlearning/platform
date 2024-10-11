@@ -14,8 +14,17 @@ const POSTGRES_IP_ADDRESS = "10.128.15.205"
 const region = "us-central1"
 const machineType = "e2-micro"
 
-redisDatabase({ REDIS_IP_ADDRESS, region })
-postgresDatabase({ POSTGRES_IP_ADDRESS, region })
+redisDatabase({
+    REDIS_IP_ADDRESS,
+    region,
+    zone: `${region}-a`
+})
+
+postgresDatabase({
+    POSTGRES_IP_ADDRESS,
+    region,
+    zone: `${region}-a`
+})
 
 const { instanceGroup } = natsCluster({
     NATS_VERSION,
