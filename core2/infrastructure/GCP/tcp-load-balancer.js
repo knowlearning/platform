@@ -1,6 +1,6 @@
 import * as gcp from "@pulumi/gcp";
 
-export default function ({ REGION_STATIC_IP, region, ports, group  }) {
+export default function ({ NATS_IP_ADDRESS, region, ports, group  }) {
 
     const natsHealthCheck = new gcp.compute.RegionHealthCheck("nats-tcp-health-check", {
         name: "nats-tcp-health-check",
@@ -25,7 +25,7 @@ export default function ({ REGION_STATIC_IP, region, ports, group  }) {
         name: "nats-forwarding-rule",
         loadBalancingScheme: "EXTERNAL",
         backendService: regionBackendService.id,
-        ipAddress: REGION_STATIC_IP,
+        ipAddress: NATS_IP_ADDRESS,
         region,
         ports
     })
