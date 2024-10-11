@@ -1,4 +1,4 @@
-FROM denoland/deno:1.43.1
+FROM denoland/deno:2.0.0
 
 COPY ./externals.js ./externals.js
 RUN deno cache ./externals.js
@@ -8,6 +8,7 @@ COPY ./ ./
 CMD [ \
   "deno", \
   "run", \
+  "--allow-sys", \
   "--allow-net", \
   "--allow-env", \
   "--allow-write", \
