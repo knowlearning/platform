@@ -42,8 +42,8 @@ export default function ({ REDIS_IP_ADDRESS, region }) {
             sudo sed -i "s/^bind .*/# bind 0.0.0.0/" /etc/redis/redis.conf
             sudo sed -i "s/^protected-mode .*/protected-mode no/" /etc/redis/redis.conf
             sudo systemctl enable redis-server
-            sudo systemctl start redis-server
-            sudo systemctl restart redis-server
+            sudo systemctl start redis-server # may not be necessary since installing redis might have already spun it up
+            sudo systemctl restart redis-server # necessary since redis already started
         `,
         tags: ["redis"]
     })
