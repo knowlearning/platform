@@ -34,17 +34,23 @@ export default function ({ REDIS_IP_ADDRESS, region, zone }) {
             },
         ],
         metadataStartupScript: `#!/bin/bash
-            # Update package lists and install Redis
+
             REDIS_PASSWORD=$(gcloud secrets versions access latest --secret=REDIS_PASSWORD)
             sudo apt-get update
-            sudo apt-get install -y redis-server
+            sudo apt-get install -y software-properties-common
+            sudo add-apt-repository -y ppa:redislabs/redis
+            sudo apt-get update
+            sudo apt-get install -y redis-stack-server
 
-            # Enable Redis service and allow connections from internal clients
-            sudo sed -i "s/^bind .*/# bind 0.0.0.0/" /etc/redis/redis.conf
-            sudo sed -i "s/^protected-mode .*/protected-mode no/" /etc/redis/redis.conf
-            sudo systemctl enable redis-server
-            sudo systemctl start redis-server # may not be necessary since installing redis might have already spun it up
-            sudo systemctl restart redis-server # necessary since redis already started
+            # Modify the Redis Stack configuration file to allow connections from internal clients
+            sudo sed -i "s/^bind .*/# bind 0.0.0.0/" /etc/redis/redis-stack.conf
+            sudo sed -i "s/^protected-mode .*/protected-mode no/" /etc/redis/redis-stack.conf
+
+            # TODO: ENABLE
+            # echo "requirepass $REDIS_PASSWORD" | sudo tee -a /etc/redis/redis-stack.conf
+
+            sudo systemctl enable redis-stack-server
+            sudo systemctl restart redis-stack-server
         `,
         tags: ["redis"]
     })
