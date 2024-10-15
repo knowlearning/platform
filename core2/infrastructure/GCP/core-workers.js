@@ -16,8 +16,9 @@ export default function ({ NATS_IP_ADDRESS, REDIS_IP_ADDRESS, region, machineTyp
         }],
         metadataStartupScript: `
             #! /bin/sh
+
             sudo apt update
-            sudo apt install git
+            sudo apt install git -y
             git clone https://github.com/knowlearning/platform.git
             cd platform
             git checkout trunk2
