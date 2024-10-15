@@ -32,13 +32,12 @@ export default function ({ POSTGRES_IP_ADDRESS, region, zone }) {
             accessConfigs: [{}]
         }],
         metadataStartupScript: `#!/bin/bash
+            POSTGRES_PASSWORD=$(gcloud secrets versions access latest --secret=POSTGRES_PASSWORD)
             sudo apt-get update
             sudo apt-get install -y postgresql postgresql-contrib
             sudo systemctl enable postgresql
             sudo systemctl start postgresql
-            sudo -u postgres psql -c "CREATE USER myuser WITH PASSWORD 'mypassword';"
-            sudo -u postgres psql -c "CREATE DATABASE mydb;"
-            sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE mydb TO myuser;"
+            sudo -u postgres psql -c "ALTER USER postgres PASSWORD '$POSTGRES_PASSWORD';"
             # Listen for all addresses to allow external connections within VPC
             echo "listen_addresses='*'" | sudo tee -a /etc/postgresql/15/main/postgresql.conf
             sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/g" /etc/postgresql/15/main/postgresql.conf

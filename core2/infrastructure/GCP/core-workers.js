@@ -16,10 +16,12 @@ export default function ({ NATS_IP_ADDRESS, REDIS_IP_ADDRESS, region, machineTyp
         }],
         metadataStartupScript: `
             #! /bin/sh
-            curl -fsSL https://deno.land/install.sh | sh
+            sudo apt update
             sudo apt install git
             git clone https://github.com/knowlearning/platform.git
-            cd platform/run.sh
+            cd platform
+            git checkout trunk2
+            sh run.sh
         `,
         serviceAccount: {
             scopes: ["https://www.googleapis.com/auth/cloud-platform"]

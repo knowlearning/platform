@@ -35,6 +35,7 @@ export default function ({ REDIS_IP_ADDRESS, region, zone }) {
         ],
         metadataStartupScript: `#!/bin/bash
             # Update package lists and install Redis
+            REDIS_PASSWORD=$(gcloud secrets versions access latest --secret=REDIS_PASSWORD)
             sudo apt-get update
             sudo apt-get install -y redis-server
 
