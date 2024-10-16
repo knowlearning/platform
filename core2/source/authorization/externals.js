@@ -9,6 +9,9 @@ import nodePostres from 'npm:pg@8.11.0'
 import { serve } from "https://deno.land/std@0.202.0/http/server.ts"
 import { fromSeed as nkeysFromSeed, decode as decodeJWT, encode as encodeJWT, encodeAuthorizationResponse } from 'npm:nats-jwt@0.0.9'
 import { createClient as createRedisClient } from 'npm:redis@4.2.0'
+import { decodeBase64 } from "https://deno.land/std/encoding/base64.ts"
+import jwkToPem from 'npm:jwk-to-pem@2.0.5'
+import jwt from 'npm:jsonwebtoken@8.5.1'
 
 /* for agent dependencies */
 import { validate as isUUID, v4 as uuid } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
@@ -38,13 +41,124 @@ const environment = Deno.env.toObject()
 
 const applyPatch = fastJSONPatch.applyPatch
 
+const decodeBase64String = string => (new TextDecoder()).decode(decodeBase64(string))
+
+// Utility function to convert PEM to ArrayBuffer
+function pemToArrayBuffer(pem) {
+  const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
+  const binary = atob(b64);
+  const array = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    array[i] = binary.charCodeAt(i);
+  }
+  return array.buffer;
+}
+
+async function decryptBase64String(privateKeyPem, encryptedBase64) {
+  // Import the RSA private key
+  const privateKey = await crypto.subtle.importKey(
+    'pkcs8',
+    pemToArrayBuffer(privateKeyPem),
+    { name: 'RSA-OAEP', hash: 'SHA-256' },
+    true,
+    ['decrypt']
+  )
+
+  const [encodedIv, encodedEncryptedData, encodedEncryptedSymmetricKey] = encryptedBase64.split(',').map(decodeURIComponent)
+  const iv = Uint8Array.from(atob(encodedIv), c => c.charCodeAt(0))
+  const encryptedData = Uint8Array.from(atob(encodedEncryptedData), c => c.charCodeAt(0))
+  const encryptedSymmetricKey = Uint8Array.from(atob(encodedEncryptedSymmetricKey), c => c.charCodeAt(0))
+
+  const symmetricKeyArrayBuffer = await crypto.subtle.decrypt(
+    { name: 'RSA-OAEP' },
+    privateKey,
+    encryptedSymmetricKey
+  )
+
+  const symmetricKey = await crypto.subtle.importKey(
+    'raw',
+    symmetricKeyArrayBuffer,
+    { name: 'AES-GCM' },
+    true,
+    ['decrypt']
+  )
+
+  const decryptedData = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    symmetricKey,
+    encryptedData
+  )
+
+  return new TextDecoder().decode(decryptedData)
+}
+
+
+async function getKey(password) {
+  const encoder = new TextEncoder()
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(password),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits", "deriveKey"]
+  )
+
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: new Uint8Array(16), iterations: 100000, hash: "SHA-256" },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt", "decrypt"]
+  )
+}
+
+async function encryptSymmetric(secret, data) {
+  const key = await getKey(secret)
+
+  const encoder = new TextEncoder()
+  const encodedData = encoder.encode(data)
+
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const encryptedData = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: iv },
+    key,
+    encodedData
+  )
+
+  const result = new Uint8Array(iv.length + new Uint8Array(encryptedData).length)
+  result.set(iv)
+  result.set(new Uint8Array(encryptedData), iv.length)
+
+  return btoa(String.fromCharCode.apply(null, result))
+}
+
+async function decryptSymmetric(secret, encryptedData) {
+  const key = await getKey(secret)
+
+  const decodedData = atob(encryptedData)
+  const iv = new Uint8Array(decodedData.slice(0, 12).split('').map(c => c.charCodeAt(0)))
+  const encryptedBytes = new Uint8Array(decodedData.slice(12).split('').map(c => c.charCodeAt(0)))
+
+  const decryptedData = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: iv },
+    key,
+    encryptedBytes
+  )
+
+  const decoder = new TextDecoder()
+  return decoder.decode(new Uint8Array(decryptedData))
+}
+
+const cryptoDigest = (algorithm, data) => crypto.subtle.digest(algorithm, data)
+
 export {
   pg,
   serve,
   escapePostgresLiteral,
   nkeyAuthenticator,
   environment,
-  randomBytes,
+  jwkToPem,
+  jwt,
   parseYAML,
   NATSClient,
   jetstream, jetstreamManager,
@@ -61,6 +175,12 @@ export {
   standardJSONPatch,
   createRedisClient,
   applyPatch,
+  randomBytes,
+  cryptoDigest,
+  encryptSymmetric,
+  decryptSymmetric,
+  decodeBase64String,
+  decryptBase64String,
   isUUID
 }
 

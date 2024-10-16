@@ -11,8 +11,12 @@ import embed from './embed.js'
 
 window.natsClientPromise = wsconnect({
   servers: [window.NATS_WS_CLUSTER_HOST || 'ws://localhost:8080/' ],
-  token: 'me'
+  token: localStorage.getItem('token')
 })
+
+console.log('TOKEN????',localStorage.getItem('token'))
+
+localStorage.removeItem('token')
 
 //  TODO: remove necessity to make these global
 window.jetstreamManagerPromise =  natsClientPromise.then(c => jetstreamManager(c))

@@ -10,7 +10,7 @@ if (location.pathname.startsWith('/auth/')) {
   if (origin) {
     const token = state_token.slice(state.length + 1)
     localStorage.setItem('token', token)
-    location.href = origin
+    replaceUrl(origin)
   }
 }
 
@@ -29,6 +29,19 @@ function logout() {
   localStorage.setItem('token', randomToken())
   location.reload()
 }
+
+function replaceUrl(newUrl) {
+  // Create a new URL object based on the current location
+  const currentUrl = new URL(window.location.href)
+  const newUrlObj = new URL(newUrl, currentUrl)
+
+  // Construct the new URL by keeping the protocol and host
+  const updatedUrl = `${currentUrl.protocol}//${currentUrl.host}${newUrlObj.pathname}${newUrlObj.search}${newUrlObj.hash}`
+
+  // Use history.replaceState to update the URL without reloading
+  window.history.replaceState({}, '', updatedUrl)
+}
+
 
 export {
   login,
