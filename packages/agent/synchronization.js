@@ -10,10 +10,18 @@ export async function synced() {
 }
 
 export function watch(scope, callback, user, domain) {
+  const perfId = getFormattedTimestamp()
+
+  performance.mark(`${perfId} start watch resolve`)
+
   let resolveWatchSynced
   let rejectWatchSynced
   const watchSyncedPromise = new Promise((resolve, reject) => {
-    resolveWatchSynced = resolve
+    resolveWatchSynced = () => {
+      performance.mark(`${perfId} end watch synced`)
+      console.log(getTimings(perfId))
+      resolve()
+    }
     rejectWatchSynced = reject
   })
   watchSyncedPromise.catch(error => {
@@ -30,12 +38,18 @@ export function watch(scope, callback, user, domain) {
     return watchResolution(scope, callback, user, domain)
   }
 
+
+
+
+
+
   let closed = false
   let closeMessageQueue
   const history = []
   const metadataHistory = []
   ;(async () => {
     const { id, user: owner, domain: d, scope: s } = await resolveReference(domain, user, scope)
+    performance.mark(`${perfId} end watch resolve`)
     user = owner
     domain = d
     scope = s
@@ -43,8 +57,12 @@ export function watch(scope, callback, user, domain) {
       resolveWatchSynced()
       return
     }
+    performance.mark(`${perfId} start subscribe`)
 
     let { state, metadata, sequence } = await subscribe(id) || { state: {}, metadata: { id, domain, owner: user, name: scope}, sequence: 0 }
+    performance.mark(`${perfId} end subscribe`)
+
+    performance.mark(`${perfId} start watch synced`)
 
     const { messages, historyLength, created } = await messageQueue.process(id, sequence+1)
 
@@ -141,13 +159,19 @@ export async function state(scope, user, domain) {
   let resolveStartState
   const startState = new Promise(r => resolveStartState = r)
 
-  const { id } = await resolveReference(domain, user, scope)
+  const perfId = getFormattedTimestamp()
 
+  performance.mark(`${perfId} start resolve`)
+  const { id } = await resolveReference(domain, user, scope)
+  performance.mark(`${perfId} end resolve`)
+  performance.mark(`${perfId} start watch`)
   const unwatch = watch(
     scope,
     ({ state }) => {
       unwatch()
       resolveStartState(state)
+      performance.mark(`${perfId} end watch`)
+      console.log(getTimings(perfId))
     },
     user,
     domain
@@ -288,4 +312,43 @@ function isValidMetadataMutation({ path, op, value }) {
     && path.length === 1
     && typeof value === 'string' || op === 'remove'
   )
+}
+
+
+function getTimings(prefix) {
+  return markTimings(
+    performance
+      .getEntriesByType('mark')
+      .filter(mark => mark.name.startsWith(prefix))
+      .sort((a, b) => a.startTime - b.startTime)
+  )
+}
+
+function markTimings(sortedMarks) {
+  const timings = [];
+
+  for (let i = 1; i < sortedMarks.length; i++) {
+    const previousMark = sortedMarks[i - 1];
+    const currentMark = sortedMarks[i];
+    const duration = currentMark.startTime - previousMark.startTime;
+
+    timings.push({
+      from: previousMark.name,
+      to: currentMark.name,
+      duration: `${duration.toFixed(3)} ms`
+    });
+  }
+
+  return timings;
+}
+
+function getFormattedTimestamp() {
+  const now = new Date();
+
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  const milliseconds = String(now.getMilliseconds()).padStart(3, '0');
+
+  return `${hours}:${minutes}:${seconds}.${milliseconds}`;
 }
