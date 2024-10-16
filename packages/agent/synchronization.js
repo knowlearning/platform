@@ -79,7 +79,7 @@ export function watch(scope, callback, user, domain) {
         history: [],
         metadataHistory: [],
         state: structuredClone(state),
-        metadata: { ...structuredClone(metadata), created }, //  TODO: more...
+        metadata: { ...structuredClone(metadata), created, id }, //  TODO: more...
         patch: null
       })
     }
