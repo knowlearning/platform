@@ -58,10 +58,7 @@ export default function ({ NATS_VERSION, region, machineType }) {
         versions: [{
             instanceTemplate: instanceTemplate.selfLinkUnique,
         }],
-        region,
-        statefulPolicy: {
-            preservedState: { internalIps: true }
-        }
+        region
     })
 
     // Define an autoscaler to scale the NATS instances based on CPU utilization
