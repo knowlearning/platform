@@ -22,7 +22,7 @@ export default function ({ NATS_IP_ADDRESS, REDIS_IP_ADDRESS, region, machineTyp
             git clone https://github.com/knowlearning/platform.git
             cd platform
             git checkout trunk2
-            sh run.sh
+            sudo sh run.sh
         `,
         serviceAccount: {
             scopes: ["https://www.googleapis.com/auth/cloud-platform"]

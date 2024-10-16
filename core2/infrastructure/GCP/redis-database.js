@@ -24,7 +24,7 @@ export default function ({ REDIS_IP_ADDRESS, region, zone }) {
     const redisInstance = new gcp.compute.Instance("redis-instance", {
         machineType: "e2-micro",
         zone,
-        bootDisk: { initializeParams: { image: "debian-cloud/debian-12" } },
+        bootDisk: { initializeParams: { image: "debian-cloud/debian-11" } },
         networkInterfaces: [
             {
                 network: "default",
@@ -34,17 +34,23 @@ export default function ({ REDIS_IP_ADDRESS, region, zone }) {
             },
         ],
         metadataStartupScript: `#!/bin/bash
-            # Update package lists and install Redis
-            REDIS_PASSWORD=$(gcloud secrets versions access latest --secret=REDIS_PASSWORD)
-            sudo apt-get update
-            sudo apt-get install -y redis-server
 
-            # Enable Redis service and allow connections from internal clients
-            sudo sed -i "s/^bind .*/# bind 0.0.0.0/" /etc/redis/redis.conf
-            sudo sed -i "s/^protected-mode .*/protected-mode no/" /etc/redis/redis.conf
-            sudo systemctl enable redis-server
-            sudo systemctl start redis-server # may not be necessary since installing redis might have already spun it up
-            sudo systemctl restart redis-server # necessary since redis already started
+            sudo apt-get install lsb-release curl gpg
+            curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+            sudo chmod 644 /usr/share/keyrings/redis-archive-keyring.gpg
+            echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+            sudo apt-get update
+            sudo apt-get install -y redis-stack-server
+
+            CONFIG_FILE="/etc/redis-stack.conf"
+            echo "bind 0.0.0.0" | sudo tee -a "$CONFIG_FILE" > /dev/null
+            echo "protected-mode no" | sudo tee -a "$CONFIG_FILE" > /dev/null
+
+            # TODO: enable password (also don't write it to the file in plain text...)
+            # REDIS_PASSWORD=$(gcloud secrets versions access latest --secret=REDIS_PASSWORD)
+            # echo "requirepass $REDIS_PASSWORD" | sudo tee -a "$CONFIG_FILE" > /dev/null
+
+            sudo /bin/redis-stack-server
         `,
         tags: ["redis"]
     })
