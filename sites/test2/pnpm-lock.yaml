@@ -20,9 +20,6 @@ importers:
       mocha:
         specifier: ^10.7.0
         version: 10.7.0
-      nats.ws:
-        specifier: ^1.29.0
-        version: 1.29.0
       uuid:
         specifier: ^9.0.1
         version: 9.0.1
@@ -480,13 +477,6 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nats.ws@1.29.0:
-    resolution: {integrity: sha512-n3+2M/vZp8odDxn4NbIDE4pVBE12dQqxk3ckzXJvbgIjfquUHvrvF3lrMqhdjeGjYdAvTZpaEEZTJG3v5HS3xg==}
-
-  nkeys.js@1.1.0:
-    resolution: {integrity: sha512-tB/a0shZL5UZWSwsoeyqfTszONTt4k2YS0tuQioMOD180+MbombYVgzDUYHlx+gejYK6rgf08n/2Df99WY0Sxg==}
-    engines: {node: '>=10.0.0'}
-
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
@@ -573,9 +563,6 @@ packages:
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
-
-  tweetnacl@1.0.3:
-    resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
 
   type-detect@4.0.8:
     resolution: {integrity: sha512-0fr/mIH1dlO+x7TlcMy+bIDqKPsw/70tVyeHW787goQjhmqaZe10uwLujubK9q9Lg6Fiho1KUKDYz0Z7k7g5/g==}
@@ -1053,15 +1040,6 @@ snapshots:
 
   nanoid@3.3.7: {}
 
-  nats.ws@1.29.0:
-    optionalDependencies:
-      nkeys.js: 1.1.0
-
-  nkeys.js@1.1.0:
-    dependencies:
-      tweetnacl: 1.0.3
-    optional: true
-
   normalize-path@3.0.0: {}
 
   once@1.4.0:
@@ -1137,9 +1115,6 @@ snapshots:
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
-
-  tweetnacl@1.0.3:
-    optional: true
 
   type-detect@4.0.8: {}
 

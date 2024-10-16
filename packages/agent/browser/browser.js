@@ -5,17 +5,19 @@ import environment from './environment.js'
 import { login, logout } from './authentication.js'
 import GenericAgent from '../index.js'
 import EmbeddedAgent from './embedded-agent.js'
-import { connect, JSONCodec } from 'nats.ws'
+import { wsconnect, JSONCodec } from '@nats-io/nats-core'
+import { jetstream, jetstreamManager } from "@nats-io/jetstream"
 import embed from './embed.js'
 
-window.natsClientPromise = connect({
+window.natsClientPromise = wsconnect({
   servers: [window.NATS_WS_CLUSTER_HOST || 'ws://localhost:8080/' ],
   token: 'me'
 })
 
 //  TODO: remove necessity to make these global
-window.jetstreamManagerPromise =  natsClientPromise.then(c => c.jetstreamManager())
-window.jetstreamClientPromise = natsClientPromise.then(c => c.jetstream())
+window.jetstreamManagerPromise =  natsClientPromise.then(c => jetstreamManager(c))
+window.jetstreamClientPromise = natsClientPromise.then(c => jetstream(c))
+
 window.JSONCodec = JSONCodec
 window.HOST = window.location.host
 window.isUUID = isUUID

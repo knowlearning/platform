@@ -11,12 +11,15 @@ importers:
       '@knowlearning/patch-proxy':
         specifier: ^1.3.3
         version: 1.3.3
+      '@nats-io/jetstream':
+        specifier: 3.0.0-10
+        version: 3.0.0-10
+      '@nats-io/nats-core':
+        specifier: 3.0.0-27
+        version: 3.0.0-27
       fast-json-patch:
         specifier: ^3.1.1
         version: 3.1.1
-      nats.ws:
-        specifier: ^1.29.0
-        version: 1.29.0
       uuid:
         specifier: ^10.0.0
         version: 10.0.0
@@ -26,15 +29,22 @@ packages:
   '@knowlearning/patch-proxy@1.3.3':
     resolution: {integrity: sha512-c56y4qshtd+fdApeLtpqn2p1D0gQ6MUQylvvl9ado6YD5R65lwFxWVr/s9KnThLCwVqT9ofrNjI4GGoNtGCO1A==}
 
+  '@nats-io/jetstream@3.0.0-10':
+    resolution: {integrity: sha512-FOdwBximucQszBAsSAckqhXxh0WZozKbRTMzODCudcHpOEv0jUwnoqFLG/8r607pJDX1gdiYADF5hpeV3gvh7A==}
+
+  '@nats-io/nats-core@3.0.0-27':
+    resolution: {integrity: sha512-xJvUWoRvUTG/3K4Ppf5KXTZezicbvd2o/psMyI7YPtIxKZsZALXL/bLoNb7FB/Hw4jECioZE7LZCSK41npFD2A==}
+
+  '@nats-io/nkeys@1.2.0-4':
+    resolution: {integrity: sha512-61R4SO9059AyZBhoZRECHobHsY6mBOGwB5ewBrbnDKVtTehnFwyMNaORHhksFmu9K0zyUtwBWyffzKpibp2Cew==}
+    engines: {node: '>=16.0.0'}
+
+  '@nats-io/nuid@2.0.1-2':
+    resolution: {integrity: sha512-oXJiWXH87FjcPAXVVkoY+o7z9YFuOvsVlUlvB4h/QsoC1hp63lB18YOMHmKxVNO7BzvwzJh3SKLlIlsQrEwaxg==}
+    engines: {node: '>= 18.x'}
+
   fast-json-patch@3.1.1:
     resolution: {integrity: sha512-vf6IHUX2SBcA+5/+4883dsIjpBTqmfBjmYiWK1savxQmFk4JfBMLa7ynTYOs1Rolp/T1betJxHiGD3g1Mn8lUQ==}
-
-  nats.ws@1.29.0:
-    resolution: {integrity: sha512-n3+2M/vZp8odDxn4NbIDE4pVBE12dQqxk3ckzXJvbgIjfquUHvrvF3lrMqhdjeGjYdAvTZpaEEZTJG3v5HS3xg==}
-
-  nkeys.js@1.1.0:
-    resolution: {integrity: sha512-tB/a0shZL5UZWSwsoeyqfTszONTt4k2YS0tuQioMOD180+MbombYVgzDUYHlx+gejYK6rgf08n/2Df99WY0Sxg==}
-    engines: {node: '>=10.0.0'}
 
   tweetnacl@1.0.3:
     resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
@@ -49,18 +59,23 @@ snapshots:
     dependencies:
       fast-json-patch: 3.1.1
 
-  fast-json-patch@3.1.1: {}
+  '@nats-io/jetstream@3.0.0-10':
+    dependencies:
+      '@nats-io/nats-core': 3.0.0-27
 
-  nats.ws@1.29.0:
-    optionalDependencies:
-      nkeys.js: 1.1.0
+  '@nats-io/nats-core@3.0.0-27':
+    dependencies:
+      '@nats-io/nkeys': 1.2.0-4
+      '@nats-io/nuid': 2.0.1-2
 
-  nkeys.js@1.1.0:
+  '@nats-io/nkeys@1.2.0-4':
     dependencies:
       tweetnacl: 1.0.3
-    optional: true
 
-  tweetnacl@1.0.3:
-    optional: true
+  '@nats-io/nuid@2.0.1-2': {}
+
+  fast-json-patch@3.1.1: {}
+
+  tweetnacl@1.0.3: {}
 
   uuid@10.0.0: {}
