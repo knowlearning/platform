@@ -3,6 +3,8 @@ curl -fsSL https://deno.land/install.sh | sh -s -- -y
 
 mv ./packages/agent ./core2/source/authorization/agent
 
+echo "SETTING ENVIRONMENT VARIABLES"
+
 AUTH_SERVICE_SECRET_KEY=$(gcloud secrets versions access latest --secret=AUTH_SERVICE_SECRET_KEY)
 GCS_SERVICE_ACCOUNT_CREDENTIALS=$(gcloud secrets versions access latest --secret=GCS_SERVICE_ACCOUNT_CREDENTIALS)
 OAUTH_CREDENTIALS=$(gcloud secrets versions access latest --secret=OAUTH_CREDENTIALS)
@@ -14,7 +16,7 @@ NATS_ISSUER_NKEY_PRIVATE=$(gcloud secrets versions access latest --secret=NATS_I
 NATS_AUTH_USER_NKEY_PUBLIC=UAKEFMDW6OPGHW3AO5SXYTQHJTIVS5SZZ6ORRBD64W7IR45WC3I7RJZX
 NATS_ISSUER_NKEY_PUBLIC=AAAIXC6E5E362GCLVP3TJRLUNJ4NM5MXYWIKEZ3KVHFA7R35L5VXTK62
 NATS_CLUSTER_HOST=nats://35.192.110.199:4222
-GCS_BUCKET_NAME=local-gcs-bucket
+GCS_BUCKET_NAME=core2-staging-bucket
 MODE=production
 GC_PROJECT_ID=opensourcelearningplatform
 POSTGRES_HOST=10.128.15.205
@@ -23,6 +25,8 @@ POSTGRES_USER=postgres
 REDIS_USER=default
 REDIS_HOST=10.128.0.26
 REDIS_PORT=6379
+
+echo "STARTING SERVER"
 
 AUTH_SERVICE_SECRET_KEY="$AUTH_SERVICE_SECRET_KEY" \
 GCS_SERVICE_ACCOUNT_CREDENTIALS="$GCS_SERVICE_ACCOUNT_CREDENTIALS" \
@@ -43,7 +47,7 @@ POSTGRES_USER="$POSTGRES_USER" \
 REDIS_USER="$REDIS_USER" \
 REDIS_HOST="$REDIS_HOST" \
 REDIS_PORT="$REDIS_PORT" \
-/home/admin/.deno/bin/deno run \
+/root/.deno/bin/deno run \
   --allow-sys \
   --allow-net \
   --allow-write \
@@ -51,4 +55,4 @@ REDIS_PORT="$REDIS_PORT" \
   --unstable-worker-options \
   --v8-flags=--max-old-space-size=8000 \
   --allow-env \
-  ./core2/source/authorization/index.js
+  ./core2/source/authorization/index.js &
