@@ -55,4 +55,4 @@ REDIS_PORT="$REDIS_PORT" \
   --unstable-worker-options \
   --v8-flags=--max-old-space-size=8000 \
   --allow-env \
-  ./core2/source/authorization/index.js &
+  ./core2/source/authorization/index.js
