@@ -34,6 +34,7 @@ export default function ({ REDIS_IP_ADDRESS, region, zone }) {
             },
         ],
         metadataStartupScript: `#!/bin/bash
+            REDIS_PASSWORD=$(gcloud secrets versions access latest --secret=REDIS_PASSWORD)
 
             sudo apt-get install lsb-release curl gpg
             curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
@@ -42,15 +43,14 @@ export default function ({ REDIS_IP_ADDRESS, region, zone }) {
             sudo apt-get update
             sudo apt-get install -y redis-stack-server
 
+            sudo /bin/redis-stack-server
+
+            redis-cli CONFIG SET requirepass "$REDIS_PASSWORD"
             CONFIG_FILE="/etc/redis-stack.conf"
             echo "bind 0.0.0.0" | sudo tee -a "$CONFIG_FILE" > /dev/null
-            echo "protected-mode no" | sudo tee -a "$CONFIG_FILE" > /dev/null
 
-            # TODO: enable password (also don't write it to the file in plain text...)
-            # REDIS_PASSWORD=$(gcloud secrets versions access latest --secret=REDIS_PASSWORD)
-            # echo "requirepass $REDIS_PASSWORD" | sudo tee -a "$CONFIG_FILE" > /dev/null
+            sudo systemctl restart redis-stack-server
 
-            sudo /bin/redis-stack-server
         `,
         tags: ["redis"]
     })

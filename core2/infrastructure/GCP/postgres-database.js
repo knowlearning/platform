@@ -42,7 +42,7 @@ export default function ({ POSTGRES_IP_ADDRESS, region, zone }) {
             echo "listen_addresses='*'" | sudo tee -a /etc/postgresql/15/main/postgresql.conf
             sudo sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/g" /etc/postgresql/15/main/postgresql.conf
             sudo tee -a /etc/postgresql/15/main/pg_hba.conf <<EOL
-host    all             all             0.0.0.0/0            trust
+host    all             all             0.0.0.0/0            md5
 EOL
             sudo systemctl restart postgresql
         `,
