@@ -17,7 +17,7 @@ import jwt from 'npm:jsonwebtoken@8.5.1'
 import { validate as isUUID, v4 as uuid } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
 import PatchProxy, { standardJSONPatch } from 'npm:@knowlearning/patch-proxy@1.3.2'
 import fastJSONPatch from 'npm:fast-json-patch@3.1.1'
-import { JSONCodec, StringCodec } from 'npm:nats.ws@1.29.0'
+import { JSONCodec, StringCodec } from 'npm:@nats-io/nats-core@3.0.0-27'
 
 const escapePostgresLiteral = nodePostres.escapeLiteral
 
