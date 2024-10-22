@@ -1,6 +1,5 @@
 import { uuid, decodeBase64String, jwkToPem, jwt } from '../externals.js'
 import OAuthClientInfo from './oauth-client-info.js'
-import getExistingUser from './existing-user.js'
 
 const JWT_VERIFICATION_TIMEOUT = 2500
 
@@ -49,16 +48,8 @@ export default async function JWTVerification(provider, code, resolve, reject) {
 
     if (passTokenChallenge(provider, decoded)) {
       const provider_id = decoded.sub
-      try {
-        const existingUser = await getExistingUser(provider, provider_id)
-        const user = existingUser ? existingUser.id : uuid()
-        const { name, picture } = decoded
-        resolve({ provider, provider_id, user, info: { name, picture } })
-      }
-      catch (existingUserError) {
-        console.warn('EXISTING USER ERROR', existingUserError)
-        reject('Issue Fetching Existing User')
-      }
+      const { name, picture } = decoded
+      resolve({ provider, provider_id, info: { name, picture } })
     }
     else {
       console.warn('JWT Expectation Failed', error)
@@ -123,11 +114,10 @@ function passGoogleTokenChallenge({ exp, iat, aud, iss }) {
   return (
     exp > now &&
     iat < now &&
-    aud === OAuthClientInfo.GOOGLE.client_id &&
+    aud === OAuthClientInfo.GOOGLE.web.client_id &&
     ['accounts.google.com', 'https://accounts.google.com'].includes(iss)
   )
 }
-
 
 function passMicrosoftTokenChallenge({ exp, iat, aud, iss }) {
   const now = Math.ceil(Date.now() / 1000)
@@ -136,7 +126,7 @@ function passMicrosoftTokenChallenge({ exp, iat, aud, iss }) {
   return (
     exp > now &&
     iat < now &&
-    aud === OAuthClientInfo.MICROSOFT.client_id
+    aud === OAuthClientInfo.MICROSOFT.web.client_id
   )
 }
 
