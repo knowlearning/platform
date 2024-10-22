@@ -1,7 +1,6 @@
 import { v4 as uuid, validate as isUUID } from 'uuid'
 import PatchProxy, { standardJSONPatch } from '@knowlearning/patch-proxy'
 import { applyPatch } from 'fast-json-patch'
-import environment from './environment.js'
 import { login, logout } from './authentication.js'
 import GenericAgent from '../index.js'
 import EmbeddedAgent from './embedded-agent.js'
@@ -16,12 +15,17 @@ const servers = [window.NATS_WS_CLUSTER_HOST || DEV_CLUSTER_HOST]
 const token = crypto.randomUUID().replaceAll('-', '')
 const code = localStorage.getItem('AGENT_AUTH_CODE')
 
+let resolveUserId
+const userIdPromise = new Promise(r => resolveUserId = r)
+
 fetch(DEV_AUTH_HOST, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   credentials: 'include',
   body: JSON.stringify({ token, code })
 })
+  .then(response => resolveUserId(response.text()))
+  .catch(error => console.warn('ERROR Authenticating User', error))
 
 window.natsClientPromise = wsconnect({ servers, token })
 localStorage.removeItem('AGENT_AUTH_CODE')
@@ -47,6 +51,14 @@ try { embedded = window.self !== window.top }
 catch (e) { embedded = true }
 
 const baseAgent = embedded ? EmbeddedAgent() : GenericAgent
+
+//  TODO: implement
+async function environment() {
+  return {
+    auth: { user: await userIdPromise },
+    domain: window.location.host
+  }
+}
 
 export default {
   environment,

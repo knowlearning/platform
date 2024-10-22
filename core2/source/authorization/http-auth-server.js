@@ -1,4 +1,4 @@
-import { getCookies, randomBytes, uuid } from "./externals.js"
+import { getCookies, randomBytes } from "./externals.js"
 import Agent from './agent/deno/deno.js'
 
 Deno.serve({ port: 8765 }, async request => {
@@ -31,12 +31,13 @@ Deno.serve({ port: 8765 }, async request => {
     const session = await Agent.state(`user-session-${sid}`)
 
     if (!session.user) {
-      const anonymousUser = await Agent.metadata(`user-anonymous-${sid}`)
-      session.user = anonymousUser.id
+      const { id } = await Agent.metadata(`user-anonymous-${sid}`)
+      session.user = id
     }
 
     const natsUser = await Agent.state(`user-nats-${token}`)
     natsUser.user = session.user
+    return new Response(session.user, { headers })
   }
   else {
     //  TODO: error, or potentially treat this as the log out case
