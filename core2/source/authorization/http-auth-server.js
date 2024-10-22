@@ -20,28 +20,24 @@ Deno.serve({ port: 8765 }, async request => {
   }
 
   const { token, code } = await request.json()
+  const session = await Agent.state(`user-session-${sid}`)
 
   if (code) {
     //  TODO: Go through OAuth2 code flow and establish link between sid
     //        and user profile, as well as token and user profile.
     //        "token" will be used by nats client to authenticate
   }
-  else if (token) {
-    //  TODO: HASH SID AND TOKEN!!!!!!!!!!!!!!!!!!!
-    const session = await Agent.state(`user-session-${sid}`)
 
-    if (!session.user) {
-      const { id } = await Agent.metadata(`user-anonymous-${sid}`)
-      session.user = id
-    }
+  //  TODO: HASH SID AND TOKEN!!!!!!!!!!!!!!!!!!!
+  if (!session.user) {
+    const { id } = await Agent.metadata(`user-anonymous-${sid}`)
+    session.user = id
+  }
 
+  if (token) {
     const natsUser = await Agent.state(`user-nats-${token}`)
     natsUser.user = session.user
-    return new Response(session.user, { headers })
-  }
-  else {
-    //  TODO: error, or potentially treat this as the log out case
   }
 
-  return new Response("Hello, World!", { headers })
+  return new Response(session.user, { headers })
 })
