@@ -43,11 +43,18 @@ async function createStream(id, domain, user, scope) {
   const subject = encodeNATSSubject(domain, user, scope)
   return jsm.streams.add({ name: id, subjects: [subject], republish: { src: subject, dest: `effects.${subject}` } })
 }
+
 export default async function handleResolve(error, message) {
   const { data } = message
   const { domain, user, scope, newType, newState, envUser, envDomain } = decodeJSON(data)
 
-  message.respond(encodeJSON(await resolveReference(domain, user, scope, newType, newState, envUser, envDomain)))
+  try {
+    message.respond(encodeJSON(await resolveReference(domain, user, scope, newType, newState, envUser, envDomain)))
+  }
+  catch (error) {
+    console.log('ERROR HANDLING RESOLVE', domain, user, scope, newType, newState, envUser, envDomain, error)
+  }
+
 }
 
 async function resolveReference(domain, user, scope, newType, newState, envUser, envDomain) {
@@ -83,10 +90,9 @@ async function resolveReference(domain, user, scope, newType, newState, envUser,
     return { id, domain, scope, user }
   }
 
-  if (!user || !domain) {
-    if (!user) user = envUser
-    if (!domain) domain = envDomain
-  }
+  if (!user) user = envUser
+  if (!domain) domain = envDomain
+  if (!scope) scope = ''
 
   const subject = encodeNATSSubject(domain, user, scope)
   let id = await jsm.streams.find(subject).catch(error => {
