@@ -17,6 +17,9 @@ importers:
       '@nats-io/nats-core':
         specifier: 3.0.0-27
         version: 3.0.0-27
+      '@nats-io/nkeys':
+        specifier: 1.2.0-4
+        version: 1.2.0-4
       fast-json-patch:
         specifier: ^3.1.1
         version: 3.1.1

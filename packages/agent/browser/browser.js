@@ -9,14 +9,22 @@ import { wsconnect, JSONCodec } from '@nats-io/nats-core'
 import { jetstream, jetstreamManager } from "@nats-io/jetstream"
 import embed from './embed.js'
 
-window.natsClientPromise = wsconnect({
-  servers: [window.NATS_WS_CLUSTER_HOST || 'ws://localhost:8080/' ],
-  token: localStorage.getItem('token')
+const DEV_CLUSTER_HOST = 'ws://localhost:8080/'
+const DEV_AUTH_HOST = 'http://localhost:8765/'
+
+const servers = [window.NATS_WS_CLUSTER_HOST || DEV_CLUSTER_HOST]
+const token = crypto.randomUUID().replaceAll('-', '')
+const code = localStorage.getItem('AGENT_AUTH_CODE')
+
+fetch(DEV_AUTH_HOST, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include',
+  body: JSON.stringify({ token, code })
 })
 
-console.log('TOKEN????',localStorage.getItem('token'))
-
-localStorage.removeItem('token')
+window.natsClientPromise = wsconnect({ servers, token })
+localStorage.removeItem('AGENT_AUTH_CODE')
 
 //  TODO: remove necessity to make these global
 window.jetstreamManagerPromise =  natsClientPromise.then(c => jetstreamManager(c))

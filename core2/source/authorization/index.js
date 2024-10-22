@@ -1,6 +1,7 @@
 import handleSideEffects from './handle-side-effects.js'
 import handleAuthRequest from './handle-auth-request.js'
 import handleResolve from './handle-resolve.js'
+import './http-auth-server.js'
 import { nc } from './nats.js'
 
 globalThis.CORE_HACK = 'TODO: REMOVE THIS HACK SHORTCUT'

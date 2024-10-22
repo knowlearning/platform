@@ -1,6 +1,6 @@
 import { Storage as GCSStorageClient } from 'npm:@google-cloud/storage@5.18.2'
 import { connect as NATSClient } from "jsr:@nats-io/transport-deno@3.0.0-7"
-import { jetstream, jetstreamManager } from "jsr:@nats-io/jetstream@3.0.0-9"
+import { jetstream, jetstreamManager } from "jsr:@nats-io/jetstream@3.0.0-15"
 import { nkeyAuthenticator } from "https://deno.land/x/nats@v1.28.2/nats-base-client/authenticator.ts";
 import { parse as parseYAML } from 'https://deno.land/std@0.207.0/yaml/mod.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
@@ -12,6 +12,7 @@ import { createClient as createRedisClient } from 'npm:redis@4.2.0'
 import { decodeBase64 } from "https://deno.land/std/encoding/base64.ts"
 import jwkToPem from 'npm:jwk-to-pem@2.0.5'
 import jwt from 'npm:jsonwebtoken@8.5.1'
+import { getCookies } from 'https://deno.land/std@0.214.0/http/cookie.ts'
 
 /* for agent dependencies */
 import { validate as isUUID, v4 as uuid } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
@@ -181,6 +182,7 @@ export {
   decryptSymmetric,
   decodeBase64String,
   decryptBase64String,
+  getCookies,
   isUUID
 }
 

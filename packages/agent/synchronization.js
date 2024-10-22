@@ -19,7 +19,7 @@ export function watch(scope, callback, user, domain) {
   const watchSyncedPromise = new Promise((resolve, reject) => {
     resolveWatchSynced = () => {
       performance.mark(`${perfId} end watch synced`)
-      console.log(getTimings(perfId))
+      getTimings(perfId)
       resolve()
     }
     rejectWatchSynced = reject
@@ -171,7 +171,7 @@ export async function state(scope, user, domain) {
       unwatch()
       resolveStartState(state)
       performance.mark(`${perfId} end watch`)
-      console.log(getTimings(perfId))
+      getTimings(perfId)
     },
     user,
     domain
@@ -314,14 +314,14 @@ function isValidMetadataMutation({ path, op, value }) {
   )
 }
 
-
 function getTimings(prefix) {
-  return markTimings(
+  const timings = markTimings(
     performance
       .getEntriesByType('mark')
       .filter(mark => mark.name.startsWith(prefix))
       .sort((a, b) => a.startTime - b.startTime)
   )
+  // console.log(timings)
 }
 
 function markTimings(sortedMarks) {

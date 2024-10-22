@@ -2,7 +2,7 @@ import { validate as isUUID } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
 import PatchProxy, { standardJSONPatch } from 'npm:@knowlearning/patch-proxy@1.3.2'
 import fastJSONPatch from 'npm:fast-json-patch@3.1.1'
 import { connect } from "jsr:@nats-io/transport-deno@3.0.0-7"
-import { jetstream, jetstreamManager } from "jsr:@nats-io/jetstream@3.0.0-9"
+import { jetstream, jetstreamManager } from "jsr:@nats-io/jetstream@3.0.0-15"
 import environment from './environment.js'
 import GenericAgent from '../index.js'
 import { JSONCodec } from 'npm:@nats-io/nats-core@3.0.0-27'
