@@ -1,6 +1,8 @@
 import * as gcp from "@pulumi/gcp"
 
-export default function ({ REDIS_IP_ADDRESS, region, zone }) {
+export default function ({ REDIS_IP_ADDRESS, zone }) {
+    const region = zone.split('-').slice(0, -1).join('-')
+
     new gcp.compute.Address("redis-static-ip", {
         address: REDIS_IP_ADDRESS,
         addressType: "INTERNAL",

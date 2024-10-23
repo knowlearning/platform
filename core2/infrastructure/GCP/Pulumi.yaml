@@ -1,4 +1,4 @@
-name: nats-gcp
+name: us-central1-a
 runtime: nodejs
 config:
   gcp:project: opensourcelearningplatform

@@ -1,6 +1,8 @@
 import * as gcp from "@pulumi/gcp";
 
-export default function ({ ipAddress, region, ports, group, name  }) {
+export default function ({ ipAddress, zone, ports, group, name  }) {
+    //  TODO: assess why forwarding rule is at region level
+    const region = zone.split('-').slice(0, -1).join('-')
 
     const healthCheck = new gcp.compute.RegionHealthCheck(`${name}-tcp-health-check`, {
         name: `${name}-tcp-health-check`,
@@ -12,10 +14,10 @@ export default function ({ ipAddress, region, ports, group, name  }) {
         unhealthyThreshold: 2
     })
 
-    const regionBackendService = new gcp.compute.RegionBackendService(`${name}-region-backend-service`, {
-        name: `${name}-region-backend-service`,
-        protocol: "TCP",
+    const backendService = new gcp.compute.RegionBackendService(`${name}-backend-service`, {
+        name: `${name}-backend-service`,
         region,
+        protocol: "TCP",
         loadBalancingScheme: "EXTERNAL",
         backends: [{ group }],
         healthChecks: [healthCheck.id]
@@ -23,10 +25,10 @@ export default function ({ ipAddress, region, ports, group, name  }) {
 
     new gcp.compute.ForwardingRule(`${name}-forwarding-rule`, {
         name: `${name}-forwarding-rule`,
-        loadBalancingScheme: "EXTERNAL",
-        backendService: regionBackendService.id,
-        ipAddress,
         region,
+        loadBalancingScheme: "EXTERNAL",
+        backendService: backendService.id,
+        ipAddress,
         ports
     })
 

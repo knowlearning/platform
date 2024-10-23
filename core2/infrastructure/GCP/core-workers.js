@@ -1,6 +1,6 @@
 import * as gcp from "@pulumi/gcp";
 
-export default function ({ NATS_IP_ADDRESS, REDIS_IP_ADDRESS, region, machineType }) {
+export default function ({ zone, machineType }) {
 
     // Create an instance template to define the NATS instances
     const instanceTemplate = new gcp.compute.InstanceTemplate("core-worker-instance-template", {
@@ -29,22 +29,22 @@ export default function ({ NATS_IP_ADDRESS, REDIS_IP_ADDRESS, region, machineTyp
         }
     })
 
-    const instanceGroupManager = new gcp.compute.RegionInstanceGroupManager("core-worker-instance-group", {
+    const instanceGroupManager = new gcp.compute.InstanceGroupManager("core-worker-instance-group", {
         baseInstanceName: "core-worker-instance",
         versions: [{
             instanceTemplate: instanceTemplate.selfLinkUnique
         }],
-        region
+        zone
     })
 
-    const autoscaler = new gcp.compute.RegionAutoscaler("core-worker-autoscaler", {
-        region,
+    new gcp.compute.Autoscaler("core-worker-autoscaler", {
         target: instanceGroupManager.id,
         autoscalingPolicy: {
             maxReplicas: 1,
             minReplicas: 1,
             cpuUtilization: { target: 0.6 }
-        }
+        },
+        zone
     })
 
     return instanceGroupManager

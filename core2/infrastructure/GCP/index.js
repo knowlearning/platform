@@ -13,46 +13,32 @@ const CORE_HTTP_PORT = "8765"
 const REDIS_IP_ADDRESS = "10.128.0.26"
 const POSTGRES_IP_ADDRESS = "10.128.15.205"
 
-const region = "us-central1"
+const zone = "us-central1-a"
 const machineType = "e2-micro"
 
-redisDatabase({
-    REDIS_IP_ADDRESS,
-    region,
-    zone: `${region}-a`
-})
-
-postgresDatabase({
-    POSTGRES_IP_ADDRESS,
-    region,
-    zone: `${region}-a`
-})
+redisDatabase({ zone, REDIS_IP_ADDRESS })
+postgresDatabase({ zone, POSTGRES_IP_ADDRESS })
 
 const natsGroup = natsCluster({
+    zone,
     NATS_VERSION,
-    region,
     machineType
 })
 
-const coreGroup = coreWorkers({
-    NATS_IP_ADDRESS,
-    REDIS_IP_ADDRESS,
-    region,
-    machineType
-})
+const coreGroup = coreWorkers({ zone, machineType })
 
 tcpLoadBalancer({
+    zone,
     name: 'nats',
     ipAddress: NATS_IP_ADDRESS,
-    region,
     ports: [NATS_WS_CLIENT_PORT, NATS_CLIENT_PORT],
     group: natsGroup.instanceGroup
 })
 
 tcpLoadBalancer({
+    zone,
     name: 'core',
     ipAddress: CORE_IP_ADDRESS,
-    region,
     ports: [CORE_HTTP_PORT],
     group: coreGroup.instanceGroup
 })

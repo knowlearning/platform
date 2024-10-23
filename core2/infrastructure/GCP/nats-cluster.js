@@ -1,7 +1,7 @@
 import * as gcp from "@pulumi/gcp";
 import * as fs from "fs";
 
-export default function ({ NATS_VERSION, region, machineType }) {
+export default function ({ NATS_VERSION, zone, machineType }) {
     // Read the NATS configuration file
     const natsConfigScript = fs.readFileSync("nats-server.conf", "utf-8")
 
@@ -13,6 +13,10 @@ export default function ({ NATS_VERSION, region, machineType }) {
             autoDelete: true,
             sourceImage: "debian-cloud/debian-12"
         }],
+        // {
+        //     autoDelete: false,
+        //     deviceName: 'nats-jetstream-data'
+        // }],
         networkInterfaces: [{
             network: "default",
             accessConfigs: [{}], // To allow external access (e.g., NAT)
@@ -52,18 +56,24 @@ export default function ({ NATS_VERSION, region, machineType }) {
         }
     })
 
-    // Create an instance group manager to handle scaling and management
-    const instanceGroupManager = new gcp.compute.RegionInstanceGroupManager("nats-instance-group", {
+    const instanceGroupManager = new gcp.compute.InstanceGroupManager("nats-instance-group", {
         baseInstanceName: "nats-instance",
         versions: [{
             instanceTemplate: instanceTemplate.selfLinkUnique,
         }],
-        region
+        // statefulInternalIps: [{
+        //     deleteRule: "ON_PERMANENT_INSTANCE_DELETION",
+        //     interfaceName: "nic0"
+        // }],
+        // statefulDisks: [{
+        //     deleteRule: "ON_PERMANENT_INSTANCE_DELETION",
+        //     deviceName: "nats-jetstream-data"
+        // }],
+        zone
     })
 
-    // Define an autoscaler to scale the NATS instances based on CPU utilization
-    const autoscaler = new gcp.compute.RegionAutoscaler("nats-autoscaler", {
-        region,
+    new gcp.compute.Autoscaler("nats-autoscaler", {
+        zone,
         target: instanceGroupManager.id,
         autoscalingPolicy: {
             maxReplicas: 5, // Set a maximum number of instances

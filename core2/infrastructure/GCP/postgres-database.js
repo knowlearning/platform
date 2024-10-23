@@ -1,10 +1,12 @@
 import * as gcp from "@pulumi/gcp"
 
-export default function ({ POSTGRES_IP_ADDRESS, region, zone }) {
+export default function ({ POSTGRES_IP_ADDRESS, zone }) {
+    const region = zone.split('-').slice(0, -1).join('-')
+
     new gcp.compute.Address("postgres-static-ip", {
         address: POSTGRES_IP_ADDRESS,
-        addressType: "INTERNAL",
         region,
+        addressType: "INTERNAL",
         subnetwork: "default",
         purpose: "GCE_ENDPOINT"
     })
@@ -19,7 +21,7 @@ export default function ({ POSTGRES_IP_ADDRESS, region, zone }) {
         sourceRanges: ["10.128.0.0/9"],  // Allow traffic from all IPs within the VPC (default network's range)
         direction: "INGRESS",
         targetTags: ["postgres"]  // Apply the firewall rule to instances with the "redis" tag
-    });
+    })
 
     new gcp.compute.Instance("postgres-instance", {
         machineType: "e2-micro",
