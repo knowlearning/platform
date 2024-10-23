@@ -6,6 +6,6 @@ import { nc } from './nats.js'
 
 globalThis.CORE_HACK = 'TODO: REMOVE THIS HACK SHORTCUT'
 
-nc.subscribe("$SYS.REQ.USER.AUTH", { callback: handleAuthRequest })
+nc.subscribe("$SYS.REQ.USER.AUTH", { callback: (e, m) => handleAuthRequest(e, m).catch(error => console.warn('ERROR HANDLING AUTH REQUEST', error)) })
 nc.subscribe("effects.patch.>", { queue: "all-streams-queue", callback: handleSideEffects })
 nc.subscribe("resolve", { callback: handleResolve })

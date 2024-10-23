@@ -54,11 +54,13 @@ Deno.serve({ port: 8765 }, async request => {
   if (!session.user) {
     const { id } = await Agent.metadata(`user-anonymous-${sid}`)
     session.user = id
+    session.domain = domain
   }
 
   if (token) {
     const natsUser = await Agent.state(`user-nats-${token}`)
     natsUser.user = session.user
+    natsUser.domain = domain
   }
 
   return new Response(session.user, { headers })
