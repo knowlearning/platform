@@ -12,11 +12,10 @@ export default function ({ NATS_VERSION, zone, machineType }) {
             boot: true,
             autoDelete: true,
             sourceImage: "debian-cloud/debian-12"
+        }, {
+            autoDelete: false,
+            deviceName: 'nats-jetstream-data'
         }],
-        // {
-        //     autoDelete: false,
-        //     deviceName: 'nats-jetstream-data'
-        // }],
         networkInterfaces: [{
             network: "default",
             accessConfigs: [{}], // To allow external access (e.g., NAT)
@@ -61,27 +60,16 @@ export default function ({ NATS_VERSION, zone, machineType }) {
         versions: [{
             instanceTemplate: instanceTemplate.selfLinkUnique,
         }],
-        // statefulInternalIps: [{
-        //     deleteRule: "ON_PERMANENT_INSTANCE_DELETION",
-        //     interfaceName: "nic0"
-        // }],
-        // statefulDisks: [{
-        //     deleteRule: "ON_PERMANENT_INSTANCE_DELETION",
-        //     deviceName: "nats-jetstream-data"
-        // }],
+        statefulInternalIps: [{
+            deleteRule: "ON_PERMANENT_INSTANCE_DELETION",
+            interfaceName: "nic0"
+        }],
+        statefulDisks: [{
+            deleteRule: "ON_PERMANENT_INSTANCE_DELETION",
+            deviceName: "nats-jetstream-data"
+        }],
+        targetSize: 3,
         zone
-    })
-
-    new gcp.compute.Autoscaler("nats-autoscaler", {
-        zone,
-        target: instanceGroupManager.id,
-        autoscalingPolicy: {
-            maxReplicas: 5, // Set a maximum number of instances
-            minReplicas: 3, // Minimum number of instances
-            cpuUtilization: {
-                target: 0.6, // Scale out when average CPU is above 60%
-            },
-        }
     })
 
     return instanceGroupManager

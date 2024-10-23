@@ -34,16 +34,7 @@ export default function ({ zone, machineType }) {
         versions: [{
             instanceTemplate: instanceTemplate.selfLinkUnique
         }],
-        zone
-    })
-
-    new gcp.compute.Autoscaler("core-worker-autoscaler", {
-        target: instanceGroupManager.id,
-        autoscalingPolicy: {
-            maxReplicas: 1,
-            minReplicas: 1,
-            cpuUtilization: { target: 0.6 }
-        },
+        targetSize: 1,
         zone
     })
 
