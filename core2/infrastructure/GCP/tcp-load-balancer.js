@@ -1,9 +1,9 @@
 import * as gcp from "@pulumi/gcp";
 
-export default function ({ NATS_IP_ADDRESS, region, ports, group  }) {
+export default function ({ ipAddress, region, ports, group, name  }) {
 
-    const natsHealthCheck = new gcp.compute.RegionHealthCheck("nats-tcp-health-check", {
-        name: "nats-tcp-health-check",
+    const healthCheck = new gcp.compute.RegionHealthCheck(`${name}-tcp-health-check`, {
+        name: `${name}-tcp-health-check`,
         region,
         tcpHealthCheck: { port: 4222 },
         checkIntervalSec: 5,
@@ -12,20 +12,20 @@ export default function ({ NATS_IP_ADDRESS, region, ports, group  }) {
         unhealthyThreshold: 2
     })
 
-    const regionBackendService = new gcp.compute.RegionBackendService("nats-region-backend-service", {
-        name: "nats-region-backend-service",
+    const regionBackendService = new gcp.compute.RegionBackendService(`${name}-region-backend-service`, {
+        name: `${name}-region-backend-service`,
         protocol: "TCP",
         region,
         loadBalancingScheme: "EXTERNAL",
         backends: [{ group }],
-        healthChecks: [natsHealthCheck.id]
+        healthChecks: [healthCheck.id]
     })
 
-    new gcp.compute.ForwardingRule("nats-forwarding-rule", {
-        name: "nats-forwarding-rule",
+    new gcp.compute.ForwardingRule(`${name}-forwarding-rule`, {
+        name: `${name}-forwarding-rule`,
         loadBalancingScheme: "EXTERNAL",
         backendService: regionBackendService.id,
-        ipAddress: NATS_IP_ADDRESS,
+        ipAddress,
         region,
         ports
     })
