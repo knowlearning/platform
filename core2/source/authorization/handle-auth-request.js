@@ -5,6 +5,7 @@ import {
   decodeJWT,
   encodeJWT,
   encodeNATSToken,
+  createHash,
   environment
 } from './externals.js'
 
@@ -35,7 +36,7 @@ export default async function(err, msg) {
 
     const unwatch = (
       Agent
-        .watch(`user-nats-${token}`, ({ state }) => {
+        .watch(`user-nats-${await createHash(token)}`, ({ state }) => {
           //  TODO: Specify timeout
           if (state.user && state.domain) {
             resolve(state)

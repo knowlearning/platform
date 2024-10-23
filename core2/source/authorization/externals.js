@@ -152,6 +152,18 @@ async function decryptSymmetric(secret, encryptedData) {
 
 const cryptoDigest = (algorithm, data) => crypto.subtle.digest(algorithm, data)
 
+async function createHash(clear) {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(clear)
+  const hashBuffer = await cryptoDigest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function verifyHash(clear, hash) {
+  return hash === await create(clear)
+}
+
 export {
   pg,
   serve,
@@ -183,6 +195,8 @@ export {
   decodeBase64String,
   decryptBase64String,
   getCookies,
+  createHash,
+  verifyHash,
   isUUID
 }
 

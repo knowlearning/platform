@@ -1,4 +1,4 @@
-import { getCookies, randomBytes, decryptBase64String, environment } from "./externals.js"
+import { getCookies, randomBytes, decryptBase64String, environment, createHash } from "./externals.js"
 import Agent from './agent/deno/deno.js'
 import JWTVerification from './authenticate/verify-jwt.js'
 
@@ -25,7 +25,8 @@ Deno.serve({ port: 8765 }, async request => {
   }
 
   const { token, code } = await request.json()
-  const session = await Agent.state(`user-session-${sid}`)
+  const hashedSid = await createHash(sid)
+  const session = await Agent.state(`user-session-${hashedSid}`)
 
   if (code) {
     const OAuthCodeInfo = JSON.parse(await decryptBase64String(AUTH_SERVICE_SECRET_KEY, code))
@@ -35,7 +36,7 @@ Deno.serve({ port: 8765 }, async request => {
         JWTVerification(provider, code, resolve, reject)
       }).catch(error => {
         console.log('ERROR VERIFYING JWT', error)
-        return { provider: 'anonymous', provider_id: sid, info: { name: 'Anonymous', picture: null } }
+        return { provider: 'anonymous', provider_id: hashedSid, info: { name: 'Anonymous', picture: null } }
       })
 
       const userScopeName = `user-${provider}-${provider_id}`
@@ -50,15 +51,14 @@ Deno.serve({ port: 8765 }, async request => {
     }
   }
 
-  //  TODO: HASH SID AND TOKEN!!!!!!!!!!!!!!!!!!!
   if (!session.user) {
-    const { id } = await Agent.metadata(`user-anonymous-${sid}`)
+    const { id } = await Agent.metadata(`user-anonymous-${hashedSid}`)
     session.user = id
     session.domain = domain
   }
 
   if (token) {
-    const natsUser = await Agent.state(`user-nats-${token}`)
+    const natsUser = await Agent.state(`user-nats-${await createHash(token)}`)
     natsUser.user = session.user
     natsUser.domain = domain
   }
