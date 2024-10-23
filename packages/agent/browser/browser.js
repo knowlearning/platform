@@ -8,17 +8,17 @@ import { wsconnect, JSONCodec } from '@nats-io/nats-core'
 import { jetstream, jetstreamManager } from "@nats-io/jetstream"
 import embed from './embed.js'
 
-const DEV_CLUSTER_HOST = 'ws://localhost:8080/'
-const DEV_AUTH_HOST = 'http://localhost:8765/'
+const CLUSTER_HOST = window.NATS_WS_CLUSTER_HOST || 'ws://localhost:8080/'
+const AUTH_HOST = window.CORE_AUTH_HOST || 'http://localhost:8765/'
 
-const servers = [window.NATS_WS_CLUSTER_HOST || DEV_CLUSTER_HOST]
+const servers = [CLUSTER_HOST]
 const token = crypto.randomUUID().replaceAll('-', '')
 const code = localStorage.getItem('AGENT_AUTH_CODE')
 
 let resolveUserId
 const userIdPromise = new Promise(r => resolveUserId = r)
 
-fetch(DEV_AUTH_HOST, {
+fetch(AUTH_HOST, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   credentials: 'include',
