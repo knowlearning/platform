@@ -32,9 +32,10 @@ export default function ({ POSTGRES_IP_ADDRESS, region, zone }) {
             accessConfigs: [{}]
         }],
         metadataStartupScript: `#!/bin/bash
+
             POSTGRES_PASSWORD=$(gcloud secrets versions access latest --secret=POSTGRES_PASSWORD)
             sudo apt-get update
-            sudo apt-get install -y postgresql postgresql-contrib
+            sudo apt-get install -y postgresql-15 postgresql-contrib
             sudo systemctl enable postgresql
             sudo systemctl start postgresql
             sudo -u postgres psql -c "ALTER USER postgres PASSWORD '$POSTGRES_PASSWORD';"
