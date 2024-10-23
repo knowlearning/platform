@@ -1,4 +1,4 @@
-import { uuid, decodeBase64String, jwkToPem, jwt, environment } from '../externals.js'
+import { uuid, decodeBase64String, jwkToPem, jwt, environment } from './externals.js'
 
 const JWT_VERIFICATION_TIMEOUT = 2500
 
