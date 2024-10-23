@@ -1,5 +1,4 @@
-import { uuid, decodeBase64String, jwkToPem, jwt } from '../externals.js'
-import OAuthClientInfo from './oauth-client-info.js'
+import { uuid, decodeBase64String, jwkToPem, jwt, environment } from '../externals.js'
 
 const JWT_VERIFICATION_TIMEOUT = 2500
 
@@ -8,6 +7,8 @@ const JWKS_ENDPOINTS = {
   microsoft: 'https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration',
   classlink: 'https://launchpad.classlink.com/.well-known/openid-configuration'
 }
+
+const OAuthClientInfo = JSON.parse(environment.OAUTH_CREDENTIALS)
 
 export default async function JWTVerification(provider, code, resolve, reject) {
   if (provider === 'core') return coreVerfication(code, resolve, reject)

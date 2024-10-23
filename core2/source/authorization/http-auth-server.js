@@ -1,6 +1,6 @@
 import { getCookies, randomBytes, decryptBase64String, environment, createHash } from "./externals.js"
 import Agent from './agent/deno/deno.js'
-import JWTVerification from './authenticate/verify-jwt.js'
+import JWTVerification from './verify-jwt.js'
 
 const { AUTH_SERVICE_SECRET_KEY } = environment
 
