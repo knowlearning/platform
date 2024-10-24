@@ -6,7 +6,7 @@ const { AUTH_SERVICE_SECRET_KEY } = environment
 
 Deno.serve({ port: 8765 }, async request => {
   const origin = request.headers.get("Origin")
-  const domain = (new URL(origin)).host
+  const domain = origin ? (new URL(origin)).host : null
 
   const headers = new Headers({
     "Access-Control-Allow-Origin": origin,
