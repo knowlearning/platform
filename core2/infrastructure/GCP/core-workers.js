@@ -1,6 +1,6 @@
 import * as gcp from "@pulumi/gcp";
 
-export default function ({ zone, machineType }) {
+export default function ({ zone, machineType, healthCheck }) {
 
     // Create an instance template to define the NATS instances
     const instanceTemplate = new gcp.compute.InstanceTemplate("core-worker-instance-template", {
@@ -34,6 +34,10 @@ export default function ({ zone, machineType }) {
         versions: [{
             instanceTemplate: instanceTemplate.selfLinkUnique
         }],
+        autoHealingPolicies: {
+            healthCheck: healthCheck.id,
+            initialDelaySec: 30
+        },
         targetSize: 1,
         zone
     })

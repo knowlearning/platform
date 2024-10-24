@@ -1,7 +1,7 @@
-import * as gcp from "@pulumi/gcp";
-import * as fs from "fs";
+import * as gcp from "@pulumi/gcp"
+import * as fs from "fs"
 
-export default function ({ NATS_VERSION, zone, machineType }) {
+export default function ({ NATS_VERSION, zone, machineType, healthCheck }) {
     // Read the NATS configuration file
     const natsConfigScript = fs.readFileSync("nats-server.conf", "utf-8")
 
@@ -68,6 +68,10 @@ export default function ({ NATS_VERSION, zone, machineType }) {
             deleteRule: "ON_PERMANENT_INSTANCE_DELETION",
             deviceName: "nats-jetstream-data"
         }],
+        autoHealingPolicies: {
+            healthCheck: healthCheck.id,
+            initialDelaySec: 30
+        },
         targetSize: 3,
         zone
     })

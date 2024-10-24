@@ -7,13 +7,16 @@ const { AUTH_SERVICE_SECRET_KEY } = environment
 Deno.serve({ port: 8765 }, async request => {
   const origin = request.headers.get("Origin")
   const domain = (new URL(origin)).host
+
   const headers = new Headers({
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Credentials": "true"
   })
+
   if (request.method === 'OPTIONS') return new Response(null, { headers })
+  if (request.method === 'GET') return new Response(null) // health check
 
   let sid = getCookies(request.headers)['sid']
 

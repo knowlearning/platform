@@ -1,6 +1,6 @@
 import * as gcp from "@pulumi/gcp"
 
-export default function ({ POSTGRES_IP_ADDRESS, zone }) {
+export default function ({ POSTGRES_IP_ADDRESS, zone, machineType }) {
     const region = zone.split('-').slice(0, -1).join('-')
 
     new gcp.compute.Address("postgres-static-ip", {
@@ -24,7 +24,7 @@ export default function ({ POSTGRES_IP_ADDRESS, zone }) {
     })
 
     new gcp.compute.Instance("postgres-instance", {
-        machineType: "e2-micro",
+        machineType,
         zone,
         bootDisk: { initializeParams: { image: "debian-cloud/debian-12" } },
         networkInterfaces: [{
