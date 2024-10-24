@@ -14,7 +14,8 @@ export default function ({ NATS_VERSION, zone, machineType, healthCheck }) {
             sourceImage: "debian-cloud/debian-12"
         }, {
             autoDelete: false,
-            deviceName: 'nats-jetstream-data'
+            deviceName: 'nats-jetstream-data',
+            diskSizeGb: 10
         }],
         networkInterfaces: [{
             network: "default",
@@ -22,8 +23,65 @@ export default function ({ NATS_VERSION, zone, machineType, healthCheck }) {
         }],
         metadataStartupScript: `
             #! /bin/sh
-
             sudo apt-get update
+
+            # Function to check if a disk is formatted
+            is_formatted() {
+                local disk=$1
+                blkid $disk &> /dev/null
+                return $?
+            }
+
+            # Get the boot disk by finding the disk mounted at root (/)
+            boot_disk=$(lsblk -no PKNAME $(df / | tail -1 | awk '{print $1}'))
+
+            # Discover all non-boot disks, excluding the boot disk and loop devices
+            non_boot_disks=$(lsblk -dn -o NAME | grep -v $boot_disk)
+
+            # Count the number of non-boot disks
+            disk_count=$(echo "$non_boot_disks" | wc -l)
+
+            # Proceed only if exactly one non-boot disk is found
+            if [ "$disk_count" -eq 1 ]; then
+                echo "One non-boot disk found. Proceeding with formatting and mounting."
+                
+                for disk in $non_boot_disks; do
+                    # Full disk path (e.g., /dev/sdb)
+                    disk_path="/dev/$disk"
+                    
+                    # Check if the disk is mounted
+                    if ! mount | grep -q "$disk_path"; then
+                        echo "$disk_path is not mounted."
+                        
+                        # Check if the disk is formatted (has a filesystem)
+                        if ! is_formatted $disk_path; then
+                            echo "$disk_path is not formatted. Formatting..."
+                            # Format the disk with ext4 filesystem
+                            sudo mkfs.ext4 -F $disk_path
+                        else
+                            echo "$disk_path is already formatted."
+                        fi
+                        
+                        # Create a mount point directory
+                        mount_point="/jetstream"
+                        sudo mkdir -p $mount_point
+                        
+                        # Mount the disk
+                        echo "Mounting $disk_path at $mount_point"
+                        sudo mount $disk_path $mount_point
+                        
+                        # Optional: Add to /etc/fstab for persistence after reboot
+                        echo "$disk_path $mount_point ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
+                    else
+                        echo "$disk_path is already mounted."
+                    fi
+                done
+            else
+                echo "No non-boot disk found or more than one disk detected. Skipping formatting and mounting."
+                # TODO: Fail startup completely
+            fi
+
+
             sudo apt-get install -y wget
             wget https://github.com/nats-io/nats-server/releases/download/${NATS_VERSION}/nats-server-${NATS_VERSION}-linux-amd64.tar.gz
             # TODO: validate download
