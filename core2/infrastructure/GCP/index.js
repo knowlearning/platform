@@ -1,4 +1,4 @@
-import natsCluster from "./nats-cluster.js"
+import natsCluster from "./nats/cluster.js"
 import httpHealthCheck from "./http-health-check.js"
 import tcpHealthCheck from "./tcp-health-check.js"
 import tcpLoadBalancer from "./tcp-load-balancer.js"

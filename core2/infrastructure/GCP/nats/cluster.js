@@ -1,9 +1,15 @@
 import * as gcp from "@pulumi/gcp"
 import * as fs from "fs"
+import path from "path"
+import { fileURLToPath } from 'url'
+
+// Obtain the filename and directory name
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 export default function ({ NATS_VERSION, zone, machineType, healthCheck }) {
     // Read the NATS configuration file
-    const natsConfigScript = fs.readFileSync("nats-server.conf", "utf-8")
+    const natsConfigScript = fs.readFileSync(path.join(__dirname, "server.conf"), "utf-8")
 
     // Create an instance template to define the NATS instances
     const instanceTemplate = new gcp.compute.InstanceTemplate("nats-instance-template", {
@@ -14,7 +20,7 @@ export default function ({ NATS_VERSION, zone, machineType, healthCheck }) {
             sourceImage: "debian-cloud/debian-12"
         }, {
             autoDelete: false,
-            deviceName: 'nats-jetstream-data',
+            deviceName: 'nats-data',
             diskSizeGb: 10
         }],
         networkInterfaces: [{
@@ -63,7 +69,7 @@ export default function ({ NATS_VERSION, zone, machineType, healthCheck }) {
                         fi
                         
                         # Create a mount point directory
-                        mount_point="/jetstream"
+                        mount_point="/nats"
                         sudo mkdir -p $mount_point
                         
                         # Mount the disk
@@ -88,7 +94,7 @@ export default function ({ NATS_VERSION, zone, machineType, healthCheck }) {
             tar -xvzf nats-server-${NATS_VERSION}-linux-amd64.tar.gz
             sudo mv nats-server-${NATS_VERSION}-linux-amd64/nats-server /usr/local/bin/nats-server
 
-            echo '${natsConfigScript}' > nats-server.conf
+            echo '${natsConfigScript}' > server.conf
 
             # replace DYNAMIC_CLUSTER_ROUTES in file with properly formtted routes
             current_ip=$(curl -s "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip" -H "Metadata-Flavor: Google")
@@ -103,10 +109,10 @@ export default function ({ NATS_VERSION, zone, machineType, healthCheck }) {
 
             formatted_routes=$(echo "$other_ips" | sed 's/^/nats:\\/\\//' | sed 's/$/:6222/' | paste -sd, -)
 
-            sed -i "s|DYNAMIC_CLUSTER_ROUTES|$formatted_routes|g" nats-server.conf
+            sed -i "s|DYNAMIC_CLUSTER_ROUTES|$formatted_routes|g" server.conf
 
             # Start NATS server with cluster configuration
-            SERVER_NAME="$(hostname)" CLUSTER_ADVERTISE_URL="$($current_ip):6222" nats-server -c nats-server.conf &
+            SERVER_NAME="$(hostname)" CLUSTER_ADVERTISE_URL="$($current_ip):6222" nats-server -c server.conf &
         `,
         serviceAccount: {
             scopes: ["https://www.googleapis.com/auth/cloud-platform"],
@@ -124,7 +130,7 @@ export default function ({ NATS_VERSION, zone, machineType, healthCheck }) {
         }],
         statefulDisks: [{
             deleteRule: "ON_PERMANENT_INSTANCE_DELETION",
-            deviceName: "nats-jetstream-data"
+            deviceName: "nats-data"
         }],
         autoHealingPolicies: {
             healthCheck: healthCheck.id,
