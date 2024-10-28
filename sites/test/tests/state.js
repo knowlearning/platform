@@ -4,14 +4,23 @@ export default function () {
 
     it('Can set a state, then retrieve the updated state', async function () {
       const id = uuid()
-
+console.log('PRE GETTING FIRST STATE')
       const state = await Agent.state(id)
+      console.log('POST GETTING FIRST STATE')
+
       state.x = 100
       state.y = 200
 
-      const firstAgentRetrievedState = await Agent.state(id)
+console.log('PRE GETTING FIRST SYNC')
       await Agent.synced()
+console.log('PRE GETTING SECOND STATE')
+      const firstAgentRetrievedState = await Agent.state(id)
+console.log('POST GETTING SECOND STATE')
+      await Agent.synced()
+console.log('POST GETTING SECOND SYNC')
+console.log('PRE GETTING THIRD STATE')
       const secondAgentRetrievedState = await Agent2.state(id)
+console.log('POST GETTING THIRD STATE')
 
       expect(firstAgentRetrievedState).to.deep.equal(state)
       expect(state).to.deep.equal(secondAgentRetrievedState)
@@ -27,6 +36,7 @@ export default function () {
       state.x = 100
       state.y = 200
 
+      await Agent.synced()
       const firstAgentRetrievedState = await Agent.state(name)
       expect(firstAgentRetrievedState).to.deep.equal(state)
 
@@ -58,6 +68,23 @@ export default function () {
       const updatedStateFromSecondAgent = await Agent2.state(name, user)
 
       expect(updatedStateFromSecondAgent).to.deep.equal(state2)
+    })
+
+    it('Can request two of the same states by uuid and await sync', async function () {
+      const id = Agent.uuid()
+      const t0 = await Agent.state(id)
+      t0.y = 1
+      const t1 = await Agent.state(id)
+      await Agent.synced()
+    })
+
+    it('Can request two of the same states by name and await synced', async function () {
+      const id = 'test'
+      const t0 = await Agent.state(id)
+      t0.y = 1
+      const t1 = await Agent.state(id)
+      //t1.hmm = 1
+      await Agent.synced()
     })
   })
 }

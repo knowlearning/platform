@@ -32,3 +32,63 @@
 - [ ] better error sent to agent when trying to download a uuid that isn't an uploaded thing
 - [ ] document/surface error for localhosts connecting on non https connections
 - [ ] Agent.embed should guard against infinite loops in embeddings
+
+
+
+
+
+
+
+
+- [ ] sessions structure:
+      {
+        "uuid-for-session1": {
+          heartbeat: timestamp,
+          reference: uuid if embedded as uuid, or domain name
+          host: ...
+          subscriptions: {
+            "DOMAIN/USER/SCOPE": {
+              authorized: null,
+              uuid: ... (written by auth service)
+            },
+            "uuid-for-scope": {
+              domain: ... (written by auth service)
+              user: ... (written by auth service)
+              scope: ... (written by auth service)
+            }
+          },
+          queries: {
+            'name of query'
+          },
+          downloads: {
+            'DOMAIN/USER/SCOPE': {...},
+            'uuid-for-scope'
+          },
+          uploads: {
+            'uuid-for-scope' (new): {
+              uploadURL: AUTHORIZED_URL_TO_UPLOAD
+            },
+            'DOMAIN/USER/SCOPE' (new): {...}
+          },
+          embedded: {
+            "uuid-for-child-session1": {...}
+          }
+        }
+        "uuid-for-session2": {...}
+        "uuid-for-session3": {...}
+        "uuid-for-session4": {...}
+      }
+
+
+
+
+- [X] on update of stream
+  - [X] check size of stream
+  - [X] if "too large" compact it
+    - [X] insert ref to upload of rolled up history using nats client
+      - [X] get back sequence number (seq) of insert
+    - [X] upload stream's history into that ref
+    - [X] when upload confirmed remove history up to seq
+- [ ] in agent if first message is metadata patch for snapshot
+  - [ ] download snapshot
+  - [ ] process snapshot to get current state

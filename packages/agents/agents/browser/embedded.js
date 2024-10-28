@@ -166,7 +166,7 @@ export default function EmbeddedAgent() {
         const res = await download(id)
         const { name } = await metadata(id)
         const type = res.headers.get('Content-Type')
-        const blob = new Blob([ await res.blob() ], { type }) 
+        const blob = new Blob([ await res.blob() ], { type })
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.style.display = 'none'

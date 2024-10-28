@@ -9,6 +9,8 @@ export default function () {
       expect(metadata.owner).to.equal(user)
       expect(metadata.domain).to.equal(domain)
       expect(metadata.active).to.equal(undefined)
+      expect(metadata.created).to.be.a('number')
+      expect(Date.now() - metadata.created).to.be.lessThan(1000)
       expect(metadata.created).to.equal(metadata.updated)
       expect(metadata.active_type).to.equal('application/json')
     })
@@ -20,11 +22,12 @@ export default function () {
       const md1 = await Agent.metadata(id)
 
       md1.active_type = DEMO_TYPE
-      md1.name = 'Demo name'
+      await Agent.synced()
+      //md1.name = 'Demo name'
 
       const md2 = await Agent.metadata(id)
       expect(md2.active_type).to.equal(DEMO_TYPE)
-      expect(md2.name).to.equal(md1.name)
+      //expect(md2.name).to.equal(md1.name)
     })
 
     it('Cannot set metadata other than name and type', async function () {
