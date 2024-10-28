@@ -20,8 +20,8 @@ export default function ({ zone, machineType, healthCheck }) {
             sudo apt update
             sudo apt install git -y
             git clone https://github.com/knowlearning/platform.git
-            cd platform
-            git checkout trunk2
+            cd platform/core2
+            git checkout trunk
             sudo sh run.sh
         `,
         serviceAccount: {

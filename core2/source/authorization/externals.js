@@ -9,7 +9,7 @@ import nodePostres from 'npm:pg@8.11.0'
 import { serve } from "https://deno.land/std@0.202.0/http/server.ts"
 import { fromSeed as nkeysFromSeed, decode as decodeJWT, encode as encodeJWT, encodeAuthorizationResponse } from 'npm:nats-jwt@0.0.9'
 import { createClient as createRedisClient } from 'npm:redis@4.2.0'
-import { decodeBase64 } from "https://deno.land/std/encoding/base64.ts"
+import { decodeBase64 } from "https://deno.land/std@0.224.0/encoding/base64.ts"
 import jwkToPem from 'npm:jwk-to-pem@2.0.5'
 import jwt from 'npm:jsonwebtoken@8.5.1'
 import { getCookies } from 'https://deno.land/std@0.214.0/http/cookie.ts'

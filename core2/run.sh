@@ -1,7 +1,7 @@
 sudo apt install unzip
 curl -fsSL https://deno.land/install.sh | sh -s -- -y
 
-mv ./packages/agent ./core2/source/authorization/agent
+mv ../packages/agent ./source/authorization/agent
 
 echo "SETTING ENVIRONMENT VARIABLES"
 
@@ -55,4 +55,4 @@ REDIS_PORT="$REDIS_PORT" \
   --unstable-worker-options \
   --v8-flags=--max-old-space-size=8000 \
   --allow-env \
-  ./core2/source/authorization/index.js
+  ./source/authorization/index.js
