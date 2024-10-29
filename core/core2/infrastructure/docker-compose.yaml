@@ -33,7 +33,7 @@ services:
       - ./.credentials/development
       - ./environment/development
     volumes:
-      - ../../packages/agent:/agent
+      - ../../../packages/agent:/agent
     depends_on:
       - postgres
       - gcs-emulator

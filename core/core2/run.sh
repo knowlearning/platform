@@ -1,7 +1,7 @@
 sudo apt install unzip
 curl -fsSL https://deno.land/install.sh | sh -s -- -y
 
-mv ../packages/agent ./source/authorization/agent
+mv ../../packages/agent ./source/authorization/agent
 
 echo "SETTING ENVIRONMENT VARIABLES"
 
