@@ -96,7 +96,7 @@
   const copy = x => JSON.parse(JSON.stringify(x))
 
   let candliGameId
-  if (embedding.value.id.startsWith('https://cand.li/')) {
+  if (embedding.value.id.startsWith('https://pila.cand.li/')) {
     candliGameId = (new URL(embedding.value.id)).searchParams.get('game')
   }
 
@@ -109,7 +109,7 @@
     Object.keys(competencies).forEach(key => delete competencies[key])
   }
 
-  //  candli example: https://cand.li/dev/testing-release-pila/pila-play.html?game=0adb500fa86a5cc6b62ab7ca3680ec64
+  //  candli example: https://pila.cand.li/pila-play.html?game=0adb500fa86a5cc6b62ab7ca3680ec64
   async function handleClose(info) {
     closed.value = true
     if (embedded) {
