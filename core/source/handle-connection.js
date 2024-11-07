@@ -197,7 +197,7 @@ export default async function handleConnection(connection, domain, sid) {
           const { ii, active_type } = await interact(domain, user, scope, patch)
           await coreSideEffects({ session, domain, user, scope, active_type, patch, si, ii, send })
           if (agent && user !== domain) {
-            const data = { scope, patch, ii }
+            const data = { scope, patch, ii, id }
             agent.send({ type: 'mutate', session, data })
           }
 

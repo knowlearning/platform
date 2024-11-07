@@ -18,6 +18,7 @@ import namespacedEmbeddings from './tests/namespaced-embeddings.js'
 import latestBugfixes from './tests/latest-bugfixes.js'
 import Agent from '@knowlearning/agents/browser.js'
 import browserAgent from '@knowlearning/agents/browser/initialize.js'
+import { vuePersistentStore } from '@knowlearning/agents/vue.js'
 
 import 'mocha/mocha.css'
 
@@ -125,7 +126,7 @@ else {
     arrays()
     watch()
     watchDeep()
-    vuex()
+    vuex(vuePersistentStore)
     namespacedEmbeddings()
     if (mode.length === 4) reconnect()
     uploads()
