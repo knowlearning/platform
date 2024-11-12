@@ -20,7 +20,8 @@ export default function () {
     text_test_column: 'Test Text',
     integer_test_column: 42,
     boolean_test_column: true,
-    text_array_test_column: null
+    text_array_test_column: null,
+    jsonb_column: null
   }
 
   const TEST_ENTRY_2_ID = uuid()
@@ -28,7 +29,8 @@ export default function () {
     text_test_column: 'More Test Text',
     integer_test_column: 84,
     boolean_test_column: false,
-    text_array_test_column: null
+    text_array_test_column: null,
+    jsonb_column: null
   }
 
   const TEST_ENTRY_3_ID = uuid()
@@ -36,7 +38,17 @@ export default function () {
     text_test_column: 'More Test Text',
     integer_test_column: 84,
     boolean_test_column: false,
-    text_array_test_column: ['abc', 'def']
+    text_array_test_column: ['abc', 'def'],
+    jsonb_column: null
+  }
+
+  const TEST_ENTRY_4_ID = uuid()
+  const TEST_ENTRY_4 = {
+    text_test_column: 'More Test Text',
+    integer_test_column: 84,
+    boolean_test_column: false,
+    text_array_test_column: ['abc', 'def'],
+    jsonb_column: ['abc', 123, 'def', {}]
   }
 
   const CONFIGURATION_1 = `
@@ -54,6 +66,7 @@ postgres:
         integer_test_column: INTEGER
         boolean_test_column: BOOLEAN
         text_array_test_column: TEXT[]
+        jsonb_column: JSONB
   queries:
     my-test-table-entries: |
       SELECT * FROM test_table WHERE id = '${TEST_ENTRY_1_ID}'
@@ -121,6 +134,7 @@ postgres:
         integer_test_column: INTEGER
         boolean_test_column: BOOLEAN
         text_array_test_column: TEXT[]
+        jsonb_column: JSONB
   queries:
     my-reconfigured-test-table-entries:
       domains:
@@ -135,6 +149,8 @@ postgres:
       SELECT * FROM test_table_2 WHERE id = '${TEST_ENTRY_2_ID}'
     text-array-test-query: |
       SELECT * FROM test_table_2 WHERE id = '${TEST_ENTRY_3_ID}'
+    jsonb-test-query: |
+      SELECT * FROM test_table_2 WHERE id = '${TEST_ENTRY_4_ID}'
     my-old-test-table: |
       SELECT * FROM test_table
   functions:
@@ -376,9 +392,22 @@ postgres:
       const state = await Agent.state(TEST_ENTRY_3_ID)
       Object.assign(state, TEST_ENTRY_3)
       await Agent.synced()
+      await pause(50) //  TODO: diagnose test flakiness
 
       expect( await Agent.query('text-array-test-query') )
         .to.deep.equal( [{ id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 }] )
+    })
+
+    it('Can create and query JSONB columns', async function () {
+      const metadata = await Agent.metadata(TEST_ENTRY_4_ID)
+      metadata.active_type = TEST_TABLE_TYPE
+      const state = await Agent.state(TEST_ENTRY_4_ID)
+      Object.assign(state, TEST_ENTRY_4)
+      await Agent.synced()
+      await pause(50) //  TODO: diagnose test flakiness
+
+      expect( await Agent.query('jsonb-test-query') )
+        .to.deep.equal([ { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 } ])
     })
 
     it('Cannot query old tables', async function () {

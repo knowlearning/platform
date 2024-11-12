@@ -199,8 +199,9 @@ function setRow(domain, table, columns, id, state, firstParamIndex=1) {
     const columnString = columnNames.map(purifiedName).join(',')
     const rowValues = columnNames.map((_, index) => `$${firstParamIndex + index + 1}`).join(',')
     const orderedValues = columnNames.map(n => {
-      if (data[n] === undefined) return null
+      if (data[n]    === undefined  ) return null
       if (columns[n] === 'TIMESTAMP') return new Date(data[n])
+      if (columns[n] === 'JSONB'    ) return JSON.stringify(data[n])
       return data[n]
     })
     return [

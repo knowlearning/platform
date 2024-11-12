@@ -197,13 +197,16 @@ async function syncTables(domain, tables, report) {
         await Promise.all(idsForType.map(async ({ id }) => {
           const state = await Agent.state(id)
 
+          //  TODO: share code with postgres.js insert row for this cleanup
           await batchInsertRows(domain, table, orderedColumns, [id], [
             id,
             ...orderedColumns
               .map(column => {
                 const value = state[column]
+
                 if (value === undefined) return null
                 else if (columns[column] === 'TIMESTAMP') return new Date(value)
+                else if (columns[column] === 'JSONB'    ) return JSON.stringify(value)
                 else return value
               })
           ])

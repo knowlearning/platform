@@ -218,12 +218,14 @@ async function syncTables(domain, tables, report) {
           const data = table === 'metadata' ? state : state.active
 
           rowsToInsert.push(id)
+          //  TODO: share code with postgres.js for this cleanup... or just do it at the postgres.js level
           paramsToInsert.push(
             id,
             ...orderedColumns
               .map(column => {
-                if (!data || data[column] === undefined) return null
+                if (!data || data[column] === undefined ) return null
                 else if (columns[column] === 'TIMESTAMP') return new Date(data[column])
+                else if (columns[column] === 'JSONB'    ) return JSON.stringify(data[column])
                 else return data[column]
               })
           )
