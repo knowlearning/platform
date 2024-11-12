@@ -26,7 +26,8 @@ const constantMap = {
   TIMESTAMP: 'TIMESTAMP',
   INTEGER: 'INTEGER',
   BIGINT: 'BIGINT',
-  JSON: 'JSON'
+  JSON: 'JSON',
+  JSONB: 'JSONB'
 }
 
 const ignorableErrors = {
