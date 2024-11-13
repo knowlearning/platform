@@ -40,7 +40,10 @@ export default async function (requestingDomain, targetDomain, queryName, params
   else if (queryDefinition?.body) queryBody = queryDefinition.body
 
   if (queryBody) {
-    const namedParams = { DOMAIN: targetDomain }
+    const namedParams = {
+      DOMAIN: targetDomain,
+      REQUESTING_DOMAIN: requestingDomain
+    }
     if (user) namedParams.REQUESTER = user
 
     //  TODO: better replacement technique
