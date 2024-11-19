@@ -22,7 +22,7 @@ const MOVE_SCRIPT = `
 `
 
 function arrayPathRepresentationToJSONPath(arrayPath) {
-  return arrayPath.length ? `$[${arrayPath.map(JSON.stringify).join('][')}]` : '$'
+  return arrayPath.length ? `$[${arrayPath.map(x => JSON.stringify(x).replaceAll('\\\\', '\\')).join('][')}]` : '$'
 }
 
 export default async function interact( domain, user, scope, patch, timestamp=Date.now() ) {
