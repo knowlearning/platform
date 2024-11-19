@@ -168,5 +168,15 @@ export default function () {
 
       expect(state).to.deep.equal(await Agent2.state(id))
     })
+
+    it('Can set persistent state with an escaped double quote character', async function () {
+      const id = uuid()
+      const state = await Agent.state(id)
+      state['\"'] = 1
+
+      await Agent.synced()
+
+      expect(state).to.deep.equal(await Agent2.state(id))
+    })
   })
 }
