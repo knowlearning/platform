@@ -35,7 +35,6 @@ function encodePathReference(ref) {
 }
 
 function arrayPathRepresentationToJSONPath(arrayPath) {
-  console.log(arrayPath)
   return arrayPath.length ? `$[${arrayPath.map(encodePathReference).join('][')}]` : '$'
 }
 
