@@ -6,7 +6,7 @@ const MAINTENANCE_SCRIPT = `
   local active_size = redis.call('JSON.DEBUG', 'MEMORY', KEYS[1])
   redis.call('JSON.SET', KEYS[1], '$.active_size', tonumber(active_size))
   redis.call('SADD', KEYS[2], KEYS[1])
-`;
+`
 
 const MOVE_SCRIPT = `
   local key = KEYS[1]
@@ -21,8 +21,22 @@ const MOVE_SCRIPT = `
   redis.call('JSON.ARRINSERT', key, path, to_index, castedMoveValue)
 `
 
+const replacements = [
+  [/\\"/g, '"'],
+  [/\\'/g, "\\'"]
+]
+
+function applyReplacements(ref) {
+  return replacements.reduce((s, [from, to]) => s.replace(from, to), ref)
+}
+
+function encodePathReference(ref) {
+  return /^[0-9]+$/.test(ref) ? ref : `'${applyReplacements(ref)}'`
+}
+
 function arrayPathRepresentationToJSONPath(arrayPath) {
-  return arrayPath.length ? `$[${arrayPath.map(x => JSON.stringify(x).replaceAll('\\\\', '\\')).join('][')}]` : '$'
+  console.log(arrayPath)
+  return arrayPath.length ? `$[${arrayPath.map(encodePathReference).join('][')}]` : '$'
 }
 
 export default async function interact( domain, user, scope, patch, timestamp=Date.now() ) {
