@@ -92,6 +92,7 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
   }
 
   transaction.eval(MAINTENANCE_SCRIPT, { keys: [id, domain] })
+  transaction.json.set(id, '$.updated', timestamp)
   transaction.json.get(id, { path: '$.active_type' })
 
   try {
