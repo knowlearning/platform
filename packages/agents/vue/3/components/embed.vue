@@ -30,7 +30,7 @@ export default {
       required: false
     },
     namespace: {
-      type: String,
+      type: [Object, String],
       required: false
     },
     environmentProxy: {
