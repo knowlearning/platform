@@ -36,7 +36,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
     authenticated: null
   }
 
-  async function environment() { return { ...(await environmentPromise), context: [] } }
+  async function environment() { return { variables: {}, ...(await environmentPromise), context: [] } }
 
   function queueMessage({ scope, patch }) {
     if (lastSynchronousScopePatched === scope) {

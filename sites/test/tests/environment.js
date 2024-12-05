@@ -4,7 +4,7 @@ export default function environmentTest() {
   describe('Environment calls', function () {
 
     it('Can be proxied for embedded apps', async function () {
-      const passedDownEnvironmentInfo = { auth: { user: uuid(), provider: 'whatever', info: { name: 'anything' } } }
+      const passedDownEnvironmentInfo = { auth: { user: uuid(), provider: 'whatever', info: { name: 'anything' } }, variables: { WHATEVER: 'whatevs' } }
       let resolve, reject
       const done = new Promise((res, rej) => {
         resolve = res

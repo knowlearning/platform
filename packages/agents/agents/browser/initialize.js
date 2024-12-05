@@ -81,8 +81,22 @@ function embed(environment, iframe) {
     }
     else if (type === 'environment') {
       const { user } = message
+      const { mode, variables } = environment
+
       const env = await (listeners.environment ? listeners.environment(user) : Agent.environment(user))
-      sendDown({ ...env, context: [...(env.context || []), environment.id], mode: environment.mode })
+
+      sendDown({
+        ...env,
+        context: [
+          ...(env.context || []),
+          environment.id
+        ],
+        variables: {
+          ...(env.variables || {}),
+          ...(variables || {})
+        },
+        mode //  TODO: deprecate
+      })
     }
     else if (type === 'interact') {
       let { scope, patch } = message

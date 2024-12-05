@@ -18,7 +18,6 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
   const keyToSubscriptionId = {}
   const lastInteractionResponse = {}
   const tagTypeToTargetCache = {}
-  let mode = 'normal'
 
   log('INITIALIZING AGENT CONNECTION')
   const [
@@ -59,7 +58,8 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
 
   function download(id) { return downloadImplementation(id, internalReferences) }
 
-  function debug() { mode = 'debug' }
+  //  TODO: deprecate
+  function debug() {}
 
   function log() { passedLog(...arguments) }
 
