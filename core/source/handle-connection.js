@@ -1,3 +1,4 @@
+import { jwt, environment } from './utils.js'
 import authenticate from './authenticate/index.js'
 import interact from './interact/index.js'
 import scopeToId from './scope-to-id.js'
@@ -7,6 +8,19 @@ import domainAgent from './domain-agent.js'
 
 const HEARTBEAT_INTERVAL = 5000
 const SESSION_RECONNECTION_INTERVAL = 60000
+
+const { AUTH_SERVICE_SECRET_KEY } = environment
+
+const AUTH_SERVICE_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA59Uz6jvBJF3B8/7xMqGo
+XkIhLFvTCHuFIGuCNNZGCJUnSk2ne6Jp1ehUIarliJwzrvfr2HMe0PvzAJyZqQIs
+uz0Lt867TTojCAKJunxbcrwEhzvz0FNjNu1wpgkSHFvd1uTvRSZqauqUmG0HqC17
+HSmBaXivB49B/pviowVJc+mUJJ9MROtOiL4JN5niHnLbt6QVi6NITAJkOwtoRhck
+5j0KLvfrq18R8QrfDOq3v5hWlrA6j1wPvTW1mzFk8MrOZw935mMDdMivFAm/DltM
+NT5I3YnLZpcl1e/fydC+B6zSz2nZfLb2iDBbADDVj2+i9JUEFomg6ng1DjHUGMYc
+ZQIDAQAB
+-----END PUBLIC KEY-----
+`
 
 const activeConnections = {}
 const sessionMessageIndexes = {}
@@ -137,11 +151,18 @@ export default async function handleConnection(connection, domain, sid) {
           outstandingSideEffects[session] = {}
         }
 
+        const JWT = await new Promise((resolve, reject) => {
+          jwt.sign({ user, domain }, AUTH_SERVICE_SECRET_KEY, { algorithm: 'RS256' }, (error, token) => {
+            if (error) reject(error)
+            else resolve(token)
+          })
+        })
+
         connection.send({
           domain,
           server: SESSION,
           session,
-          auth: { user, provider, info: authResponse.info },
+          auth: { user, provider, info: authResponse.info, JWT },
           ack: sessionMessageIndexes[session]
         })
 
