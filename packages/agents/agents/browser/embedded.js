@@ -62,11 +62,11 @@ export default function EmbeddedAgent() {
         if (sentUpdates[key] === undefined || sentUpdates[key] + 1 === data.ii) {
           sendUpdate()
         } else if (data.ii === sentUpdates[key]) {
-          console.warn('Repeated update for', key, data, sentUpdates[key])
+          //console.warn('Repeated update for', key, data, sentUpdates[key])
         } else if (data.ii < sentUpdates[key]) {
-            console.warn('Out of order update, from past', key, JSON.stringify(data, null, 4), sentUpdates[key])
+           //console.warn('Out of order update, from past', key, JSON.stringify(data, null, 4), sentUpdates[key])
         } else {
-          console.warn('Out of order update, fast forward', key, JSON.stringify(data, null, 4), sentUpdates[key])
+          //console.warn('Out of order update, fast forward', key, JSON.stringify(data, null, 4), sentUpdates[key])
           sendUpdate()
         }
       }

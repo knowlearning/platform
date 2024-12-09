@@ -8,7 +8,7 @@ function activePatch(patch) {
   return structuredClone(patch).filter(({ path }) => 'active' === path.shift())
 }
 
-export default function messageQueue({ token, sid, domain, Connection, watchers, states, applyPatch, log, login, reboot, handleDomainMessage, trigger }) {
+export default function messageQueue({ token, sid, domain, Connection, watchers, states, applyPatch, log, login, reboot, handleDomainMessage, trigger, variables={} }) {
   let connection
   let user
   let authed = false
@@ -36,7 +36,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
     authenticated: null
   }
 
-  async function environment() { return { variables: {}, ...(await environmentPromise), context: [] } }
+  async function environment() { return { variables, ...(await environmentPromise), context: [] } }
 
   function queueMessage({ scope, patch }) {
     if (lastSynchronousScopePatched === scope) {

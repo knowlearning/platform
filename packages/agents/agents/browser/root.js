@@ -8,6 +8,7 @@ const SECURE = window.location.protocol === 'https:'
 const DEVELOPMENT_HOST = `localhost:3200${ SECURE ? '1' : '2' }`
 const ENVIRONMENT_API_HOST = localStorage.getItem('API_HOST')
 const REMOTE_HOST = window.location.hostname === TEST_DOMAIN && ENVIRONMENT_API_HOST ? ENVIRONMENT_API_HOST : 'api.knowlearning.systems'
+const LANGUAGES = navigator.languages
 
 function isLocal() { return localStorage.getItem('api') === 'local' }
 
@@ -68,6 +69,7 @@ export default options => {
     applyPatch,
     login,
     logout,
+    variables: { LANGUAGES },
     reboot: () => window.location.reload()
   })
 
