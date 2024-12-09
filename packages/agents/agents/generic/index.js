@@ -12,7 +12,7 @@ const UPLOAD_TYPE = 'application/json;type=upload'
 const TAG_TYPE = 'application/json;type=tag'
 const DOMAIN_CLAIM_TYPE = 'application/json;type=domain-claim'
 
-export default function Agent({ Connection, domain, token, sid, uuid, fetch, applyPatch, login, logout, reboot, handleDomainMessage, log:passedLog=console.log }) {
+export default function Agent({ Connection, domain, token, sid, uuid, fetch, applyPatch, login, logout, reboot, handleDomainMessage, log:passedLog=console.log, variables={} }) {
   const states = {}
   const watchers = {}
   const keyToSubscriptionId = {}
@@ -27,7 +27,7 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     reconnect,
     synced,
     environment
-  ] = messageQueue({ token, sid, domain, Connection, watchers, states, applyPatch, log, login, interact, reboot, trigger, handleDomainMessage })
+  ] = messageQueue({ token, sid, domain, Connection, watchers, states, applyPatch, log, login, interact, reboot, trigger, handleDomainMessage, variables })
 
   // initialize session
   environment()
