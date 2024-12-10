@@ -13,6 +13,18 @@ export default function authenticateToken(domain, token, authority) {
         const { domain: tokenDomain, provider, code } = JSON.parse(await decryptBase64String(AUTH_SERVICE_SECRET_KEY, token))
 
         if (tokenDomain !== domain) reject(`INVALID TOKEN DOMAIN: ${domain} != ${tokenDomain}`)
+        else if (provider === 'code') {
+          //  TODO: authenticating user's provider should be the user id of the owner
+          //  TODO: use code and providing user's config to get user id
+          //  TODO: get user name from providing user (encrypted and decrypted w/ users's code)
+          const id = uuid()
+          resolve({
+            user: id,
+            provider_id: id,
+            provider: 'providing user\'s id',
+            info: { name: 'from providing user', picture: null }
+          })
+        }
         else if (OAuthClientInfo[provider]) JWTVerification(provider, code, resolve, reject)
         else resolve(anonymousProviderResponse(uuid()))
       }
