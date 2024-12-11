@@ -328,14 +328,23 @@ async function syncFunctions(domain, functions, report) {
 
 }
 
+const DOMAIN_CONFIGURED_QUERY = `SELECT EXISTS (
+  SELECT 1
+  FROM information_schema.tables
+  WHERE table_name = 'metadata'
+)`
+
 const configuredDomains = {}
 export async function ensureDomainConfigured(domain) {
   //  TODO: more reliable check
   if (!configuredDomains[domain]) {
     configuredDomains[domain] = new Promise(async resolve => {
-      const report = { tasks: [], start: Date.now() }
-      await applyConfiguration(domain, await configuration(domain), report)
-        .catch(error => console.warn('configuration error', domain, error))
+      const { rows: [{ exists: configured }] } = await postgres.query(domain, DOMAIN_CONFIGURED_QUERY)
+      if (!configured) {
+          const report = { tasks: [], start: Date.now() }
+          await applyConfiguration(domain, await configuration(domain), report)
+            .catch(error => console.warn('configuration error', domain, error))
+      }
       resolve()
     })
   }
