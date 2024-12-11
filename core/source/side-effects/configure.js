@@ -341,9 +341,9 @@ export async function ensureDomainConfigured(domain) {
     configuredDomains[domain] = new Promise(async resolve => {
       const { rows: [{ exists: configured }] } = await postgres.query(domain, DOMAIN_CONFIGURED_QUERY)
       if (!configured) {
-          const report = { tasks: [], start: Date.now() }
-          await applyConfiguration(domain, await configuration(domain), report)
-            .catch(error => console.warn('configuration error', domain, error))
+        const report = { tasks: [], start: Date.now() }
+        await applyConfiguration(domain, await configuration(domain), report)
+          .catch(error => console.warn('configuration error', domain, error))
       }
       resolve()
     })
