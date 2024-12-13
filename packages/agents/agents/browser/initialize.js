@@ -81,7 +81,7 @@ function embed(environment, iframe) {
     }
     else if (type === 'environment') {
       const { user } = message
-      const { mode, variables } = environment
+      const { mode, variables={} } = environment
 
       const env = await (listeners.environment ? listeners.environment(user) : Agent.environment(user))
 
@@ -93,7 +93,7 @@ function embed(environment, iframe) {
         ],
         variables: {
           ...(env.variables || {}),
-          ...(variables || {})
+          ...variables
         },
         mode //  TODO: deprecate
       })

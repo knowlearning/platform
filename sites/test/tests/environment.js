@@ -39,5 +39,61 @@ export default function environmentTest() {
       expect(passedBackEnvironmentInfo).to.deep.equal(passedDownEnvironmentInfo)
     })
 
+    it('Transfers added environment variables to children', async function () {
+      const environment = await Agent.environment()
+      environment.variables.WHAT_I_WANT = 'Woo!'
+
+      const iframe = document.createElement('iframe')
+      iframe.style = "border: none; width: 0; height: 0;"
+      document.body.appendChild(iframe)
+
+      const { on } = Agent.embed({ id: uuid(), mode: EMBEDDED_ENVIRONMENT_TEST_MODE }, iframe)
+
+      let passedBackEnvironment
+
+      await new Promise(resolve => {
+        on('close', info => {
+          passedBackEnvironment = info
+          document.body.removeChild(iframe)
+          resolve()
+        })
+      })
+
+      delete environment.context
+      delete passedBackEnvironment.mode
+      delete passedBackEnvironment.context
+
+      expect(passedBackEnvironment).to.deep.equal(environment)
+    })
+
+    it('Transfers updated variable values to children', async function () {
+      const environment = await Agent.environment()
+      environment.variables.LANGUAGES = ['not a language']
+
+      const iframe = document.createElement('iframe')
+      iframe.style = "border: none; width: 0; height: 0;"
+      document.body.appendChild(iframe)
+
+      const { on } = Agent.embed({ id: uuid(), mode: EMBEDDED_ENVIRONMENT_TEST_MODE }, iframe)
+
+      let passedBackEnvironment
+
+      await new Promise(resolve => {
+        on('close', info => {
+          passedBackEnvironment = info
+          document.body.removeChild(iframe)
+          resolve()
+        })
+      })
+
+      delete environment.context
+      delete passedBackEnvironment.mode
+      delete passedBackEnvironment.context
+
+      console.log(environment, passedBackEnvironment)
+
+      expect(passedBackEnvironment).to.deep.equal(environment)
+    })
+
   })
 }
