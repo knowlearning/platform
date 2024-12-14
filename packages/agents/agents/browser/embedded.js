@@ -73,8 +73,13 @@ export default function EmbeddedAgent() {
     }
   })
 
-  function environment(user) {
-    return send({ type: 'environment', user })
+  let variables
+
+  async function environment(user) {
+    const response = await send({ type: 'environment', user })
+    //  keep copy on initialize symantics for environment variables
+    if (!variables) variables = response.variables
+    return { ...response, variables }
   }
 
   function create({ id=uuid(), active_type, active }) {
