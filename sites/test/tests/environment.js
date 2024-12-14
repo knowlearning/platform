@@ -197,6 +197,7 @@ export default function environmentTest() {
       expect(passedBackEnvironment).to.deep.equal(environment)
     })
 
+    //  TODO: add another similar test with environmentProxy set up...
     it('Transfers variables to embedded vue children', async function () {
       const environment = await Agent.environment()
       environment.variables.LANGUAGES = ['not at all a language at all']
@@ -214,7 +215,6 @@ export default function environmentTest() {
               id: '/',
               mode: EMBEDDED_ENVIRONMENT_TEST_MODE,
               onClose: info => {
-                console.log('CLOSE INFO????', info)
                 passedBackEnvironment = info
                 document.body.removeChild(div)
                 resolve()
@@ -234,6 +234,44 @@ export default function environmentTest() {
       expect(passedBackEnvironment).to.deep.equal(environment)
     })
 
+    //  TODO: add another similar test with environmentProxy set up...
+    it('Transfers variables to embedded vue children with environment proxy', async function () {
+      const environment = await Agent.environment()
+      environment.variables.LANGUAGES = ['not at all a language at all']
 
+      const div = document.createElement('div')
+      div.style = "border: none; width: 0; height: 0;"
+      document.body.appendChild(div)
+
+      let passedBackEnvironment
+
+      const envForProxy = { variables: { whateverWeWant: 'wooo' } }
+
+      await new Promise(resolve => {
+        const app = createApp(
+            vueEmbedComponent,
+            {
+              id: '/',
+              mode: EMBEDDED_ENVIRONMENT_TEST_MODE,
+              environmentProxy: () => envForProxy,
+              onClose: info => {
+                passedBackEnvironment = info
+                document.body.removeChild(div)
+                resolve()
+              }
+            }
+          )
+          .mount(div)
+      })
+
+      delete environment.context
+      delete environment.mode
+      delete passedBackEnvironment.context
+      delete passedBackEnvironment.mode
+
+      console.log(environment, passedBackEnvironment)
+
+      expect(passedBackEnvironment).to.deep.equal(envForProxy)
+    })
   })
 }
