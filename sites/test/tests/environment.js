@@ -1,3 +1,5 @@
+import { createApp } from 'vue'
+import { vueEmbedComponent } from '@knowlearning/agents/vue.js'
 const EMBEDDED_ENVIRONMENT_TEST_MODE = 'EMBEDDED_ENVIRONMENT_TEST_MODE'
 
 export default function environmentTest() {
@@ -63,6 +65,9 @@ export default function environmentTest() {
       delete environment.mode
       delete passedBackEnvironment.context
       delete passedBackEnvironment.mode
+
+      console.log('ENVVVVVVVVVVVVVVVV!!!!!!!!!!!!!!!!', environment)
+      console.log('PASSED BACK!!!!!!!!!!!!!!!!', passedBackEnvironment)
 
       expect(passedBackEnvironment).to.deep.equal(environment)
     })
@@ -156,6 +161,79 @@ export default function environmentTest() {
 
       expect(passedBackEnvironment).to.deep.equal(environment)
     })
+
+    it('Transfers proxied variables to children', async function () {
+      const environment = await Agent.environment()
+      environment.variables.LANGUAGES = ['not at all a language at all']
+
+      const iframe = document.createElement('iframe')
+      iframe.style = "border: none; width: 0; height: 0;"
+      document.body.appendChild(iframe)
+
+      const { on } = Agent.embed({ id: uuid(), mode: EMBEDDED_ENVIRONMENT_TEST_MODE }, iframe)
+
+      let passedBackEnvironment
+
+      on('environment', async user => {
+        console.log('RRRRRRRRRRRRREETURNING', await Agent.environment(user))
+        return Agent.environment(user)
+      })
+
+      await new Promise(resolve => {
+        on('close', info => {
+          passedBackEnvironment = info
+          document.body.removeChild(iframe)
+          resolve()
+        })
+      })
+
+      delete environment.context
+      delete environment.mode
+      delete passedBackEnvironment.context
+      delete passedBackEnvironment.mode
+
+      console.log(environment, passedBackEnvironment)
+
+      expect(passedBackEnvironment).to.deep.equal(environment)
+    })
+
+    it('Transfers variables to embedded vue children', async function () {
+      const environment = await Agent.environment()
+      environment.variables.LANGUAGES = ['not at all a language at all']
+
+      const div = document.createElement('div')
+      div.style = "border: none; width: 0; height: 0;"
+      document.body.appendChild(div)
+
+      let passedBackEnvironment
+
+      await new Promise(resolve => {
+        const app = createApp(
+            vueEmbedComponent,
+            {
+              id: '/',
+              mode: EMBEDDED_ENVIRONMENT_TEST_MODE,
+              onClose: info => {
+                console.log('CLOSE INFO????', info)
+                passedBackEnvironment = info
+                document.body.removeChild(div)
+                resolve()
+              }
+            }
+          )
+          .mount(div)
+      })
+
+      delete environment.context
+      delete environment.mode
+      delete passedBackEnvironment.context
+      delete passedBackEnvironment.mode
+
+      console.log(environment, passedBackEnvironment)
+
+      expect(passedBackEnvironment).to.deep.equal(environment)
+    })
+
 
   })
 }
