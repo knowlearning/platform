@@ -48,8 +48,8 @@ services:
       - SECRET_ENCRYPTION_KEY=x
       - ADMIN_DOMAIN=localhost:5111
       - GC_PROJECT_ID=opensourcelearningplatform
-      - INTERNAL_GCS_API_ENDPOINT=http://gcs:8000
-      - EXTERNAL_GCS_API_ENDPOINT=https://localhost:32003
+      - INTERNAL_GCS_API_ENDPOINT=http://gcs-emulator:8000
+      - EXTERNAL_GCS_API_ENDPOINT=https://localhost:4443
       - GCS_BUCKET_NAME=local-gcs-bucket
       - REDIS_HOST=redis
       - REDIS_PORT=6379
