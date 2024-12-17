@@ -1,0 +1,72 @@
+services:
+  gcs-emulator:
+    image: fsouza/fake-gcs-server:1.49.3
+    container_name: gcs-emulator
+    ports:
+      - 4443:4443
+      - 8000:8000
+    volumes:
+      - ./local-gcs-bucket:/data/local-gcs-bucket
+    command: >
+      -scheme both
+      -port 4443
+      -port-http 8000
+      -log-level debug
+      -cors-headers x-upload-content-type,x-goog-content-sha256,x-goog-resumable,x-goog-meta-user,x-goog-meta-type,x-goog-meta-name,x-goog-meta-edit,x-goog-meta-view,x-goog-meta-base,x-goog-meta-domain
+      -external-url https://localhost:4443
+      -public-host localhost
+
+  postgres:
+    image: postgres:alpine3.18
+    container_name: postgres
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=insecure-development-password
+
+  core:
+    build: 
+      context: ../../
+      dockerfile: deno.Dockerfile
+    ports:
+      - 8765:8765
+    container_name: core
+    environment:
+      - PORT:8765
+      - AUTH_SERVICE_SECRET_KEY=${AUTH_SERVICE_SECRET_KEY}
+      - CLASSLINK_OAUTH_CLIENT_CREDENTIALS=${CLASSLINK_OAUTH_CLIENT_CREDENTIALS}
+      - GOOGLE_OAUTH_CLIENT_CREDENTIALS=${GOOGLE_OAUTH_CLIENT_CREDENTIALS}
+      - MICROSOFT_OAUTH_CLIENT_CREDENTIALS=${MICROSOFT_OAUTH_CLIENT_CREDENTIALS}
+      - INSECURE_DEVELOPMENT_CERT=${INSECURE_DEVELOPMENT_CERT}
+      - INSECURE_DEVELOPMENT_KEY=${INSECURE_DEVELOPMENT_KEY}
+      - MODE=local
+      - SERVE_HOST=serve:8765
+      - SERVICE_ACCOUNT_TOKEN=/var/run/secrets/kubernetes.io/serviceaccount/token
+      - REDIS_SERVICE_ACCOUNT_CREDENTIALS=
+      - POSTGRES_PASSWORD=insecure-dev-password
+      - PUBLIC_ENCRYPTION_KEY=x
+      - SECRET_ENCRYPTION_KEY=x
+      - ADMIN_DOMAIN=localhost:5111
+      - GC_PROJECT_ID=opensourcelearningplatform
+      - INTERNAL_GCS_API_ENDPOINT=http://gcs:8000
+      - EXTERNAL_GCS_API_ENDPOINT=https://localhost:32003
+      - GCS_BUCKET_NAME=local-gcs-bucket
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - GCS_SERVICE_ACCOUNT_CREDENTIALS={"client_email":"example@example.com","private_key":"-----BEGIN RSA PRIVATE KEY-----\nMIICWwIBAAKBgHLBIr2p6z4uQIH0/UeTaKFoS1P7r6pWJJ8Xu6NoKw90fq/8feyt\n2GSAm9ATjpl0D5JtO1GZdGnL0ZWCiTm0Umwk0uLiv+9TPByEJQGWm0uL76UZdDIq\n+QhJ4vvBkBda+szw1h9g7l9z/Zsf7VwcnsTex2FjkaEsBtkPzRri0BNrAgMBAAEC\ngYBf2j+AmWwr9kpfwxnFLbYaDJnPPs5Ow8G3OgW7yokdUbt4mLk+dz/nQx3jQlK8\njxtqvd7sm/eHX35jGjQxhRPKoteqx7E1mFrw/Rj/IBiRsjf/gZTc07YWs0UuSGpt\nkhbcE7m9eG1nEC8Cje45tQQRHCo+f8ycGa7m3rZVUC2P4QJBAOTpXv4RSKraXPjx\njfEw9cCIMsGb9vqS3OgBZHjZ3Tfy06tSW3RvbK7k3aoVPOL+rPqjgd7t3YmZIMIn\nZ17ANSkCQQCAVX84RQzNspkrGW5Fvs1/3JM66gmPPkSN3mdXte2InJdv0auAn8LK\nh8ZoHqnqFrwvLDGz0fpIUUQAQVWeeuJzAkB4MybjSFYdCO6a9dQv2yKgR6RHT8tf\nhjCjTt/gKZ5k24hURLmrKTsrlxfiUKaZF1vjfGocklCrCRJPgPthoJIJAkBJuFNX\ncJr1QqYoEvi8iemkjIHq8uxA4+UfleXJhdGIi2OWsVwSjDOqgipgP1UeCqdZdcqr\nYHCkwEIO33kei7qvAkEApPxgWNEAe5iv/HoIxkumc/+Xjp/K8nF3Fi9xgHAYc7Oa\nVYD4cO4HhFEhHIGVAwJBCEoupxYLKxrNq1+exW3Tmg==\n-----END RSA PRIVATE KEY-----","public_key":"-----BEGIN PUBLIC KEY-----\nMIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgHLBIr2p6z4uQIH0/UeTaKFoS1P7\nr6pWJJ8Xu6NoKw90fq/8feyt2GSAm9ATjpl0D5JtO1GZdGnL0ZWCiTm0Umwk0uLi\nv+9TPByEJQGWm0uL76UZdDIq+QhJ4vvBkBda+szw1h9g7l9z/Zsf7VwcnsTex2Fj\nkaEsBtkPzRri0BNrAgMBAAE=\n-----END PUBLIC KEY-----"}
+    volumes:
+      - ../../../packages/agent:/agent
+    depends_on:
+      - postgres
+      - gcs-emulator
+      - redis
+
+  redis:
+    image: redis/redis-stack:7.4.0-v0
+    container_name: redis
+    ports:
+      - 6379:6379
+    environment:
+      - REDIS_SERVICE_ACCOUNT_CREDENTIALS=
