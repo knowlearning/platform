@@ -19,8 +19,6 @@ if (MODE === 'local') {
   Deno.serve({ port: TLS_PORT, cert, key }, handler)
 }
 
-console.log('POOOOOOOOOOOOOOORT', PORT)
-
 Deno.serve({ port: PORT || 8765 }, handler)
 
 function handler(request) {
