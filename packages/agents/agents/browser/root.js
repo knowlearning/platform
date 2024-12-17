@@ -5,7 +5,7 @@ import GenericAgent from '../generic/index.js'
 
 const TEST_DOMAIN = 'tests.knowlearning.systems'
 const SECURE = window.location.protocol === 'https:'
-const DEVELOPMENT_HOST = `localhost:3200${ SECURE ? '1' : '2' }`
+const DEVELOPMENT_HOST = `localhost:${ SECURE ? '8765' : '8000' }`
 const ENVIRONMENT_API_HOST = localStorage.getItem('API_HOST')
 const REMOTE_HOST = window.location.hostname === TEST_DOMAIN && ENVIRONMENT_API_HOST ? ENVIRONMENT_API_HOST : 'api.knowlearning.systems'
 const LANGUAGES = [...navigator.languages]
