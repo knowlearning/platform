@@ -19,7 +19,7 @@ if (MODE === 'local') {
   Deno.serve({ port: TLS_PORT, cert, key }, handler)
 }
 
-Deno.serve({ port: PORT || 8765 }, handler)
+Deno.serve({ port: PORT }, handler)
 
 function handler(request) {
   ensureDomainConfigured(requestDomain(request))
