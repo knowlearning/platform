@@ -40,7 +40,7 @@ services:
       - MODE=local
       - SERVE_HOST=serve:8765
       - SERVICE_ACCOUNT_TOKEN=/var/run/secrets/kubernetes.io/serviceaccount/token
-      - REDIS_SERVICE_ACCOUNT_CREDENTIALS=
+      - REDIS_PASSWORD=
       - POSTGRES_PASSWORD=insecure-dev-password
       - PUBLIC_ENCRYPTION_KEY=x
       - SECRET_ENCRYPTION_KEY=x
@@ -68,4 +68,4 @@ services:
     ports:
       - 6379:6379
     environment:
-      - REDIS_SERVICE_ACCOUNT_CREDENTIALS=
+      - REDIS_PASSWORD=
