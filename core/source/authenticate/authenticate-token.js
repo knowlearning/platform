@@ -1,8 +1,7 @@
 import { uuid, environment, decryptBase64String } from '../utils.js'
 import JWTVerification from './verify-jwt.js'
-import OAuthClientInfo from './oauth-client-info.js'
 
-const { AUTH_SERVICE_SECRET_KEY } = environment
+const { AUTH_SERVICE_SECRET_KEY, OAUTH_CREDENTIALS } = environment
 
 export default function authenticateToken(domain, token, authority) {
   return new Promise( async (resolve, reject) => {
@@ -25,7 +24,7 @@ export default function authenticateToken(domain, token, authority) {
             info: { name: 'from providing user', picture: null }
           })
         }
-        else if (OAuthClientInfo[provider]) JWTVerification(provider, code, resolve, reject)
+        else if (OAUTH_CREDENTIALS[provider.toUpperCase()]) JWTVerification(provider, code, resolve, reject)
         else resolve(anonymousProviderResponse(uuid()))
       }
       catch (error) {

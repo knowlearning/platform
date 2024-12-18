@@ -1,8 +1,8 @@
-import { uuid, decodeBase64String, jwkToPem, jwt } from '../utils.js'
+import { uuid, decodeBase64String, jwkToPem, jwt, environment } from '../utils.js'
 import { query } from '../postgres.js'
-import OAuthClientInfo from './oauth-client-info.js'
 import getExistingUser from './existing-user.js'
 
+const { OAUTH_CREDENTIALS } = environment
 const JWT_VERIFICATION_TIMEOUT = 2500
 
 const JWKS_ENDPOINTS = {
@@ -19,7 +19,7 @@ export default async function JWTVerification(provider, code, resolve, reject) {
     JWT_VERIFICATION_TIMEOUT
   )
 
-  const { client_id, client_secret, token_uri } = OAuthClientInfo[provider]
+  const { client_id, client_secret, token_uri } = OAUTH_CREDENTIALS[provider.toUpperCase()].web
 
   //  TODO: use access token for refresh and such...
   const response = await fetch(token_uri, {

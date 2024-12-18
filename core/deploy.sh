@@ -5,14 +5,12 @@ cd "$script_dir"
 
 if [ -z "$1" ]; then
   export AUTH_SERVICE_SECRET_KEY=$(cat ./infrastructure/development/.credentials/AUTH_SERVICE_SECRET_KEY)
-  export CLASSLINK_OAUTH_CLIENT_CREDENTIALS=$(cat ./infrastructure/development/.credentials/CLASSLINK_OAUTH_CLIENT_CREDENTIALS)
-  export GOOGLE_OAUTH_CLIENT_CREDENTIALS=$(cat ./infrastructure/development/.credentials/GOOGLE_OAUTH_CLIENT_CREDENTIALS)
-  export MICROSOFT_OAUTH_CLIENT_CREDENTIALS=$(cat ./infrastructure/development/.credentials/MICROSOFT_OAUTH_CLIENT_CREDENTIALS)
+  export OAUTH_CREDENTIALS=$(cat ./infrastructure/development/.credentials/OAUTH_CREDENTIALS)
   export INSECURE_DEVELOPMENT_CERT=$(cat ./infrastructure/development/.credentials/INSECURE_DEVELOPMENT_CERT)
   export INSECURE_DEVELOPMENT_KEY=$(cat ./infrastructure/development/.credentials/INSECURE_DEVELOPMENT_KEY)
 
-  docker compose -f ./infrastructure/development/docker-compose.yaml down
-  docker compose -f ./infrastructure/development/docker-compose.yaml up --build
+  docker compose -f ./infrastructure/local/docker-compose.yaml down
+  docker compose -f ./infrastructure/local/docker-compose.yaml up --build
   wait
 elif [ $1 = dev ]; then
   if [ "$2" = "--setup" ]; then
