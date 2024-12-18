@@ -3,7 +3,7 @@ import tcpLoadBalancer from "./tcp-load-balancer.js"
 import apiNodes from "./api-nodes.js"
 
 const API_IP_ADDRESS = "35.192.110.199"
-const API_HTTP_PORT = 8000
+const API_HTTP_PORT = 80
 const ZONE = "us-central1-a"
 const MACHINE_TYPE = "e2-micro"
 

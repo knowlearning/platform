@@ -38,6 +38,7 @@ services:
       - INSECURE_DEVELOPMENT_CERT=${INSECURE_DEVELOPMENT_CERT}
       - INSECURE_DEVELOPMENT_KEY=${INSECURE_DEVELOPMENT_KEY}
       - MODE=local
+      - PORT=8000
       - SERVE_HOST=serve:8765
       - SERVICE_ACCOUNT_TOKEN=/var/run/secrets/kubernetes.io/serviceaccount/token
       - REDIS_PASSWORD=

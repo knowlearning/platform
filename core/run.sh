@@ -17,6 +17,7 @@ POSTGRES_USER=postgres
 REDIS_USER=default
 REDIS_HOST=redis-12681.c1.us-central1-2.gce.cloud.redislabs.com
 REDIS_PORT=12681
+PORT=80
 
 echo "STARTING SERVER"
 
@@ -34,6 +35,7 @@ POSTGRES_USER="$POSTGRES_USER" \
 REDIS_USER="$REDIS_USER" \
 REDIS_HOST="$REDIS_HOST" \
 REDIS_PORT="$REDIS_PORT" \
+PORT="$PORT" \
 /root/.deno/bin/deno run \
   --allow-sys \
   --allow-net \
