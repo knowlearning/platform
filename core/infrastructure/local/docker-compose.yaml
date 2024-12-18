@@ -6,7 +6,7 @@ services:
       - 4443:4443
       - 8000:8000
     volumes:
-      - ./local-gcs-bucket:/data/local-gcs-bucket
+      - ./files:/data/local-gcs-bucket
     command: >
       -scheme both
       -port 4443

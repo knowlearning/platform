@@ -8,15 +8,15 @@ GCS_SERVICE_ACCOUNT_CREDENTIALS=$(gcloud secrets versions access latest --secret
 OAUTH_CREDENTIALS=$(gcloud secrets versions access latest --secret=OAUTH_CREDENTIALS)
 POSTGRES_PASSWORD=$(gcloud secrets versions access latest --secret=POSTGRES_PASSWORD)
 REDIS_PASSWORD=$(gcloud secrets versions access latest --secret=REDIS_PASSWORD)
-GCS_BUCKET_NAME=core2-staging-bucket
+GCS_BUCKET_NAME=development-bucket-opensourcelearningplatform
 MODE=production
 GC_PROJECT_ID=opensourcelearningplatform
-POSTGRES_HOST=10.128.15.205
+POSTGRES_HOST=10.42.80.4
 POSTGRES_PORT=5432
 POSTGRES_USER=postgres
 REDIS_USER=default
-REDIS_HOST=10.128.0.26
-REDIS_PORT=6379
+REDIS_HOST=redis-12681.c1.us-central1-2.gce.cloud.redislabs.com
+REDIS_PORT=12681
 
 echo "STARTING SERVER"
 

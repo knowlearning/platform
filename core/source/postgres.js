@@ -58,7 +58,7 @@ async function client(domain) {
       }
       catch (error) {
         console.log(error)
-        if (!ignorableErrors[error.fields.code]) {
+        if (!ignorableErrors[error.fields?.code]) {
           console.log('ERROR CREATING DATABASE!!!!!', error)
         }
       }
