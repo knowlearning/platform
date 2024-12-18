@@ -24,13 +24,13 @@ services:
     environment:
       - POSTGRES_PASSWORD=insecure-development-password
 
-  core:
+  api:
     build: 
       context: ../../
       dockerfile: deno.Dockerfile
     ports:
       - 8765:8765
-    container_name: core
+    container_name: api
     environment:
       - TLS_PORT=8765
       - AUTH_SERVICE_SECRET_KEY=${AUTH_SERVICE_SECRET_KEY}
