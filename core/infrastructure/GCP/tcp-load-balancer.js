@@ -14,7 +14,7 @@ export default function ({ ipAddress, zone, ports, group, name, healthCheck }) {
             group,
             balancingMode: "CONNECTION"
         }],
-        healthChecks: [ healthCheck.id ]
+        healthChecks: healthCheck.id
     })
 
     new gcp.compute.ForwardingRule(`${name}-forwarding-rule`, {
