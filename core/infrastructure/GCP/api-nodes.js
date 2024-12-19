@@ -39,7 +39,7 @@ export default function ({ zone, machineType, healthCheck }) {
             initialDelaySec: 30
         },
         balancingMode: "CONNECTION",
-        targetSize: 1,
+        targetSize: 2,
         zone
     })
 
