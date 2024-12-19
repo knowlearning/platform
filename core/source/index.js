@@ -14,6 +14,8 @@ const {
 ensureDomainConfigured(ADMIN_DOMAIN)
 ensureDomainConfigured('core')
 
+
+console.log('starting tls server???', !!cert, !!key)
 if (cert && key) Deno.serve({ port: TLS_PORT, cert, key }, handler)
 
 Deno.serve({ port: PORT }, handler)
