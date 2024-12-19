@@ -12,6 +12,7 @@ INSECURE_DEVELOPMENT_CERT=$(gcloud secrets versions access latest --secret=INSEC
 INSECURE_DEVELOPMENT_KEY=$(gcloud secrets versions access latest --secret=INSECURE_DEVELOPMENT_KEY)
 GCS_BUCKET_NAME=development-bucket-opensourcelearningplatform
 MODE=production
+ADMIN_DOMAIN=admin.knowlearning.systems
 GC_PROJECT_ID=opensourcelearningplatform
 POSTGRES_HOST=10.42.80.4
 POSTGRES_PORT=5432
@@ -31,6 +32,7 @@ POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
 REDIS_PASSWORD="$REDIS_PASSWORD" \
 GCS_BUCKET_NAME="$GCS_BUCKET_NAME" \
 MODE="$MODE" \
+ADMIN_DOMAIN="$ADMIN_DOMAIN" \
 GC_PROJECT_ID="$GC_PROJECT_ID" \
 POSTGRES_HOST="$POSTGRES_HOST" \
 POSTGRES_PORT="$POSTGRES_PORT" \
