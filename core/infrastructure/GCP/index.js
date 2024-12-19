@@ -4,6 +4,7 @@ import apiNodes from "./api-nodes.js"
 
 const API_IP_ADDRESS = "35.192.110.199"
 const API_HTTP_PORT = 80
+const API_HTTPS_PORT = 443
 const ZONE = "us-central1-a"
 const MACHINE_TYPE = "e2-micro"
 
@@ -23,7 +24,7 @@ tcpLoadBalancer({
   zone: ZONE,
   name: 'api',
   ipAddress: API_IP_ADDRESS,
-  ports: [API_HTTP_PORT],
+  ports: [ API_HTTP_PORT, API_HTTPS_PORT ],
   group: apiNodeGroup.instanceGroup,
   healthCheck: apiHealthCheck
 })

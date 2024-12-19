@@ -14,10 +14,7 @@ const {
 ensureDomainConfigured(ADMIN_DOMAIN)
 ensureDomainConfigured('core')
 
-//  Serve https directly when in local development mode
-if (MODE === 'local') {
-  Deno.serve({ port: TLS_PORT, cert, key }, handler)
-}
+if (cert && key) Deno.serve({ port: TLS_PORT, cert, key }, handler)
 
 Deno.serve({ port: PORT }, handler)
 
