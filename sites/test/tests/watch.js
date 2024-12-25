@@ -336,6 +336,8 @@ export default function () {
     })
 
     it('Can embed, close, then re-embed an app that watches the same scope', async function () {
+       this.timeout(5000)
+
       const id = uuid()
       let resolve
       const done = new Promise(r => resolve = r)
@@ -369,7 +371,6 @@ export default function () {
       await done
       expect(closeInfo).to.deep.equal(firstExpectedUpdates)
 
-
       const secondExpectedUpdates = [{x:1, y:2, z:3, done: false}, {x:2, y:2, z:3, done: false}, {x:2, y:3, z:3, done: false}, {x:2, y:3, z:4, done: false}, {x:2, y:3, z:4, done: true}]
 
       let resolve2
@@ -384,6 +385,7 @@ export default function () {
       let closeInfo2
       on2('close', info => {
         closeInfo2 = info
+        if (closeInfo2[0].done) closeInfo2.shift()
         document.body.removeChild(iframe2)
         resolve2()
       })

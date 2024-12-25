@@ -1,0 +1,11 @@
+admin NS dns1.p01.nsone.net
+api	A 35.227.250.105
+auth NS dns1.p01.nsone.net
+bettysbrain NS dns1.p01.nsone.net
+bettysbrain-dashboard NS dns1.p01.nsone.net
+dashboard NS dns1.p01.nsone.net
+demo-gallery NS dns1.p01.nsone.net
+docs NS dns1.p01.nsone.net
+edit NS dns1.p01.nsone.net
+embed NS dns1.p01.nsone.net
+tags NS dns1.p01.nsone.net

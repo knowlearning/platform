@@ -32,7 +32,7 @@ if (mode === 'EMBEDED_WATCHER_TEST_MODE') {
   const states = []
   const unwatch = Agent.watch(id, ({ patch, state }) => {
     states.push(state)
-    if (state.done) {
+    if (state.done && patch) {
       Agent.close(JSON.parse(JSON.stringify(states)))
       unwatch()
     }
