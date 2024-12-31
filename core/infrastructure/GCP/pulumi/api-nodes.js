@@ -1,6 +1,6 @@
 import * as gcp from "@pulumi/gcp";
 
-export default function ({ zone, machineType, healthCheck }) {
+export default function ({ zone, machineType, healthCheck, targetSize }) {
 
     // Create an instance template to define the NATS instances
     const instanceTemplate = new gcp.compute.InstanceTemplate("api-node-instance-template", {
@@ -39,7 +39,7 @@ export default function ({ zone, machineType, healthCheck }) {
             initialDelaySec: 30
         },
         balancingMode: "CONNECTION",
-        targetSize: 2,
+        targetSize,
         zone
     })
 

@@ -12,7 +12,7 @@ const LANGUAGES = [...navigator.languages]
 
 function isLocal() { return localStorage.getItem('api') === 'local' }
 
-const API_HOST = isLocal() ? DEVELOPMENT_HOST : REMOTE_HOST
+const API_HOST = 'api-test.knowlearning.systems' // isLocal() ? DEVELOPMENT_HOST : REMOTE_HOST
 
 //  TODO: remove this hack when we can set partitioned sid cookie through websocket handshake
 //        deno is partly in the way on teh set side, and browser support is in the way for
