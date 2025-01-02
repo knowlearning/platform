@@ -26,3 +26,5 @@ await createBackendService('GCP', service, { project, region, zone, group, healt
 await reserveStaticIp('GCP', staticIp, { project, region })
 //  TODO: use forwarding rule to point static IP to backend service
 //  TODO: launch simple https server on instance
+//  TODO: create 1 time use encrypted secret sharing API
+//  TODO: use 1 time use encrypted secret sharing API to load environment
