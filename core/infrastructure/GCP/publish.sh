@@ -25,6 +25,9 @@ if [ "$1" = "production" ]; then
     fi
   done
 
+  # Necessary for listing out resources
+  # gcloud auth application-default set-quota-project knowlearning
+
   # Run the application
   deno run --allow-net --allow-run index.js
 else

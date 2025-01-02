@@ -21,7 +21,7 @@ export default async function createInstance(provider, name, { project, zone, ma
     ]
   }
 
-  const response = await infrastructureRequest('GCP', url ,body)
+  const response = await infrastructureRequest('GCP', 'POST', url ,body)
 
   if (!response.ok) throw new Error(`Failed to create instance: ${await response.text()}`)
 

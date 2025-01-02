@@ -1,14 +1,24 @@
 import getAccessToken from './get-access-token.js'
 
-export default async function infrastructureRequest(provider, url, body) {
+const project = 'knowlearning'
+
+export default async function infrastructureRequest(provider, method, url, data) {
   if (provider === 'GCP') {
-    return await fetch(url, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${await getAccessToken(provider)}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    })
+    let body = undefined
+    const headers = {
+      "Authorization": `Bearer ${await getAccessToken(provider)}`,
+      "x-goog-user-project": project
+    }
+
+    if (method === 'GET') {
+      url += '?' + new URLSearchParams(data).toString()
+    }
+    else if (method === 'POST') {
+      body = JSON.stringify(data)
+      headers["Content-Type"] = "application/json"
+    }
+
+    return await fetch(url, { method, headers, body })
   }
+  else throw new Error(`Unknown provider: ${provider}`)
 }

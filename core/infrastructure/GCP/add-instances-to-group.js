@@ -4,6 +4,7 @@ export default async function addInstancesToGroup(provider, { project, zone, ins
   console.log(`Adding instances to group ${instances} -> ${group}`)
   await infrastructureRequest(
     provider,
+    'POST',
     `https://compute.googleapis.com/compute/v1/projects/${project}/zones/${zone}/instanceGroups/${group}/addInstances`,
     {
       instances: instances.map(instance => ({
