@@ -4,6 +4,7 @@ import createInstance from './create-instance.js'
 import addInstancesToGroup from './add-instances-to-group.js'
 import createHealthCheck from './create-health-check.js'
 import createBackendService from './create-backend-service.js'
+import reserveStaticIp from './reserve-static-ip.js'
 
 const project = "knowlearning"
 const region = "us-central1"
@@ -14,6 +15,7 @@ const group = "my-instance-group"
 const instance = "my-deno-instance"
 const service = "my-backend-service"
 const healthCheck = "my-health-check"
+const staticIp = "my-static-ip"
 
 // await listAllResources('GCP', { project })
 await createInstanceGroup('GCP', group, { project, zone })
@@ -21,3 +23,6 @@ await createInstance('GCP', instance, { project, zone, machine, image, group })
 await addInstancesToGroup('GCP', { project, zone, instances: [ instance ], group })
 await createHealthCheck('GCP', healthCheck, { project, region, port: 443 })
 await createBackendService('GCP', service, { project, region, zone, group, healthCheck })
+await reserveStaticIp('GCP', staticIp, { project, region })
+//  TODO: use forwarding rule to point static IP to backend service
+//  TODO: launch simple https server on instance
