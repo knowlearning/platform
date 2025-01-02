@@ -1,6 +1,5 @@
 import infrastructureRequest from './infrastructure-request.js'
 
-
 //  TODO: ensure the cloudasset api is enabled
 //  TODO: script to ensure calling user has "cloudasset.assets.searchAllResources" permission
 export default async function listAllResources(provider, { project }) {
