@@ -1,6 +1,6 @@
 import infrastructureRequest from './infrastructure-request.js'
 
-export default async function createInstance(provider, name, { project, zone, machine, image, ipAddress }) {
+export default async function createInstance(provider, name, { project, zone, machine, image, script, tags }) {
   console.log("Creating VM instance...")
   const url = `https://compute.googleapis.com/compute/v1/projects/${project}/zones/${zone}/instances`
   const body = {
@@ -16,9 +16,23 @@ export default async function createInstance(provider, name, { project, zone, ma
     networkInterfaces: [
       {
         network: "global/networks/default",
-        accessConfigs: [{ type: "ONE_TO_ONE_NAT", name: "External NAT", natIP: ipAddress }],
+        accessConfigs: [
+          {
+            name: "External NAT",
+            type: "ONE_TO_ONE_NAT"
+          }
+        ]
       }
-    ]
+    ],
+    metadata: {
+      items: [
+        {
+          key: "startup-script",
+          value: script
+        },
+      ],
+    },
+    tags: { items: tags }
   }
 
   const response = await infrastructureRequest('GCP', 'POST', url ,body)
