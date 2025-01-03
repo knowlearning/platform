@@ -1,8 +1,8 @@
 import infrastructureRequest from './infrastructure-request.js'
 
 export default async function createBackendService(provider, name, { project, region, zone, group, healthCheck }) {
-    console.log("Creating backend service...");
-  const backendServiceResponse = await infrastructureRequest(
+  console.log("Creating backend service...")
+  const response = await infrastructureRequest(
     'GCP',
     'POST',
     `https://compute.googleapis.com/compute/v1/projects/${project}/regions/${region}/backendServices`,
@@ -19,9 +19,12 @@ export default async function createBackendService(provider, name, { project, re
     }
   )
 
-  if (!backendServiceResponse.ok) {
-    const errorText = await backendServiceResponse.text()
-    throw new Error(`Failed to create backend service: ${errorText}`)
+  if (!response.ok) {
+    const info = await response.json()
+    if (info.error?.errors?.[0]?.reason === 'alreadyExists') {
+      console.log(`Backend service ${name} already exists`)
+    }
+    else throw new Error(`Failed to create backend service: ${JSON.stringify(info, null, 4)}`)
   }
 
   console.log("Backend service created.")

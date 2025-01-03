@@ -14,8 +14,11 @@ export default async function reserveStaticIp(provider, name, { project, region 
   )
 
   if (!ipResponse.ok) {
-    const errorText = await ipResponse.text();
-    throw new Error(`Failed to reserve static IP: ${errorText}`);
+    const info = await ipResponse.json()
+    if (info.error?.errors?.[0]?.reason === 'alreadyExists') {
+      console.log(`IP address ${name} already exists`)
+    }
+    else throw new Error(`Failed to reserve static IP: ${JSON.stringify(info, null, 4)}`);
   }
   console.log("Static IP reserved.")
 
