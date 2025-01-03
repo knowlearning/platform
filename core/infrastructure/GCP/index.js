@@ -38,8 +38,7 @@ while true; do
 done
 `
 
-//  TODO: can remove firewall rule for general use...
-//        only need to expose 1 server with static IP and firewall rule for credential transfer
+//  TODO: can we remove firewall rule for general use? load balancer seems to work fine
 
 // await listAllResources('GCP', { project })
 await createFirewallRule('GCP', httpFirewallRule, { project, targetTag: httpFirewallTag })
