@@ -38,8 +38,6 @@ while true; do
 done
 `
 
-//  TODO: can we remove firewall rule for general use? load balancer seems to work fine
-
 // await listAllResources('GCP', { project })
 await createFirewallRule('GCP', httpFirewallRule, { project, targetTag: httpFirewallTag })
 await createInstanceGroup('GCP', group, { project, zone })
