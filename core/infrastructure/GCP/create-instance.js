@@ -1,5 +1,42 @@
 import infrastructureRequest from './infrastructure-request.js'
 
+async function getInstanceStatus(provider, name, { project, zone }) {
+  const url = `https://compute.googleapis.com/compute/v1/projects/${project}/zones/${zone}/instances/${name}`
+
+  const response = await infrastructureRequest('GCP', 'GET', url)
+
+  if (!response.ok) {
+    const errorBody = await response.text()
+    throw new Error(`Failed to fetch instance status: ${response.status} ${response.statusText}\n${errorBody}`)
+  }
+
+  const data = await response.json()
+  return data.status
+}
+
+async function waitForInstanceRunning(provider, name, { project, zone }) {
+  console.log(`Waiting for instance "${name}" to be RUNNING...`)
+
+  while (true) {
+    try {
+      const status = await getInstanceStatus(provider, name, { project, zone })
+
+      if (status === "RUNNING") {
+        console.log(`Instance "${name}" is RUNNING!`)
+        break
+      } else {
+        console.log(`Current status: ${status}. Waiting...`)
+      }
+    } catch (error) {
+      console.error(`Error checking instance status: ${error}`)
+    }
+
+    await new Promise (r => setTimeout(r, 1000))
+  }
+}
+
+
+
 export default async function createInstance(provider, name, { project, zone, machine, image, tags, script }) {
   console.log("Creating VM instance...")
   const url = `https://compute.googleapis.com/compute/v1/projects/${project}/zones/${zone}/instances`
@@ -42,4 +79,6 @@ export default async function createInstance(provider, name, { project, zone, ma
     else throw new Error(`Failed to create instance: ${await response.text()}`)
   }
   else console.log(`Instance ${name} created successfully`)
+
+  await waitForInstanceRunning(provider, name, { project, zone })
 }
