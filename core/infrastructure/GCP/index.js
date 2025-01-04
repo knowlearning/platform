@@ -48,6 +48,4 @@ await createBackendService('GCP', service, { project, region, zone, group, healt
 await reserveStaticIp('GCP', staticIpName, { project, region })
 await createForwardingRule('GCP', forwardingRule, { project, region, service, staticIpName, port: 80 })
 
-//  TODO: create 1 time use encrypted secret sharing API
-//  TODO: use 1 time use encrypted secret sharing API to load environment in startup script
 //  TODO: add lets encrypt https certificate to credentials

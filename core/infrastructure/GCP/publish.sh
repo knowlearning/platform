@@ -28,8 +28,34 @@ if [ "$1" = "production" ]; then
   # Necessary for listing out resources
   # gcloud auth application-default set-quota-project knowlearning
 
-  # Run the application
+  INSTANCE_NAME="my-deno-instance"
+  ZONE="us-central1-a"
+  PROJECT="knowlearning"
+
+  # Deploy infrastructure
   deno run --allow-net --allow-run index.js
+
+  # Make sure the instance exists and is running
+  echo "Waiting for $INSTANCE_NAME to be RUNNING..."
+  while true; do
+    STATUS=$(gcloud compute instances describe "$INSTANCE_NAME" \
+             --project="$PROJECT" \
+             --zone="$ZONE" \
+             --format='get(status)' 2>/dev/null)
+    if [ "$STATUS" = "RUNNING" ]; then
+      echo "Instance is RUNNING!"
+      break
+    else
+      echo "Current status: $STATUS. Waiting..."
+      sleep 1
+    fi
+  done
+
+  # Share credentials with instance
+  gcloud compute scp --recurse ../production/.credentials \
+    admin@$INSTANCE_NAME:/home/admin \
+    --zone=$ZONE \
+    --project=$PROJECT
 else
   echo "Usage: $0 production"
 fi

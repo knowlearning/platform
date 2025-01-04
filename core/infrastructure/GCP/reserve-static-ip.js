@@ -20,11 +20,13 @@ export default async function reserveStaticIp(provider, name, { project, region 
     }
     else throw new Error(`Failed to reserve static IP: ${JSON.stringify(info, null, 4)}`);
   }
-  console.log("Static IP reserved.")
+  else {
+    console.log("Static IP reserved.")
 
-  // TODO: make wait more reliable...
-  console.log("Waiting for static IP allocation...")
-  await new Promise((resolve) => setTimeout(resolve, 5000))
+    // TODO: make wait more reliable...
+    console.log("Waiting for static IP allocation...")
+    await new Promise((resolve) => setTimeout(resolve, 5000))
+  }
 
   // Get the allocated IP address
   const ipDetailsResponse = await infrastructureRequest(
