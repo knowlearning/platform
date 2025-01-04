@@ -1,6 +1,6 @@
 import infrastructureRequest from './infrastructure-request.js'
 
-export default async function createInstance(provider, name, { project, zone, machine, image, script, tags }) {
+export default async function createInstance(provider, name, { project, zone, machine, image, tags, script }) {
   console.log("Creating VM instance...")
   const url = `https://compute.googleapis.com/compute/v1/projects/${project}/zones/${zone}/instances`
   const body = {
@@ -24,15 +24,12 @@ export default async function createInstance(provider, name, { project, zone, ma
         ]
       }
     ],
+    tags: { items: tags },
     metadata: {
       items: [
-        {
-          key: "startup-script",
-          value: script
-        },
-      ],
-    },
-    tags: { items: tags }
+        { key: "startup-script", value: script }
+      ]
+    }
   }
 
   const response = await infrastructureRequest('GCP', 'POST', url ,body)

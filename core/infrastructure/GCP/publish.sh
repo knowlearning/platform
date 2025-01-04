@@ -14,7 +14,6 @@ if [ "$1" = "production" ]; then
         echo "Logging in as a different user..."
         gcloud auth application-default login
       elif [ "$RESPONSE" = "y" ] || [ "$RESPONSE" = "yes" ]; then
-        echo "Continuing with the current user: $GCLOUD_USER"
         break
       else
         echo "Invalid response. Please answer 'y' or 'n'."
@@ -51,11 +50,26 @@ if [ "$1" = "production" ]; then
     fi
   done
 
-  # Share credentials with instance
-  gcloud compute scp --recurse ../production/.credentials \
-    admin@$INSTANCE_NAME:/home/admin \
+  export AUTH_SERVICE_SECRET_KEY="$(cat ../production/.credentials/AUTH_SERVICE_SECRET_KEY)"
+  export GCS_SERVICE_ACCOUNT_CREDENTIALS="$(cat ../production/.credentials/GCS_SERVICE_ACCOUNT_CREDENTIALS)"
+  export OAUTH_CREDENTIALS="$(cat ../production/.credentials/OAUTH_CREDENTIALS)"
+  export POSTGRES_PASSWORD="$(cat ../production/.credentials/POSTGRES_PASSWORD)"
+  export REDIS_PASSWORD="$(cat ../production/.credentials/REDIS_PASSWORD)"
+  export INSECURE_DEVELOPMENT_CERT="$(cat ../production/.credentials/INSECURE_DEVELOPMENT_CERT)"
+  export INSECURE_DEVELOPMENT_KEY="$(cat ../production/.credentials/INSECURE_DEVELOPMENT_KEY)"
+
+  gcloud compute ssh admin@$INSTANCE_NAME \
     --zone=$ZONE \
-    --project=$PROJECT
+    --project=$PROJECT \
+    -- -o "SendEnv \
+        AUTH_SERVICE_SECRET_KEY \
+        GCS_SERVICE_ACCOUNT_CREDENTIALS \
+        OAUTH_CREDENTIALS \
+        POSTGRES_PASSWORD \
+        REDIS_PASSWORD \
+        INSECURE_DEVELOPMENT_CERT \
+        INSECURE_DEVELOPMENT_KEY" \
+      "bash -s" < ../run.sh
 else
   echo "Usage: $0 production"
 fi

@@ -24,18 +24,17 @@ const httpFirewallTag = 'http-firewall-tag'
 
 const script = `#!/bin/bash
 
-sudo apt install netcat-openbsd
+sudo tee -a /etc/ssh/sshd_config <<EOF
+AcceptEnv AUTH_SERVICE_SECRET_KEY
+AcceptEnv GCS_SERVICE_ACCOUNT_CREDENTIALS
+AcceptEnv OAUTH_CREDENTIALS
+AcceptEnv POSTGRES_PASSWORD
+AcceptEnv REDIS_PASSWORD
+AcceptEnv INSECURE_DEVELOPMENT_CERT
+AcceptEnv INSECURE_DEVELOPMENT_KEY
+EOF
 
-# Simple HTTP Server in Bash
-PORT=80
-
-echo "Starting HTTP server on port $PORT..."
-while true; do
-  # Wait for a connection and respond immediately
-  {
-    echo -e "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello, World!";
-  } | sudo nc -N -l -p $PORT
-done
+sudo systemctl restart sshd
 `
 
 // await listAllResources('GCP', { project })
