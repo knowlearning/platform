@@ -20,7 +20,7 @@ const healthCheck = "my-health-check"
 const staticIpName = "my-static-ip"
 const forwardingRule = "my-forwarding-rule"
 const httpFirewallRule = "http-firewall-rule"
-const httpFirewallTag = 'http-firewall-tag'
+const httpFirewallTag = "http-firewall-tag"
 
 const script = `#!/bin/bash
 
@@ -42,9 +42,9 @@ await createFirewallRule('GCP', httpFirewallRule, { project, targetTag: httpFire
 await createInstanceGroup('GCP', group, { project, zone })
 await createInstance('GCP', instance, { project, zone, machine, image, group, script, tags: [httpFirewallTag] })
 await addInstancesToGroup('GCP', { project, zone, instances: [ instance ], group })
-await createHealthCheck('GCP', healthCheck, { project, region, port: 80 })
+await createHealthCheck('GCP', healthCheck, { project, region, port: 443 })
 await createBackendService('GCP', service, { project, region, zone, group, healthCheck })
 await reserveStaticIp('GCP', staticIpName, { project, region })
-await createForwardingRule('GCP', forwardingRule, { project, region, service, staticIpName, port: 80 })
+await createForwardingRule('GCP', forwardingRule, { project, region, service, staticIpName, port: 443 })
 
 //  TODO: add lets encrypt https certificate to credentials

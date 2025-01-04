@@ -14,13 +14,13 @@ export default async function createFirewallRule(provider, name, { project, targ
       allowed: [
         {
           IPProtocol: "tcp",
-          ports: ["80"],
+          ports: ["80", "443"],
         },
       ],
       targetTags: [targetTag],
       sourceRanges: ["0.0.0.0/0"]
     }
-  );
+  )
 
   if (!response.ok) {
     const info = await response.json()
