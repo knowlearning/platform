@@ -29,7 +29,7 @@ if [ "$1" = "production" ]; then
 
   INSTANCE_NAME="my-deno-instance"
   ZONE="us-central1-a"
-  PROJECT="knowlearning"
+  PROJECT="opensourcelearningplatform"
 
   # Deploy infrastructure
   deno run --allow-net --allow-run index.js

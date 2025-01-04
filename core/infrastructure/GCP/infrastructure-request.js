@@ -1,6 +1,6 @@
 import getAccessToken from './get-access-token.js'
 
-const project = 'knowlearning'
+const project = 'opensourcelearningplatform'
 
 export default async function infrastructureRequest(provider, method, url, data) {
   if (provider === 'GCP') {

@@ -8,7 +8,7 @@ import reserveStaticIp from './reserve-static-ip.js'
 import createForwardingRule from './create-forwarding-rule.js'
 import createFirewallRule from './create-firewall-rule.js'
 
-const project = "knowlearning"
+const project = "opensourcelearningplatform"
 const region = "us-central1"
 const zone = `${region}-a`
 const machine = "e2-micro"
