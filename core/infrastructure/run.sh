@@ -1,5 +1,5 @@
 sudo apt install git unzip -y
-curl -fsSL https://deno.land/install.sh | sh -s -- -y
+curl -fsSL https://deno.land/install.sh | sh -s -- -y v1.43.1
 
 echo "GETTING PLATFORM REPOSITORY"
 git clone https://github.com/knowlearning/platform.git

@@ -11,7 +11,7 @@ import createFirewallRule from './create-firewall-rule.js'
 const project = "opensourcelearningplatform"
 const region = "us-central1"
 const zone = `${region}-a`
-const machine = "e2-micro"
+const machine = "n2-standard-2"
 const image = "projects/debian-cloud/global/images/family/debian-11"
 const group = "my-instance-group"
 const instance = "my-deno-instance"
