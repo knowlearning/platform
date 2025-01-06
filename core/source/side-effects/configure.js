@@ -40,7 +40,6 @@ const { ADMIN_DOMAIN, MODE } = environment
 async function isAdmin(user, requestingDomain, requestedDomain) {
   return (
        requestingDomain === 'localhost:5112'
-    || requestingDomain.endsWith('.localhost:5112')
     || requestingDomain === `${user}.localhost:${parseInt(requestingDomain.split(':')[1])}`
     || (requestingDomain === ADMIN_DOMAIN && user === await domainAdmin(requestedDomain))
   )
