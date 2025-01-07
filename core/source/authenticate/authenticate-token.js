@@ -3,6 +3,8 @@ import JWTVerification from './verify-jwt.js'
 
 const { AUTH_SERVICE_SECRET_KEY, OAUTH_CREDENTIALS } = environment
 
+const OAuthProviderCredentials = JSON.parse(OAUTH_CREDENTIALS)
+
 export default function authenticateToken(domain, token, authority) {
   return new Promise( async (resolve, reject) => {
     if (authority === 'core') JWTVerification('core', token, resolve, reject)
@@ -24,7 +26,7 @@ export default function authenticateToken(domain, token, authority) {
             info: { name: 'from providing user', picture: null }
           })
         }
-        else if (OAUTH_CREDENTIALS[provider.toUpperCase()]) JWTVerification(provider, code, resolve, reject)
+        else if (OAuthProviderCredentials[provider.toUpperCase()]) JWTVerification(provider, code, resolve, reject)
         else resolve(anonymousProviderResponse(uuid()))
       }
       catch (error) {

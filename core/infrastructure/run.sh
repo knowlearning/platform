@@ -32,6 +32,7 @@ sudo -E ~/.deno/bin/deno run \
     --allow-write \
     --allow-read \
     --unstable-worker-options \
+    --unsafely-ignore-certificate-errors \
     --v8-flags=--max-old-space-size=8000 \
     --allow-env \
     ./core/source/index.js
