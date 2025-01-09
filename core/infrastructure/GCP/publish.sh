@@ -27,12 +27,12 @@ if [ "$1" = "production" ]; then
   # Necessary for listing out resources
   # gcloud auth application-default set-quota-project knowlearning
 
+  # Deploy infrastructure
+  deno run --allow-net --allow-run index.js
+
   INSTANCE_NAME="my-deno-instance"
   ZONE="us-central1-a"
   PROJECT="opensourcelearningplatform"
-
-  # Deploy infrastructure
-  deno run --allow-net --allow-run index.js
 
   export AUTH_SERVICE_SECRET_KEY="$(cat ../production/.credentials/AUTH_SERVICE_SECRET_KEY)"
   export GCS_SERVICE_ACCOUNT_CREDENTIALS="$(cat ../production/.credentials/GCS_SERVICE_ACCOUNT_CREDENTIALS)"
@@ -53,7 +53,8 @@ if [ "$1" = "production" ]; then
         REDIS_PASSWORD \
         INSECURE_DEVELOPMENT_CERT \
         INSECURE_DEVELOPMENT_KEY" \
-      "bash -s" < ../run.sh
+    "bash -s" < ../start.sh
+
 else
   echo "Usage: $0 production"
 fi

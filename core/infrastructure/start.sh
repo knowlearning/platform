@@ -1,3 +1,5 @@
+#!/bin/bash
+
 sudo apt install git unzip -y
 curl -fsSL https://deno.land/install.sh | sh -s -- -y v2.1.4
 
@@ -25,14 +27,7 @@ export REDIS_PORT=12681
 export PORT=80
 export TLS_PORT=443
 
-echo "STARTING SERVER"
-sudo -E ~/.deno/bin/deno run \
-    --allow-sys \
-    --allow-net \
-    --allow-write \
-    --allow-read \
-    --unstable-worker-options \
-    --unsafely-ignore-certificate-errors \
-    --v8-flags=--max-old-space-size=8000 \
-    --allow-env \
-    ./core/source/index.js
+LOGFILE=~/output.log
+
+nohup core/run.sh $LOGFILE >> $LOGFILE 2>&1 &
+disown
