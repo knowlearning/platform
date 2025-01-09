@@ -11,7 +11,7 @@ while true; do
         --allow-write \
         --allow-read \
         --unstable-worker-options \
-        --unsafely-ignore-certificate-errors \
+        --cert=/etc/ssl/certs/ca-certificates.crt \
         --v8-flags=--max-old-space-size=8000 \
         --allow-env \
         $SCRIPT_DIR/source/index.js
