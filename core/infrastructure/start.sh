@@ -29,5 +29,6 @@ export TLS_PORT=443
 
 LOGFILE=~/output.log
 
-nohup core/run.sh $LOGFILE >> $LOGFILE 2>&1 &
+chmod +x core/run.sh
+nohup core/run.sh -- $LOGFILE >> $LOGFILE 2>&1 &
 disown
