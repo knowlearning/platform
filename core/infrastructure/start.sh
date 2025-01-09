@@ -9,6 +9,7 @@ cd platform
 git checkout update-infrastructure
 
 echo "SETTING ENVIRONMENT VARIABLES"
+export DENO_CERT=/etc/ssl/certs/ca-certificates.crt
 export AUTH_SERVICE_SECRET_KEY="$AUTH_SERVICE_SECRET_KEY"
 export GCS_SERVICE_ACCOUNT_CREDENTIALS="$GCS_SERVICE_ACCOUNT_CREDENTIALS"
 export OAUTH_CREDENTIALS="$OAUTH_CREDENTIALS"
