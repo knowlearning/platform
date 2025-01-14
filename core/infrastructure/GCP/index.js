@@ -40,11 +40,11 @@ sudo systemctl restart sshd
 // await listAllResources('GCP', { project })
 await createFirewallRule('GCP', httpFirewallRule, { project, targetTag: httpFirewallTag })
 await createInstanceGroup('GCP', group, { project, zone })
+await reserveStaticIp('GCP', staticIpName, { project, region })
 await createInstance('GCP', instance, { project, zone, machine, image, group, script, tags: [httpFirewallTag] })
 await addInstancesToGroup('GCP', { project, zone, instances: [ instance ], group })
 await createHealthCheck('GCP', healthCheck, { project, region, port: 443 })
 await createBackendService('GCP', service, { project, region, zone, group, healthCheck })
-await reserveStaticIp('GCP', staticIpName, { project, region })
 await createForwardingRule('GCP', forwardingRule, { project, region, service, staticIpName, port: 443 })
 
 //  TODO: add lets encrypt https certificate to credentials
