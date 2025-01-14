@@ -27,7 +27,10 @@ const constantMap = {
   INTEGER: 'INTEGER',
   BIGINT: 'BIGINT',
   JSON: 'JSON',
-  JSONB: 'JSONB'
+  JSONB: 'JSONB',
+  DECIMAL: 'DECIMAL',
+  NUMERIC: 'NUMERIC',
+  FLOAT: 'FLOAT'
 }
 
 const ignorableErrors = {
