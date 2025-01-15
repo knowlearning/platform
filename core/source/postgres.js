@@ -30,7 +30,8 @@ const constantMap = {
   JSONB: 'JSONB',
   DECIMAL: 'DECIMAL',
   NUMERIC: 'NUMERIC',
-  FLOAT: 'FLOAT'
+  FLOAT: 'FLOAT',
+  UUID: 'UUID'
 }
 
 const ignorableErrors = {
