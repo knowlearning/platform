@@ -30,10 +30,6 @@ if [ "$1" = "production" ]; then
   # Deploy infrastructure
   deno run --allow-net --allow-run index.js
 
-  INSTANCE_NAME="my-deno-instance"
-  ZONE="us-central1-a"
-  PROJECT="opensourcelearningplatform"
-
   export AUTH_SERVICE_SECRET_KEY="$(cat ../production/.credentials/AUTH_SERVICE_SECRET_KEY)"
   export GCS_SERVICE_ACCOUNT_CREDENTIALS="$(cat ../production/.credentials/GCS_SERVICE_ACCOUNT_CREDENTIALS)"
   export OAUTH_CREDENTIALS="$(cat ../production/.credentials/OAUTH_CREDENTIALS)"
@@ -41,6 +37,10 @@ if [ "$1" = "production" ]; then
   export REDIS_PASSWORD="$(cat ../production/.credentials/REDIS_PASSWORD)"
   export INSECURE_DEVELOPMENT_CERT="$(cat ../production/.credentials/INSECURE_DEVELOPMENT_CERT)"
   export INSECURE_DEVELOPMENT_KEY="$(cat ../production/.credentials/INSECURE_DEVELOPMENT_KEY)"
+
+  INSTANCE_NAME="my-deno-instance"
+  ZONE="us-central1-a"
+  PROJECT="opensourcelearningplatform"
 
   gcloud compute ssh admin@$INSTANCE_NAME \
     --zone=$ZONE \
