@@ -6,7 +6,7 @@ function purifiedName(name) {
   else throw new Error('INVALID NAME ' + name)
 }
 
-function domainToDbName(domain) {
+export function domainToDbName(domain) {
 
   if (/^[a-zA-Z0-9_\-\.:]*$/.test(domain)) return domain
   else throw new Error('INVALID DB NAME' + domain)
