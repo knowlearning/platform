@@ -4,6 +4,8 @@ import configuration, { domainAdmin } from './configuration.js'
 
 const { MODE, ADMIN_DOMAIN } = environment
 
+const schemaCache = {}
+
 export default async function (requestingDomain, targetDomain, queryName, params, user) {
   if (
     requestingDomain === ADMIN_DOMAIN
@@ -38,6 +40,40 @@ export default async function (requestingDomain, targetDomain, queryName, params
 
   if (typeof queryDefinition === 'string') queryBody = queryDefinition
   else if (queryDefinition?.body) queryBody = queryDefinition.body
+
+  //  TODO: make sure requesting domain is accounted for in view generation/user id
+  if (!queryBody && config?.postgres?.views) {
+    //  TODO: check if queryName is a parseable query... if not abort
+    //  TODO: include context when constructing view id and view
+    const schema = `${config.id.replaceAll('-', '')}_${user.replaceAll('-', '')}`
+    if (!schemaCache[schema]) {
+      //  TODOS:
+      /*
+            create view for each of the entries in config.postgres.views
+            give user read access to the view
+      */
+      const username = crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+      const password = crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+
+      await postgres.query(targetDomain, `CREATE USER ${username} WITH PASSWORD '${password}';`)
+      await postgres.query(targetDomain, `CREATE SCHEMA IF NOT EXISTS ${schema};`)
+      await postgres.query(targetDomain, `REVOKE ALL PRIVILEGES ON SCHEMA public FROM ${username};`)
+      await postgres.query(targetDomain, `REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM ${username};`)
+
+      await Promise.all(Object.entries(config.postgres.views).map(async ([name, { query }]) => {
+        await postgres.query(targetDomain, `CREATE OR REPLACE VIEW ${schema}.${view} AS ${query}`)
+        await postgres.query(targetDomain, `GRANT USAGE ON SCHEMA ${schema} TO ${username};`)
+        await postgres.query(targetDomain, `GRANT SELECT ON ALL TABLES IN SCHEMA ${schema} TO ${username};`)
+      }))
+
+      schemaCache[schema] = {
+        username,
+        password
+      }
+    }
+
+    //  TODO: execute query as configUserViewId profile
+  }
 
   if (queryBody) {
     const namedParams = {
