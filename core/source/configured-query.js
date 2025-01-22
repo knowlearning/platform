@@ -78,6 +78,10 @@ export default async function (requestingDomain, targetDomain, queryName, params
         await postgres.query(targetDomain, `REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM ${username}`)
         await postgres.query(targetDomain, `ALTER ROLE ${username} SET search_path = ${schema}`)
 
+        //  TODO: consider these limits
+        await postgres.query(targetDomain, `ALTER ROLE ${username} SET work_mem = '512MB'`)
+        await postgres.query(targetDomain, `ALTER ROLE ${username} SET statement_timeout = '2s'`)
+
         await Promise.all(Object.entries(config.postgres.views).map(async ([view, { query }]) => {
           await postgres.query(targetDomain, `CREATE OR REPLACE VIEW ${schema}.${view} AS ${query}`)
           await postgres.query(targetDomain, `GRANT USAGE ON SCHEMA ${schema} TO ${username}`)
