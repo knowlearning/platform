@@ -4,21 +4,17 @@ import { getToken, login, logout } from './auth.js'
 import GenericAgent from '../generic/index.js'
 
 const TEST_DOMAIN = 'tests.knowlearning.systems'
-const SECURE = window.location.protocol === 'https:'
-const DEVELOPMENT_HOST = `localhost:3200${ SECURE ? '1' : '2' }`
-const ENVIRONMENT_API_HOST = localStorage.getItem('API_HOST')
-const REMOTE_HOST = window.location.hostname === TEST_DOMAIN && ENVIRONMENT_API_HOST ? ENVIRONMENT_API_HOST : 'api.knowlearning.systems'
 const LANGUAGES = [...navigator.languages]
 
-function isLocal() { return localStorage.getItem('api') === 'local' }
-
-const API_HOST = isLocal() ? DEVELOPMENT_HOST : REMOTE_HOST
+const API_HOST = localStorage.getItem('API_HOST') || 'api.knowlearning.systems'
+//  const API_HOST = 'api-test.knowlearning.systems'
+//  const API_HOST = 'localhost:8765'
 
 //  TODO: remove this hack when we can set partitioned sid cookie through websocket handshake
 //        deno is partly in the way on teh set side, and browser support is in the way for
 //        the client side.
 async function ensureSidEstablished() {
-  const response = await fetch(`http${ SECURE ? 's' : '' }://${API_HOST}/_sid-check`, { method: 'GET', credentials: 'include' })
+  const response = await fetch(`https://${API_HOST}/_sid-check`, { method: 'GET', credentials: 'include' })
   const hasLocalStorageSID = !!localStorage.getItem('sid')
   if (response.status === 201) {
     if (!hasLocalStorageSID) {
@@ -43,7 +39,7 @@ export default options => {
   ensureSidEstablished()
   const Connection = function () {
 
-    const ws = new WebSocket(`ws${ SECURE ? 's' : '' }://${API_HOST}`)
+    const ws = new WebSocket(`wss://${API_HOST}`)
 
     this.send = message => ws.send(JSON.stringify(message))
     this.close = info => {

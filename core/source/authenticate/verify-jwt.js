@@ -1,8 +1,8 @@
-import { uuid, decodeBase64String, jwkToPem, jwt } from '../utils.js'
+import { uuid, decodeBase64String, jwkToPem, jwt, environment } from '../utils.js'
 import { query } from '../postgres.js'
-import OAuthClientInfo from './oauth-client-info.js'
 import getExistingUser from './existing-user.js'
 
+const { OAUTH_CREDENTIALS } = environment
 const JWT_VERIFICATION_TIMEOUT = 2500
 
 const JWKS_ENDPOINTS = {
@@ -11,6 +11,8 @@ const JWKS_ENDPOINTS = {
   classlink: 'https://launchpad.classlink.com/.well-known/openid-configuration'
 }
 
+const OAuthProviderCredentials = JSON.parse(OAUTH_CREDENTIALS)
+
 export default async function JWTVerification(provider, code, resolve, reject) {
   if (provider === 'core') return coreVerfication(code, resolve, reject)
 
@@ -18,8 +20,7 @@ export default async function JWTVerification(provider, code, resolve, reject) {
     () => reject('JWT_VERIFICATION_TIMEOUT time elapsed'),
     JWT_VERIFICATION_TIMEOUT
   )
-
-  const { client_id, client_secret, token_uri } = OAuthClientInfo[provider]
+  const { client_id, client_secret, token_uri } = OAuthProviderCredentials[provider.toUpperCase()].web
 
   //  TODO: use access token for refresh and such...
   const response = await fetch(token_uri, {
@@ -113,7 +114,7 @@ function passClassLinkTokenChallenge({ exp, iat, aud, iss }) {
   return (
     exp > now &&
     iat < now &&
-    aud === OAuthClientInfo.classlink.client_id &&
+    aud === OAuthProviderCredentials.CLASSLINK.web.client_id &&
     'https://launchpad.classlink.com' === iss
   )
 }
@@ -124,7 +125,7 @@ function passGoogleTokenChallenge({ exp, iat, aud, iss }) {
   return (
     exp > now &&
     iat < now &&
-    aud === OAuthClientInfo.google.client_id &&
+    aud === OAuthProviderCredentials.GOOGLE.web.client_id &&
     ['accounts.google.com', 'https://accounts.google.com'].includes(iss)
   )
 }
@@ -137,7 +138,7 @@ function passMicrosoftTokenChallenge({ exp, iat, aud, iss }) {
   return (
     exp > now &&
     iat < now &&
-    aud === OAuthClientInfo.microsoft.client_id
+    aud === OAuthProviderCredentials.MICROSOFT.web.client_id
   )
 }
 

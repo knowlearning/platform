@@ -1,8 +1,31 @@
 import { environment } from './utils.js'
 import * as postgres from './postgres.js'
 import configuration, { domainAdmin } from './configuration.js'
+import { pg } from './utils.js'
 
-const { MODE, ADMIN_DOMAIN } = environment
+const {
+  MODE,
+  ADMIN_DOMAIN,
+  POSTGRES_HOST,
+  POSTGRES_PORT
+} = environment
+
+const CLIENT_CLEANUP_THRESHOLD = 30_000
+
+const schemaCache = {}
+
+setInterval(() => {
+  Object.entries(schemaCache).map(async ([schema, p]) => {
+    const { used, username, domain, client } = await p
+    if (used + CLIENT_CLEANUP_THRESHOLD < Date.now()) {
+      await client.end()
+      await postgres.query(domain, `DROP OWNED BY ${username} CASCADE`);
+      await postgres.query(domain, `DROP ROLE IF EXISTS ${username}`)
+      delete schemaCache[schema]
+    }
+  })
+
+}, 1_000)
 
 export default async function (requestingDomain, targetDomain, queryName, params, user) {
   if (
@@ -39,7 +62,51 @@ export default async function (requestingDomain, targetDomain, queryName, params
   if (typeof queryDefinition === 'string') queryBody = queryDefinition
   else if (queryDefinition?.body) queryBody = queryDefinition.body
 
-  if (queryBody) {
+  //  TODO: make sure requesting domain is accounted for in view generation/user id
+  if (!queryBody && config?.postgres?.views) {
+    //  TODO: check if queryName is a parseable query... if not abort
+    //  TODO: include context when constructing view id and view
+    const schema = `schema_${config.id.replaceAll('-', '')}_${user.replaceAll('-', '')}`
+    if (!schemaCache[schema]) {
+      schemaCache[schema] = new Promise(async (resolve) => {
+        const username = 'user_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+        const password = crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+
+        await postgres.query(targetDomain, `CREATE USER ${username} WITH PASSWORD '${password}'`)
+        await postgres.query(targetDomain, `CREATE SCHEMA IF NOT EXISTS ${schema}`)
+        await postgres.query(targetDomain, `REVOKE ALL PRIVILEGES ON SCHEMA public FROM ${username}`)
+        await postgres.query(targetDomain, `REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM ${username}`)
+        await postgres.query(targetDomain, `ALTER ROLE ${username} SET search_path = ${schema}`)
+
+        //  TODO: consider these limits
+        await postgres.query(targetDomain, `ALTER ROLE ${username} SET work_mem = '512MB'`)
+        await postgres.query(targetDomain, `ALTER ROLE ${username} SET statement_timeout = '2s'`)
+
+        await Promise.all(Object.entries(config.postgres.views).map(async ([view, { query }]) => {
+          await postgres.query(targetDomain, `CREATE OR REPLACE VIEW ${schema}.${view} AS ${query}`)
+          await postgres.query(targetDomain, `GRANT USAGE ON SCHEMA ${schema} TO ${username}`)
+          await postgres.query(targetDomain, `GRANT SELECT ON ALL TABLES IN SCHEMA ${schema} TO ${username}`)
+        }))
+
+        const client = new pg.Client({
+          hostname: POSTGRES_HOST,
+          port: POSTGRES_PORT,
+          database: postgres.domainToDbName(targetDomain),
+          user: username,
+          password
+        })
+
+        await client.connect()
+
+        resolve({ client, username, domain: targetDomain })
+      })
+    }
+
+    const cacheResult = await schemaCache[schema]
+    cacheResult.used = Date.now()
+    return cacheResult.client.queryObject(queryName, params)
+  }
+  else if (queryBody) {
     const namedParams = {
       DOMAIN: targetDomain,
       REQUESTING_DOMAIN: requestingDomain

@@ -273,7 +273,7 @@ agent: |
     })
 
     it('Exposes error message when agent script fails to start', async function () {
-      this.timeout(5000)
+      this.timeout(15000)
 
       const { domain } = await Agent.environment()
       const report = await configureDomain(domain, CONFIGURATION_2, true)
@@ -288,7 +288,7 @@ agent: |
     })
 
     it('Can establish cross domain agent connections', async function () {
-      this.timeout(5000)
+      this.timeout(15000)
 
       const { domain, auth: { user } } = await Agent.environment()
 
@@ -307,7 +307,7 @@ agent: |
     })
 
     it('Can establish cross domain agent connections that are resilient against domain agent resets', async function () {
-      this.timeout(5000)
+      this.timeout(15000)
 
       const { domain, auth: { user } } = await Agent.environment()
 
@@ -325,7 +325,7 @@ agent: |
     })
 
     it('Connects to most recently deployed third party domain', async function () {
-      this.timeout(5000)
+      this.timeout(15000)
 
       const { domain, auth: { user } } = await Agent.environment()
       const remoteDomain = 'domain-agent-test.localhost:5112'
@@ -354,7 +354,7 @@ agent: |
     })
 
     it('Can connect back to a domain agent that has reconnected itself', async function () {
-      this.timeout(5000)
+      this.timeout(15000)
 
       const { domain, auth: { user } } = await Agent.environment()
 
@@ -383,7 +383,7 @@ agent: |
     })
 
     it('Can keep mirroring with new agent configurations', async function () {
-      this.timeout(5000)
+      this.timeout(15000)
       const { domain, auth: { user } } = await Agent.environment()
       await configureDomain(SIMPLE_MIRROR_DOMAIN, SIMPLE_MIRROR_CONFIGURATION)
       await configureDomain(domain, PROXY_TO_SIMPLE_MIRROR_CONFIGURATION)

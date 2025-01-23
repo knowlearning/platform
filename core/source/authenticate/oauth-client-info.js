@@ -1,10 +1,6 @@
 import { environment } from '../utils.js'
 
-const {
-  GOOGLE_OAUTH_CLIENT_CREDENTIALS,
-  MICROSOFT_OAUTH_CLIENT_CREDENTIALS,
-  CLASSLINK_OAUTH_CLIENT_CREDENTIALS
-} = environment
+const { OAUTH_CREDENTIALS } = environment
 
 export default {
   google: JSON.parse(GOOGLE_OAUTH_CLIENT_CREDENTIALS).web,

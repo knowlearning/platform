@@ -99,4 +99,4 @@ secretGenerator:
   - SECRET_ENCRYPTION_KEY=x
 - name: redis-service-account
   literals:
-  - REDIS_SERVICE_ACCOUNT_CREDENTIALS=
+  - REDIS_PASSWORD=

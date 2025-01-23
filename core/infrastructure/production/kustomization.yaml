@@ -39,9 +39,10 @@ secretGenerator:
   - .credentials/GOOGLE_OAUTH_CLIENT_CREDENTIALS
   - .credentials/MICROSOFT_OAUTH_CLIENT_CREDENTIALS
   - .credentials/CLASSLINK_OAUTH_CLIENT_CREDENTIALS
+  - .credentials/OAUTH_CREDENTIALS
 - name: redis-service-account
   files:
-  - .credentials/REDIS_SERVICE_ACCOUNT_CREDENTIALS
+  - .credentials/REDIS_PASSWORD
 - name: postgres-service-account
   files:
   - .credentials/POSTGRES_PASSWORD

@@ -3,7 +3,7 @@ import Agent from './agents/generic/index.js'
 
 const AGENT_TOKEN = Deno.env.get('AGENT_TOKEN')
 
-const denoProcess = self
+const denoProcess = globalThis
 
 denoProcess.addEventListener('message', ({ data }) => {
   if (!data) denoProcess.postMessage(undefined) // ping response

@@ -3,7 +3,7 @@ import { createRedisClient, environment } from "./externals.js"
 const {
   REDIS_HOST,
   REDIS_PORT,
-  REDIS_SERVICE_ACCOUNT_CREDENTIALS
+  REDIS_PASSWORD
 } = environment
 
 const clientConnectionInfo = {
@@ -11,7 +11,7 @@ const clientConnectionInfo = {
     host: REDIS_HOST,
     port: REDIS_PORT
   },
-  password: REDIS_SERVICE_ACCOUNT_CREDENTIALS
+  password: REDIS_PASSWORD
 }
 
 const client = createRedisClient(clientConnectionInfo)
