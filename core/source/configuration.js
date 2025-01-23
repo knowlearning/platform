@@ -59,6 +59,7 @@ export default async function configuration(domain) {
       else cache[domain] = {}
 
       cache[domain].admin = admin
+      cache[domain].id = config
 
       //  ensure domain has default postgres tables configured
       if (!cache[domain].postgres) cache[domain].postgres = {}
