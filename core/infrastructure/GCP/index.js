@@ -1,24 +1,14 @@
-import listAllResources from './list-all-resources.js'
-import createInstanceGroup from './create-instance-group.js'
-import createInstance from './create-instance.js'
-import addInstancesToGroup from './add-instances-to-group.js'
-import createHealthCheck from './create-health-check.js'
-import createBackendService from './create-backend-service.js'
 import reserveStaticIp from './reserve-static-ip.js'
-import createForwardingRule from './create-forwarding-rule.js'
 import createFirewallRule from './create-firewall-rule.js'
+import createInstance from './create-instance.js'
 
 const project = "opensourcelearningplatform"
 const region = "us-central1"
-const zone = `${region}-a`
+const zone = `${region}-b`
 const machine = "n2-standard-2"
 const image = "projects/debian-cloud/global/images/family/debian-11"
-const group = "my-instance-group"
-const instance = "my-deno-instance"
-const service = "my-backend-service"
-const healthCheck = "my-health-check"
-const staticIpName = "my-static-ip"
-const forwardingRule = "my-forwarding-rule"
+const instance = "my-deno-instance-2"
+const staticIpName = "my-static-ip-2"
 const httpFirewallRule = "http-firewall-rule"
 const httpFirewallTag = "http-firewall-tag"
 
@@ -37,14 +27,6 @@ EOF
 sudo systemctl restart sshd
 `
 
-// await listAllResources('GCP', { project })
+const staticIp = await reserveStaticIp('GCP', staticIpName, { project, region })
 await createFirewallRule('GCP', httpFirewallRule, { project, targetTag: httpFirewallTag })
-await createInstanceGroup('GCP', group, { project, zone })
-await reserveStaticIp('GCP', staticIpName, { project, region })
-await createInstance('GCP', instance, { project, zone, machine, image, group, script, tags: [httpFirewallTag] })
-await addInstancesToGroup('GCP', { project, zone, instances: [ instance ], group })
-await createHealthCheck('GCP', healthCheck, { project, region, port: 443 })
-await createBackendService('GCP', service, { project, region, zone, group, healthCheck })
-await createForwardingRule('GCP', forwardingRule, { project, region, service, staticIpName, port: 443 })
-
-//  TODO: add lets encrypt https certificate to credentials
+await createInstance('GCP', instance, { project, zone, machine, image, script, staticIp, tags: [httpFirewallTag] })

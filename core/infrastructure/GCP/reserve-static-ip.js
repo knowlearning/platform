@@ -42,5 +42,5 @@ export default async function reserveStaticIp(provider, name, { project, region 
 
   const ipDetails = await ipDetailsResponse.json()
   const staticIpAddress = ipDetails.address
-  console.log(`Static IP address allocated: ${staticIpAddress}`)
+  return staticIpAddress
 }

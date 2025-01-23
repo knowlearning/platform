@@ -38,8 +38,8 @@ if [ "$1" = "production" ]; then
   export INSECURE_DEVELOPMENT_CERT="$(cat ../production/.credentials/INSECURE_DEVELOPMENT_CERT)"
   export INSECURE_DEVELOPMENT_KEY="$(cat ../production/.credentials/INSECURE_DEVELOPMENT_KEY)"
 
-  INSTANCE_NAME="my-deno-instance"
-  ZONE="us-central1-a"
+  INSTANCE_NAME="my-deno-instance-2"
+  ZONE="us-central1-b"
   PROJECT="opensourcelearningplatform"
 
   gcloud compute ssh admin@$INSTANCE_NAME \

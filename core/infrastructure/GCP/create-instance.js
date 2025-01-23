@@ -37,7 +37,7 @@ async function waitForInstanceRunning(provider, name, { project, zone }) {
 
 
 
-export default async function createInstance(provider, name, { project, zone, machine, image, tags, script }) {
+export default async function createInstance(provider, name, { project, zone, machine, image, staticIp, tags, script }) {
   console.log("Creating VM instance...")
   const url = `https://compute.googleapis.com/compute/v1/projects/${project}/zones/${zone}/instances`
   const body = {
@@ -56,7 +56,8 @@ export default async function createInstance(provider, name, { project, zone, ma
         accessConfigs: [
           {
             name: "External NAT",
-            type: "ONE_TO_ONE_NAT"
+            type: "ONE_TO_ONE_NAT",
+            natIP: staticIp
           }
         ]
       }
