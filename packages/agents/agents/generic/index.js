@@ -163,7 +163,7 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     })
   }
 
-  async function query(query, params, domain) {
+  async function query(query, params, domain, context=[]) {
     const id = uuid()
     const requested = Date.now()
     const { session } = await environment()
@@ -172,7 +172,7 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
       {
         op: 'add',
         path: ['active', session, 'queries', id],
-        value: { query, params, domain }
+        value: { query, params, domain, context }
       }
     ], false, false)
     try {

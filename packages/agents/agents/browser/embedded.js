@@ -221,7 +221,7 @@ export default function EmbeddedAgent() {
     return send({ type: 'login', provider, username, password })
   }
 
-  function query(query, params, domain) { return send({ type: 'query', query, params, domain }) }
+  function query(query, params, domain, context=[]) { return send({ type: 'query', query, params, domain, context }) }
   function logout() { return send({ type: 'logout' }) }
   function disconnect() { return send({ type: 'disconnect' }) }
   function reconnect() { return send({ type: 'reconnect' }) }

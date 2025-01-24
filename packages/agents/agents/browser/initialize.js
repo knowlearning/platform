@@ -135,9 +135,9 @@ function embed(environment, iframe) {
       sendDown(await Agent.patch(root, scopes))
     }
     else if (type === 'query') {
-      const { query, params, domain } = message
+      const { query, params, domain, context=[] } = message
       Agent
-        .query(query, params, domain)
+        .query(query, params, domain, [environment.id, ...context])
         .then(sendDown)
         .catch(error => sendDown(null, error.error))
     }
