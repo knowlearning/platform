@@ -30,13 +30,13 @@ if [ "$1" = "production" ]; then
   # Deploy infrastructure
   deno run --allow-net --allow-run index.js
 
-  export AUTH_SERVICE_SECRET_KEY="$(cat ../production/.credentials/AUTH_SERVICE_SECRET_KEY)"
-  export GCS_SERVICE_ACCOUNT_CREDENTIALS="$(cat ../production/.credentials/GCS_SERVICE_ACCOUNT_CREDENTIALS)"
-  export OAUTH_CREDENTIALS="$(cat ../production/.credentials/OAUTH_CREDENTIALS)"
-  export POSTGRES_PASSWORD="$(cat ../production/.credentials/POSTGRES_PASSWORD)"
-  export REDIS_PASSWORD="$(cat ../production/.credentials/REDIS_PASSWORD)"
-  export INSECURE_DEVELOPMENT_CERT="$(cat ../production/.credentials/INSECURE_DEVELOPMENT_CERT)"
-  export INSECURE_DEVELOPMENT_KEY="$(cat ../production/.credentials/INSECURE_DEVELOPMENT_KEY)"
+  export AUTH_SERVICE_SECRET_KEY="$(cat ../.credentials/AUTH_SERVICE_SECRET_KEY)"
+  export GCS_SERVICE_ACCOUNT_CREDENTIALS="$(cat ../.credentials/GCS_SERVICE_ACCOUNT_CREDENTIALS)"
+  export OAUTH_CREDENTIALS="$(cat ../.credentials/OAUTH_CREDENTIALS)"
+  export POSTGRES_PASSWORD="$(cat ../.credentials/POSTGRES_PASSWORD)"
+  export REDIS_PASSWORD="$(cat ../.credentials/REDIS_PASSWORD)"
+  export INSECURE_DEVELOPMENT_CERT="$(cat ../.credentials/INSECURE_DEVELOPMENT_CERT)"
+  export INSECURE_DEVELOPMENT_KEY="$(cat ../.credentials/INSECURE_DEVELOPMENT_KEY)"
 
   INSTANCE_NAME="my-deno-instance-2"
   ZONE="us-central1-b"
