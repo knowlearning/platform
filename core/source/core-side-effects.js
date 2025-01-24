@@ -15,10 +15,10 @@ export default async function coreSideEffects({
     if (op === 'add' && path.length === 4 && path[0] === 'active' && path[1] === session) {
       try {
         if (path[2] === 'queries') {
-          const { query, params=[], domain:targetDomain=domain } = value
+          const { query, params=[], domain:targetDomain=domain, context=[] } = value
           const queryId = path[3]
           const queryStart = Date.now()
-          const { rows } = await configuredQuery(domain, targetDomain, query, params, user)
+          const { rows } = await configuredQuery(domain, targetDomain, query, params, user, context)
           const metricsPatch = [{ op: 'add', path: ['active', session, 'query', queryId, 'core_latency'], value: Date.now() - queryStart }]
           interact(domain, user, scope, metricsPatch)
           send({ si, ii, rows })

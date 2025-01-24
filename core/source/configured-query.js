@@ -27,7 +27,7 @@ setInterval(() => {
 
 }, 1_000)
 
-export default async function (requestingDomain, targetDomain, queryName, params, user) {
+export default async function (requestingDomain, targetDomain, queryName, params, user, context=[]) {
   if (
     requestingDomain === ADMIN_DOMAIN
     && queryName !== 'current-config'
@@ -66,7 +66,8 @@ export default async function (requestingDomain, targetDomain, queryName, params
   if (!queryBody && config?.postgres?.views) {
     //  TODO: check if queryName is a parseable query... if not abort
     //  TODO: include context when constructing view id and view
-    const schema = `schema_${config.id.replaceAll('-', '')}_${user.replaceAll('-', '')}`
+    const context_string = btoa(JSON.stringify(context))
+    const schema = `schema_${config.id.replaceAll('-', '')}_${user.replaceAll('-', '')}_${context_string}`
     if (!schemaCache[schema]) {
       schemaCache[schema] = new Promise(async (resolve) => {
         const username = 'user_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16)
@@ -83,6 +84,7 @@ export default async function (requestingDomain, targetDomain, queryName, params
         await postgres.query(targetDomain, `ALTER ROLE ${username} SET statement_timeout = '2s'`)
 
         await Promise.all(Object.entries(config.postgres.views).map(async ([view, { query }]) => {
+          //  TODO: supply context as an argument to the create or replace view function
           await postgres.query(targetDomain, `CREATE OR REPLACE VIEW ${schema}.${view} AS ${query}`)
           await postgres.query(targetDomain, `GRANT USAGE ON SCHEMA ${schema} TO ${username}`)
           await postgres.query(targetDomain, `GRANT SELECT ON ALL TABLES IN SCHEMA ${schema} TO ${username}`)
@@ -104,27 +106,13 @@ export default async function (requestingDomain, targetDomain, queryName, params
 
     const cacheResult = await schemaCache[schema]
     cacheResult.used = Date.now()
-    return cacheResult.client.queryObject(queryName, params)
+    const [q, p] = injectNamedParams(queryName, targetDomain, requestingDomain, user, context, params)
+    return cacheResult.client.queryObject(q, p)
   }
   else if (queryBody) {
-    const namedParams = {
-      DOMAIN: targetDomain,
-      REQUESTING_DOMAIN: requestingDomain
-    }
-    if (user) namedParams.REQUESTER = user
+    const [q, p] = injectNamedParams(queryBody, targetDomain, requestingDomain, user, context, params)
 
-    //  TODO: better replacement technique
-    const queryParams = [...params]
-    Object
-      .entries(namedParams)
-      .forEach(([param, value]) => {
-        if (queryBody.includes(`$${param}`)) {
-          queryParams.push(value)
-          queryBody = queryBody.replaceAll(`$${param}`, `$${queryParams.length}`)
-        }
-      })
-
-    return postgres.query(targetDomain, queryBody, queryParams, true).catch(error => {
+    return postgres.query(targetDomain, q, p, true).catch(error => {
       //  TODO: this type of error should probably make it to the admin interface
       console.warn('POSTGRES QUERY ERROR', requestingDomain, targetDomain, error)
       const e = new Error(error.fields?.message)
@@ -137,4 +125,25 @@ export default async function (requestingDomain, targetDomain, queryName, params
     error.code = `INVALID QUERY '${queryName}' FOR '${targetDomain}'`
     throw error
   }
+}
+
+function injectNamedParams(queryBody, targetDomain, requestingDomain, user, context, params) {
+  const namedParams = {
+    DOMAIN: targetDomain,
+    REQUESTING_DOMAIN: requestingDomain,
+    CONTEXT: context
+  }
+  if (user) namedParams.REQUESTER = user
+
+  //  TODO: better replacement technique
+  const queryParams = [...params]
+  Object
+    .entries(namedParams)
+    .forEach(([param, value]) => {
+      if (queryBody.includes(`$${param}`)) {
+        queryParams.push(value)
+        queryBody = queryBody.replaceAll(`$${param}`, `$${queryParams.length}`)
+      }
+    })
+  return [queryBody, queryParams]
 }

@@ -381,6 +381,7 @@ postgres:
       const state = await Agent.state(TEST_ENTRY_2_ID)
       Object.assign(state, TEST_ENTRY_2)
       await Agent.synced()
+      await pause(10)
 
       expect( await Agent.query('my-test-table-entry-after-reconfig') )
         .to.deep.equal( [{ id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 }] )
