@@ -15,12 +15,22 @@ export default function subscribe(id, callback, scope) {
           })
       })
   }
-  subscriptionResponses[id].push(update => {
-    // if given, use subscriber's named scope in update
-    if (scope) update = { ...update, scope }
+
+  const sendUpdate = update => {
+    if (scope) update = { ...update, scope } // if given, use subscriber's named scope in update
     callback(update)
-  })
-  return function unsubscribe() {
-    //  TODO: unsubscribe logic
+  }
+
+  subscriptionResponses[id].push(sendUpdate)
+
+  return async function unsubscribe() {
+    const callbackIndex = subscriptionResponses[id].findIndex(cb => cb === sendUpdate)
+    if (callbackIndex > -1) {
+      subscriptionResponses[id].splice(callbackIndex, 1)
+      if (subscriptionResponses[id].length === 0) {
+        delete subscriptionResponses[id]
+        await subscriptions.unsubscribe(id)
+      }
+    }
   }
 }
