@@ -66,6 +66,42 @@ describe("Construct patch sets", function() {
     expect(state.myArray.length).to.equal(0)
   })
 
+  it("Can splice arrays with 1 arugment", function() {
+    const  patches = []
+    const state = new PatchProxy({}, patch => patches.push(patch))
+    state.myArray = ['hmmm', { this: 'this' }, 'hmmm']
+    state.myArray.splice(1)
+    expect({ myArray: ['hmmm'] })
+      .to.deep.equal(applyPatch({}, patches.flat()))
+  })
+
+  it("Can splice arrays with 2 arugments", function() {
+    const  patches = []
+    const state = new PatchProxy({}, patch => patches.push(patch))
+    state.myArray = ['hmmm', { this: 'this' }, 'hmmm']
+    state.myArray.splice(1, 1)
+    expect({ myArray: ['hmmm', 'hmmm'] })
+      .to.deep.equal(applyPatch({}, patches.flat()))
+  })
+
+  it("Can splice arrays with too large a number for the second arugment", function() {
+    const  patches = []
+    const state = new PatchProxy({}, patch => patches.push(patch))
+    state.myArray = ['hmmm', { this: 'this' }, 'hmmm']
+    state.myArray.splice(1, 10000)
+    expect({ myArray: ['hmmm'] })
+      .to.deep.equal(applyPatch({}, patches.flat()))
+  })
+
+  it("Can splice arrays with Infinity second argument", function() {
+    const  patches = []
+    const state = new PatchProxy({}, patch => patches.push(patch))
+    state.myArray = ['hmmm', { this: 'this' }, 'hmmm']
+    state.myArray.splice(1, Infinity)
+    expect({ myArray: ['hmmm'] })
+      .to.deep.equal(applyPatch({}, patches.flat()))
+  })
+
   it("Can splice arrays of mixed object and primitive types", function() {
     const  patches = []
     const state = new PatchProxy({}, patch => patches.push(patch))

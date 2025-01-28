@@ -13,6 +13,10 @@ function copy(value) {
   return JSON.parse(JSON.stringify(value)) //  TODO: more efficient sanitization
 }
 
+function clamp(value, [min, max]) {
+  return Math.max(Math.min(parseInt(value), max), min)
+}
+
 export default function PatchProxy(state, interact, ephemeralPaths={}, parentPath=[], rootState) {
   if (ephemeralPaths[serializePath(parentPath)]) return state
   if (!rootState) rootState = state
@@ -92,6 +96,12 @@ export default function PatchProxy(state, interact, ephemeralPaths={}, parentPat
       return state.length
     },
     splice(start, deleteCount, ...insertItems) {
+      const maxToDelete = state.length - start
+
+      if (arguments.length === 0) return
+      else if (arguments.length === 1 || arguments[1] === Infinity) deleteCount = maxToDelete
+      else deleteCount = clamp(deleteCount, [ 0, maxToDelete ]) || 0
+
       const path = [...parentPath, start]
       const patch = Array.from(
         { length: deleteCount },
@@ -116,9 +126,9 @@ export default function PatchProxy(state, interact, ephemeralPaths={}, parentPat
           })
       }
 
-      const children = [...insertItems].map((value, index) => {
-        return value instanceof Object ? childPatchProxy(index + start, value) : value
-      })
+      const children = insertItems.map(
+        (value, index) => value instanceof Object ? childPatchProxy(index + start, value) : value
+      )
 
       const removedItems = state.splice(start, deleteCount, ...children)
 
