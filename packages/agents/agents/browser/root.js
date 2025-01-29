@@ -6,9 +6,9 @@ import GenericAgent from '../generic/index.js'
 const TEST_DOMAIN = 'tests.knowlearning.systems'
 const LANGUAGES = [...navigator.languages]
 
-//const API_HOST = localStorage.getItem('API_HOST') || 'api.knowlearning.systems'
+const API_HOST = localStorage.getItem('API_HOST') || 'api.knowlearning.systems'
 //  const API_HOST = 'api-test.knowlearning.systems'
-  const API_HOST = 'localhost:8765'
+//const API_HOST = 'localhost:8765'
 
 //  TODO: remove this hack when we can set partitioned sid cookie through websocket handshake
 //        deno is partly in the way on teh set side, and browser support is in the way for
