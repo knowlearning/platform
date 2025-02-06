@@ -2,16 +2,16 @@ import reserveStaticIp from './reserve-static-ip.js'
 import createFirewallRule from './create-firewall-rule.js'
 import createInstance from './create-instance.js'
 
-const project = "opensourcelearningplatform"
-const region = "us-central1"
 const machine = "n2-standard-2"
 const image = "projects/debian-cloud/global/images/family/debian-11"
 const httpFirewallRule = "http-firewall-rule"
 const httpFirewallTag = "http-firewall-tag"
 
-const zone = `${region}-b`
-const instance = "my-deno-instance-2"
-const staticIpName = "my-static-ip-2"
+const project = Deno.env.get("PROJECT")
+const region = Deno.env.get("REGION")
+const zone = Deno.env.get("ZONE")
+const instance = Deno.env.get("INSTANCE_NAME")
+const staticIpName = Deno.env.get("STATIC_IP_NAME")
 
 const script = `#!/bin/bash
 

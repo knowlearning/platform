@@ -1,5 +1,6 @@
 #!/bin/bash
 
+sudo apt update
 sudo apt install git unzip -y
 curl -fsSL https://deno.land/install.sh | sh -s -- -y v2.1.4
 

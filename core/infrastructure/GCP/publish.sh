@@ -28,7 +28,17 @@ if [ "$1" = "production" ]; then
   # gcloud auth application-default set-quota-project knowlearning
 
   # Deploy infrastructure
-  deno run --allow-net --allow-run index.js
+
+  export PROJECT="opensourcelearningplatform"
+  export REGION="us-central1"
+  export ZONE="us-central1-a"
+  export INSTANCE_NAME="my-deno-instance-1"
+  export STATIC_IP_NAME="my-static-ip-1"
+  #export ZONE="us-central1-b"
+  #export INSTANCE_NAME="my-deno-instance-2"
+  #export STATIC_IP_NAME="my-static-ip-2"
+
+  deno run --allow-net --allow-run --allow-env index.js
 
   export AUTH_SERVICE_SECRET_KEY="$(cat ../.credentials/AUTH_SERVICE_SECRET_KEY)"
   export GCS_SERVICE_ACCOUNT_CREDENTIALS="$(cat ../.credentials/GCS_SERVICE_ACCOUNT_CREDENTIALS)"
@@ -37,10 +47,6 @@ if [ "$1" = "production" ]; then
   export REDIS_PASSWORD="$(cat ../.credentials/REDIS_PASSWORD)"
   export INSECURE_DEVELOPMENT_CERT="$(cat ../.credentials/INSECURE_DEVELOPMENT_CERT)"
   export INSECURE_DEVELOPMENT_KEY="$(cat ../.credentials/INSECURE_DEVELOPMENT_KEY)"
-
-  INSTANCE_NAME="my-deno-instance-2"
-  ZONE="us-central1-b"
-  PROJECT="opensourcelearningplatform"
 
   gcloud compute ssh admin@$INSTANCE_NAME \
     --zone=$ZONE \
