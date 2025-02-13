@@ -55,7 +55,7 @@ to forward translatable info to [translations.pilaproject.org](https://translati
 
 To configure your domain agent to forward translatable info to [translations.pilaproject.org](https://translations.pilaproject.org),
 add the following snippet to your domain agent. It will simply forward all of a scopes current
-translation info for translated paths.
+translatable info.
 
 ```js
   import Agent, { getAgent } from 'npm:@knowlearning/agents/deno.js'
@@ -101,7 +101,7 @@ translation info for translated paths.
     const state = await Agent.state(id)
     return !!state.translations
   }
- ```
+```
 
 ##  Add Some Translations
 
