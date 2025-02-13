@@ -135,7 +135,7 @@ Use it like this:
   const translatedData = await translatedObject(id, languages)
 ```
 
-This languages list specifies that we want to use es-ES (spanish from spain) but if
+This ```languages``` list specifies that we want to use es-ES (spanish from spain) but if
 translations are not available for that to use the more general "es" (general spanish).
 
 If the ```'my-zebra-scope'``` contained the data of our example above, and we added
