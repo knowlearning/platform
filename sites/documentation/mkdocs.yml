@@ -18,6 +18,7 @@ nav:
     - Authorization: reference/authorization.md
   - How-Tos:
     - Translations: how-tos/translations.md
+    - xAPI: how-tos/xapi.md
   - Tutorials: tutorials/index.md
   - Embedding:
     - Recommended App Scaffold: embedding/recommended-app-scaffold.md
