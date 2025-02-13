@@ -16,9 +16,9 @@ nav:
     - Agents: reference/agents.md
     - Relational Data: reference/relational-data.md
     - Authorization: reference/authorization.md
-  - How-Tos: how-tos/index.md
-  - Tutorials:
-    - Translations: tutorials/translations.md
+  - How-Tos:
+    - Translations: how-tos/translations.md
+  - Tutorials: tutorials/index.md
   - Embedding:
     - Recommended App Scaffold: embedding/recommended-app-scaffold.md
     - Recommended Dashboard Scaffold: embedding/recommended-dashboard-scaffold.md
