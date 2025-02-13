@@ -33,17 +33,17 @@ If we want to store an xapi statement, then we simply need to update the xapi fi
 }
 ```
 
-## Setting Up Your Domain Agent to Forward Translatable Info
+## Setting Up Your Domain Agent to Forward xAPI Statements
+
+## Querying xAPI Data
 
 Once your domain agent forwards data to the xapi.knowlearning.systems domain,
 a database entry with the following fields will be created by the
 xapi.knowlearning.systems domain agent:
 
-| actor   | verb                                    | object                        | context               | authority | domain                      | score_raw | score_scaled | score_min | score_max | success | completion | result_extensions |
-| ------- | --------------------------------------- | ----------------------------- | --------------------- | --------- | --------------------------- | --------- | ------------ | --------- | --------- | ------- | ---------- | ----------------- |
-| USER_ID | http://adlnet.gov/expapi/verbs/answered | ID_OF_MULTIPLE_CHOICE_CONTENT | EMBEDDED_CONTEXT_LIST | null      | creating-domain.example.com | null      | null         | null      | null      | true    | true       | null              |
-
-## Querying xAPI Data
+| actor   | verb                                    | object        | context      | authority | domain                      | score_raw | score_scaled | score_min | score_max | success | completion | result_extensions |
+| ------- | --------------------------------------- | ------------- | ------------ | --------- | --------------------------- | --------- | ------------ | --------- | --------- | ------- | ---------- | ----------------- |
+| USER_ID | http://adlnet.gov/expapi/verbs/answered | ID_OF_CONTENT | CONTEXT_LIST | null      | creating-domain.example.com | null      | null         | null      | null      | true    | true       | null              |
 
 Any user can trigger a query on their own xAPI data by doing a remote domain query:
 
