@@ -1,7 +1,7 @@
 # Translations
 
-While its not part of the official core, KnowLearning infrastructure provides
-translation infrastructure to some domains through [translations.pilaproject.org](https://translations.pilaproject.org).
+KnowLearning provides translation infrastructure to some domains
+through [translations.pilaproject.org](https://translations.pilaproject.org).
 
 To utilize this infrastructure you will need to do 4 things:
 
