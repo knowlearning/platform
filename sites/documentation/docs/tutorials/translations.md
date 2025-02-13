@@ -5,11 +5,11 @@ translation infrastructure to some domains through [translations.pilaproject.org
 
 To utilize this infrastructure you will need to do 4 things:
 
-1) Write a "translations" field into any scopes that you want to be translatable.
-1) Add some domain agent functionality so that your domain can forward data for
+1. Write a "translations" field into any scopes that you want to be translatable.
+1. Add some domain agent functionality so that your domain can forward data for
    translatable items to [translations.pilaproject.org](https://translations.pilaproject.org).
-1) Add some translations on [translations.pilaproject.org](https://translations.pilaproject.org).
-1) Process any translatable scope after fetching to apply all available translations.
+1. Add some translations on [translations.pilaproject.org](https://translations.pilaproject.org).
+1. Process any translatable scope after fetching to apply all available translations.
 
 ## Making scopes translatable
 
