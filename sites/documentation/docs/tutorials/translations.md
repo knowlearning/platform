@@ -136,7 +136,7 @@ Use it like this:
 ```
 
 This ```languages``` list specifies that we want to use es-ES (spanish from spain) but if
-translations are not available for that to use the more general "es" (general spanish).
+translations are not available for that, use the more general "es" (general spanish).
 
 If the ```'my-zebra-scope'``` contained the data of our example above, and we added
 spanish translations to [translations.pilaproject.org](https://translations.pilaproject.org),
