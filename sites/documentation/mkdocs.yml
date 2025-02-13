@@ -17,7 +17,8 @@ nav:
     - Relational Data: reference/relational-data.md
     - Authorization: reference/authorization.md
   - How-Tos: how-tos/index.md
-  - Tutorials: tutorials/index.md
+  - Tutorials:
+    - Translations: tutorials/translations.md
   - Embedding:
     - Recommended App Scaffold: embedding/recommended-app-scaffold.md
     - Recommended Dashboard Scaffold: embedding/recommended-dashboard-scaffold.md
