@@ -1,5 +1,6 @@
 import { LanguageSupport } from "@codemirror/language"
 import { yamlLanguage } from '@codemirror/lang-yaml'
+import { javascript } from '@codemirror/lang-javascript'
 import { parseMixed } from "@lezer/common"
 import { parser as jsParser } from "@lezer/javascript"
 
@@ -17,6 +18,8 @@ function getJSONPath(syntaxNode, docInput) {
 }
 
 export default function () {
+   const js = javascript() // Full JavaScript language support
+
   const lang = yamlLanguage.configure({
     wrap: parseMixed((treeCursor, docInput) => {
       if (
@@ -24,11 +27,14 @@ export default function () {
         || (treeCursor.name == "Literal" && !treeCursor.matchContext(['Key']))
       ) {
         getJSONPath(treeCursor.node, docInput)
-        return { parser: jsParser }
+        return { parser: js.language.parser }
       }
 
       return null
     })
   })
-  return new LanguageSupport(lang, [])
+
+  return new LanguageSupport(lang, [
+    js.extension
+  ])
 }
