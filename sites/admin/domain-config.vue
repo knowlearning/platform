@@ -25,9 +25,7 @@
       gutter
       v-model="code"
       :lang="lang"
-      :linter="linter"
     />
-    {{parsedConfig}}
   </div>
 </template>
 
@@ -35,10 +33,8 @@
 
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 import CodeMirror from 'vue-codemirror6'
-import { yaml } from '@codemirror/lang-yaml'
 import domainConfigYAMLLinter from './domain-config-yaml-linter.js'
 import ReportViewer from './report-viewer.vue'
-import jsyaml from 'js-yaml'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
@@ -58,9 +54,9 @@ export default {
       config: null,
       claimReport: null,
       claimMessage: null,
-      lang: yaml(),
-      linter: domainConfigYAMLLinter,
-      code: ''
+      lang: domainConfigYAMLLinter(),
+      code: `scripts:
+  build: export default function() {}`
     }
   },
   async created() {
@@ -70,16 +66,6 @@ export default {
     this.provider = provider
 
     this.config = (await Agent.query('current-config', [this.domain]))[0]
-  },
-  computed: {
-    parsedConfig() {
-      try {
-        return jsyaml.load(this.code)
-      }
-      catch (error) {
-        return error
-      }
-    }
   },
   methods: {
     async claim() {
