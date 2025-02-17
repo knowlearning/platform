@@ -1,8 +1,10 @@
-import { LanguageSupport } from "@codemirror/language"
-import { yamlLanguage } from '@codemirror/lang-yaml'
-import { javascript } from '@codemirror/lang-javascript'
+import { LanguageSupport, Language } from "@codemirror/language"
+import { yamlLanguage } from "@codemirror/lang-yaml"
+import YAML from "yaml"
 import { parseMixed } from "@lezer/common"
 import { parser as jsParser } from "@lezer/javascript"
+import { Linter as esLintLinter } from "eslint-linter-browserify"
+import { javascript, javascriptLanguage, esLint } from "@codemirror/lang-javascript"
 
 function getJSONPath(syntaxNode, docInput) {
   let parent = syntaxNode.parent
@@ -34,7 +36,46 @@ export default function () {
     })
   })
 
-  return new LanguageSupport(lang, [
-    js.extension
-  ])
+  return {
+    lang: new LanguageSupport(
+      lang,
+      [
+        js.extension
+      ]
+    ),
+    linter: view => [...jsLinter(view), ...yamlLinter(view)]
+  }
+}
+
+const jsLinter = esLint(new esLintLinter(), {})
+
+function combinedLinter(view) {
+  return jsLinter(view)
+}
+
+const yamlLinter = (view) => {
+  const diagnostics = []
+  const code = view.state.doc.toString()
+
+  console.log('Harumph???', yamlLanguage.findRegions(view.state))
+  for (let {from, to} of yamlLanguage.findRegions(view.state))  {
+    console.log('YAML reGioNS!!!!!', from, to)
+  }
+  
+
+  try { YAML.parse(code) }
+  catch (error) {
+    try {
+      const { message, pos: [from, to] } = error
+      diagnostics.push({
+        from,
+        to,
+        severity: "error",
+        message
+      })
+    }
+    catch (error) { console.warn('unexpected YAML parser error', error) }
+  }
+
+  return diagnostics
 }

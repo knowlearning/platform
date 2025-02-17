@@ -50,6 +50,9 @@ importers:
       chartjs-plugin-autocolors:
         specifier: ^0.2.2
         version: 0.2.2(@kurkle/color@0.3.2)(chart.js@4.4.2)
+      eslint-linter-browserify:
+        specifier: ^9.20.1
+        version: 9.20.1
       fast-json-patch:
         specifier: ^3.1.1
         version: 3.1.1
@@ -86,6 +89,9 @@ importers:
       vuex:
         specifier: ^4.1.0
         version: 4.1.0(vue@3.4.21)
+      yaml:
+        specifier: ^2.7.0
+        version: 2.7.0
     devDependencies:
       '@fortawesome/fontawesome-free':
         specifier: ^6.5.1
@@ -450,6 +456,9 @@ packages:
     engines: {node: '>=12'}
     hasBin: true
 
+  eslint-linter-browserify@9.20.1:
+    resolution: {integrity: sha512-JMllrglCaaoK5Mvj7Mr0HijT8rTzIgkre8Pb+9LRwIBCq7tYCb4nSRNXFne+TAaR0pFg04q1jVlXrk8q57/axw==}
+
   estree-walker@2.0.2:
     resolution: {integrity: sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w==}
 
@@ -600,6 +609,11 @@ packages:
 
   w3c-keyname@2.2.8:
     resolution: {integrity: sha512-dpojBhNsCNN7T82Tm7k26A6G9ML3NkhDsnw9n/eoxSRlVBB4CEtIQ/KTCLI2Fwf3ataSXRhYFkQi3SlnFwPvPQ==}
+
+  yaml@2.7.0:
+    resolution: {integrity: sha512-+hSoy/QHluxmC9kCIJyL/uyFmLmc+e5CFR5Wa+bpIhIj85LVb9ZH2nVnqrHoSvKogwODv0ClqZkmiSSaIH5LTA==}
+    engines: {node: '>= 14'}
+    hasBin: true
 
 snapshots:
 
@@ -941,6 +955,8 @@ snapshots:
       '@esbuild/win32-ia32': 0.20.2
       '@esbuild/win32-x64': 0.20.2
 
+  eslint-linter-browserify@9.20.1: {}
+
   estree-walker@2.0.2: {}
 
   fast-json-patch@3.1.1: {}
@@ -1054,3 +1070,5 @@ snapshots:
       vue: 3.4.21
 
   w3c-keyname@2.2.8: {}
+
+  yaml@2.7.0: {}

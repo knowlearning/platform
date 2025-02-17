@@ -36,8 +36,6 @@ import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 import CodeMirror from 'vue-codemirror6'
 import mixedLanguageYaml from './codemirror/mixed-language-yaml.js'
 import ReportViewer from './report-viewer.vue'
-import { Linter as esLintLinter } from "eslint-linter-browserify"
-import { javascript, javascriptLanguage, esLint } from '@codemirror/lang-javascript'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
@@ -51,14 +49,15 @@ export default {
     CodeMirror
   },
   data() {
+    const { lang, linter } = mixedLanguageYaml()
     return {
       user: null,
       provider: null,
       config: null,
       claimReport: null,
       claimMessage: null,
-      lang: mixedLanguageYaml(),
-      linter: esLint(new esLintLinter(), {}),
+      lang,
+      linter,
       code: `scripts:
   build: |
     export default function() {
