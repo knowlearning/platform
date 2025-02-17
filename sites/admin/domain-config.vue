@@ -33,7 +33,7 @@
 
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 import CodeMirror from 'vue-codemirror6'
-import domainConfigYAMLLinter from './domain-config-yaml-linter.js'
+import mixedLanguageYaml from './codemirror/mixed-language-yaml.js'
 import ReportViewer from './report-viewer.vue'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
@@ -54,7 +54,7 @@ export default {
       config: null,
       claimReport: null,
       claimMessage: null,
-      lang: domainConfigYAMLLinter(),
+      lang: mixedLanguageYaml(),
       code: `scripts:
   build: export default function() {}`
     }

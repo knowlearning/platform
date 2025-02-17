@@ -39,7 +39,7 @@
   }
 </script>
 
-<style>
+<style scoped>
   span
   {
     cursor: grab;
