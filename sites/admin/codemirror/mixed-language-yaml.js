@@ -7,6 +7,7 @@ import { Linter as esLintLinter } from "eslint-linter-browserify"
 import { javascript, javascriptLanguage, esLint } from "@codemirror/lang-javascript"
 import { markdown } from "@codemirror/lang-markdown"
 import { sql, PostgreSQL, schemaCompletionSource } from "@codemirror/lang-sql"
+//import sqlLint from "sql-lint"
 //  TODO: put in schema completion facilities for given config
 //        https://codemirror.net/try/?c=aW1wb3J0IHtiYXNpY1NldHVwLCBFZGl0b3JWaWV3fSBmcm9tICJjb2RlbWlycm9yIgppbXBvcnQge1N0YXRlRWZmZWN0fSBmcm9tICdAY29kZW1pcnJvci9zdGF0ZSc7CmltcG9ydCB7c3FsLCBQb3N0Z3JlU1FMLCBzY2hlbWFDb21wbGV0aW9uU291cmNlfSBmcm9tICJAY29kZW1pcnJvci9sYW5nLXNxbCIKCmxldCBlZGl0b3IgPSBuZXcgRWRpdG9yVmlldyh7CiAgZG9jOiAiU0VMRUNUICogRlJPTSAiLAogIGV4dGVuc2lvbnM6IFsKICAgIGJhc2ljU2V0dXAsIAogICAgc3FsKHsKICAgICAgZGlhbGVjdDogUG9zdGdyZVNRTAogICAgfSkKICBdLAogIHBhcmVudDogZG9jdW1lbnQuYm9keQp9KQoKbGV0IG15U2NoZW1hID0geyAnYWJjLnBlcnNvbic6IFsgJ2lkJywgJ25hbWUnIF0sICdhYmMuYW5pbWFsJzogWyAnaWQnLCAnbmFtZScgXSB9OwplZGl0b3IuZGlzcGF0Y2goewogIGVmZmVjdHM6IFN0YXRlRWZmZWN0LmFwcGVuZENvbmZpZy5vZigKICAgIFBvc3RncmVTUUwubGFuZ3VhZ2UuZGF0YS5vZih7CiAgICAgIGF1dG9jb21wbGV0ZTogc2NoZW1hQ29tcGxldGlvblNvdXJjZSh7c2NoZW1hOiBteVNjaGVtYX0pCiAgICB9KQogICkKfSk7
 
@@ -57,15 +58,20 @@ export default function ({ resolveLanguage }) {
         psql.extension
       ]
     ),
-    linter: view => [...jsLinter(view), ...yamlLinter(view)]
+    linter: async view => {
+      //  TODO: create linter that only works on sql/postgresql parts
+      /*const errors = await sqlLint({
+        sql: 'SELECT my_column FROM my_table',
+      })*/
+      return [
+        ...jsLinter(view),
+        ...yamlLinter(view)
+      ]
+    }
   }
 }
 
 const jsLinter = esLint(new esLintLinter(), {})
-
-function combinedLinter(view) {
-  return jsLinter(view)
-}
 
 const yamlLinter = (view) => {
   const diagnostics = []
