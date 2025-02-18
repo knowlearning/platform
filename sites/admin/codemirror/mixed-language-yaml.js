@@ -1,7 +1,7 @@
-import { LanguageSupport, Language } from "@codemirror/language"
+import { LanguageSupport, syntaxTree } from "@codemirror/language"
 import { yamlLanguage } from "@codemirror/lang-yaml"
 import YAML from "yaml"
-import { parseMixed } from "@lezer/common"
+import { parseMixed, NodeProp } from "@lezer/common"
 import { parser as jsParser } from "@lezer/javascript"
 import { Linter as esLintLinter } from "eslint-linter-browserify"
 import { javascript, javascriptLanguage, esLint } from "@codemirror/lang-javascript"
@@ -11,6 +11,8 @@ import PGQuery from "pg-query-emscripten"
 
 //  TODO: put in schema completion facilities for given config
 //        https://codemirror.net/try/?c=aW1wb3J0IHtiYXNpY1NldHVwLCBFZGl0b3JWaWV3fSBmcm9tICJjb2RlbWlycm9yIgppbXBvcnQge1N0YXRlRWZmZWN0fSBmcm9tICdAY29kZW1pcnJvci9zdGF0ZSc7CmltcG9ydCB7c3FsLCBQb3N0Z3JlU1FMLCBzY2hlbWFDb21wbGV0aW9uU291cmNlfSBmcm9tICJAY29kZW1pcnJvci9sYW5nLXNxbCIKCmxldCBlZGl0b3IgPSBuZXcgRWRpdG9yVmlldyh7CiAgZG9jOiAiU0VMRUNUICogRlJPTSAiLAogIGV4dGVuc2lvbnM6IFsKICAgIGJhc2ljU2V0dXAsIAogICAgc3FsKHsKICAgICAgZGlhbGVjdDogUG9zdGdyZVNRTAogICAgfSkKICBdLAogIHBhcmVudDogZG9jdW1lbnQuYm9keQp9KQoKbGV0IG15U2NoZW1hID0geyAnYWJjLnBlcnNvbic6IFsgJ2lkJywgJ25hbWUnIF0sICdhYmMuYW5pbWFsJzogWyAnaWQnLCAnbmFtZScgXSB9OwplZGl0b3IuZGlzcGF0Y2goewogIGVmZmVjdHM6IFN0YXRlRWZmZWN0LmFwcGVuZENvbmZpZy5vZigKICAgIFBvc3RncmVTUUwubGFuZ3VhZ2UuZGF0YS5vZih7CiAgICAgIGF1dG9jb21wbGV0ZTogc2NoZW1hQ29tcGxldGlvblNvdXJjZSh7c2NoZW1hOiBteVNjaGVtYX0pCiAgICB9KQogICkKfSk7
+
+const LanguageProp = new NodeProp()
 
 function getJSONPath(syntaxNode, docInput) {
   let parent = syntaxNode.parent
@@ -28,12 +30,12 @@ function getJSONPath(syntaxNode, docInput) {
 export default function ({ resolveLanguage }) {
   const js = javascript() // Full JavaScript language support
   const md = markdown()
-  const psql = sql({ dialect: PostgreSQL })
+  const postgresql = sql({ dialect: PostgreSQL })
 
   const langToParser = {
-    'markdown': { parser: md.language.parser },
-    'javascript': { parser: js.language.parser },
-    'postgresql': { parser: psql.language.parser }
+    'markdown': { parser: md.language.parser.configure({ props: [LanguageProp.add({ Document: "markdown" })] }) },
+    'javascript': { parser: js.language.parser.configure({ props: [LanguageProp.add({ Script: "javascript" })] }) },
+    'postgresql': { parser: postgresql.language.parser.configure({ props: [LanguageProp.add({ Script: "postgresql" })] }) }
   }
 
   const lang = yamlLanguage.configure({
@@ -56,7 +58,7 @@ export default function ({ resolveLanguage }) {
       [
         js.extension,
         md.extension,
-        psql.extension
+        postgresql.extension
       ]
     ),
     linter: async view => {
@@ -73,17 +75,38 @@ const jsLinter = esLint(new esLintLinter(), {})
 const pgParser = new PGQuery()
 
 const postgresqlLinter = async view => {
-  const { error } = (await pgParser).parse("select 1 from x")
-  console.log('sql error', error)
-  return []
+  const tree = syntaxTree(view.state)
+  const diagnostics = []
+
+  const stop = async node => {
+     const language = node.type.prop(LanguageProp)
+     if (language === 'postgresql') {
+       const code = view.state.doc.sliceString(node.from, node.to)
+       const { error } = (await pgParser).parse(code)
+       if (error) {
+         const from = node.from + error.cursorpos - 1
+         diagnostics.push({
+            from,
+            to: from,
+            severity: "error",
+            message: error.message
+         })
+       }
+       return true
+     }
+  }
+
+  await dfs(tree.topNode, stop)
+  console.log('diagnostics?', diagnostics)
+  return diagnostics
 }
 
-const yamlLinter = (view) => {
+const yamlLinter = view => {
   const diagnostics = []
   const code = view.state.doc.toString()
 
   console.log('yaml regions', yamlLanguage.findRegions(view.state))
-  for (let {from, to} of yamlLanguage.findRegions(view.state))  {
+  for (let {from, to} of yamlLanguage.findRegions(view.state)) {
     console.log('YAML reGioNS!!!!!', from, to)
   }
   
@@ -103,4 +126,14 @@ const yamlLinter = (view) => {
   }
 
   return diagnostics
+}
+
+async function dfs(node, stop=()=>false, depth=0) {
+  console.log(`${new Array(depth).fill(" ").join('')}${node.name} (${node.from}-${node.to}) ${node.type.prop(LanguageProp) || ''}`)
+  if (!(await stop(node))) {
+    for (let child = node.firstChild; child; child = child.nextSibling) {
+      depth += 1
+      await dfs(child, stop, depth)
+    }
+  }
 }
