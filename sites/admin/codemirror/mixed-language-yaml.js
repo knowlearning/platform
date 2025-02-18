@@ -5,6 +5,7 @@ import { parseMixed } from "@lezer/common"
 import { parser as jsParser } from "@lezer/javascript"
 import { Linter as esLintLinter } from "eslint-linter-browserify"
 import { javascript, javascriptLanguage, esLint } from "@codemirror/lang-javascript"
+import { markdown } from "@codemirror/lang-markdown"
 
 function getJSONPath(syntaxNode, docInput) {
   let parent = syntaxNode.parent
@@ -19,8 +20,14 @@ function getJSONPath(syntaxNode, docInput) {
   return path
 }
 
-export default function () {
-   const js = javascript() // Full JavaScript language support
+export default function ({ resolveLanguage }) {
+  const js = javascript() // Full JavaScript language support
+  const md = markdown()
+
+  const langToParser = {
+    'markdown': { parser: md.language.parser },
+    'javascript': { parser: js.language.parser }
+  }
 
   const lang = yamlLanguage.configure({
     wrap: parseMixed((treeCursor, docInput) => {
@@ -28,8 +35,8 @@ export default function () {
         treeCursor.name == "BlockLiteralContent"
         || (treeCursor.name == "Literal" && !treeCursor.matchContext(['Key']))
       ) {
-        getJSONPath(treeCursor.node, docInput)
-        return { parser: js.language.parser }
+        const path = getJSONPath(treeCursor.node, docInput)
+        return langToParser[resolveLanguage(path)] || null
       }
 
       return null
@@ -40,7 +47,8 @@ export default function () {
     lang: new LanguageSupport(
       lang,
       [
-        js.extension
+        js.extension,
+        md.extension
       ]
     ),
     linter: view => [...jsLinter(view), ...yamlLinter(view)]
@@ -57,7 +65,7 @@ const yamlLinter = (view) => {
   const diagnostics = []
   const code = view.state.doc.toString()
 
-  console.log('Harumph???', yamlLanguage.findRegions(view.state))
+  console.log('yaml regions', yamlLanguage.findRegions(view.state))
   for (let {from, to} of yamlLanguage.findRegions(view.state))  {
     console.log('YAML reGioNS!!!!!', from, to)
   }

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.3",
+    "@codemirror/lang-markdown": "^6.3.2",
     "@codemirror/lang-yaml": "^6.1.2",
     "@codemirror/language": "^6.10.8",
     "@codemirror/lint": "^6.8.4",

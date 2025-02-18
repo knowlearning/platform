@@ -49,7 +49,12 @@ export default {
     CodeMirror
   },
   data() {
-    const { lang, linter } = mixedLanguageYaml()
+    const { lang, linter } = mixedLanguageYaml({
+      resolveLanguage(path) {
+        if (path[path.length-1] === 'markdown') return 'markdown'
+        else return 'javascript'
+      }
+    })
     return {
       user: null,
       provider: null,
@@ -62,7 +67,9 @@ export default {
   build: |
     export default function() {
       return if (x) = 100
-    }`
+    }
+markdown: |
+  #asdf`
     }
   },
   async created() {
