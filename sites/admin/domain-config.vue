@@ -52,6 +52,7 @@ export default {
     const { lang, linter } = mixedLanguageYaml({
       resolveLanguage(path) {
         if (path[path.length-1] === 'markdown') return 'markdown'
+        if (path[path.length-1] === 'postgresql') return 'postgresql'
         else return 'javascript'
       }
     })
@@ -69,7 +70,9 @@ export default {
       return if (x) = 100
     }
 markdown: |
-  #asdf`
+  #asdf
+postgresql: |
+  select * from whatever where x = 100`
     }
   },
   async created() {
