@@ -35,6 +35,28 @@ If we want to store an xapi statement, then we simply need to update the xapi fi
 
 ## Setting Up Your Domain Agent to Forward xAPI Statements
 
+Doing this will have your domain agent forward xAPI statements so that they
+can be queried from xapi.knowlearning.systems.
+
+```js
+const xApiAgent = getAgent('xapi.knowlearning.systems')
+
+Agent.on('child', child => {
+    const { environment: { user } } = child
+
+    child.on('mutate', async ({ scope, patch }) => {
+        if (patch[0].path[0] === 'xapi') {
+            const x = await xApiAgent.state(`xapi/${Agent.uuid()}`)
+            Object.assign(x, {
+                ...patch[0].value,
+                origin: scope,
+                context: {}
+            })
+        }
+    })
+})
+```
+
 ## Querying xAPI Data
 
 Once your domain agent forwards data to the xapi.knowlearning.systems domain,
@@ -51,7 +73,6 @@ Any user can trigger a query on their own xAPI data by doing a remote domain que
 const query = "SELECT * FROM statements WHERE success = $1"
 
 const result = await Agent.query(query, [true], 'xapi.knowlearning.systems')
-
 ```
 
 There are a couple layers of protection on these queries:

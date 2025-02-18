@@ -58,34 +58,34 @@ add the following snippet to your domain agent. It will simply forward all of a 
 translatable info.
 
 ```js
-  import Agent, { getAgent } from 'npm:@knowlearning/agents/deno.js'
+import Agent, { getAgent } from 'npm:@knowlearning/agents/deno.js'
 
-  const TranslationAgent = getAgent('translations.pilaproject.org')
+const TranslationAgent = getAgent('translations.pilaproject.org')
 
-  Agent.on('child', child => {
+Agent.on('child', child => {
     child.on('mutate', async ({ id }) => {
-      if (await isTranslatableItem(id)) {
-        await handleTranslatableItem(id)
-      }
+        if (await isTranslatableItem(id)) {
+            await handleTranslatableItem(id)
+        }
     })
-  })
+})
 
-  async function isTranslatableItem(id) {
+async function isTranslatableItem(id) {
     const state = await Agent.state(id)
     return !!state.translations
-  }
+}
 
-  async function handleTranslatableItem(id) {
+async function handleTranslatableItem(id) {
     const itemState = await Agent.state(id)
     itemState.translations.paths.forEach(async path => {
-      const tt = await TranslationAgent.state(`translatable_target/${JSON.stringify([id, ...path])}`)
-      const source_string = path.reduce((value, key) => value?.[key], itemState)
+        const tt = await TranslationAgent.state(`translatable_target/${JSON.stringify([id, ...path])}`)
+        const source_string = path.reduce((value, key) => value?.[key], itemState)
 
-      tt.source_language = itemState.translations.source_language
-      tt.source_string = source_string || null
-      tt.path = [id, ...path]
+        tt.source_language = itemState.translations.source_language
+        tt.source_string = source_string || null
+        tt.path = [id, ...path]
     })
-  }
+}
 ```
 
 ##  Add Some Translations
@@ -107,22 +107,22 @@ Whenever you want to get the translated version of this scope, you can use this 
 
 ```js
 
-  async function translatedObject(id, languages) {
+async function translatedObject(id, languages) {
     const translations = await Agent.query('translate-item', [id, languages], TRANSLATION_DOMAIN)
     let translated = JSON.parse(JSON.stringify(await Agent.state(id)))
 
     translations
-      .forEach(({ path, value }) => {
-        let ref = translated
-        const p = path.slice(1)
-        while (p.length > 1 && ref[p[0]]) ref = ref[p.shift()]
-        ref[p[0]] = value
-      })
+        .forEach(({ path, value }) => {
+            let ref = translated
+            const p = path.slice(1)
+            while (p.length > 1 && ref[p[0]]) ref = ref[p.shift()]
+            ref[p[0]] = value
+        })
 
-      delete translated.translations
+    delete translated.translations
 
-      return translated
-  }
+    return translated
+}
 
 
 ```
@@ -130,9 +130,9 @@ Whenever you want to get the translated version of this scope, you can use this 
 Use it like this:
 
 ```js
-  const id = 'my-zebra-scope'
-  const languages = ['es-ES', 'es']
-  const translatedData = await translatedObject(id, languages)
+    const id = 'my-zebra-scope'
+    const languages = ['es-ES', 'es']
+    const translatedData = await translatedObject(id, languages)
 ```
 
 This ```languages``` list specifies that we want to use es-ES (spanish from spain) but if
