@@ -14,13 +14,13 @@ import PGQuery from "pg-query-emscripten"
 
 const LanguageProp = new NodeProp()
 
-function getJSONPath(syntaxNode, docInput) {
-  let parent = syntaxNode.parent
+function getJSONPath(node, input) {
+  let parent = node.parent
   const path = []
   while (parent) {
     if (parent.name === 'Pair') {
       const { from, to } = parent.firstChild
-      path.unshift(docInput.read(from, to))
+      path.unshift(input.read(from, to))
     }
     parent = parent.parent
   }
@@ -33,19 +33,20 @@ export default function ({ resolveLanguage }) {
   const postgresql = sql({ dialect: PostgreSQL })
 
   const langToParser = {
-    'markdown': { parser: md.language.parser.configure({ props: [LanguageProp.add({ Document: "markdown" })] }) },
-    'javascript': { parser: js.language.parser.configure({ props: [LanguageProp.add({ Script: "javascript" })] }) },
-    'postgresql': { parser: postgresql.language.parser.configure({ props: [LanguageProp.add({ Script: "postgresql" })] }) }
+    'markdown': md.language.parser.configure({ props: [LanguageProp.add({ Document: "markdown" })] }),
+    'javascript': js.language.parser.configure({ props: [LanguageProp.add({ Script: "javascript" })] }),
+    'postgresql': postgresql.language.parser.configure({ props: [LanguageProp.add({ Script: "postgresql" })] })
   }
 
   const lang = yamlLanguage.configure({
-    wrap: parseMixed((treeCursor, docInput) => {
+    wrap: parseMixed((cursor, input) => {
       if (
-        treeCursor.name == "BlockLiteralContent"
-        || (treeCursor.name == "Literal" && !treeCursor.matchContext(['Key']))
+        cursor.name == "BlockLiteralContent"
+        || (cursor.name == "Literal" && !cursor.matchContext(['Key']))
       ) {
-        const path = getJSONPath(treeCursor.node, docInput)
-        return langToParser[resolveLanguage(path)] || null
+        const path = getJSONPath(cursor.node, input)
+        const parser = langToParser[resolveLanguage(path)]
+        if (parser) return { parser, overlay: indentFreeOverlay(cursor.node, input) }
       }
 
       return null
@@ -136,4 +137,22 @@ async function dfs(node, stop=()=>false, depth=0) {
       await dfs(child, stop, depth)
     }
   }
+}
+
+function indentFreeOverlay(node, input) {
+  const ranges = []
+  const lines = input.read(node.from, node.to).split('\n')
+
+  let offset = node.from
+  //  find indent of first line with content
+  const indent = lines.find(line => line.search(/\S/) > -1)?.search(/\S/) || 0
+
+  lines
+    .forEach(({ length: l }) => {
+      const from = offset + Math.min(indent, l)
+      offset = Math.min(node.to, offset + l + 1)
+      if (offset > from) ranges.push({ from, to: offset })
+    })
+
+  return ranges
 }
