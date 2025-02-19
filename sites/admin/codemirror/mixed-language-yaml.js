@@ -45,8 +45,10 @@ export default function ({ resolveLanguage }) {
         || (cursor.name == "Literal" && !cursor.matchContext(['Key']))
       ) {
         const path = getJSONPath(cursor.node, input)
-        const parser = langToParser[resolveLanguage(path)]
-        if (parser) return { parser, overlay: indentFreeOverlay(cursor.node, input) }
+        const language = resolveLanguage(path)
+        const parser = langToParser[language]
+        const overlay = language === 'markdown' ? indentFreeOverlay(cursor.node, input) : undefined
+        if (parser) return { parser, overlay }
       }
 
       return null
