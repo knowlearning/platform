@@ -19,23 +19,17 @@
         :report="config.report"
       />
     </div>
-    <CodeMirror
-      basic
-      tab
-      gutter
-      v-model="code"
-      :lang="lang"
-      :linter="linter"
-    />
+    <Suspense>
+      <YAMLEditor id="some-config-state" />
+    </Suspense>
   </div>
 </template>
 
 <script>
 
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
-import CodeMirror from 'vue-codemirror6'
-import mixedLanguageYaml from './codemirror/mixed-language-yaml.js'
 import ReportViewer from './report-viewer.vue'
+import YAMLEditor from './yaml-editor.vue'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
@@ -46,33 +40,15 @@ export default {
   components: {
     vueScopeComponent,
     ReportViewer,
-    CodeMirror
+    YAMLEditor
   },
   data() {
-    const { lang, linter } = mixedLanguageYaml({
-      resolveLanguage(path) {
-        if (path[path.length-1] === 'markdown') return 'markdown'
-        if (path[path.length-1] === 'postgresql') return 'postgresql'
-        else return 'javascript'
-      }
-    })
     return {
       user: null,
       provider: null,
       config: null,
       claimReport: null,
-      claimMessage: null,
-      lang,
-      linter,
-      code: `scripts:
-  build: |
-    export default function() {
-      return if (x) = 100
-    }
-markdown: |
-  # asdf
-postgresql: |
-  select * from whatever where x = 100`
+      claimMessage: null
     }
   },
   async created() {
