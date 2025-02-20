@@ -100,19 +100,12 @@ const postgresqlLinter = async view => {
   }
 
   await dfs(tree.topNode, stop)
-  console.log('diagnostics?', diagnostics)
   return diagnostics
 }
 
 const yamlLinter = view => {
   const diagnostics = []
   const code = view.state.doc.toString()
-
-  console.log('yaml regions', yamlLanguage.findRegions(view.state))
-  for (let {from, to} of yamlLanguage.findRegions(view.state)) {
-    console.log('YAML reGioNS!!!!!', from, to)
-  }
-  
 
   try { YAML.parse(code) }
   catch (error) {
@@ -132,7 +125,6 @@ const yamlLinter = view => {
 }
 
 async function dfs(node, stop=()=>false, depth=0) {
-  console.log(`${new Array(depth).fill(" ").join('')}${node.name} (${node.from}-${node.to}) ${node.type.prop(LanguageProp) || ''}`)
   if (!(await stop(node))) {
     for (let child = node.firstChild; child; child = child.nextSibling) {
       depth += 1

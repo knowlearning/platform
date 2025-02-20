@@ -20,7 +20,14 @@
       />
     </div>
     <Suspense>
-      <YAMLEditor id="some-config-state" />
+      <YAMLEditor
+        id="some-config-state"
+        :resolveLanguage="path => {
+          if (path[path.length-1] === 'markdown') return 'markdown'
+          if (path[path.length-1] === 'postgresql') return 'postgresql'
+          else return 'javascript'
+        }"
+      />
     </Suspense>
   </div>
 </template>

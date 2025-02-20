@@ -5,9 +5,9 @@
   import mixedLanguageYaml from './codemirror/mixed-language-yaml.js'
   import YAML from "yaml"
 
-  const props = defineProps({ id: String })
+  const { id, resolveLanguage } = defineProps({ id: String, resolveLanguage: Function })
 
-  const state = await Agent.state(props.id)
+  const state = await Agent.state(id)
 
   const code = computed({
     get() {
@@ -29,13 +29,7 @@
     }
   })
 
-  const { lang, linter } = mixedLanguageYaml({
-    resolveLanguage(path) {
-      if (path[path.length-1] === 'markdown') return 'markdown'
-      if (path[path.length-1] === 'postgresql') return 'postgresql'
-      else return 'javascript'
-    }
-  })
+  const { lang, linter } = mixedLanguageYaml({ resolveLanguage })
 </script>
 
 <template>
