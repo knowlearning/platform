@@ -7,6 +7,7 @@ import { Linter as esLintLinter } from "eslint-linter-browserify"
 import { javascript, javascriptLanguage, esLint } from "@codemirror/lang-javascript"
 import { markdown } from "@codemirror/lang-markdown"
 import { sql, PostgreSQL, schemaCompletionSource } from "@codemirror/lang-sql"
+import { linter } from "@codemirror/lint"
 import PGQuery from "pg-query-emscripten"
 
 //  TODO: put in schema completion facilities for given config
@@ -55,8 +56,8 @@ export default function ({ resolveLanguage }) {
     })
   })
 
-  return {
-    lang: new LanguageSupport(
+  return [
+    new LanguageSupport(
       lang,
       [
         js.extension,
@@ -64,14 +65,14 @@ export default function ({ resolveLanguage }) {
         postgresql.extension
       ]
     ),
-    linter: async view => {
+    linter(async view => {
       return [
         ...jsLinter(view),
         ...yamlLinter(view),
         ...(await postgresqlLinter(view))
       ]
-    }
-  }
+    })
+  ]
 }
 
 const jsLinter = esLint(new esLintLinter(), {})

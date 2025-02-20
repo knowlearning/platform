@@ -29,7 +29,7 @@
     }
   })
 
-  const { lang, linter } = mixedLanguageYaml({ resolveLanguage })
+  const mixedLangaugeYamlExtension = mixedLanguageYaml({ resolveLanguage })
 </script>
 
 <template>
@@ -38,7 +38,8 @@
     tab
     gutter
     v-model="code"
-    :lang="lang"
-    :linter="linter"
+    :extensions="[
+      mixedLangaugeYamlExtension
+    ]"
   />
 </template>
