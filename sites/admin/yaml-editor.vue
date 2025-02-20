@@ -1,11 +1,20 @@
 <script setup>
   import { computed } from 'vue'
   import { compare, applyPatch } from 'fast-json-patch'
-  import CodeMirror from 'vue-codemirror6'
-  import mixedLanguageYaml from './codemirror/mixed-language-yaml.js'
+  import CodeMirror from "vue-codemirror6"
+  import mixedLanguageYaml from "./codemirror/mixed-language-yaml.js"
+  import VueWidgetPlugin from './codemirror/vue-widget-plugin.js'
   import YAML from "yaml"
 
-  const { id, resolveLanguage } = defineProps({ id: String, resolveLanguage: Function })
+  const {
+    id,
+    resolveLanguage,
+    resolveWidget
+  } = defineProps({
+    id: String,
+    resolveLanguage: Function,
+    resolveWidget: Function
+  })
 
   const state = await Agent.state(id)
 
@@ -29,7 +38,10 @@
     }
   })
 
-  const mixedLangaugeYamlExtension = mixedLanguageYaml({ resolveLanguage })
+  const mixedLangaugeYamlExtension = mixedLanguageYaml({
+    resolveLanguage,
+    resolveWidget
+  })
 </script>
 
 <template>
@@ -38,6 +50,7 @@
     tab
     gutter
     v-model="code"
+    :linter="()=>[]"
     :extensions="[
       mixedLangaugeYamlExtension
     ]"

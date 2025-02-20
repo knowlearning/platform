@@ -27,6 +27,15 @@
           if (path[path.length-1] === 'postgresql') return 'postgresql'
           else return 'javascript'
         }"
+        :resolveWidget="path => {
+          if (node.name === 'BlockLiteralContent') {
+            return {
+              component: YAMLValueReplacer,
+              props: {}
+            }
+          }
+          else return null
+        }"
       />
     </Suspense>
   </div>
@@ -37,6 +46,7 @@
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 import ReportViewer from './report-viewer.vue'
 import YAMLEditor from './yaml-editor.vue'
+import YAMLValueReplacer from './yaml-value-replacer.vue'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
@@ -47,7 +57,8 @@ export default {
   components: {
     vueScopeComponent,
     ReportViewer,
-    YAMLEditor
+    YAMLEditor,
+    YAMLValueReplacer
   },
   data() {
     return {

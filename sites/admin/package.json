@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@codemirror/commands": "^6.8.0",
     "@codemirror/lang-javascript": "^6.2.3",
     "@codemirror/lang-markdown": "^6.3.2",
     "@codemirror/lang-sql": "^6.8.0",
