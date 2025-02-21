@@ -2,8 +2,7 @@
   import { computed } from 'vue'
   import { compare, applyPatch } from 'fast-json-patch'
   import CodeMirror from "vue-codemirror6"
-  import mixedLanguageYaml from "./codemirror/mixed-language-yaml.js"
-  import VueWidgetPlugin from './codemirror/vue-widget-plugin.js'
+  import mixedLanguageYaml from "./mixed-language-yaml.js"
   import YAML from "yaml"
 
   const {

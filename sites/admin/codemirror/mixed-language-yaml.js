@@ -1,7 +1,7 @@
 import { LanguageSupport, syntaxTree } from "@codemirror/language"
 import { yamlLanguage } from "@codemirror/lang-yaml"
 import YAML from "yaml"
-import { parseMixed, NodeProp } from "@lezer/common"
+import { parseMixed, NodeProp, Input } from "@lezer/common"
 import { parser as jsParser } from "@lezer/javascript"
 import { Linter as esLintLinter } from "eslint-linter-browserify"
 import { javascript, javascriptLanguage, esLint } from "@codemirror/lang-javascript"
@@ -57,10 +57,7 @@ export default function ({ resolveLanguage, resolveWidget }) {
 
   const lang = yamlLanguage.configure({
     wrap: parseMixed((cursor, input) => {
-      if (
-        cursor.name == "BlockLiteralContent"
-        || (cursor.name == "Literal" && !cursor.matchContext(['Key']))
-      ) {
+      if (isLiteralValue(cursor)) {
         const path = getJSONPath(cursor.node, input)
         const language = resolveLanguage(path)
         const parser = langToParser[language]
@@ -170,6 +167,13 @@ function indentFreeOverlay(node, input) {
   return ranges
 }
 
+function isLiteralValue(cursor) {
+  return (
+    cursor.name === "BlockLiteralContent"
+    || (cursor.name === "Literal" && !cursor.matchContext(['Key']))
+  )
+}
+
 class VueWidget extends WidgetType {
   constructor({ props, component }) {
     super()
@@ -213,21 +217,28 @@ function vueWidgetPlugin(resolveWidget) {
 
         let index = text.indexOf(word)
 
-        while (index > -1) {
-          widgets.push(
-            Decoration
-              .replace({
-                widget: new VueWidget({
-                  component: YAMLValueReplacer,
-                  props: {}
-                }),
-                block: false,
-                inclusive: false
-              })
-              .range(index, index + word.length)
-          )
-          index = text.indexOf(word, index + word.length)
-        }
+        dfs(state.tree.topNode, node => {
+          //  TODO: match YAML values more reliably
+          if (!node.matchContext(['Key']) && node.name === 'Script' && false) {
+            const path = getJSONPath(node, state.doc) // TODO: state.doc is not sufficient here
+            const widget = resolveWidget(path)
+            if (!widget) return true
+
+            const { component, props } = widget
+            widgets
+              .push(
+                Decoration
+                  .replace({
+                    widget: new VueWidget({ component, props }),
+                    block: false,
+                    inclusive: false
+                  })
+                  .range(index, index + word.length)
+              )
+            return true
+          }
+          return false
+        })
 
         return Decoration.set(widgets, true)
       }
