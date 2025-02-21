@@ -185,7 +185,10 @@ class VueWidget extends WidgetType {
   }
 
   eq(other) {
-    return JSON.stringify(this.props) === JSON.stringify(other.props)
+    return (
+      this.component === other.component
+      && this.props.key === other.props.key
+    )
   }
 }
 
@@ -208,9 +211,9 @@ function vueWidgetPlugin(resolveWidget) {
 
         const word = 'woo!'
 
-        const index = text.indexOf(word)
+        let index = text.indexOf(word)
 
-        if (index > -1) {
+        while (index > -1) {
           widgets.push(
             Decoration
               .replace({
@@ -223,6 +226,7 @@ function vueWidgetPlugin(resolveWidget) {
               })
               .range(index, index + word.length)
           )
+          index = text.indexOf(word, index + word.length)
         }
 
         return Decoration.set(widgets, true)
