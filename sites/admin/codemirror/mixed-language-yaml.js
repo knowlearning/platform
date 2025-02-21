@@ -31,13 +31,13 @@ import YAMLValueReplacer from '../yaml-value-replacer.vue'
 
 const LanguageProp = new NodeProp()
 
-function getJSONPath(node, input) {
+function getJSONPath(node, slice) {
   let parent = node.parent
   const path = []
   while (parent) {
     if (parent.name === 'Pair') {
       const { from, to } = parent.firstChild
-      path.unshift(input.read(from, to))
+      path.unshift(slice(from, to))
     }
     parent = parent.parent
   }
@@ -58,7 +58,7 @@ export default function ({ resolveLanguage, resolveWidget }) {
   const lang = yamlLanguage.configure({
     wrap: parseMixed((cursor, input) => {
       if (isLiteralValue(cursor)) {
-        const path = getJSONPath(cursor.node, input)
+        const path = getJSONPath(cursor.node, (from, to) => input.read(from, to))
         const language = resolveLanguage(path)
         const parser = langToParser[language]
         const overlay = language === 'markdown' ? indentFreeOverlay(cursor.node, input) : undefined
@@ -211,17 +211,14 @@ function vueWidgetPlugin(resolveWidget) {
 
       getDecorations(state) {
         let widgets = []
-        let text = state.doc.toString()
-
-        const word = 'woo!'
-
-        let index = text.indexOf(word)
 
         dfs(state.tree.topNode, node => {
           //  TODO: match YAML values more reliably
-          if (!node.matchContext(['Key']) && node.name === 'Script' && false) {
-            const path = getJSONPath(node, state.doc) // TODO: state.doc is not sufficient here
+          if (!node.matchContext(['Key']) && node.name === 'Script') {
+            const path = getJSONPath(node, (from, to) => state.doc.sliceString(from, to)) // TODO: state.doc is not sufficient here
             const widget = resolveWidget(path)
+
+            console.log('WIDGET WORKS??', path, widget, node.from, node.to)
             if (!widget) return true
 
             const { component, props } = widget
@@ -233,8 +230,9 @@ function vueWidgetPlugin(resolveWidget) {
                     block: false,
                     inclusive: false
                   })
-                  .range(index, index + word.length)
+                  .range(node.from, node.to)
               )
+
             return true
           }
           return false
