@@ -1,7 +1,7 @@
 import { LanguageSupport, syntaxTree } from "@codemirror/language"
 import { yamlLanguage } from "@codemirror/lang-yaml"
 import YAML from "yaml"
-import { parseMixed, NodeProp, Input } from "@lezer/common"
+import { parseMixed, NodeProp } from "@lezer/common"
 import { parser as jsParser } from "@lezer/javascript"
 import { Linter as esLintLinter } from "eslint-linter-browserify"
 import { javascript, javascriptLanguage, esLint } from "@codemirror/lang-javascript"
