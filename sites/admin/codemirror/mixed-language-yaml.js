@@ -149,6 +149,16 @@ async function dfs(node, stop=()=>false, depth=0) {
   }
 }
 
+
+function dfsSync(node, stop=()=>false, depth=0) {
+  if (!stop(node)) {
+    for (let child = node.firstChild; child; child = child.nextSibling) {
+      depth += 1
+      dfsSync(child, stop, depth)
+    }
+  }
+}
+
 function indentFreeOverlay(node, input) {
   const ranges = []
   const lines = input.read(node.from, node.to).split('\n')
@@ -212,15 +222,13 @@ function vueWidgetPlugin(resolveWidget) {
       getDecorations(state) {
         let widgets = []
 
-        dfs(state.tree.topNode, node => {
+        dfsSync(state.tree.topNode, node => {
           //  TODO: match YAML values more reliably
           if (!node.matchContext(['Key']) && node.name === 'Script') {
             const path = getJSONPath(node, (from, to) => state.doc.sliceString(from, to)) // TODO: state.doc is not sufficient here
             const widget = resolveWidget(path)
 
-            console.log('WIDGET WORKS??', path, widget, node.from, node.to)
             if (!widget) return true
-
             const { component, props } = widget
             widgets
               .push(
@@ -232,7 +240,6 @@ function vueWidgetPlugin(resolveWidget) {
                   })
                   .range(node.from, node.to)
               )
-
             return true
           }
           return false
