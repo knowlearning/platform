@@ -112,8 +112,7 @@ export default {
       Agent.download(id).direct()
     },
     resolveWidget(path) {
-      console.log('RESOLVING WIDGET!', path)
-      if (true) {
+      if (path[0] === 'widget') {
         return {
           component: YAMLValueReplacer,
           props: {}

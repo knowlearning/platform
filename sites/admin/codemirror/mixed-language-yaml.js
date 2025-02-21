@@ -141,20 +141,18 @@ const yamlLinter = view => {
 }
 
 async function dfs(node, stop=()=>false, depth=0) {
-  if (!(await stop(node))) {
+  if (!(await stop(node, depth))) {
     for (let child = node.firstChild; child; child = child.nextSibling) {
-      depth += 1
-      await dfs(child, stop, depth)
+      await dfs(child, stop, depth + 1)
     }
   }
 }
 
 
 function dfsSync(node, stop=()=>false, depth=0) {
-  if (!stop(node)) {
+  if (!stop(node, depth)) {
     for (let child = node.firstChild; child; child = child.nextSibling) {
-      depth += 1
-      dfsSync(child, stop, depth)
+      dfsSync(child, stop, depth + 1)
     }
   }
 }
@@ -220,11 +218,20 @@ function vueWidgetPlugin(resolveWidget) {
       }
 
       getDecorations(state) {
-        let widgets = []
+        const widgets = []
 
-        dfsSync(state.tree.topNode, node => {
+        dfsSync(state.tree.topNode, (node, depth) => {
+          // console.log(`${new Array(depth * 4).fill(" ").join('')}${node.name}`)
           //  TODO: match YAML values more reliably
-          if (!node.matchContext(['Key']) && node.name === 'Script') {
+          if (
+            node.name === 'Key'
+            || node.name === ':'
+          ) return true
+          else if (
+            node.parent?.name === 'Pair'
+            && node.name !== 'BlockMapping'
+            && node.name !== 'BlockSequence'
+          ) {
             const path = getJSONPath(node, (from, to) => state.doc.sliceString(from, to)) // TODO: state.doc is not sufficient here
             const widget = resolveWidget(path)
 
