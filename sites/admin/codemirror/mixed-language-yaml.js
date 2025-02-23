@@ -13,7 +13,7 @@ import { Decoration, WidgetType, ViewPlugin, EditorView, keymap } from "@codemir
 import { EditorState, StateField } from "@codemirror/state"
 import { createApp } from "vue"
 import { defaultKeymap } from "@codemirror/commands"
-
+import applyNewLineAfterWidgetExtension from "./apply-newline-after-widget-extension.js"
 
 
 
@@ -85,7 +85,8 @@ export default function ({ resolveLanguage, resolveWidget }) {
         ...(await postgresqlLinter(view))
       ]
     }),
-    vueWidgetStateField(resolveWidget)
+    vueWidgetStateField(resolveWidget),
+    applyNewLineAfterWidgetExtension
   ]
 }
 
@@ -220,9 +221,7 @@ function vueWidgetStateField(resolveWidget) {
       console.log('Decorations', decorations)
       return [
         decorations,
-        EditorView.atomicRanges.of(view => {
-          return view.state.field(field);
-        })
+        EditorView.atomicRanges.of(view => view.state.field(field))
       ]
     }
   });
@@ -232,7 +231,7 @@ function computeDecorations(state, resolveWidget) {
   const widgets = []
 
   dfsSync(state.tree.topNode, (node, depth) => {
-    console.log(`${" ".repeat(depth * 4)}${node.name}`)
+    //console.log(`${" ".repeat(depth * 4)}${node.name}`)
 
     if (node.name === "Key" || node.name === ":" || node.name === '-') return true
 
