@@ -10,10 +10,9 @@ import { sql, PostgreSQL, schemaCompletionSource } from "@codemirror/lang-sql"
 import { linter } from "@codemirror/lint"
 import PGQuery from "pg-query-emscripten"
 import { Decoration, WidgetType, ViewPlugin, EditorView, keymap } from "@codemirror/view"
-import { EditorState } from "@codemirror/state"
+import { EditorState, StateField } from "@codemirror/state"
 import { createApp } from "vue"
 import { defaultKeymap } from "@codemirror/commands"
-
 
 
 
@@ -86,7 +85,7 @@ export default function ({ resolveLanguage, resolveWidget }) {
         ...(await postgresqlLinter(view))
       ]
     }),
-    vueWidgetPlugin(resolveWidget)
+    vueWidgetStateField(resolveWidget)
   ]
 }
 
@@ -204,63 +203,65 @@ class VueWidget extends WidgetType {
   }
 }
 
-function vueWidgetPlugin(resolveWidget) {
-  return ViewPlugin.fromClass(
-    class {
-      constructor(view) {
-        this.decorations = this.getDecorations(view.state)
-      }
-
-      update(update) {
-        if (update.docChanged || update.viewportChanged) {
-          this.decorations = this.getDecorations(update.state)
-        }
-      }
-
-      getDecorations(state) {
-        const widgets = []
-
-        dfsSync(state.tree.topNode, (node, depth) => {
-          // console.log(`${new Array(depth * 4).fill(" ").join('')}${node.name}`)
-          //  TODO: match YAML values more reliably
-          if (
-            node.name === 'Key'
-            || node.name === ':'
-          ) return true
-          else if (
-            node.parent?.name === 'Pair'
-            && node.name !== 'BlockMapping'
-            && node.name !== 'BlockSequence'
-          ) {
-            const path = getJSONPath(node, (from, to) => state.doc.sliceString(from, to)) // TODO: state.doc is not sufficient here
-            const widget = resolveWidget(path)
-
-            if (!widget) return true
-            const { component, props } = widget
-            widgets
-              .push(
-                Decoration
-                  .replace({
-                    widget: new VueWidget({ component, props }),
-                    block: false,
-                    inclusive: false
-                  })
-                  .range(node.from, node.to)
-              )
-            return true
-          }
-          return false
-        })
-
-        return Decoration.set(widgets, true)
-      }
+function vueWidgetStateField(resolveWidget) {
+  return StateField.define({
+    create(state) {
+      return computeDecorations(state, resolveWidget)
     },
-    {
-      decorations: v => v.decorations,
-      provide: plugin => EditorView.atomicRanges.of(
-        view => view.plugin(plugin)?.decorations || Decoration.none
+    update(value, tr) {
+      if (tr.docChanged || tr.viewportChanged) {
+        return computeDecorations(tr.state, resolveWidget)
+      }
+      return value
+    },
+    provide: field => {
+      console.log('FIELD', field)
+      const decorations = EditorView.decorations.from(field)
+      console.log('Decorations', decorations)
+      return [
+        decorations,
+        EditorView.atomicRanges.of(view => {
+          return view.state.field(field);
+        })
+      ]
+    }
+  });
+}
+
+function computeDecorations(state, resolveWidget) {
+  const widgets = []
+
+  dfsSync(state.tree.topNode, (node, depth) => {
+    console.log(`${" ".repeat(depth * 4)}${node.name}`)
+
+    if (node.name === "Key" || node.name === ":" || node.name === '-') return true
+
+    if (
+      (
+        node.parent?.name === "Pair"
+        || node.parent?.name === "BlockSequence"
+      ) &&
+      node.name !== "BlockMapping" &&
+      node.name !== "BlockSequence"
+    ) {
+      const path = getJSONPath(node, (from, to) => state.doc.sliceString(from, to))
+      const widget = resolveWidget(path)
+      if (!widget) return true
+
+      const { component, props } = widget
+      widgets.push(
+        Decoration.replace({
+          widget: new VueWidget({ component, props }),
+          block: false, // This allows multi-line decorations
+          inclusive: true
+        }).range(node.from, node.to)
       )
 
+      return true
     }
-  )
+
+    return false
+  })
+
+  return Decoration.set(widgets, true)
 }
