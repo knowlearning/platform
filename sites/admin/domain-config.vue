@@ -9,7 +9,8 @@
     <v-btn @click="uploadConfig">Upload</v-btn>
     <Suspense>
       <YAMLEditor
-        id="some-config-state"
+        :key="domain"
+        :id="domain"
         :resolveLanguage="path => {
           if (path[path.length-1] === 'markdown') return 'markdown'
           if (arrayMatch(['postgres', 'queries', '*', 'body'], path)) return 'postgresql'
