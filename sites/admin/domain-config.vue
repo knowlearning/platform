@@ -7,18 +7,6 @@
     </div>
     <v-btn v-else @click="claim">Become admin for {{ domain }}</v-btn>
     <v-btn @click="uploadConfig">Upload</v-btn>
-    <div v-if="config">
-      config:  {{config.config}}
-      <v-btn
-        variant="plain"
-        @click="downloadConfig(config.config)"
-        icon="fa-solid fa-download"
-      />
-      <ReportViewer
-        :key="config.report"
-        :report="config.report"
-      />
-    </div>
     <Suspense>
       <YAMLEditor
         id="some-config-state"
