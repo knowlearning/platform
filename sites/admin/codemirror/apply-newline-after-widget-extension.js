@@ -30,6 +30,11 @@ const plugin = EditorView.updateListener.of(update => {
           const cursorPos = tr.newSelection.main.head
 
           if (cursorPos === widgetEnd) {
+            //  if atomic range covers only chars added, it
+            //  may have been created by the add, so do not
+            //  initiate newline behavior
+            if (to - from === charsAdded) return
+
             needsNewline = true
             insertPos = widgetEnd
             return false
@@ -42,26 +47,11 @@ const plugin = EditorView.updateListener.of(update => {
 
     if (needsNewline && insertPos !== null) {
       update.view.dispatch({
-        changes: [{ from: insertPos-1, insert: "\n" }],
+        changes: [{ from: insertPos-charsAdded, insert: "\n" }],
         annotations: InsertedNewline.of(true)
       });
     }
   }
-});
-
-const applyNewlinePlugin = EditorState.transactionFilter.of(tr => {
-  for (let effect of tr.effects) {
-    if (effect.is(insertNewlineEffect)) {
-      return [
-        tr,
-        tr.state.update({
-          changes: { from: effect.value, insert: "\n" },
-          meta: { [newlineMetaKey]: true }
-        })
-      ]
-    }
-  }
-  return tr
 })
 
 function totalCharactersAdded(transaction) {
@@ -73,7 +63,4 @@ function totalCharactersAdded(transaction) {
   return total
 }
 
-export default [
-  plugin,
-  applyNewlinePlugin
-]
+export default plugin

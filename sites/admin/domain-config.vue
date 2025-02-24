@@ -24,8 +24,8 @@
         id="some-config-state"
         :resolveLanguage="path => {
           if (path[path.length-1] === 'markdown') return 'markdown'
-          if (path[path.length-1] === 'postgresql') return 'postgresql'
-          else return 'javascript'
+          if (arrayMatch(['postgres', 'queries', '*', 'body'], path)) return 'postgresql'
+          else if (arrayMatch(['agent'], path)) return 'javascript'
         }"
         :resolveWidget="resolveWidget"
       />
@@ -119,6 +119,11 @@ export default {
         }
       }
       else return null
+    },
+    arrayMatch(a, b) {
+      return a.every((v, i) => {
+        return v === '*' || b[i] === '*' || v === b[i]
+      })
     }
   }
 }

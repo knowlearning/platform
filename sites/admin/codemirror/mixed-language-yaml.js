@@ -231,7 +231,7 @@ function computeDecorations(state, resolveWidget) {
   const widgets = []
 
   dfsSync(state.tree.topNode, (node, depth) => {
-    //console.log(`${" ".repeat(depth * 4)}${node.name}`)
+    console.log(`${" ".repeat(depth * 4)}${node.name}`)
 
     if (node.name === "Key" || node.name === ":" || node.name === '-') return true
 
