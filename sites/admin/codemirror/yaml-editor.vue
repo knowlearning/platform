@@ -1,5 +1,5 @@
 <script setup>
-  import { computed } from 'vue'
+  import { computed, reactive } from 'vue'
   import { compare, applyPatch } from 'fast-json-patch'
   import CodeMirror from "vue-codemirror6"
   import mixedLanguageYaml from "./mixed-language-yaml.js"
@@ -15,7 +15,7 @@
     resolveWidget: Function
   })
 
-  const state = await Agent.state(id)
+  const state = reactive(await Agent.state(id))
 
   const code = computed({
     get() {
