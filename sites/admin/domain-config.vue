@@ -6,7 +6,6 @@
       <v-btn @click="claimMessage = null">Okay</v-btn>
     </div>
     <v-btn v-else @click="claim">Become admin for {{ domain }}</v-btn>
-    <v-btn @click="uploadConfig">Upload</v-btn>
     <Suspense>
       <YAMLEditor
         :key="domain"
@@ -28,15 +27,19 @@ import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 import ReportViewer from './report-viewer.vue'
 import YAMLEditor from './codemirror/yaml-editor.vue'
 import YAMLValueReplacer from './yaml-value-replacer.vue'
+import DeploymentWidget from './widgets/deployment.vue'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
 const { domain } = defineProps({ domain: String })
 
 const { auth: { user, provider } } = await Agent.environment()
-const config = await Agent.state(domain, window.location.host)
+const myConfig = await Agent.state(domain)
+const acceptedConfig = await Agent.state(domain, window.location.host)
 const claimMessage = ref(null)
 const claimReport = ref(null)
+
+if (!myConfig.deployment) myConfig.deployment = null
 
 async function claim() {
   const start = Date.now()
@@ -58,19 +61,9 @@ async function claim() {
 }
 
 
-async function uploadConfig() {
-  const id = await Agent.upload({ browser: true, accept: '.yml,.yaml' })
-
-  const report = Agent.uuid()
-
-  await Agent.create({
-    active: { config: id, report, domain },
-    active_type: DOMAIN_CONFIG_TYPE
-  })
-
+async function deployConfig() {
+  myConfig.deployment = uuid()
   await Agent.synced()
-
-  this.config = (await Agent.query('current-config', [domain]))[0]
 }
 
 function downloadConfig(id) {
@@ -81,6 +74,12 @@ function resolveWidget(path) {
   if (path[0] === 'widget') {
     return {
       component: YAMLValueReplacer,
+      props: {}
+    }
+  }
+  else if (arrayMatch(path, ['deployment'])) {
+    return {
+      component: DeploymentWidget,
       props: {}
     }
   }

@@ -8,23 +8,12 @@ import { javascript, javascriptLanguage, esLint } from "@codemirror/lang-javascr
 import { markdown } from "@codemirror/lang-markdown"
 import { sql, PostgreSQL, schemaCompletionSource } from "@codemirror/lang-sql"
 import { linter } from "@codemirror/lint"
-import PGQuery from "pg-query-emscripten"
 import { Decoration, WidgetType, ViewPlugin, EditorView, keymap } from "@codemirror/view"
 import { EditorState, StateField } from "@codemirror/state"
 import { createApp } from "vue"
 import { defaultKeymap } from "@codemirror/commands"
 import applyNewLineAfterWidgetExtension from "./apply-newline-after-widget-extension.js"
-
-
-
-
-import YAMLValueReplacer from '../yaml-value-replacer.vue'
-
-
-
-
-
-
+import PGQuery from "pg-query-emscripten"
 //  TODO: put in schema completion facilities for given config
 //        https://codemirror.net/try/?c=aW1wb3J0IHtiYXNpY1NldHVwLCBFZGl0b3JWaWV3fSBmcm9tICJjb2RlbWlycm9yIgppbXBvcnQge1N0YXRlRWZmZWN0fSBmcm9tICdAY29kZW1pcnJvci9zdGF0ZSc7CmltcG9ydCB7c3FsLCBQb3N0Z3JlU1FMLCBzY2hlbWFDb21wbGV0aW9uU291cmNlfSBmcm9tICJAY29kZW1pcnJvci9sYW5nLXNxbCIKCmxldCBlZGl0b3IgPSBuZXcgRWRpdG9yVmlldyh7CiAgZG9jOiAiU0VMRUNUICogRlJPTSAiLAogIGV4dGVuc2lvbnM6IFsKICAgIGJhc2ljU2V0dXAsIAogICAgc3FsKHsKICAgICAgZGlhbGVjdDogUG9zdGdyZVNRTAogICAgfSkKICBdLAogIHBhcmVudDogZG9jdW1lbnQuYm9keQp9KQoKbGV0IG15U2NoZW1hID0geyAnYWJjLnBlcnNvbic6IFsgJ2lkJywgJ25hbWUnIF0sICdhYmMuYW5pbWFsJzogWyAnaWQnLCAnbmFtZScgXSB9OwplZGl0b3IuZGlzcGF0Y2goewogIGVmZmVjdHM6IFN0YXRlRWZmZWN0LmFwcGVuZENvbmZpZy5vZigKICAgIFBvc3RncmVTUUwubGFuZ3VhZ2UuZGF0YS5vZih7CiAgICAgIGF1dG9jb21wbGV0ZTogc2NoZW1hQ29tcGxldGlvblNvdXJjZSh7c2NoZW1hOiBteVNjaGVtYX0pCiAgICB9KQogICkKfSk7
 
@@ -199,12 +188,13 @@ class VueWidget extends WidgetType {
   eq(other) {
     return (
       this.component === other.component
-      && this.props.key === other.props.key
+      && this.props.key + this.props.text === other.props.key + other.props.text
     )
   }
 }
 
-function vueWidgetStateField(resolveWidget) {
+function vueWidgetStateField(resolveWidget, view) {
+  console.log('VIEW?????????????????', view)
   return StateField.define({
     create(state) {
       return computeDecorations(state, resolveWidget)
@@ -216,9 +206,7 @@ function vueWidgetStateField(resolveWidget) {
       return value
     },
     provide: field => {
-      console.log('FIELD', field)
       const decorations = EditorView.decorations.from(field)
-      console.log('Decorations', decorations)
       return [
         decorations,
         EditorView.atomicRanges.of(view => view.state.field(field))
@@ -231,7 +219,7 @@ function computeDecorations(state, resolveWidget) {
   const widgets = []
 
   dfsSync(state.tree.topNode, (node, depth) => {
-    console.log(`${" ".repeat(depth * 4)}${node.name}`)
+    //console.log(`${" ".repeat(depth * 4)}${node.name}`)
 
     if (node.name === "Key" || node.name === ":" || node.name === '-') return true
 
@@ -250,7 +238,16 @@ function computeDecorations(state, resolveWidget) {
       const { component, props } = widget
       widgets.push(
         Decoration.replace({
-          widget: new VueWidget({ component, props }),
+          widget: new VueWidget({
+            component,
+            props: {
+              ...props,
+              text: state.doc.sliceString(node.from, node.to),
+              update: text => {
+                console.log(`TODO: find a way to update the text to ${text}`)
+              }
+            }
+          }),
           block: false, // This allows multi-line decorations
           inclusive: true
         }).range(node.from, node.to)
