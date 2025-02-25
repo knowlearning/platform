@@ -193,8 +193,7 @@ class VueWidget extends WidgetType {
   }
 }
 
-function vueWidgetStateField(resolveWidget, view) {
-  console.log('VIEW?????????????????', view)
+function vueWidgetStateField(resolveWidget) {
   return StateField.define({
     create(state) {
       return computeDecorations(state, resolveWidget)
@@ -235,7 +234,7 @@ function computeDecorations(state, resolveWidget) {
       const widget = resolveWidget(path)
       if (!widget) return true
 
-      const { component, props } = widget
+      const { component, props, view } = widget
       widgets.push(
         Decoration.replace({
           widget: new VueWidget({
@@ -244,7 +243,15 @@ function computeDecorations(state, resolveWidget) {
               ...props,
               text: state.doc.sliceString(node.from, node.to),
               update: text => {
-                console.log(`TODO: find a way to update the text to ${text}`)
+                const { from, to } = node
+                console.log(`TODO: find a way to update the text to ${text}`, from, to, view)
+                const transaction = view.state.update({
+                  changes: [{ from, to, insert: text }]
+                });
+
+                view.dispatch(transaction)
+
+                console.log(view.state.doc.toString())
               }
             }
           }),

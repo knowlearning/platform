@@ -1,5 +1,5 @@
 <script setup>
-  import { computed, reactive } from 'vue'
+  import { computed, reactive, ref } from 'vue'
   import { compare, applyPatch } from 'fast-json-patch'
   import CodeMirror from "vue-codemirror6"
   import mixedLanguageYaml from "./mixed-language-yaml.js"
@@ -16,6 +16,7 @@
   })
 
   const state = reactive(await Agent.state(id))
+  const cm = ref()
 
   const code = computed({
     get() {
@@ -39,8 +40,18 @@
 
   const mixedLangaugeYamlExtension = mixedLanguageYaml({
     resolveLanguage,
-    resolveWidget
+    resolveWidget: path => {
+      return {
+        ...resolveWidget(path),
+        view: cm.value?.view
+      }
+    }
   })
+
+  function handleReady(cmInfo) {
+    console.log('READY....', cmInfo)
+    view = cmInfo.view
+  }
 </script>
 
 <template>
@@ -49,6 +60,7 @@
     tab
     gutter
     v-model="code"
+    ref="cm"
     :linter="()=>[]"
     :extensions="[
       mixedLangaugeYamlExtension
