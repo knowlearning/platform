@@ -172,15 +172,36 @@ function isLiteralValue(cursor) {
 }
 
 class VueWidget extends WidgetType {
-  constructor({ props, component }) {
+  constructor({ props, index, component, codemirror }) {
     super()
+    this.index = index
     this.props = props
     this.component = component
+    this.codemirror = codemirror
     this.container = document.createElement("span")
   }
 
   toDOM() {
-    const app = createApp(this.component, this.props)
+    const app = createApp(this.component, {
+      ...this.props,
+      update: text => {
+        let position
+        this
+          .codemirror
+          .view
+          .state
+          .field(stateField, false)
+          .between(0, Infinity, (from, to, { widget, spec }) => {
+            const match = widget.eq(this)
+            if (match) position = { from, to }
+            return !match
+          })
+        const transaction = this.codemirror.view.state.update({
+          changes: { ...position, insert: text }
+        })
+        if (transaction) this.codemirror.view.dispatch(transaction)
+      }
+    })
     app.mount(this.container)
     return this.container
   }
@@ -189,6 +210,7 @@ class VueWidget extends WidgetType {
     //  TODO: deep equal props
     return (
       this.component === other.component
+      && this.index === other.index
       && this.props.key === other.props.key
       && this.props.text === other.props.text
       && this.props.view === other.props.view
@@ -196,14 +218,15 @@ class VueWidget extends WidgetType {
   }
 }
 
+let stateField
 function vueWidgetStateField(resolveWidget) {
-  const stateField = StateField.define({
+  stateField = StateField.define({
     create(state) {
-      return computeDecorations(state, resolveWidget, stateField)
+      return computeDecorations(state, resolveWidget)
     },
     update(value, tr) {
       if (tr.docChanged || tr.viewportChanged) {
-        return computeDecorations(tr.state, resolveWidget, stateField)
+        return computeDecorations(tr.state, resolveWidget)
       }
       return value
     },
@@ -218,7 +241,7 @@ function vueWidgetStateField(resolveWidget) {
   return stateField
 }
 
-function computeDecorations(state, resolveWidget, stateField) {
+function computeDecorations(state, resolveWidget) {
   const widgets = []
 
   dfsSync(state.tree.topNode, (node, depth) => {
@@ -239,28 +262,32 @@ function computeDecorations(state, resolveWidget, stateField) {
       if (!widget) return true
 
       const { component, props, codemirror } = widget
-      const widgetInstance = new VueWidget({
-        component,
-        props: {
-          ...props,
-          text: state.doc.sliceString(node.from, node.to),
-          update: text => {
-            console.log('TODO: ensure fixed from and to', stateField, codemirror.view.state.field(stateField))
 
-            const { from, to } = node
-            const transaction = codemirror.view.state.update({
-              changes: { from, to, insert: text }
-            })
+      if (!codemirror) return true // TODO: figure out vue-codemirror6 janky behavior causing this
 
-            if (transaction) codemirror.view.dispatch(transaction)
-          }
-        }
-      })
-      const decoration = Decoration.replace({
-        widget: widgetInstance,
-        block: false,
-        inclusive: true
-      }).range(node.from, node.to)
+      const { from, to } = node
+
+      const widgetInstance = (
+        new VueWidget({
+          component,
+          props: {
+            ...props,
+            text: state.doc.sliceString(node.from, node.to)
+          },
+          codemirror,
+          index: widgets.length
+        })
+      )
+
+      const decoration = (
+        Decoration
+          .replace({
+            widget: widgetInstance,
+            block: false,
+            inclusive: true
+          })
+          .range(node.from, node.to)
+      )
 
       widgets.push(decoration)
 

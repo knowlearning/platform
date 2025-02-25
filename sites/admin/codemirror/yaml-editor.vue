@@ -23,7 +23,6 @@
       return YAML.stringify(state, { sortMapEntries: true })
     },
     set(value) {
-      console.log('SETTING NEW VALUE???')
       try {
         applyPatch(
           state,
@@ -37,10 +36,6 @@
         console.log('ERROR PARSING WORLD EDIT')
       }
     }
-  })
-
-  watch(() => cm.value, () => {
-    console.log('CM VALUE', cm.value)
   })
 
   const mixedLangaugeYamlExtension = mixedLanguageYaml({
