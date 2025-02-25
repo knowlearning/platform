@@ -197,13 +197,13 @@ class VueWidget extends WidgetType {
 }
 
 function vueWidgetStateField(resolveWidget) {
-  return StateField.define({
+  const stateField = StateField.define({
     create(state) {
-      return computeDecorations(state, resolveWidget)
+      return computeDecorations(state, resolveWidget, stateField)
     },
     update(value, tr) {
       if (tr.docChanged || tr.viewportChanged) {
-        return computeDecorations(tr.state, resolveWidget)
+        return computeDecorations(tr.state, resolveWidget, stateField)
       }
       return value
     },
@@ -214,10 +214,11 @@ function vueWidgetStateField(resolveWidget) {
         EditorView.atomicRanges.of(view => view.state.field(field))
       ]
     }
-  });
+  })
+  return stateField
 }
 
-function computeDecorations(state, resolveWidget) {
+function computeDecorations(state, resolveWidget, stateField) {
   const widgets = []
 
   dfsSync(state.tree.topNode, (node, depth) => {
@@ -244,7 +245,7 @@ function computeDecorations(state, resolveWidget) {
           ...props,
           text: state.doc.sliceString(node.from, node.to),
           update: text => {
-            console.log('TODO: ensure fixed from and to')
+            console.log('TODO: ensure fixed from and to', stateField, codemirror.view.state.field(stateField))
 
             const { from, to } = node
             const transaction = codemirror.view.state.update({
@@ -257,7 +258,7 @@ function computeDecorations(state, resolveWidget) {
       })
       const decoration = Decoration.replace({
         widget: widgetInstance,
-        block: false, // This allows multi-line decorations
+        block: false,
         inclusive: true
       }).range(node.from, node.to)
 
@@ -269,5 +270,6 @@ function computeDecorations(state, resolveWidget) {
     return false
   })
 
-  return Decoration.set(widgets, true)
+  const decorationSet = Decoration.set(widgets, true)
+  return decorationSet
 }
