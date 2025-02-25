@@ -186,9 +186,12 @@ class VueWidget extends WidgetType {
   }
 
   eq(other) {
+    //  TODO: deep equal props
     return (
       this.component === other.component
-      && this.props.key + this.props.text === other.props.key + other.props.text
+      && this.props.key === other.props.key
+      && this.props.text === other.props.text
+      && this.props.view === other.props.view
     )
   }
 }
@@ -234,31 +237,31 @@ function computeDecorations(state, resolveWidget) {
       const widget = resolveWidget(path)
       if (!widget) return true
 
-      const { component, props, view } = widget
-      widgets.push(
-        Decoration.replace({
-          widget: new VueWidget({
-            component,
-            props: {
-              ...props,
-              text: state.doc.sliceString(node.from, node.to),
-              update: text => {
-                const { from, to } = node
-                console.log(`TODO: find a way to update the text to ${text}`, from, to, view)
-                const transaction = view.state.update({
-                  changes: [{ from, to, insert: text }]
-                });
+      const { component, props, codemirror } = widget
+      const widgetInstance = new VueWidget({
+        component,
+        props: {
+          ...props,
+          text: state.doc.sliceString(node.from, node.to),
+          update: text => {
+            console.log('TODO: ensure fixed from and to')
 
-                view.dispatch(transaction)
+            const { from, to } = node
+            const transaction = codemirror.view.state.update({
+              changes: { from, to, insert: text }
+            })
 
-                console.log(view.state.doc.toString())
-              }
-            }
-          }),
-          block: false, // This allows multi-line decorations
-          inclusive: true
-        }).range(node.from, node.to)
-      )
+            if (transaction) codemirror.view.dispatch(transaction)
+          }
+        }
+      })
+      const decoration = Decoration.replace({
+        widget: widgetInstance,
+        block: false, // This allows multi-line decorations
+        inclusive: true
+      }).range(node.from, node.to)
+
+      widgets.push(decoration)
 
       return true
     }

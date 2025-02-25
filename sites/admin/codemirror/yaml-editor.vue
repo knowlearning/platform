@@ -1,5 +1,5 @@
 <script setup>
-  import { computed, reactive, ref } from 'vue'
+  import { computed, reactive, ref, watch } from 'vue'
   import { compare, applyPatch } from 'fast-json-patch'
   import CodeMirror from "vue-codemirror6"
   import mixedLanguageYaml from "./mixed-language-yaml.js"
@@ -15,7 +15,7 @@
     resolveWidget: Function
   })
 
-  const state = reactive(await Agent.state(id))
+  const state = await Agent.state(id)
   const cm = ref()
 
   const code = computed({
@@ -23,6 +23,7 @@
       return YAML.stringify(state, { sortMapEntries: true })
     },
     set(value) {
+      console.log('SETTING NEW VALUE???')
       try {
         applyPatch(
           state,
@@ -38,20 +39,21 @@
     }
   })
 
+  watch(() => cm.value, () => {
+    console.log('CM VALUE', cm.value)
+  })
+
   const mixedLangaugeYamlExtension = mixedLanguageYaml({
     resolveLanguage,
     resolveWidget: path => {
-      return {
-        ...resolveWidget(path),
-        view: cm.value?.view
-      }
+      const widget = resolveWidget(path)
+      return widget ? {
+        ...widget,
+        codemirror: cm.value
+      } : null
     }
   })
 
-  function handleReady(cmInfo) {
-    console.log('READY....', cmInfo)
-    view = cmInfo.view
-  }
 </script>
 
 <template>
