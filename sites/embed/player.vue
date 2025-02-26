@@ -132,7 +132,24 @@
     lastLoad.value = Date.now()
   }
 
-  function handleMutate(event) {
+  async function handleMutate(event) {
+    if (embedding.value.xAPISensor) {
+      try {
+        const scopedHandler = new Function('mutation', `with (mutation) { ${embedding.value.xAPISensor} }`)
+        const result = scopedHandler.bind({})(copy(event))
+        if (result) {
+          //  TODO: check result schema & surface error
+          const state = await Agent.state(event.scope)
+
+          if (!result.object) result.object = embedding.value.id
+
+          state.xapi = result
+          console.log('RESULT!', result)
+        }
+      } catch (error) {
+        console.error('Error', error)
+      }
+    }
     console.log(event)
   }
 </script>

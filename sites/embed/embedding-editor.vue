@@ -19,7 +19,7 @@
     <div class="spacer" />
     <FloatLabel>
       <textarea
-        v-model="embedding.mutationScript"
+        v-model="embedding.xAPISensor"
         id="mutation-script"
       />
       <label>Mutation Script</label>

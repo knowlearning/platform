@@ -101,15 +101,19 @@ function embed(environment, iframe) {
     else if (type === 'interact') {
       let { scope, patch } = message
       const namespacedScope = getNamespacedScope(environment.namespace, scope)
-      let before
+      let before, after
       if (listeners.mutate) before = copy(await Agent.state(namespacedScope))
       await Agent.interact(namespacedScope, patch, false)
+      if (listeners.mutate) after = copy(await Agent.state(namespacedScope))
       if (listeners.mutate) {
+        const patchCopy = copy(patch)
+        patchCopy.forEach(op => op.path.shift()) //  remove "active" path prefix
         listeners
           .mutate({
             scope: namespacedScope,
             before,
-            patch: copy(patch)
+            after,
+            patch: patchCopy
           })
       }
       sendDown({}) // TODO: might want to send down the interaction index
