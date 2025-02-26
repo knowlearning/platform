@@ -1,14 +1,20 @@
+import { environment, isUUID } from './utils.js';
 import scopeToId from './scope-to-id.js'
 import configuredQuery from './configured-query.js'
+import { applyConfiguration } from './side-effects/configure.js'
 import sideEffects from './side-effects/index.js'
 import subscriptions from './subscriptions.js'
 import subscribe from './subscribe.js'
 import authorize from './authorize.js'
 import interact from './interact/index.js'
 import * as redis from './redis.js'
+import coreState from './core-state.js'
+import { domainAdmin } from './configuration.js'
+
+const { ADMIN_DOMAIN } = environment
 
 export default async function coreSideEffects({
-  session, domain, user, scope, active_type, patch, si, ii, send
+  id, session, domain, user, scope, active_type, patch, si, ii, send
 }) {
   if (scope === 'sessions') {
     const { op, path, value } = patch[0]
@@ -25,15 +31,15 @@ export default async function coreSideEffects({
         }
         else if (path[2] === 'subscriptions') {
           const { scope: subscribedScope, user:scopeUser=user, domain:scopeDomain=domain } = value
-          const id = await scopeToId(scopeDomain, scopeUser, subscribedScope)
-          if (await authorize(user, domain, id)) {
+          const subscribeId = await scopeToId(scopeDomain, scopeUser, subscribedScope)
+          if (await authorize(user, domain, subscribeId)) {
             if (!subscriptions[session]) subscriptions[session] = {}
 
             const ss = subscriptions[session]
-            if (!ss[id]) ss[id] = subscribe(id, send, subscribedScope)
+            if (!ss[subscribeId]) ss[subscribeId] = subscribe(subscribeId, send, subscribedScope)
 
-            const state = await redis.client.json.get(id)
-            send({ ...state, id, si })
+            const state = await redis.client.json.get(subscribeId)
+            send({ ...state, id: subscribeId, si })
           }
           else {
             let error = `User ${user} Not Autorized To Access ${subscribedScope}`
@@ -51,8 +57,47 @@ export default async function coreSideEffects({
     }
     else send({ si, ii })
   }
+  else if (domain === ADMIN_DOMAIN && scope.startsWith('configuration/')) {
+    const { op, path, value } = patch[0]
+    const configureDomain = scope.split('/')[1]
+    console.log(user, domain, configureDomain, await isAdmin(user, domain, configureDomain))
+    if (
+      (op === 'add' || op === 'replace')
+      && path.length === 2
+      && path[0] === 'active'
+      && path[1] === 'deployment'
+      && isUUID(value)
+      && await isAdmin(user, domain, configureDomain)
+    ) {
+      const report = value
+      const domainConfig = await coreState('core', 'domain-config', 'core')
+      domainConfig[configureDomain] = { config: id, report, admin: user }
+
+      const reportState = await coreState(user, report, domain)
+      reportState.tasks = {}
+      reportState.start = Date.now()
+
+      try {
+        await applyConfiguration(domainToConfigure, config, reportState)
+        reportState.end = Date.now()
+      }
+      catch (error) {
+        reportState.error = error.toString()
+      }
+
+      send({ si, ii })
+    }
+  }
   else {
     const sideEffect = sideEffects[active_type] || (() => send({ si, ii }))
     await sideEffect({ domain, user, session, scope, patch, si, ii, send })
   }
+}
+
+async function isAdmin(user, requestingDomain, requestedDomain) {
+  return (
+       requestingDomain === 'localhost:5112'
+    || requestedDomain.startsWith(`${user}.localhost:`)
+    || (requestingDomain === ADMIN_DOMAIN && user === await domainAdmin(requestedDomain))
+  )
 }

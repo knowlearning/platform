@@ -9,7 +9,7 @@
     <Suspense>
       <YAMLEditor
         :key="domain"
-        :id="domain"
+        :id="`configuration/${domain}`"
         :resolveLanguage="path => {
           if (path[path.length-1] === 'markdown') return 'markdown'
           if (arrayMatch(['postgres', 'queries', '*', 'body'], path)) return 'postgresql'
