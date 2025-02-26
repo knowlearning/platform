@@ -16,6 +16,15 @@
       />
       <label for="embedding-id">UUID or URL</label>
     </FloatLabel>
+    <div class="spacer" />
+    <FloatLabel>
+      <textarea
+        v-model="embedding.mutationScript"
+        id="mutation-script"
+      />
+      <label>Mutation Script</label>
+    </FloatLabel>
+    <div class="spacer" />
     <img
       :key="embedding.picture"
       style="max-height: 128px"

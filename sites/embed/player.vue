@@ -22,6 +22,7 @@
           :id="embedding.id"
           @state="handleState"
           @close="handleClose"
+          @mutate="handleMutate"
           allow="camera;microphone;fullscreen"
           :style="{
             'pointer-events': resizing ? 'none' : ''
@@ -129,6 +130,10 @@
     closed.value = false
     states.splice(0, states.length)
     lastLoad.value = Date.now()
+  }
+
+  function handleMutate(event) {
+    console.log(event)
   }
 </script>
 

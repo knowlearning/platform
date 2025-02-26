@@ -101,8 +101,17 @@ function embed(environment, iframe) {
     else if (type === 'interact') {
       let { scope, patch } = message
       const namespacedScope = getNamespacedScope(environment.namespace, scope)
+      let before
+      if (listeners.mutate) before = copy(await Agent.state(namespacedScope))
       await Agent.interact(namespacedScope, patch, false)
-      if (listeners.mutate) listeners.mutate({ scope: namespacedScope })
+      if (listeners.mutate) {
+        listeners
+          .mutate({
+            scope: namespacedScope,
+            before,
+            patch: copy(patch)
+          })
+      }
       sendDown({}) // TODO: might want to send down the interaction index
     }
     else if (type === 'metadata') {
