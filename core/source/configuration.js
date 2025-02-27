@@ -46,10 +46,10 @@ export default async function configuration(domain) {
     if (domainConfig) {
       const { admin, config } = domainConfig
       if (config) {
-        try {
-          cache[domain] = (await redis.client.json.get(config)).active
-        }
-        catch(error) { //  TODO: deprecate this fallback
+        const stateConfig = (await redis.client.json.get(config))?.active
+        if (stateConfig?.deployment) cache[domain] = stateConfig
+        else {
+          //  TODO: deprecate this fallback
           const url = await download(config, 3, true)
           const response = await fetch(url)
 
