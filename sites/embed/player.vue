@@ -7,6 +7,7 @@
       v-if="embedded"
       :key="embedding.id"
       :id="embedding.id"
+      @mutate="handleMutate"
       @close="handleClose"
       allow="camera;microphone;fullscreen"
     />
