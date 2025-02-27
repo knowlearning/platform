@@ -74,7 +74,7 @@ export default async function coreSideEffects({
       const coreConfigCopy = await coreState(ADMIN_DOMAIN, coreConfigCopyId, 'core')
       domainConfig[configureDomain] = { config: coreConfigCopyId, report, admin: user }
 
-      const reportState = await coreState(user, report, domain)
+      const reportState = await coreState(ADMIN_DOMAIN, report, ADMIN_DOMAIN)
       reportState.tasks = {}
       reportState.start = Date.now()
 
