@@ -46,15 +46,20 @@ export default async function configuration(domain) {
     if (domainConfig) {
       const { admin, config } = domainConfig
       if (config) {
-        const url = await download(config, 3, true)
-        const response = await fetch(url)
-
-        if (response.status !== 200) {
-          const text = await response.text()
-          throw new Error(text)
+        try {
+          cache[domain] = (await redis.client.json.get(config)).active
         }
+        catch(error) { //  TODO: deprecate this fallback
+          const url = await download(config, 3, true)
+          const response = await fetch(url)
 
-        cache[domain] = parseYAML(await response.text())
+          if (response.status !== 200) {
+            const text = await response.text()
+            throw new Error(text)
+          }
+
+          cache[domain] = parseYAML(await response.text())
+        }
       }
       else cache[domain] = {}
 
