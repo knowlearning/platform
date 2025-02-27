@@ -1,4 +1,4 @@
-import { environment, isUUID } from './utils.js';
+import { environment, isUUID, uuid } from './utils.js';
 import scopeToId from './scope-to-id.js'
 import configuredQuery from './configured-query.js'
 import { applyConfiguration } from './side-effects/configure.js'
@@ -8,7 +8,7 @@ import subscribe from './subscribe.js'
 import authorize from './authorize.js'
 import interact from './interact/index.js'
 import * as redis from './redis.js'
-import coreState from './core-state.js'
+import coreState, { coreStateSynced } from './core-state.js'
 import { domainAdmin } from './configuration.js'
 
 const { ADMIN_DOMAIN } = environment
@@ -70,7 +70,9 @@ export default async function coreSideEffects({
     ) {
       const report = value
       const domainConfig = await coreState('core', 'domain-config', 'core')
-      domainConfig[configureDomain] = { config: id, report, admin: user }
+      const coreConfigCopyId = uuid()
+      const coreConfigCopy = await coreState(ADMIN_DOMAIN, coreConfigCopyId, 'core')
+      domainConfig[configureDomain] = { config: coreConfigCopyId, report, admin: user }
 
       const reportState = await coreState(user, report, domain)
       reportState.tasks = {}
@@ -78,6 +80,8 @@ export default async function coreSideEffects({
 
       try {
         const configuration = await redis.client.json.get(id)
+        Object.assign(coreConfigCopy, configuration.active)
+        await coreStateSynced()
         await applyConfiguration(configureDomain, configuration.active, reportState)
         reportState.end = Date.now()
       }
