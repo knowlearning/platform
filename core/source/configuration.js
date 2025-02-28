@@ -47,6 +47,7 @@ export default async function configuration(domain) {
       const { admin, config } = domainConfig
       if (config) {
         const stateConfig = (await redis.client.json.get(config))?.active
+        console.log('SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSTATE CONFING IS LATE!', stateConfig)
         if (stateConfig?.deployment) cache[domain] = stateConfig
         else {
           //  TODO: deprecate this fallback

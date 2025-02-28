@@ -17,7 +17,8 @@
     "mocha": "^10.3.0",
     "uuid": "^9.0.1",
     "vue": "^3.4.21",
-    "vuex": "^4.1.0"
+    "vuex": "^4.1.0",
+    "yaml": "^2.7.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.6.2",

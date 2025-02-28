@@ -57,7 +57,7 @@ export default async function coreSideEffects({
     }
     else send({ si, ii })
   }
-  else if (domain === ADMIN_DOMAIN && scope.startsWith('configuration/')) {
+  else if ((domain === ADMIN_DOMAIN || domain === 'localhost:5112') && scope.startsWith('configuration/')) {
     const { op, path, value } = patch[0]
     const configureDomain = scope.split('/')[1]
     if (
