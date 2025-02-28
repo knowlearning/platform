@@ -1,6 +1,6 @@
 {
   "name": "@knowlearning/agents",
-  "version": "0.9.168",
+  "version": "0.9.169",
   "description": "API for embedding applications in KnowLearning systems.",
   "main": "node.js",
   "browser": "browser.js",
@@ -25,8 +25,6 @@
   "dependencies": {
     "@knowlearning/patch-proxy": "^1.3.4",
     "fast-json-patch": "^3.1.1",
-    "uuid": "^8.3.2",
-    "vue": "^3.3.4",
-    "vuex": "^4.1.0"
+    "uuid": "^8.3.2"
   }
 }
