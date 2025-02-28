@@ -1,9 +1,11 @@
 import SIMPLE_MIRROR_CONFIGURATION from './domain-agents/simple-mirror-config.js'
 import PROXY_TO_SIMPLE_MIRROR_CONFIGURATION from './domain-agents/proxy-to-simple-mirror-config.js'
+import LIVENESS_REPORTING_CONFIGURATION from './domain-agents/liveness-reporting-config.js'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
 const SIMPLE_MIRROR_DOMAIN = `simple-mirror-config.localhost:5112`
+const LIVENESS_DOMAIN = `liveness-test.localhost:5112`
 
 const domainAgentConfigured = id => new Promise(r => Agent.watch(id, u => u.state.tasks?.agent?.[1] === 'done' && r()))
 const domainAgentInitialized = id => new Promise(r => Agent.watch(id, u => u.state.tasks?.agent?.[0] && r()))
@@ -398,6 +400,28 @@ agent: |
           if (state.x === 200) resolve()
         }, SIMPLE_MIRROR_DOMAIN, SIMPLE_MIRROR_DOMAIN)
       })
+    })
+
+    it('Can configure many agents in series and only 1 is active at a time', async function() {
+      this.timeout(15000)
+
+      for (let i=0; i<10; i++) {
+        const report = await configureDomain(LIVENESS_DOMAIN, LIVENESS_REPORTING_CONFIGURATION)
+        await domainAgentConfigured(report)
+        console.log('DOOOOOOOOOOOOOOOOOOOOONE')
+      }
+
+      const livenessTrackers = await Agent.state('liveness-trackers', LIVENESS_DOMAIN, LIVENESS_DOMAIN)
+
+      let lastPing = 0
+      console.log('liveness trackers', livenessTrackers)
+      Object
+        .entries(livenessTrackers)
+        .sort((a, b) => b.start - a.start)
+        .forEach(([_, { start, ping }]) => {
+          expect(lastPing).to.be.lessThan(start)
+          lastPing = ping
+        })
     })
   })
 }
