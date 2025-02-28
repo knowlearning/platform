@@ -5,7 +5,7 @@ import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
 import subscriptions from './subscriptions.js'
 import coreSideEffects from './core-side-effects.js'
-import domainAgent from './domain-agent.js'
+import domainAgent from './domain-agent/index.js'
 
 const HEARTBEAT_INTERVAL = 5000
 const SESSION_RECONNECTION_INTERVAL = 60000
