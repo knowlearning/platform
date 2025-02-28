@@ -33,7 +33,8 @@ async function configureDomainNew(domain, configuration, awaitInitialized) {
 
   const configState = await Agent.state(`configuration/${domain}`)
 
-  Object.apply(configState, config)
+  Object.assign(configState, config)
+  console.log('CCCCCCCCCCCCCCCCCConfig state', configState)
   await pause(1)
   configState.deployment = report
   await Agent.synced()
