@@ -11,7 +11,7 @@ import * as redis from './redis.js'
 import coreState, { coreStateSynced } from './core-state.js'
 import { domainAdmin } from './configuration.js'
 
-const { ADMIN_DOMAIN } = environment
+const { ADMIN_DOMAIN, MODE } = environment
 
 export default async function coreSideEffects({
   id, session, domain, user, scope, active_type, patch, si, ii, send
@@ -57,7 +57,10 @@ export default async function coreSideEffects({
     }
     else send({ si, ii })
   }
-  else if (domain === ADMIN_DOMAIN && scope.startsWith('configuration/')) {
+  else if (
+    (domain === ADMIN_DOMAIN || isDevelopmentTest(domain))
+    && scope.startsWith('configuration/')
+  ) {
     const { op, path, value } = patch[0]
     const configureDomain = scope.split('/')[1]
     if (
@@ -101,5 +104,10 @@ async function isAdmin(user, requestingDomain, requestedDomain) {
   return (
     requestedDomain.startsWith(`${user}.localhost:`)
     || (requestingDomain === ADMIN_DOMAIN && user === await domainAdmin(requestedDomain))
+    || isDevelopmentTest(requestingDomain)
   )
+}
+
+function isDevelopmentTest(domain) {
+  return domain === 'localhost:5112' &&  MODE === 'local'
 }
