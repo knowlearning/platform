@@ -57,7 +57,7 @@ export default async function coreSideEffects({
     }
     else send({ si, ii })
   }
-  else if ((domain === ADMIN_DOMAIN || domain === 'localhost:5112') && scope.startsWith('configuration/')) {
+  else if (domain === ADMIN_DOMAIN && scope.startsWith('configuration/')) {
     const { op, path, value } = patch[0]
     const configureDomain = scope.split('/')[1]
     if (
@@ -99,8 +99,7 @@ export default async function coreSideEffects({
 
 async function isAdmin(user, requestingDomain, requestedDomain) {
   return (
-       requestingDomain === 'localhost:5112'
-    || requestedDomain.startsWith(`${user}.localhost:`)
+    requestedDomain.startsWith(`${user}.localhost:`)
     || (requestingDomain === ADMIN_DOMAIN && user === await domainAdmin(requestedDomain))
   )
 }
