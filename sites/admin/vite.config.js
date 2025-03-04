@@ -21,12 +21,12 @@ export default defineConfig({
         replacement: __dirname + '/../../packages/agents/vue.js'
       },
       {
-        find: '@knowlearning/agents/browser.js',
+        find: '@knowlearning/agents',
         replacement: __dirname + '/../../packages/agents/browser.js'
       },
       {
-        find: '@knowlearning/editor/editor.vue',
-        replacement: __dirname + '/../../packages/editor/editor.vue'
+        find: '@knowlearning/editor',
+        replacement: __dirname + '/../../packages/editor'
       },
       {
         find: '@knowlearning/patch-proxy',

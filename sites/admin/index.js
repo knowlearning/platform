@@ -1,5 +1,5 @@
 import { createApp, ref } from 'vue/dist/vue.esm-bundler'
-import Agent from '@knowlearning/agents/browser.js'
+import Agent from '@knowlearning/agents'
 import { vuePersistentComponent } from '@knowlearning/agents/vue.js'
 import { createRouter, createWebHistory } from 'vue-router'
 
