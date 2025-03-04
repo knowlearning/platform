@@ -25,10 +25,6 @@ export default defineConfig({
         replacement: __dirname + '/../../packages/agents/browser.js'
       },
       {
-        find: '@knowlearning/editor',
-        replacement: __dirname + '/../../packages/editor'
-      },
-      {
         find: '@knowlearning/patch-proxy',
         replacement:  __dirname + '/node_modules/@knowlearning/patch-proxy/index.js'
       },
