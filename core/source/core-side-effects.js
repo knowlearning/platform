@@ -98,7 +98,6 @@ export default async function coreSideEffects({
 }
 
 async function isAdmin(user, requestingDomain, requestedDomain) {
-  return true
   return (
        requestingDomain === 'localhost:5112'
     || requestedDomain.startsWith(`${user}.localhost:`)
