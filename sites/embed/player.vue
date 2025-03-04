@@ -7,7 +7,6 @@
       v-if="embedded"
       :key="embedding.id"
       :id="embedding.id"
-      @mutate="handleMutate"
       @close="handleClose"
       allow="camera;microphone;fullscreen"
     />
@@ -23,7 +22,6 @@
           :id="embedding.id"
           @state="handleState"
           @close="handleClose"
-          @mutate="handleMutate"
           allow="camera;microphone;fullscreen"
           :style="{
             'pointer-events': resizing ? 'none' : ''
@@ -133,26 +131,6 @@
     lastLoad.value = Date.now()
   }
 
-  async function handleMutate(event) {
-    if (embedding.value.xAPISensor) {
-      try {
-        const scopedHandler = new Function('mutation', `with (mutation) { ${embedding.value.xAPISensor} }`)
-        const result = scopedHandler.bind({})(copy(event))
-        if (result) {
-          //  TODO: check result schema & surface error
-          const state = await Agent.state(event.scope)
-
-          if (!result.object) result.object = embedding.value.id
-
-          state.xapi = result
-          console.log('RESULT!', result)
-        }
-      } catch (error) {
-        console.error('Error', error)
-      }
-    }
-    console.log(event)
-  }
 </script>
 
 <style scoped>
