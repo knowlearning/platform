@@ -1,4 +1,5 @@
 <script setup>
+  import Agent from '@knowlearning/agents'
   import { computed, reactive, ref, watch } from 'vue'
   import { compare, applyPatch } from 'fast-json-patch'
   import CodeMirror from "vue-codemirror6"

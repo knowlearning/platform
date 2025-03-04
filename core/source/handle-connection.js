@@ -58,7 +58,11 @@ export default async function handleConnection(connection, domain, sid) {
 
     if (subscriptions[session]) {
       Promise
-        .all(Object.values[subscriptions[session]].map(unsub => unsub()))
+        .all(
+          Object
+            .values(subscriptions[session])
+            .map(unsub => unsub())
+         )
         .catch(e => console.log(e))
       delete subscriptions[session]
     }

@@ -25,7 +25,7 @@
 import { ref } from 'vue'
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 import ReportViewer from './report-viewer.vue'
-import YAMLEditor from './codemirror/yaml-editor.vue'
+import YAMLEditor from '@knowlearning/editor/editor.vue'
 import YAMLValueReplacer from './yaml-value-replacer.vue'
 import DeploymentWidget from './widgets/deployment.vue'
 

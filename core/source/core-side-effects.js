@@ -69,12 +69,12 @@ export default async function coreSideEffects({
       && await isAdmin(user, domain, configureDomain)
     ) {
       const report = value
+      const reportState = await coreState(ADMIN_DOMAIN, report, ADMIN_DOMAIN)
       const domainConfig = await coreState('core', 'domain-config', 'core')
       const coreConfigCopyId = uuid()
       const coreConfigCopy = await coreState(ADMIN_DOMAIN, coreConfigCopyId, 'core')
       domainConfig[configureDomain] = { config: coreConfigCopyId, report, admin: user }
 
-      const reportState = await coreState(ADMIN_DOMAIN, report, ADMIN_DOMAIN)
       reportState.tasks = {}
       reportState.start = Date.now()
 
@@ -88,9 +88,8 @@ export default async function coreSideEffects({
       catch (error) {
         reportState.error = error.toString()
       }
-
-      send({ si, ii })
     }
+    send({ si, ii })
   }
   else {
     const sideEffect = sideEffects[active_type] || (() => send({ si, ii }))

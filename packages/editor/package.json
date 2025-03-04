@@ -1,0 +1,45 @@
+{
+  "name": "@knowlearning/editor",
+  "version": "0.1.0",
+  "description": "Editor component for YAML based states",
+  "type": "module",
+  "directories": {
+    "example": "examples",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/knowlearning/platform.git"
+  },
+  "author": "KnowLearning",
+  "license": "MPL-2.0",
+  "bugs": {
+    "url": "https://github.com/knowlearning/platform/issues"
+  },
+  "homepage": "https://github.com/knowlearning/platform#readme",
+  "dependencies": {
+    "@codemirror/commands": "^6.8.0",
+    "@codemirror/lang-javascript": "^6.2.3",
+    "@codemirror/lang-markdown": "^6.3.2",
+    "@codemirror/lang-sql": "^6.8.0",
+    "@codemirror/lang-yaml": "^6.1.2",
+    "@codemirror/language": "^6.10.8",
+    "@codemirror/lint": "^6.8.4",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.36.4",
+    "@lezer/common": "^1.2.3",
+    "@lezer/javascript": "^1.4.21",
+    "eslint-linter-browserify": "^9.21.0",
+    "pg-query-emscripten": "^5.1.0",
+    "vue": "^3.5.13",
+    "vue-codemirror6": "^1.3.12",
+    "yaml": "^2.7.0"
+  },
+  "peerDependencies": {
+    "vue": "3.x",
+    "@knowlearning/agents": "0.9.x"
+  }
+}
