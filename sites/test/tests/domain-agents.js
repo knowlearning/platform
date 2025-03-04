@@ -1,12 +1,19 @@
+import YAML from 'yaml'
 import SIMPLE_MIRROR_CONFIGURATION from './domain-agents/simple-mirror-config.js'
 import PROXY_TO_SIMPLE_MIRROR_CONFIGURATION from './domain-agents/proxy-to-simple-mirror-config.js'
+import LIVENESS_REPORTING_CONFIGURATION from './domain-agents/liveness-reporting-config.js'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
 const SIMPLE_MIRROR_DOMAIN = `simple-mirror-config.localhost:5112`
+const LIVENESS_DOMAIN = `liveness-test.localhost:5112`
 
-const domainAgentConfigured = id => new Promise(r => Agent.watch(id, u => u.state.tasks?.agent?.[1] === 'done' && r()))
-const domainAgentInitialized = id => new Promise(r => Agent.watch(id, u => u.state.tasks?.agent?.[0] && r()))
+const domainAgentConfigured = id => new Promise(r => Agent.watch(id, u => {
+  if (u.state.tasks?.agent?.[1] === 'done') r()
+}))
+const domainAgentInitialized = id => new Promise(r => Agent.watch(id, u => {
+  if (u.state.tasks?.agent?.[0]) r()
+}))
 
 async function configureDomain(domain, configuration, awaitInitialized) {
   const config = await Agent.upload({
@@ -19,6 +26,23 @@ async function configureDomain(domain, configuration, awaitInitialized) {
     active_type: DOMAIN_CONFIG_TYPE,
     active: { config, report, domain }
   })
+
+  awaitInitialized ? await domainAgentInitialized(report) : await domainAgentConfigured(report)
+  return report
+}
+
+async function configureDomainNew(domain, configuration, awaitInitialized) {
+  const config = YAML.parse(configuration)
+  const report = uuid()
+
+  const configState = await Agent.state(`configuration/${domain}`)
+
+  Object.assign(configState, config)
+  await Agent.synced()
+  await Agent.synced()
+  configState.deployment = report
+  await pause(10)
+  await Agent.synced()
 
   awaitInitialized ? await domainAgentInitialized(report) : await domainAgentConfigured(report)
   return report
@@ -266,138 +290,164 @@ agent: |
 `
 
   describe('Domain Agent', function () {
-    it('Configures successfully in a domain', async function () {
-      this.timeout(5000)
-      const { domain } = await Agent.environment()
-      await configureDomain(domain, CONFIGURATION_1)
-    })
-
-    it('Exposes error message when agent script fails to start', async function () {
-      this.timeout(15000)
-
-      const { domain } = await Agent.environment()
-      const report = await configureDomain(domain, CONFIGURATION_2, true)
-
-      let state = {}
-
-      while (!state.tasks?.agent?.[1]) {
-        await pause(100)
-        state = await Agent.state(report)
-      }
-      expect(state.tasks.agent[1]).to.equal('ERROR: Uncaught (in promise) Error: Whoopsie!!!\nline: 2, column: 7')
-    })
-
-    it('Can establish cross domain agent connections', async function () {
-      this.timeout(15000)
-
-      const { domain, auth: { user } } = await Agent.environment()
-
-      const remoteDomain = 'domain-agent-test.localhost:5112'
-      await configureDomain(domain, MIRROR_CONFIGURATION)
-      await configureDomain(remoteDomain, CONFIGURATION_3 + ' ')
-
-      let state = {}
-
-      while (state.success === undefined) {
-        await pause(100)
-        state = await Agent.state(specialCrossDomainScopeName, remoteDomain, domain)
-      }
-
-      expect(state.success).to.equal(true)
-    })
-
-    it('Can establish cross domain agent connections that are resilient against domain agent resets', async function () {
-      this.timeout(15000)
-
-      const { domain, auth: { user } } = await Agent.environment()
-
-      const remoteDomain = 'domain-agent-test.localhost:5112'
-      await configureDomain(domain, MIRROR_CONFIGURATION)
-      await configureDomain(remoteDomain, CONFIGURATION_4)
-
-      let state = {}
-      while (state.success === undefined) {
-        await pause(100)
-        state = await Agent.state(specialCrossDomainResetScopeName, remoteDomain, domain)
-      }
-
-      expect(state.success).to.equal(true)
-    })
-
-    it('Connects to most recently deployed third party domain', async function () {
-      this.timeout(15000)
-
-      const { domain, auth: { user } } = await Agent.environment()
-      const remoteDomain = 'domain-agent-test.localhost:5112'
-
-      const childConnectionScope = `child-connections-${remoteDomain}`
-      const { connections } = await Agent.state(childConnectionScope, domain, domain)
-      const initialConnections = connections?.length || 0
-
-      await configureDomain(remoteDomain, CONFIGURATION_3)
-      await pause(1000)
-      await configureDomain(domain, MIRROR_CONFIGURATION)
-      await pause(100)
-      // reconfigure to force reconnection
-      await configureDomain(domain, MIRROR_CONFIGURATION)
-
-      let nextConnections
-
-      while (!nextConnections || nextConnections.length < initialConnections + 2) {
-        await pause(100)
-        nextConnections = (await Agent.state(childConnectionScope, domain, domain)).connections
-      }
-
-      const a = nextConnections.pop()
-      const b = nextConnections.pop()
-      expect(a.serverId).to.not.equal(b.serverId)
-    })
-
-    it('Can connect back to a domain agent that has reconnected itself', async function () {
-      this.timeout(15000)
-
-      const { domain, auth: { user } } = await Agent.environment()
-
-      await configureDomain(domain, MIRROR_CONFIGURATION)
-
-      const reconnectMirroredStateName = 'mirror-reconnect/' + uuid()
-      const reconnectMirroredState = await Agent.state(reconnectMirroredStateName)
-
-      reconnectMirroredState.x = 100
-      await new Promise((resolve, reject) => {
-        Agent.watch(reconnectMirroredStateName, ({ state }) => {
-          if (state.x === 100) resolve()
-        }, domain)
+    function doTests(configureDomain) {
+      it('Configures successfully in a domain', async function () {
+        this.timeout(5000)
+        const { domain } = await Agent.environment()
+        await configureDomain(domain, CONFIGURATION_1)
       })
 
-      console.log('passed 1')
+      it('Exposes error message when agent script fails to start', async function () {
+        this.timeout(15000)
 
-      reconnectMirroredState.x = 200
-      await new Promise((resolve, reject) => {
-        Agent.watch(reconnectMirroredStateName, ({ state }) => {
-          if (state.x === 200) resolve()
-        }, domain)
+        const { domain } = await Agent.environment()
+        const report = await configureDomain(domain, CONFIGURATION_2, true)
+
+        let state = {}
+
+        while (!state.tasks?.agent?.[1]) {
+          await pause(100)
+          state = await Agent.state(report)
+        }
+        expect(state.tasks.agent[1]).to.equal('ERROR: Uncaught (in promise) Error: Whoopsie!!!\nline: 2, column: 7')
       })
 
-      console.log('passed 2')
-    })
+      it('Can establish cross domain agent connections', async function () {
+        this.timeout(15000)
 
-    it('Can keep mirroring with new agent configurations', async function () {
-      this.timeout(15000)
-      const { domain, auth: { user } } = await Agent.environment()
-      await configureDomain(SIMPLE_MIRROR_DOMAIN, SIMPLE_MIRROR_CONFIGURATION)
-      await configureDomain(domain, PROXY_TO_SIMPLE_MIRROR_CONFIGURATION)
+        const { domain, auth: { user } } = await Agent.environment()
 
-      const myStateName = 'mirror/' + uuid()
-      const myState = await Agent.state(myStateName)
+        const remoteDomain = 'domain-agent-test.localhost:5112'
+        await configureDomain(domain, MIRROR_CONFIGURATION)
+        await configureDomain(remoteDomain, CONFIGURATION_3 + ' ')
 
-      myState.x = 200
-      await new Promise((resolve, reject) => {
-        Agent.watch(myStateName, ({ state }) => {
-          console.log('INTERESTING....?', state)
-          if (state.x === 200) resolve()
-        }, SIMPLE_MIRROR_DOMAIN, SIMPLE_MIRROR_DOMAIN)
+        let state = {}
+
+        while (state.success === undefined) {
+          await pause(100)
+          state = await Agent.state(specialCrossDomainScopeName, remoteDomain, domain)
+        }
+
+        expect(state.success).to.equal(true)
       })
-    })
+
+      it('Can establish cross domain agent connections that are resilient against domain agent resets', async function () {
+        this.timeout(15000)
+
+        const { domain, auth: { user } } = await Agent.environment()
+
+        const remoteDomain = 'domain-agent-test.localhost:5112'
+        await configureDomain(domain, MIRROR_CONFIGURATION)
+        await configureDomain(remoteDomain, CONFIGURATION_4)
+
+        let state = {}
+        while (state.success === undefined) {
+          await pause(100)
+          state = await Agent.state(specialCrossDomainResetScopeName, remoteDomain, domain)
+        }
+
+        expect(state.success).to.equal(true)
+      })
+
+      it('Connects to most recently deployed third party domain', async function () {
+        this.timeout(15000)
+
+        const { domain, auth: { user } } = await Agent.environment()
+        const remoteDomain = 'domain-agent-test.localhost:5112'
+
+        const childConnectionScope = `child-connections-${remoteDomain}`
+        const { connections } = await Agent.state(childConnectionScope, domain, domain)
+        const initialConnections = connections?.length || 0
+
+        await configureDomain(remoteDomain, CONFIGURATION_3)
+        await pause(1000)
+        await configureDomain(domain, MIRROR_CONFIGURATION)
+        await pause(100)
+        // reconfigure to force reconnection
+        await configureDomain(domain, MIRROR_CONFIGURATION)
+
+        let nextConnections
+
+        while (!nextConnections || nextConnections.length < initialConnections + 2) {
+          await pause(100)
+          nextConnections = (await Agent.state(childConnectionScope, domain, domain)).connections
+        }
+
+        const a = nextConnections.pop()
+        const b = nextConnections.pop()
+        expect(a.serverId).to.not.equal(b.serverId)
+      })
+
+      it('Can connect back to a domain agent that has reconnected itself', async function () {
+        this.timeout(15000)
+
+        const { domain, auth: { user } } = await Agent.environment()
+
+        await configureDomain(domain, MIRROR_CONFIGURATION)
+
+        const reconnectMirroredStateName = 'mirror-reconnect/' + uuid()
+        const reconnectMirroredState = await Agent.state(reconnectMirroredStateName)
+
+        reconnectMirroredState.x = 100
+        await new Promise((resolve, reject) => {
+          Agent.watch(reconnectMirroredStateName, ({ state }) => {
+            if (state.x === 100) resolve()
+          }, domain)
+        })
+
+        console.log('passed 1')
+
+        reconnectMirroredState.x = 200
+        await new Promise((resolve, reject) => {
+          Agent.watch(reconnectMirroredStateName, ({ state }) => {
+            if (state.x === 200) resolve()
+          }, domain)
+        })
+
+        console.log('passed 2')
+      })
+
+      it('Can keep mirroring with new agent configurations', async function () {
+        this.timeout(15000)
+        const { domain, auth: { user } } = await Agent.environment()
+        await configureDomain(SIMPLE_MIRROR_DOMAIN, SIMPLE_MIRROR_CONFIGURATION)
+        await configureDomain(domain, PROXY_TO_SIMPLE_MIRROR_CONFIGURATION)
+
+        const myStateName = 'mirror/' + uuid()
+        const myState = await Agent.state(myStateName)
+
+        myState.x = 200
+        await new Promise((resolve, reject) => {
+          Agent.watch(myStateName, ({ state }) => {
+            console.log('INTERESTING....?', state)
+            if (state.x === 200) resolve()
+          }, SIMPLE_MIRROR_DOMAIN, SIMPLE_MIRROR_DOMAIN)
+        })
+      })
+
+      it('Can configure many agents in series and only 1 is active at a time', async function() {
+        this.timeout(30000)
+
+        for (let i=0; i<30; i++) {
+          const report = await configureDomain(LIVENESS_DOMAIN, LIVENESS_REPORTING_CONFIGURATION)
+          if (Math.random() > 0.5 || i === 0) await domainAgentConfigured(report)
+          if (Math.random() > 0.5) await pause(100*Math.random())
+        }
+
+        const livenessTrackers = await Agent.state('liveness-trackers', LIVENESS_DOMAIN, LIVENESS_DOMAIN)
+
+        let lastPing = 0
+        console.log('liveness trackers', livenessTrackers)
+        Object
+          .entries(livenessTrackers)
+          .sort((a, b) => b.start - a.start)
+          .forEach(([_, { start, ping }]) => {
+            expect(lastPing).to.be.lessThan(start)
+            lastPing = ping
+          })
+      })
+    }
+    doTests(configureDomain)
+    doTests(configureDomainNew)
   })
 }

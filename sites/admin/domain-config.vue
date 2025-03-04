@@ -6,97 +6,96 @@
       <v-btn @click="claimMessage = null">Okay</v-btn>
     </div>
     <v-btn v-else @click="claim">Become admin for {{ domain }}</v-btn>
-    <v-btn @click="uploadConfig">Upload</v-btn>
-    <div v-if="config">
-      config:  {{config.config}}
-      <v-btn
-        variant="plain"
-        @click="downloadConfig(config.config)"
-        icon="fa-solid fa-download"
+    <Suspense>
+      <YAMLEditor
+        :key="domain"
+        :id="`configuration/${domain}`"
+        :resolveLanguage="path => {
+          if (path[path.length-1] === 'markdown') return 'markdown'
+          if (arrayMatch(['postgres', 'queries', '*', 'body'], path)) return 'postgresql'
+          else if (arrayMatch(['agent'], path)) return 'javascript'
+        }"
+        :resolveWidget="resolveWidget"
       />
-      <ReportViewer
-        :key="config.report"
-        :report="config.report"
-      />
-    </div>
+    </Suspense>
   </div>
 </template>
 
-<script>
-
+<script setup>
+import { ref } from 'vue'
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 import ReportViewer from './report-viewer.vue'
+import YAMLEditor from '@knowlearning/editor/editor.vue'
+import YAMLValueReplacer from './yaml-value-replacer.vue'
+import DeploymentWidget from './widgets/deployment.vue'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
-export default {
-  props: {
-    domain: String
-  },
-  components: {
-    vueScopeComponent,
-    ReportViewer
-  },
-  data() {
-    return {
-      user: null,
-      provider: null,
-      config: null,
-      claimReport: null,
-      claimMessage: null
-    }
-  },
-  async created() {
-    const { auth: { user, provider } } = await Agent.environment()
+const { domain } = defineProps({ domain: String })
 
-    this.user = user
-    this.provider = provider
+const { auth: { user, provider } } = await Agent.environment()
+const myConfig = await Agent.state(domain)
+const acceptedConfig = await Agent.state(domain, window.location.host)
+const claimMessage = ref(null)
+const claimReport = ref(null)
 
-    this.config = (await Agent.query('current-config', [this.domain]))[0]
-  },
-  methods: {
-    async claim() {
-      const start = Date.now()
-      this.claimMessage = 'claiming...'
-      const { token, report } = await Agent.claim(this.domain)
-      this.claimReport = report
-      const elapsed = Date.now() - start
-      await new Promise(r => setTimeout(r, 500 - elapsed))
+if (!myConfig.deployment) myConfig.deployment = null
 
+async function claim() {
+  const start = Date.now()
+  claimMessage.value = 'claiming...'
+  const { token, report } = await Agent.claim(this.domain)
+  claimReport.value = report
+  const elapsed = Date.now() - start
+  await new Promise(r => setTimeout(r, 500 - elapsed))
 
-      if (this.domain.startsWith(`${this.user}.localhost:`)) {
-        this.claimMessage = `You are now registered as the admin of ${this.domain}.`
-      }
-      else {
-        this.claimMessage = `
-          Set "${token}" as a TXT record for "${this.domain}" become the admin.
-          Alternatively, make your website "${this.domain}/.well-known/knowlearning-admin-challenge" respond with "${token}"
-        `
-      }
-    },
-    async removeDomainConfig() {
-      if (confirm(`Are you sure you want to remove your configuration for "${this.domain}"`)) {
-        delete this.config[this.domain]
-      }
-    },
-    async uploadConfig() {
-      const id = await Agent.upload({ browser: true, accept: '.yml,.yaml' })
-
-      const report = Agent.uuid()
-
-      await Agent.create({
-        active: { config: id, report, domain: this.domain },
-        active_type: DOMAIN_CONFIG_TYPE
-      })
-
-      await Agent.synced()
-
-      this.config = (await Agent.query('current-config', [this.domain]))[0]
-    },
-    downloadConfig(id) {
-      Agent.download(id).direct()
-    }
+  if (domain.startsWith(`${user}.localhost:`)) {
+    claimMessage.value = `You are now registered as the admin of ${domain}.`
+  }
+  else {
+    claimMessage.value = `
+      Set "${token}" as a TXT record for "${domain}" become the admin.
+      Alternatively, make your website "${domain}/.well-known/knowlearning-admin-challenge" respond with "${token}"
+    `
   }
 }
 
+
+async function deployConfig() {
+  myConfig.deployment = uuid()
+  await Agent.synced()
+}
+
+function downloadConfig(id) {
+  Agent.download(id).direct()
+}
+
+function resolveWidget(path) {
+  if (path[0] === 'widget') {
+    return {
+      component: YAMLValueReplacer,
+      props: {}
+    }
+  }
+  else if (arrayMatch(path, ['deployment'])) {
+    return {
+      component: DeploymentWidget,
+      props: {}
+    }
+  }
+  else return null
+}
+
+function arrayMatch(a, b) {
+  return a.every((v, i) => {
+    return v === '*' || b[i] === '*' || v === b[i]
+  })
+}
+
 </script>
+
+<style>
+  .cm-editor {
+    height: 80vh;
+  }
+</style>

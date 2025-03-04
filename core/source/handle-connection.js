@@ -5,7 +5,7 @@ import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
 import subscriptions from './subscriptions.js'
 import coreSideEffects from './core-side-effects.js'
-import domainAgent from './domain-agent.js'
+import domainAgent from './domain-agent/index.js'
 
 const HEARTBEAT_INTERVAL = 5000
 const SESSION_RECONNECTION_INTERVAL = 60000
@@ -58,7 +58,11 @@ export default async function handleConnection(connection, domain, sid) {
 
     if (subscriptions[session]) {
       Promise
-        .all(Object.values[subscriptions[session]].map(unsub => unsub()))
+        .all(
+          Object
+            .values(subscriptions[session])
+            .map(unsub => unsub())
+         )
         .catch(e => console.log(e))
       delete subscriptions[session]
     }
@@ -224,7 +228,7 @@ export default async function handleConnection(connection, domain, sid) {
           outstandingSideEffects[session][id].push(new Promise(resolve => resolveSideEffects = resolve))
 
           const { ii, active_type } = await interact(domain, user, scope, patch)
-          await coreSideEffects({ session, domain, user, scope, active_type, patch, si, ii, send })
+          await coreSideEffects({ id, session, domain, user, scope, active_type, patch, si, ii, send })
           if (agent && user !== domain) {
             const data = { scope, patch, ii, id }
             agent.send({ type: 'mutate', session, data })

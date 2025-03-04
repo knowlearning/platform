@@ -1,0 +1,21 @@
+postgres:
+  tables: {}
+agent: |
+  import Agent, { getAgent } from 'npm:@knowlearning/agents/deno.js'
+
+  const xApiAgent = getAgent('f74e9cb3-2b53-4c85-9b0c-f1d61b032b3f.localhost:5444')
+
+  Agent.on('child', child => {
+      const { environment: { user } } = child
+
+      child.on('mutate', async ({ scope, patch }) => {
+          if (patch[0].path[0] === 'xapi') {
+              const x = await xApiAgent.state(`xapi/${Agent.uuid()}`)
+              Object.assign(x, {
+                  ...patch[0].value,
+                  origin: scope,
+                  context: {}
+              })
+          }
+      })
+  })

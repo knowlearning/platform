@@ -1,7 +1,7 @@
 import { uuid, parseYAML, environment, PatchProxy } from '../utils.js'
 import coreState from '../core-state.js'
 import { domainAdmin } from '../configuration.js'
-import domainAgent from '../domain-agent.js'
+import domainAgent from '../domain-agent/index.js'
 import * as redis from '../redis.js'
 import * as postgres from '../postgres.js'
 import { download } from '../storage.js'

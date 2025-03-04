@@ -130,6 +130,7 @@
     states.splice(0, states.length)
     lastLoad.value = Date.now()
   }
+
 </script>
 
 <style scoped>

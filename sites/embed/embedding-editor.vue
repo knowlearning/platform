@@ -16,6 +16,7 @@
       />
       <label for="embedding-id">UUID or URL</label>
     </FloatLabel>
+    <div class="spacer" />
     <img
       :key="embedding.picture"
       style="max-height: 128px"
