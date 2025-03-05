@@ -93,9 +93,3 @@ function arrayMatch(a, b) {
 }
 
 </script>
-
-<style>
-  .cm-editor {
-    height: 80vh;
-  }
-</style>

@@ -9,11 +9,13 @@
   const {
     id,
     resolveLanguage,
-    resolveWidget
+    resolveWidget,
+    fillHeight
   } = defineProps({
     id: String,
     resolveLanguage: Function,
-    resolveWidget: Function
+    resolveWidget: Function,
+    fillHeight: Boolean
   })
 
   const state = await Agent.state(id)
@@ -54,6 +56,10 @@
 
 <template>
   <CodeMirror
+    :class="{
+      'cm-editor-wrapper': true,
+      'fill-height': fillHeight
+    }"
     basic
     tab
     gutter
@@ -65,3 +71,12 @@
     ]"
   />
 </template>
+
+<style>
+
+  .cm-editor-wrapper.fill-height .vue-codemirror,
+  .cm-editor-wrapper.fill-height .cm-editor {
+    height: 100%;
+  }
+
+</style>
