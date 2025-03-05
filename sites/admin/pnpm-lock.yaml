@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@knowlearning/editor':
-        specifier: ^0.1.1
-        version: 0.1.1(vue@3.4.21(typescript@5.7.3))
+        specifier: ^0.1.2
+        version: 0.1.2(vue@3.4.21(typescript@5.7.3))
       '@knowlearning/patch-proxy':
         specifier: ^1.3.2
         version: 1.3.2
@@ -267,8 +267,8 @@ packages:
   '@jridgewell/sourcemap-codec@1.4.15':
     resolution: {integrity: sha512-eF2rxCRulEKXHTRiDrDy6erMYWqNw4LPdQ8UQA4huuxaQsVeRPFl2oM8oDGxMFhJUWZf9McpLtJasDDZb/Bpeg==}
 
-  '@knowlearning/editor@0.1.1':
-    resolution: {integrity: sha512-IE4kON22f08OmnlSTX1bbsZ+nYM7pB8S30rTuz867bkFdaV8Ydt2ZWMUmlrVe01EKqdykj6XzLCTumBea0H1oA==}
+  '@knowlearning/editor@0.1.2':
+    resolution: {integrity: sha512-7nHuTbzcCeBW307nq4eB0QIP7eolWVZEeF2T3EGh63xj6br8OTbmnhVd3dpf9r7kAa6KOwJRxpfaQ+uwtZjxMQ==}
 
   '@knowlearning/patch-proxy@1.3.2':
     resolution: {integrity: sha512-m1f+dDCMw2dnKoLXgh4ViaAuGyAmgfevy+vDo4zDLuSv5W/bGdDwyB9epp+8nlqUVG9yCyvC+XU9s+5PmsB9vQ==}
@@ -800,7 +800,7 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.4.15': {}
 
-  '@knowlearning/editor@0.1.1(vue@3.4.21(typescript@5.7.3))':
+  '@knowlearning/editor@0.1.2(vue@3.4.21(typescript@5.7.3))':
     dependencies:
       '@codemirror/commands': 6.8.0
       '@codemirror/lang-javascript': 6.2.3

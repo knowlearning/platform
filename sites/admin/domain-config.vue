@@ -16,6 +16,7 @@
           else if (arrayMatch(['agent'], path)) return 'javascript'
         }"
         :resolveWidget="resolveWidget"
+        fill-height
       />
     </Suspense>
   </div>
