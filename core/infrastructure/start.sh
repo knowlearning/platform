@@ -7,7 +7,7 @@ curl -fsSL https://deno.land/install.sh | sh -s -- -y v2.1.4
 echo "GETTING PLATFORM REPOSITORY"
 git clone https://github.com/knowlearning/platform.git
 cd platform
-git checkout update-infrastructure
+git checkout trunk
 
 echo "SETTING ENVIRONMENT VARIABLES"
 export AUTH_SERVICE_SECRET_KEY="$AUTH_SERVICE_SECRET_KEY"
