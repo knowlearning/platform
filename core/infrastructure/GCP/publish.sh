@@ -31,12 +31,12 @@ if [ "$1" = "production" ]; then
 
   export PROJECT="opensourcelearningplatform"
   export REGION="us-central1"
-  # export ZONE="us-central1-a"
-  # export INSTANCE_NAME="my-deno-instance-1"
-  # export STATIC_IP_NAME="my-static-ip-1"
-  export ZONE="us-central1-b"
-  export INSTANCE_NAME="my-deno-instance-2"
-  export STATIC_IP_NAME="my-static-ip-2"
+  export ZONE="us-central1-a"
+  export INSTANCE_NAME="my-deno-instance-1"
+  export STATIC_IP_NAME="my-static-ip-1"
+  # export ZONE="us-central1-b"
+  # export INSTANCE_NAME="my-deno-instance-2"
+  # export STATIC_IP_NAME="my-static-ip-2"
 
   deno run --allow-net --allow-run --allow-env index.js
 
@@ -48,18 +48,22 @@ if [ "$1" = "production" ]; then
   export INSECURE_DEVELOPMENT_CERT="$(cat ../.credentials/INSECURE_DEVELOPMENT_CERT)"
   export INSECURE_DEVELOPMENT_KEY="$(cat ../.credentials/INSECURE_DEVELOPMENT_KEY)"
 
-  gcloud compute ssh admin@$INSTANCE_NAME \
-    --zone=$ZONE \
-    --project=$PROJECT \
-    -- -o "SendEnv \
-        AUTH_SERVICE_SECRET_KEY \
-        GCS_SERVICE_ACCOUNT_CREDENTIALS \
-        OAUTH_CREDENTIALS \
-        POSTGRES_PASSWORD \
-        REDIS_PASSWORD \
-        INSECURE_DEVELOPMENT_CERT \
-        INSECURE_DEVELOPMENT_KEY" \
-    "bash -s" < ../start.sh
+  while true; do
+    gcloud compute ssh admin@$INSTANCE_NAME \
+      --zone=$ZONE \
+      --project=$PROJECT \
+      -- -o "SendEnv \
+          AUTH_SERVICE_SECRET_KEY \
+          GCS_SERVICE_ACCOUNT_CREDENTIALS \
+          OAUTH_CREDENTIALS \
+          POSTGRES_PASSWORD \
+          REDIS_PASSWORD \
+          INSECURE_DEVELOPMENT_CERT \
+          INSECURE_DEVELOPMENT_KEY" \
+      "bash -s" < ../start.sh && break
+    echo "Retrying in 3 seconds..."
+    sleep 3
+  done
 
 else
   echo "Usage: $0 production"

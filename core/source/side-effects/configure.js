@@ -25,12 +25,16 @@ const EXISTING_FUNCTIONS_QUERY = `
 
 const CLEAN_OUT_VIEWS_QUERY = `
   DO $$
-  DECLARE r RECORD;
+  DECLARE sql TEXT;
   BEGIN
-      FOR r IN (SELECT table_name FROM information_schema.views WHERE table_schema = 'public')
-      LOOP
-          EXECUTE 'DROP VIEW IF EXISTS ' || quote_ident(r.table_name) || ' CASCADE';
-      END LOOP;
+      SELECT 'DROP VIEW IF EXISTS ' || string_agg(quote_ident(table_schema) || '.' || quote_ident(table_name), ', ') || ' CASCADE'
+      INTO sql
+      FROM information_schema.views
+      WHERE table_schema LIKE 'schema_%';
+
+      IF sql IS NOT NULL THEN
+          EXECUTE sql;
+      END IF;
   END $$
 `
 
@@ -259,10 +263,7 @@ async function cleanOutViews(domain, task) {
   return (
     postgres
       .query(domain, CLEAN_OUT_VIEWS_QUERY)
-      .then(({ rows }) => {
-        task.push(rows)
-        task.push('Done')
-      })
+      .then(() => task.push('Done'))
   )
 }
 
