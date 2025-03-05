@@ -6,8 +6,8 @@ if [ "$1" = "production" ]; then
     GCLOUD_USER=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
 
     if [ -n "$GCLOUD_USER" ]; then
-      echo "Gcloud is currently logged in as: $GCLOUD_USER"
-      read -p "Do you want to use this user? (y/N): " RESPONSE
+      echo "gcloud authed as: $GCLOUD_USER"
+      read -p "use this account? (y/N): " RESPONSE
       RESPONSE=$(echo "$RESPONSE" | tr '[:upper:]' '[:lower:]')  # Convert to lowercase
 
       if [ -z "$RESPONSE" ] || [ "$RESPONSE" = "n" ] || [ "$RESPONSE" = "no" ]; then

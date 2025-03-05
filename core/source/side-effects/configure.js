@@ -254,9 +254,16 @@ async function syncTables(domain, tables, report) {
   }
 }
 
-async function cleanOutViews(domain, tasks) {
-  tasks.push('Starting')
-  return postgres.query(domain, CLEAN_OUT_VIEWS_QUERY).then('Done')
+async function cleanOutViews(domain, task) {
+  task.push('Starting')
+  return (
+    postgres
+      .query(domain, CLEAN_OUT_VIEWS_QUERY)
+      .then(({ rows }) => {
+        task.push(rows)
+        task.push('Done')
+      })
+  )
 }
 
 function rowString(start, numEntries) {
