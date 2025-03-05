@@ -74,7 +74,7 @@
 
 <style>
 
-  .cm-editor-wrapper.fill-height .vue-codemirror,
+  .cm-editor-wrapper.vue-codemirror.fill-height,
   .cm-editor-wrapper.fill-height .cm-editor {
     height: 100%;
   }
