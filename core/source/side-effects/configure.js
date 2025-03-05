@@ -23,6 +23,17 @@ const EXISTING_FUNCTIONS_QUERY = `
   WHERE pronamespace = 'public'::regnamespace
 `
 
+const CLEAN_OUT_VIEWS_QUERY = `
+  DO $$
+  DECLARE r RECORD;
+  BEGIN
+      FOR r IN (SELECT table_name FROM information_schema.views WHERE table_schema = 'public')
+      LOOP
+          EXECUTE 'DROP VIEW IF EXISTS ' || quote_ident(r.table_name) || ' CASCADE';
+      END LOOP;
+  END $$
+`
+
 const insertRowsQuery = (table, columns, rows) => `
 INSERT INTO ${postgres.purifiedName(table)}
   (id,${columns.map(postgres.purifiedName).join(',')})
@@ -109,6 +120,9 @@ async function configurePostgres(domain, { tables={}, functions={} }, report) {
 }
 
 async function syncTables(domain, tables, report) {
+  report.tasks.postgres.clean_views = []
+  await cleanOutViews(domain, report.tasks.postgres.clean_views)
+
   report.tasks.postgres.tables = {}
 
   const { rows: existingTables } = await postgres.query(domain, EXISTING_TABLES_QUERY)
@@ -238,6 +252,11 @@ async function syncTables(domain, tables, report) {
     }
     tableTasks.push(`Done`)
   }
+}
+
+async function cleanOutViews(domain, tasks) {
+  tasks.push('Starting')
+  return postgres.query(domain, CLEAN_OUT_VIEWS_QUERY).then('Done')
 }
 
 function rowString(start, numEntries) {
