@@ -3,7 +3,7 @@ import EmbeddedAgent from './embedded.js'
 import { v1 as uuid, validate as validateUUID } from 'uuid'
 import selectFile from './select-file.js'
 
-let Agent
+let Agent = window.__default_knowlearning_agent
 
 function getNamespacedScope(namespace, scope) {
   const allow = namespace?.allow || []
@@ -37,7 +37,7 @@ export default function browserAgent(options={}) {
     return originalUpload(info)
   }
 
-  if (!Agent) Agent = newAgent
+  if (!Agent) window.__default_knowlearning_agent = Agent = newAgent
 
   return newAgent
 }
