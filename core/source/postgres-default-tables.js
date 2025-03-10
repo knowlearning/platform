@@ -31,24 +31,6 @@ export default {
       provider: 'TEXT'
     }
   },
-  subscriptions: {
-    type: 'application/json;type=subscription',
-    columns: {
-      scope: 'TEXT',
-      initialized: 'BIGINT',
-      synced: 'BIGINT'
-    }
-  },
-  queries: {
-    type: 'application/json;type=postgres-query',
-    columns: {
-      query: 'TEXT',
-      domain: 'TEXT',
-      requested: 'BIGINT',
-      core_latency: 'INTEGER',
-      responded: 'BIGINT'
-    }
-  },
   tags: {
     type: 'application/json;type=tag',
     columns: {
