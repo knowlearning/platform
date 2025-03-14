@@ -44,13 +44,13 @@ const xApiAgent = getAgent('xapi.knowlearning.systems')
 Agent.on('child', child => {
     const { environment: { user } } = child
 
-    child.on('mutate', async ({ scope, patch }) => {
+    child.on('mutate', async ({ scope, patch, context }) => {
         if (patch[0].path[0] === 'xapi') {
             const x = await xApiAgent.state(`xapi/${Agent.uuid()}`)
             Object.assign(x, {
                 ...patch[0].value,
                 origin: scope,
-                context: {}
+                context
             })
         }
     })
