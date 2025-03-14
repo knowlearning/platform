@@ -91,21 +91,6 @@ export default function EmbeddedAgent() {
     return id
   }
 
-  const tagTypeToTargetCache = {}
-  async function tagIfNotYetTaggedInSession(tag_type, target) {
-    const targetCache = tagTypeToTargetCache[tag_type]
-    if (targetCache && targetCache[target]) return
-
-    //  always use absolute referene when tagging
-    if (!isUUID(target)) target = (await metadata(target)).id
-
-    if (!tagTypeToTargetCache[tag_type]) tagTypeToTargetCache[tag_type] = {}
-    if (tagTypeToTargetCache[tag_type][target]) return
-
-    tagTypeToTargetCache[tag_type][target] = true
-    await tag(tag_type, target)
-  }
-
   async function patch(root, scopes) {
     //  TODO: consider watch function added to return to receive progress
     return send({ type: 'patch', root, scopes })
@@ -116,7 +101,6 @@ export default function EmbeddedAgent() {
       const { context } = await environment()
       scope = JSON.stringify(context)
     }
-    tagIfNotYetTaggedInSession('subscribed', scope)
     const startState = await send({ type: 'state', scope, user, domain })
     return new PatchProxy(startState, patch => {
       //  TODO: reject updates if user is not owner
@@ -130,9 +114,7 @@ export default function EmbeddedAgent() {
     return interact(scope, [{ op: 'add', path:['active'], value: null }])
   }
 
-  //  TODO: better approach than exposing addTag
-  function interact(scope, patch, addTag=true) {
-    if (addTag) tagIfNotYetTaggedInSession('mutated', scope)
+  function interact(scope, patch) {
     return send({ type: 'interact', scope, patch })
   }
 
@@ -213,10 +195,6 @@ export default function EmbeddedAgent() {
     })
   }
 
-  function tag(tag_type, target, context=[]) {
-    return send({ type: 'tag', tag_type, target, context })
-  }
-
   function login(provider, username, password) {
     return send({ type: 'login', provider, username, password })
   }
@@ -247,7 +225,6 @@ export default function EmbeddedAgent() {
     reconnect,
     synced,
     close,
-    query,
-    tag
+    query
   }
 }

@@ -51,7 +51,7 @@ function getAgent(domain, forceNew) {
         value = `ERROR: error occurred logging arguments ${error} ${arguments}`
       }
 
-      agent.interact('sessions', [{ op: 'add', path: ['active', session, 'log'], value }], false, false)
+      agent.interact('sessions', [{ op: 'add', path: ['active', session, 'log'], value }], false)
     },
     fetch,
     applyPatch: fastJSONPatch.applyPatch,

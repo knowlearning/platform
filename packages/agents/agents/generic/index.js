@@ -9,7 +9,6 @@ import downloadImplementation from '../download.js'
 //       for resoling default scope in context
 const DEFAULT_SCOPE_NAME = '[]'
 const UPLOAD_TYPE = 'application/json;type=upload'
-const TAG_TYPE = 'application/json;type=tag'
 const DOMAIN_CLAIM_TYPE = 'application/json;type=domain-claim'
 
 export default function Agent({ Connection, domain, token, sid, uuid, fetch, applyPatch, login, logout, reboot, handleDomainMessage, log:passedLog=console.log, variables={} }) {
@@ -17,7 +16,6 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
   const watchers = {}
   const keyToSubscriptionId = {}
   const lastInteractionResponse = {}
-  const tagTypeToTargetCache = {}
 
   log('INITIALIZING AGENT CONNECTION')
   const [
@@ -32,7 +30,7 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
   // initialize session
   environment()
     .then(({ session }) => {
-      interact('sessions', [{ op: 'add', path: ['active', session], value: { queries: {}, subscriptions: {} } }], false, false)
+      interact('sessions', [{ op: 'add', path: ['active', session], value: { queries: {}, subscriptions: {} } }], false)
     })
 
   const internalReferences = {
@@ -44,7 +42,6 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     environment,
     lastInteractionResponse,
     lastMessageResponse,
-    tagIfNotYetTaggedInSession,
     interact,
     fetch,
     synced,
@@ -71,23 +68,8 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     ]
     if (name) patch.push({ op: 'add', path: ['name'], value: name })
 
-    interact(id, patch, false)
+    interact(id, patch)
     return id
-  }
-
-  async function tagIfNotYetTaggedInSession(tag_type, target) {
-    const targetCache = tagTypeToTargetCache[tag_type]
-    if (targetCache && targetCache[target]) return
-
-    if (!targetCache) tagTypeToTargetCache[tag_type] = {}
-    if (tagTypeToTargetCache[tag_type][target]) return
-
-    tagTypeToTargetCache[tag_type][target] = true
-
-    //  always use absolute referene when tagging
-    if (!isUUID(target)) target = (await metadata(target)).id
-
-    await tag(tag_type, target)
   }
 
   async function upload(info) {
@@ -110,9 +92,7 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     }
   }
 
-  //  TODO: addTag option should probably not be exposed
-  async function interact(scope=DEFAULT_SCOPE_NAME, patch, addTag=true, manageLocalState=true) {
-    if (addTag) tagIfNotYetTaggedInSession('mutated', scope)
+  async function interact(scope=DEFAULT_SCOPE_NAME, patch, manageLocalState=true) {
     //  TODO: ensure user is owner of scope
     const response = queueMessage({scope, patch})
 
@@ -174,7 +154,7 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
         path: ['active', session, 'queries', id],
         value: { query, params, domain, context }
       }
-    ], false, false)
+    ], false)
     try {
       const response = await lastMessageResponse()
       const { rows } = response
@@ -189,19 +169,12 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
           op: 'remove',
           path: ['active', session, 'queries', id]
         }
-      ], false, false)
+      ], false)
       return rows
     }
     catch (error) {
       throw error
     }
-  }
-
-  function tag(tag_type, target, context=[]) {
-    return create({
-      active_type: TAG_TYPE,
-      active: { tag_type, target, context }
-    })
   }
 
   const reactions = { child: [] }
@@ -234,7 +207,6 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     synced,
     disconnect,
     reconnect,
-    tag,
     debug,
     on
   }
