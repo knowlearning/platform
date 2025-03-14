@@ -30,13 +30,5 @@ export default {
       authenticated: 'BIGINT',
       provider: 'TEXT'
     }
-  },
-  tags: {
-    type: 'application/json;type=tag',
-    columns: {
-      context: 'TEXT[]',
-      tag_type: 'TEXT',
-      target: 'TEXT'
-    }
   }
 }

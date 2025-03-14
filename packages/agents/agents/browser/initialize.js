@@ -99,12 +99,11 @@ function embed(environment, iframe) {
       })
     }
     else if (type === 'interact') {
-      let { scope, patch } = message
+      let { scope, patch, context } = message
       const namespacedScope = getNamespacedScope(environment.namespace, scope)
       let before, after
       if (listeners.mutate) before = copy(await Agent.state(namespacedScope))
-      await Agent.interact(namespacedScope, patch, false)
-      if (listeners.mutate) after = copy(await Agent.state(namespacedScope))
+      await Agent.interact(namespacedScope, patch)
       if (listeners.mutate) {
         const patchCopy = copy(patch)
         patchCopy.forEach(op => op.path.shift()) //  remove "active" path prefix
@@ -112,7 +111,7 @@ function embed(environment, iframe) {
           .mutate({
             scope: namespacedScope,
             before,
-            after,
+            after: copy(await Agent.state(namespacedScope)),
             patch: patchCopy
           })
       }
@@ -123,11 +122,6 @@ function embed(environment, iframe) {
       const namespacedScope = getNamespacedScope(environment.namespace, scope)
 
       sendDown(await Agent.metadata(namespacedScope, user, domain))
-    }
-    else if (type === 'tag') {
-      const { tag_type, target, context } = message
-      const prependedContext = [environment.id, ...context]
-      sendDown(await Agent.tag(tag_type, target, prependedContext))
     }
     else if (type === 'state') {
       const { scope, user, domain } = message

@@ -1,7 +1,7 @@
 import { v4 as uuid, validate as isUUID } from 'uuid'
 import PatchProxy from '@knowlearning/patch-proxy'
 
-export default function(scope='[]', user, domain, { keyToSubscriptionId, watchers, states, create, environment, lastMessageResponse, lastInteractionResponse, tagIfNotYetTaggedInSession, interact, log }) {
+export default function(scope='[]', user, domain, { keyToSubscriptionId, watchers, states, create, environment, lastMessageResponse, lastInteractionResponse, interact, log }) {
   let resolveMetadataPromise
   let metadataPromise = new Promise(resolve => resolveMetadataPromise = resolve)
 
@@ -20,7 +20,7 @@ export default function(scope='[]', user, domain, { keyToSubscriptionId, watcher
           op: 'add',
           path: ['active', session, 'subscriptions', id],
           value: { scope, user, domain, ii: null }
-        }], false, false)
+        }], false)
         try {
           resolve(await lastMessageResponse())
         }
