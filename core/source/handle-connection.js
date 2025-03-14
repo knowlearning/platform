@@ -214,7 +214,7 @@ export default async function handleConnection(connection, domain, sid) {
           }
         }
         else {
-          const { scope, patch, si } = message
+          const { scope, patch, context, si } = message
 
           if (si !== sessionMessageIndexes[session] + 1) console.warn(`SKIPPING MESSAGE INDEX! TODO: INVESTIGATE CAUSE ${sessionMessageIndexes[session]} -> ${si}`)
 
