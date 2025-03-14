@@ -13,6 +13,7 @@ import { getCookies } from 'https://deno.land/std@0.214.0/http/cookie.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
 import { decodeBase64 } from "https://deno.land/std/encoding/base64.ts"
 
+const environment = Deno.env.toObject()
 
 const { box } = nacl
 const uuid = () => crypto.randomUUID()
@@ -21,7 +22,6 @@ const randomBytes = (size, encoding) => {
   if (encoding === 'hex') return encodeToString(bytes)
   else return bytes
 }
-const environment = Deno.env.toObject()
 const writeFile = (filename, data) => Deno.writeFile(filename, (new TextEncoder()).encode(data))
 const cryptoDigest = (algorithm, data) => crypto.subtle.digest(algorithm, data)
 
