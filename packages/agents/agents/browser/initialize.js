@@ -99,11 +99,11 @@ function embed(environment, iframe) {
       })
     }
     else if (type === 'interact') {
-      let { scope, patch, context } = message
+      let { scope, patch, context=[] } = message
       const namespacedScope = getNamespacedScope(environment.namespace, scope)
       let before, after
       if (listeners.mutate) before = copy(await Agent.state(namespacedScope))
-      await Agent.interact(namespacedScope, patch)
+      await Agent.interact(namespacedScope, patch, true, [environment.id, ...context])
       if (listeners.mutate) {
         const patchCopy = copy(patch)
         patchCopy.forEach(op => op.path.shift()) //  remove "active" path prefix

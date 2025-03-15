@@ -114,8 +114,8 @@ export default function EmbeddedAgent() {
     return interact(scope, [{ op: 'add', path:['active'], value: null }])
   }
 
-  function interact(scope, patch) {
-    return send({ type: 'interact', scope, patch })
+  function interact(scope, patch, _, context) {
+    return send({ type: 'interact', scope, patch, context })
   }
 
   async function upload(info) {

@@ -92,9 +92,9 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     }
   }
 
-  async function interact(scope=DEFAULT_SCOPE_NAME, patch, manageLocalState=true) {
+  async function interact(scope=DEFAULT_SCOPE_NAME, patch, manageLocalState=true, context=[]) {
     //  TODO: ensure user is owner of scope
-    const response = queueMessage({scope, patch})
+    const response = queueMessage({scope, patch, context})
 
     //  if we are watching this scope, we want to keep track of last interaction we fired
     const qualifiedScope = isUUID(scope) ? scope : `//${scope}`

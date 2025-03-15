@@ -38,7 +38,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
 
   async function environment() { return { variables, ...(await environmentPromise), context: [] } }
 
-  function queueMessage({ scope, patch }) {
+  function queueMessage({ scope, patch, context }) {
     if (lastSynchronousScopePatched === scope) {
       const i = messageQueue.length - 1
       messageQueue[i].patch = [...messageQueue[i].patch, ...patch]
@@ -46,7 +46,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
     else {
       si += 1
       lastSynchronousScopePatchPromise = new Promise((resolve, reject) => responses[si] = [[resolve, reject]])
-      messageQueue.push({ scope, patch, si, ts: Date.now()})
+      messageQueue.push({ scope, patch, context, si, ts: Date.now()})
       lastSynchronousScopePatched = scope
       flushMessageQueue()
     }
