@@ -28,7 +28,18 @@ window.Agent = Agent
 const id = window.location.pathname.slice(1)
 const { mode='test' } = await Agent.environment()
 
-if (mode === 'EMBEDED_WATCHER_TEST_MODE') {
+if (id.startsWith('reconnect_test')) {
+  const name = id.split('/')[1]
+  const x = await Agent.state(name)
+  x.a = uuid()
+//  await Agent.synced()
+  const other = await Agent.state(name)
+  if (other.a !== x.a) {
+    console.log('ERROR!!!!!!!!!!!!', x.a, other.a)
+  }
+  else location.reload()
+}
+else if (mode === 'EMBEDED_WATCHER_TEST_MODE') {
   const states = []
   const unwatch = Agent.watch(id, ({ patch, state }) => {
     states.push(state)
