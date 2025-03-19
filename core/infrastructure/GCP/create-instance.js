@@ -35,7 +35,34 @@ async function waitForInstanceRunning(provider, name, { project, zone }) {
   }
 }
 
+async function deleteInstance(provider, name, { project, zone }) {
+  console.log(`Deleting instance "${name}"...`)
+  const url = `https://compute.googleapis.com/compute/v1/projects/${project}/zones/${zone}/instances/${name}`
 
+  const response = await infrastructureRequest('GCP', 'DELETE', url)
+
+  if (!response.ok) {
+    const errorBody = await response.text()
+    throw new Error(`Failed to delete instance: ${response.status} ${response.statusText}\n${errorBody}`)
+  }
+
+  console.log(`Waiting for instance "${name}" to be fully deleted...`)
+
+  while (true) {
+    try {
+      await new Promise(r => setTimeout(r, 1000))
+      await getInstanceStatus(provider, name, { project, zone })
+      console.log(`Instance "${name}" still exists. Waiting...`)
+    } catch (error) {
+      if (error.message.includes('404')) {
+        console.log(`Instance "${name}" deleted successfully`)
+        break
+      }
+      console.error(`Error checking instance status: ${error}`)
+    }
+  }
+  console.log(`Instance "${name}" deleted successfully`)
+}
 
 export default async function createInstance(provider, name, { project, zone, machine, image, staticIp, tags, script }) {
   console.log("Creating VM instance...")
@@ -70,16 +97,31 @@ export default async function createInstance(provider, name, { project, zone, ma
     }
   }
 
-  const response = await infrastructureRequest('GCP', 'POST', url ,body)
+  // Check if the instance already exists
+  try {
+    const status = await getInstanceStatus(provider, name, { project, zone })
+    console.log(`Instance ${name} already exists with status "${status}"`)
+
+    const choice = prompt(`Do you want to delete the existing instance "${name}"? (y/n): `)
+
+    if (choice.toLowerCase() === 'y') {
+      await deleteInstance(provider, name, { project, zone })
+    } else {
+      console.log("Aborting instance creation.")
+      Deno.exit(0)
+    }
+  } catch (error) {
+    if (!error.message.includes('404')) throw error
+  }
+
+  // Create the instance
+  const response = await infrastructureRequest('GCP', 'POST', url, body)
 
   if (!response.ok) {
     const info = await response.json()
-    if (info.error?.errors?.[0]?.reason === 'alreadyExists') {
-      console.log(`Instance ${name} already exists`)
-    }
-    else throw new Error(`Failed to create instance: ${await response.text()}`)
+    throw new Error(`Failed to create instance: ${info.error.message}`)
   }
-  else console.log(`Instance ${name} created successfully`)
 
+  console.log(`Instance ${name} created successfully`)
   await waitForInstanceRunning(provider, name, { project, zone })
 }
