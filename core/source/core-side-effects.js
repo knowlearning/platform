@@ -109,5 +109,5 @@ async function isAdmin(user, requestingDomain, requestedDomain) {
 }
 
 function isDevelopmentTest(domain) {
-  return domain === 'localhost:5112' &&  MODE === 'local'
+  return MODE === 'local' && (domain === 'localhost:5112' || domain === 'admin.knowlearning.systems')
 }
