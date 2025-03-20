@@ -29,7 +29,8 @@ export default function subscribe(id, callback, scope) {
       subscriptionResponses[id].splice(callbackIndex, 1)
       if (subscriptionResponses[id].length === 0) {
         delete subscriptionResponses[id]
-        await subscriptions.unsubscribe(id)
+        // TODO: check if passing undefined id results in unsubscribe of all channels
+        //await subscriptions.unsubscribe(id)
       }
     }
   }
