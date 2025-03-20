@@ -114,6 +114,7 @@
     closed.value = true
     if (embedded) {
       if (candliGameId) {
+        await Agent.synced()
         const latestCompetencies = await Agent.state(`pila/latest_competencies/${candliGameId}`)
         Agent.close({ competencies: copy(latestCompetencies), success: info?.success })
       }
