@@ -9,6 +9,7 @@ import interact from '../interact/index.js'
 import POSTGRES_DEFAULT_TABLES from '../postgres-default-tables.js'
 import configuration from '../configuration.js'
 import scopeToId from '../scope-to-id.js'
+import SESSION from '../session.js'
 
 const EXISTING_TABLES_QUERY = `
   SELECT tablename
@@ -66,7 +67,7 @@ export default async function configure({ domain, user, session, scope, patch, s
     if (op === 'add' && path.length === 1 && path[0] === 'active' && await isAdmin(user, domain, value.domain)) {
       const { config, report, domain:domainToConfigure } = value
       const domainConfig = await coreState('core', 'domain-config', 'core')
-      domainConfig[domainToConfigure] = { config, report, admin: user }
+      domainConfig[domainToConfigure] = { config, report, admin: user, server: SESSION }
 
       const reportState = await coreState(user, report, domain)
       reportState.tasks = {}

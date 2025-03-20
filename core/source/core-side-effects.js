@@ -10,6 +10,7 @@ import interact from './interact/index.js'
 import * as redis from './redis.js'
 import coreState, { coreStateSynced } from './core-state.js'
 import { domainAdmin } from './configuration.js'
+import SESSION from './session.js'
 
 const { ADMIN_DOMAIN, MODE } = environment
 
@@ -76,7 +77,7 @@ export default async function coreSideEffects({
       const domainConfig = await coreState('core', 'domain-config', 'core')
       const coreConfigCopyId = uuid()
       const coreConfigCopy = await coreState(ADMIN_DOMAIN, coreConfigCopyId, 'core')
-      domainConfig[configureDomain] = { config: coreConfigCopyId, report, admin: user }
+      domainConfig[configureDomain] = { config: coreConfigCopyId, report, admin: user, server: SESSION }
 
       reportState.tasks = {}
       reportState.start = Date.now()

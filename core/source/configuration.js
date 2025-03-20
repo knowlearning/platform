@@ -2,8 +2,10 @@ import { parseYAML, environment } from './utils.js';
 import * as redis from './redis.js'
 import { download } from './storage.js'
 import subscribe from './subscribe.js'
+import domainAgent from './domain-agent/index.js'
 import ADMIN_DOMAIN_CONFIG from './admin-domain-config.js'
 import POSTGRES_DEFAULT_TABLES from './postgres-default-tables.js'
+import SESSION from './session.js'
 
 const { ADMIN_DOMAIN } = environment
 const DOMAIN_CONFIG_SCOPE = 'domain-config'
@@ -11,10 +13,17 @@ const DOMAIN_CONFIG_SCOPE = 'domain-config'
 const cache = {}
 
 //  invalidate cached domain config on claim change
-subscribe(DOMAIN_CONFIG_SCOPE, ({ patch: [{ path }] }) => {
-  const domain = path[1]
-  console.log('invalidating cache...', domain, path)
-  delete cache[domain]
+subscribe(DOMAIN_CONFIG_SCOPE, ({ patch: [{ path, value }] }) => {
+  if (path[0] === 'active' && cache[path[1]]) {
+    const domain = path[1]
+    console.log('invalidating cache...', domain)
+
+    delete cache[domain]
+    if (value?.server !== SESSION) {
+      console.log('UPDATING DOMAIN AGENT', value, path)
+      domainAgent(domain, true)
+    }
+  }
 })
 
 export async function domainAdmin(domain) {
