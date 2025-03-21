@@ -4,12 +4,18 @@ const subscriptionResponses = {}
 
 //  TODO: clean up subscriptions when no more subscribers
 export default function subscribe(id, callback, scope) {
+  if (id === undefined) {
+    console.log('UNDEFINED ID SUBSCRIBED TO', scope)
+    return
+  }
+
   if (!subscriptionResponses[id]) {
     subscriptionResponses[id] = []
     connected
       .then(() => {
         subscriptions
           .subscribe(id, message => {
+            if (!subscriptionResponses[id]) subscriptionResponses[id] = []
             const update = JSON.parse(message)
             subscriptionResponses[id].forEach(cb => cb(update))
           })
@@ -28,8 +34,8 @@ export default function subscribe(id, callback, scope) {
     if (callbackIndex > -1) {
       subscriptionResponses[id].splice(callbackIndex, 1)
       if (subscriptionResponses[id].length === 0) {
-        delete subscriptionResponses[id]
         // TODO: check if passing undefined id results in unsubscribe of all channels
+        //delete subscriptionResponses[id]
         //await subscriptions.unsubscribe(id)
       }
     }
