@@ -18,22 +18,48 @@
     fillHeight: Boolean
   })
 
-  const state = await Agent.state(id)
+  const state = ref(await Agent.state(id))
+  console.log('state value', state.value)
   const cm = ref()
+
+  let outstandingPatch = null
+
+  Agent.watch(id, async () => {
+    while (outstandingPatch) {
+      await Promise.all([
+        outstandingPatch,
+        new Promise(r => setTimeout(r, 1000))
+      ])
+    }
+    Agent.state(id).then(value => {
+      if (compare(state.value, value).length) {
+        state.value = value
+      }
+    })
+  })
 
   const code = computed({
     get() {
-      return YAML.stringify(state, { sortMapEntries: true })
+      return YAML.stringify(state.value)
     },
     set(value) {
       try {
         applyPatch(
-          state,
+          state.value,
           compare(
-            state,
+            state.value,
             YAML.parse(value, { strict: true })
           )
         )
+        const thisOutstandingPatch = (
+          Agent
+            .synced()
+            .then(() => setTimeout(() => {
+              if (outstandingPatch === thisOutstandingPatch) outstandingPatch = null
+            }, 1000))
+        )
+
+        outstandingPatch = thisOutstandingPatch
       }
       catch (error) {
         console.log('ERROR PARSING WORLD EDIT')
