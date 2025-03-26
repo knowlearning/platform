@@ -40,7 +40,18 @@
 
   const code = computed({
     get() {
-      return YAML.stringify(state.value)
+      if (cm.value) {
+        const doc = cm.value.view.state.doc.toString()
+        try {
+          const diff = compare(YAML.parse(doc, { strict: true }), state.value)
+          //  TODO: smarter text insertion update
+          return diff.length ? YAML.stringify(state.value, { blockQuote: 'literal' }) : doc
+        }
+        catch (error) {
+          return doc
+        }
+      }
+      else return  YAML.stringify(state.value, { blockQuote: 'literal' })
     },
     set(value) {
       try {
