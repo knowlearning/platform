@@ -2,27 +2,6 @@ import { applyPatch, Agent, uuid } from './utils.js'
 import handleConnection from './handle-connection.js'
 import createSession from './domain-agent/create-session.js'
 
-const denoProcess = globalThis
-
-function Connection() {
-  const connection = uuid()
-
-  this.send = message => denoProcess.postMessage({ ...message, connection })
-
-  denoProcess.addEventListener('message', ({ data }) => {
-    if (!data) this.onmessage(data) // think of better way that doesn't pass all heartbeats to all agents inside domain agent
-    else if (data.connection === connection) this.onmessage(data)
-  })
-
-  // TODO: consider what onclose and onerror mean
-  setTimeout(() => this.onopen())
-
-  return this
-}
-
-const children = {}
-const listeners = {}
-
 const agents = {}
 
 function getAgent(domain, forceNew) {
@@ -35,9 +14,9 @@ function getAgent(domain, forceNew) {
         connection.onmessage(message)
       }
 
-      const connection = createConnection(this.send, domain)
+      const connection = createConnection(this, domain)
       const sessionCreated = (
-        createSession(domain, 'core')
+        createSession(domain, 'node')
           .then(sid => {
             handleConnection(connection, domain, sid)
           })
@@ -76,22 +55,22 @@ function getAgent(domain, forceNew) {
   return agent
 }
 
-function createConnection(send, domain) {
+function createConnection(agentConnection, domain) {
   let queue = []
   let closed = false
 
   return {
     async send(message) {
       if (closed) console.warn('MESSAGE SENT TO CLOSED CONNECTION', message)
-      else if (!message) send() // heartbeat
+      else if (!message) agentConnection.onmessage() // heartbeat
       else if (message.server) {
         // TODO: consider more reliable/explicit recognintion of auth response method
-        send(message)
+        agentConnection.onmessage(message)
         while (queue.length) send(queue.shift())
         queue = null
       }
       else if (queue) queue.push(message)
-      else send(message)
+      else agentConnection.onmessage(message)
     },
     close(info) {
       console.warn('WORKER CLOSED THROUGH CONNECTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', info)
