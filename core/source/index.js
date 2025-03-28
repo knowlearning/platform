@@ -1,6 +1,7 @@
 import { environment, requestDomain } from './utils.js'
 import handleHttpRequest from './handle-http-request.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
+import Agent from './agent.js'
 
 const {
   MODE,

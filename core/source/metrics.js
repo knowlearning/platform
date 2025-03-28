@@ -8,8 +8,8 @@ async function processMemCPUData() {
   const output = await process.output()
   process.close()
 
-  const lines = (new TextDecoder().decode(output)).split('\n')
-  const [_, cpu, mem] = lines[1].split(/\s+/)
+  const lines = (new TextDecoder().decode(output)).split('\n').map(l => l.trim())
+  const [cpu, mem] = lines[1].split(/\s+/)
   return {
     cpu: parseFloat(cpu)/100,
     mem: parseFloat(mem)/100
