@@ -2,6 +2,10 @@ import { environment, requestDomain } from './utils.js'
 import handleHttpRequest from './handle-http-request.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
 import Agent from './agent.js'
+import SESSION from './session.js'
+import { CPUData, processData } from './metrics.js'
+
+const METRICS_POLL_INTERVAL = 5000
 
 const {
   MODE,
@@ -16,7 +20,6 @@ ensureDomainConfigured(ADMIN_DOMAIN)
 ensureDomainConfigured('core')
 
 
-console.log('starting tls server???', !!cert, !!key)
 if (cert && key) Deno.serve({ port: TLS_PORT, cert, key }, handler)
 
 Deno.serve({ port: PORT }, handler)
@@ -30,3 +33,20 @@ globalThis.addEventListener("unhandledrejection", event => {
   console.log("UNHANDLED REJECTION HANDLER", event)
   event.preventDefault()
 })
+
+Agent
+  .state('metrics')
+  .then(metrics => {
+    metrics[SESSION] = {}
+
+    CPUData().then(data => metrics[SESSION].cpu = data)
+
+    let lastCall
+    async function pollMetrics() {
+      lastCall = Date.now()
+      metrics[SESSION].process = await processData()
+      setTimeout(pollMetrics, lastCall + METRICS_POLL_INTERVAL - Date.now())
+    }
+
+    pollMetrics()
+  })

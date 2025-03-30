@@ -2,6 +2,7 @@ import { createApp, ref } from 'vue/dist/vue.esm-bundler'
 import Agent from '@knowlearning/agents'
 import { vuePersistentComponent } from '@knowlearning/agents/vue.js'
 import { createRouter, createWebHistory } from 'vue-router'
+import NodesPanel from './nodes-panel.vue'
 
 import 'vuetify/styles'
 import '@fortawesome/fontawesome-free/css/all.css'
@@ -26,7 +27,8 @@ window.Agent = Agent
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', component: { template: '<div>woo</div>' } },
+    { path: '/', component: { template: '<div></div>' } },
+    { path: '/nodes', component: NodesPanel },
     { path: '/:domain/config', component: DomainConfig, props: true },
     { path: '/:domain/agents', component: DomainAgents, props: true },
     { path: '/:domain/sql', component: DomainSQL, props: true },

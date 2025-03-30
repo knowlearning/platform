@@ -108,6 +108,3 @@ export async function CPUData() {
 
   return cpuInfo
 }
-
-console.log(await processData())
-console.log(await CPUData())
