@@ -130,6 +130,7 @@
         Object
           .keys(state)
           .forEach(key => {
+            if (!state[key].process) return
             if (!data[key]) data[key] = []
             console.log(state[key])
             const now = new Date()
