@@ -10,6 +10,7 @@ while true; do
         --allow-net \
         --allow-write \
         --allow-read \
+        --allow-run \
         --unstable-worker-options \
         --cert=/etc/ssl/certs/ca-certificates.crt \
         --v8-flags=--max-old-space-size=8000 \
