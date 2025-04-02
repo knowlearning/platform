@@ -187,9 +187,9 @@
         })
     }
 
-    Agent.watch('metrics', ({ state }) => {
-      if (!state[session].process) return
-      console.log(state[session])
+    Agent.watch(['metrics', session], state => {
+      if (!state.process) return
+      console.log(state)
       const now = new Date()
 
       const {
@@ -197,11 +197,11 @@
         processMemory,
         totalMemory,
         usedMemory
-      } = state[session].process || {}
+      } = state.process || {}
 
-      const { rx, tx } = state[session].network || { rx: 0, tx: 0 }
+      const { rx, tx } = state.network || { rx: 0, tx: 0 }
 
-      lastPing.value = state[session].ping
+      lastPing.value = state.ping
 
       trace.x.push(now)
       trace.y.push(processCPU)
