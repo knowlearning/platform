@@ -44,7 +44,12 @@ Agent
     let lastCall
     async function pollMetrics() {
       lastCall = Date.now()
-      metrics[SESSION].process = await processData()
+      metrics[SESSION].ping = lastCall
+      try {
+        metrics[SESSION].process = await processData()
+      } catch (error) {
+        metrics[SESSION].error = error.toString()
+      }
       setTimeout(pollMetrics, lastCall + METRICS_POLL_INTERVAL - Date.now())
     }
 

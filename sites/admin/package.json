@@ -15,6 +15,7 @@
     "@vitejs/plugin-vue": "^5.0.4",
     "chart.js": "^4.4.2",
     "chartjs-plugin-autocolors": "^0.2.2",
+    "dayjs": "^1.11.13",
     "fast-json-patch": "^3.1.1",
     "flatpickr": "^4.6.13",
     "plotly.js-dist": "^3.0.1",
