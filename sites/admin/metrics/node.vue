@@ -15,6 +15,7 @@
   const netPlot = ref(null)
 
   const lastPing = ref(null)
+  const connections = ref(null)
 
   const lastPingView = ref(null)
 
@@ -202,6 +203,7 @@
       const { rx, tx } = state.network || { rx: 0, tx: 0 }
 
       lastPing.value = state.ping
+      connections.value = state.connections
 
       trace.x.push(now)
       trace.y.push(processCPU)
@@ -219,14 +221,9 @@
   <div>
     <h1>Node {{session}}</h1>
     <h2>Last Ping: {{lastPingView}}</h2>
-    <div
-      ref="cpuPlot"
-    />
-    <div
-      ref="memPlot"
-    />
-    <div
-      ref="netPlot"
-    />
+    <div ref="cpuPlot" />
+    <div ref="memPlot" />
+    <div ref="netPlot" />
+    <pre>{{connections}}</pre>
   </div>
 </template>

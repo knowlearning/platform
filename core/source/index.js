@@ -37,7 +37,9 @@ globalThis.addEventListener("unhandledrejection", event => {
 Agent
   .state('metrics')
   .then(metrics => {
-    metrics[SESSION] = {}
+    metrics[SESSION] = {
+      connections: {}
+    }
 
     CPUData().then(data => metrics[SESSION].cpu = data)
 

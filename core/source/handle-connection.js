@@ -6,6 +6,7 @@ import SESSION from './session.js'
 import subscriptions from './subscriptions.js'
 import coreSideEffects from './core-side-effects.js'
 import domainAgent from './domain-agent/index.js'
+import Agent from './agent.js'
 
 const HEARTBEAT_INTERVAL = 5000
 const SESSION_RECONNECTION_INTERVAL = 60000
@@ -55,6 +56,13 @@ export default async function handleConnection(connection, domain, sid) {
     delete responseBuffers[session]
     delete activeConnections[session]
     delete outstandingSideEffects[session]
+
+    Agent
+      .state('metrics')
+      .then(metrics => delete metrics[SESSION].connections[session])
+      .catch(error => {
+        console.log('ERROR removing connection data', domain, user, session, error)
+      })
 
     if (subscriptions[session]) {
       Promise
@@ -158,6 +166,13 @@ export default async function handleConnection(connection, domain, sid) {
           }
         }
         else {
+          if (domain !== 'core') {
+            Agent
+              .state('metrics')
+              .then(metrics => {
+                metrics[SESSION].connections[session] = { user, domain }
+              })
+          }
           sessionMessageIndexes[session] = -1
           responseBuffers[session] = []
           outstandingSideEffects[session] = {}
