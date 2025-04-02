@@ -1,5 +1,5 @@
 <script setup>
-  import { ref, reactive, onMounted } from 'vue'
+  import { ref, reactive, computed, onMounted } from 'vue'
   import Plotly from 'plotly.js-dist'
   import dayjs from 'dayjs'
   import relativeTime from 'dayjs/plugin/relativeTime'
@@ -14,6 +14,15 @@
   const memPlot = ref(null)
 
   const lastPing = ref(null)
+
+  const lastPingView = ref(null)
+
+  function updateLastPingView() {
+    lastPingView.value = dayjs(lastPing.value).fromNow()
+    setTimeout(updateLastPingView, 1000)
+  }
+
+  updateLastPingView()
 
   onMounted(() => {
     const trace = {
@@ -153,7 +162,7 @@
 <template>
   <div>
     <h1>Node {{session}}</h1>
-    <h2>Last Ping: {{dayjs(lastPing).fromNow()}}</h2>
+    <h2>Last Ping: {{lastPingView}}</h2>
     <div
       ref="cpuPlot"
     />
