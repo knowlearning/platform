@@ -13,6 +13,7 @@
   const cpuPlot = ref(null)
   const memPlot = ref(null)
   const netPlot = ref(null)
+  const connectionPlot = ref(null)
 
   const lastPing = ref(null)
   const connections = ref(null)
@@ -68,6 +69,7 @@
     const freeMemoryData = []
     const rxData = []
     const txData = []
+    const numConnectionData = []
 
     const memLayout = {
       title: 'Memory Usage Over Time',
@@ -118,10 +120,6 @@
 
     Plotly.newPlot(memPlot.value, memTraces, memLayout, plotlyOptions)
 
-
-
-
-
     const netLayout = {
       title: 'Network Usage Over Time',
       xaxis: { title: 'Time' },
@@ -160,13 +158,44 @@
     Plotly.newPlot(netPlot.value, netTraces, netLayout, plotlyOptions)
 
 
-    function updateGraph(newTime, singleProcess, usedMemory, totalMemory, rxRate, txRate) {
+
+    const connectionLayout = {
+      title: 'Connections Over Time',
+      xaxis: { title: 'Time' },
+      yaxis: {
+        title: 'Connections'
+      },
+      hovermode: 'closest',
+      showlegend: true,
+      margin: { t: 50, b: 50, l: 50, r: 50 },
+      legend: {
+        x: 0,
+        y: 1,
+        yanchor: 'bottom',
+        orientation: 'h'
+      }
+    }
+
+    const connectionTraces = [
+      {
+        x: timeData,
+        y: numConnectionData,
+        name: 'User Connections',
+        mode: 'lines',
+        line: { color: 'rgba(100, 200, 100, 0.6)' }
+      }
+    ]
+
+    Plotly.newPlot(connectionPlot.value, connectionTraces, connectionLayout, plotlyOptions)
+
+    function updateGraph(newTime, singleProcess, usedMemory, totalMemory, rxRate, txRate, numConnections) {
         timeData.push(newTime)
         usedMemoryData.push(usedMemory - singleProcess)
         singleProcessData.push(singleProcess)
         freeMemoryData.push(totalMemory - usedMemory)
         rxData.push(rxRate)
         txData.push(txRate)
+        numConnectionData.push(numConnections)
 
         if (timeData.length > 100) {
           timeData.shift()
@@ -175,6 +204,7 @@
           freeMemoryData.shift()
           rxData.shift()
           txData.shift()
+          numConnectionData.shift()
         }
 
         Plotly.update(memPlot.value, {
@@ -185,6 +215,11 @@
         Plotly.update(netPlot.value, {
             x: [timeData, timeData],
             y: [rxData, txData]
+        })
+
+        Plotly.update(connectionPlot.value, {
+            x: [timeData],
+            y: [numConnectionData]
         })
     }
 
@@ -203,7 +238,8 @@
       const { rx, tx } = state.network || { rx: 0, tx: 0 }
 
       lastPing.value = state.ping
-      connections.value = state.connections
+      connections.value = state.connections || {}
+      const numConnections = Object.keys(connections.value).length
 
       trace.x.push(now)
       trace.y.push(processCPU)
@@ -212,7 +248,7 @@
 
       console.log(processMemory, totalMemory, usedMemory)
 
-      updateGraph(now, processMemory, usedMemory, totalMemory, rx, tx)
+      updateGraph(now, processMemory, usedMemory, totalMemory, rx, tx, numConnections)
     }, 'node', 'core')
   })
 </script>
@@ -224,6 +260,7 @@
     <div ref="cpuPlot" />
     <div ref="memPlot" />
     <div ref="netPlot" />
+    <div ref="connectionPlot" />
     <pre>{{connections}}</pre>
   </div>
 </template>
