@@ -197,9 +197,9 @@
         processMemory,
         totalMemory,
         usedMemory
-      } = state[session].process
+      } = state[session].process || {}
 
-      const { rx, tx } = state[session].network
+      const { rx, tx } = state[session].network || { rx: 0, tx: 0 }
 
       lastPing.value = state[session].ping
 
