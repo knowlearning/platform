@@ -3,7 +3,7 @@ import handleHttpRequest from './handle-http-request.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
 import Agent from './agent.js'
 import SESSION from './session.js'
-import { CPUData, processData } from './metrics.js'
+import { CPUData, processData, networkData } from './metrics.js'
 
 const METRICS_POLL_INTERVAL = 5000
 
@@ -47,6 +47,7 @@ Agent
       metrics[SESSION].ping = lastCall
       try {
         metrics[SESSION].process = await processData()
+        metrics[SESSION].network = await networkData()
       } catch (error) {
         metrics[SESSION].error = error.toString()
       }

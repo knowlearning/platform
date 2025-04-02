@@ -108,3 +108,55 @@ export async function CPUData() {
 
   return cpuInfo
 }
+
+let externalInterface
+async function getExternalInterface() {
+  if (externalInterface) return externalInterface
+
+  const interfaces = await Deno.readDir("/sys/class/net")
+  for await (const entry of interfaces) {
+    if (entry.name !== "lo") {
+      console.log(entry.name)
+      externalInterface = entry.name
+      return entry.name
+    }
+  }
+  throw new Error("No external interface found")
+}
+
+let lastRx = 0
+let lastTx = 0
+let lastNetworkDataPoll = Date.now()
+
+//  returns average since last pull
+export async function networkData() {
+  const { rx, tx } = await getBytes()
+  const now = Date.now()
+
+  const interval = (now - lastNetworkDataPoll) / 1000
+  lastNetworkDataPoll = now
+
+  const drx = rx - lastRx
+  const dtx = tx - lastTx
+
+  lastRx = rx
+  lastTx = tx
+
+  return {
+    rx: Math.round(drx / interval),
+    tx: Math.round(dtx / interval)
+  }
+}
+
+async function readFileAsRoot(path) {
+  const cmd = new Deno.Command("cat", { args: [path], stdout: "piped", stderr: "null" })
+  const { stdout } = await cmd.output()
+  return new TextDecoder().decode(stdout).trim()
+}
+
+async function getBytes() {
+  const iface = await getExternalInterface()
+  const rx = parseInt(await readFileAsRoot(`/sys/class/net/${iface}/statistics/rx_bytes`))
+  const tx = parseInt(await readFileAsRoot(`/sys/class/net/${iface}/statistics/tx_bytes`))
+  return { rx, tx }
+}
