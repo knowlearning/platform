@@ -261,6 +261,5 @@
     <div ref="memPlot" />
     <div ref="netPlot" />
     <div ref="connectionPlot" />
-    <pre>{{connections}}</pre>
   </div>
 </template>
