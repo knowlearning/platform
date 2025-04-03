@@ -57,4 +57,13 @@ Agent
     }
 
     pollMetrics()
+
+    Deno.addSignalListener("SIGTERM", async () => {
+      console.log("Received SIGTERM. Cleaning up...")
+      metrics[SESSION].closed = Date.now()
+      delete metrics[SESSION]
+      await Agent.synced()
+      console.log("Cleanup complete.")
+      Deno.exit()
+    })
   })
