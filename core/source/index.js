@@ -62,6 +62,8 @@ Agent
       console.log("Received SIGTERM. Cleaning up...")
       metrics[SESSION].closed = Date.now()
       delete metrics[SESSION]
+      //  TODO: diagnose why Agent.synced() not sufficient
+      await new Promise(r => setTimeout(r, 250))
       await Agent.synced()
       console.log("Cleanup complete.")
       Deno.exit()
