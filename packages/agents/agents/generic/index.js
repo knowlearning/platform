@@ -131,7 +131,7 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
   }
 
   async function metadata(id=DEFAULT_SCOPE_NAME, user, domain) {
-    const md = structuredClone(await state(id, user).metadata)
+    const md = structuredClone(await state(id, user, domain).metadata)
     delete md.active
     return new PatchProxy(md, patch => {
       const activePatch = structuredClone(patch)
