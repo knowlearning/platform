@@ -1,3 +1,4 @@
+import { recordPatch } from '../utils.js'
 import * as redis from '../redis.js'
 import scopeToId from '../scope-to-id.js'
 import sync from './sync.js'
@@ -107,6 +108,9 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
       .catch(error => console.log('ERROR PUBLISHING!!!!!!!!', domain, user, scope, id, error))
 
     await sync(domain, user, active_type, scope)
+
+    recordPatch(timestamp, id, ii, patch)
+      .catch(error => console.log('ERROR RECORDING PATCH', error))
 
     return { ii, active_type }
   }

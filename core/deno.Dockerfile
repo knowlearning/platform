@@ -14,6 +14,7 @@ RUN deno cache ./source/index.js
 CMD [ \
   "deno", \
   "run", \
+  "--allow-sys", \
   "--allow-net", \
   "--allow-env", \
   "--allow-write", \

@@ -14,8 +14,35 @@ import { exists as fileExists } from "https://deno.land/std/fs/mod.ts"
 import { getCookies } from 'https://deno.land/std@0.214.0/http/cookie.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
 import { decodeBase64 } from "https://deno.land/std/encoding/base64.ts"
+import { BigQuery } from "npm:@google-cloud/bigquery@7.9.3"
 
 const environment = Deno.env.toObject()
+
+const {
+  GC_PROJECT_ID,
+  GCS_SERVICE_ACCOUNT_CREDENTIALS
+} = environment
+
+const bigquery = new BigQuery({
+  projectId: GC_PROJECT_ID,
+  credentials: JSON.parse(GCS_SERVICE_ACCOUNT_CREDENTIALS)
+})
+const dataset = bigquery.dataset('core')
+const table = dataset.table('patches')
+
+async function recordPatch(ts, id, index, patch) {
+  const timestamp = new Date(ts).toISOString()
+
+  return table.insert(patch.map(({ op, path, from=null, value=null }) => ({
+    timestamp,
+    id,
+    index,
+    op,
+    path: JSON.stringify(path),
+    from: JSON.stringify(from),
+    value: JSON.stringify(value)
+  })))
+}
 
 const { box } = nacl
 const uuid = () => crypto.randomUUID()
@@ -185,5 +212,6 @@ export {
   environment,
   PatchProxy,
   Agent,
-  applyPatch
+  applyPatch,
+  recordPatch
 }
