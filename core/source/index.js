@@ -3,7 +3,7 @@ import handleHttpRequest from './handle-http-request.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
 import Agent from './agent.js'
 import SESSION from './session.js'
-import { CPUData, processData, networkData } from './metrics.js'
+import { CPUData, processData, networkData, getInstanceInfo } from './metrics.js'
 
 const METRICS_POLL_INTERVAL = 5000
 
@@ -42,6 +42,7 @@ Agent
     }
 
     CPUData().then(data => metrics[SESSION].cpu = data)
+    getInstanceInfo().then(data => metrics[SESSION].instance = data)
 
     let lastCall
     async function pollMetrics() {

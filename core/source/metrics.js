@@ -1,3 +1,7 @@
+import { environment } from './utils.js'
+
+const { MODE } = environment
+
 async function processMemCPUData() {
   const process = Deno.run({
     cmd: ["ps", "-p", Deno.pid.toString(), "-o", "%cpu,%mem"],
@@ -159,4 +163,27 @@ async function getBytes() {
   const rx = parseInt(await readFileAsRoot(`/sys/class/net/${iface}/statistics/rx_bytes`))
   const tx = parseInt(await readFileAsRoot(`/sys/class/net/${iface}/statistics/tx_bytes`))
   return { rx, tx }
+}
+
+const METADATA_BASE = 'http://metadata.google.internal/computeMetadata/v1'
+const HEADERS = { 'Metadata-Flavor': 'Google' }
+
+async function getMetadata(path) {
+  const res = await fetch(`${METADATA_BASE}/${path}`, { headers: HEADERS })
+  if (!res.ok) {
+    throw new Error(`Failed to fetch metadata for ${path}`)
+  }
+  return await res.text()
+}
+
+export async function getInstanceInfo() {
+  if (MODE === 'local') return { provider: 'local' }
+
+  const name = await getMetadata('instance/name')
+
+  const zonePath = await getMetadata('instance/zone')
+  const zone = zonePath.split('/').pop()
+  const region = zone.slice(0, zone.lastIndexOf('-'))
+
+  return { provider: 'GCP', name, zone, region }
 }
