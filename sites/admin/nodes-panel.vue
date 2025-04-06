@@ -6,11 +6,12 @@
 </script>
 
 <template>
-  <div
-    v-for="session in serverSessions"
-    :key="session"
-  >
-    <NodeMetrics :session="session" />
+  <div style="display: flex;">
+    <div
+      v-for="session in serverSessions"
+      :key="session"
+    >
+      <NodeMetrics :session="session" />
+    </div>
   </div>
-
 </template>
