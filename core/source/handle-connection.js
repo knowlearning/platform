@@ -32,7 +32,10 @@ const reconnectionPromiseResolvers = {}
 
 function reconnection(session) {
   return new Promise((resolve, reject) => {
-    const reconnectionTimeout = setTimeout(reject, SESSION_RECONNECTION_INTERVAL)
+    const reconnectionTimeout = setTimeout(() => {
+      console.log('RECONNECTION TIMEOUT')
+      reject()
+    }, SESSION_RECONNECTION_INTERVAL)
 
     if (reconnectionPromiseResolvers[session]) {
       console.warn('DOUBLED UP CALLS TO RECONNECTION', session)
@@ -40,6 +43,7 @@ function reconnection(session) {
     }
     reconnectionPromiseResolvers[session] = () => {
       clearTimeout(reconnectionTimeout)
+      console.log('RECONNECTION RESOLVED', session)
       resolve()
       delete reconnectionPromiseResolvers[session]
     }
@@ -47,7 +51,7 @@ function reconnection(session) {
 }
 
 export default async function handleConnection(connection, domain, sid) {
-  let user, session, provider, heartbeatTimeout
+  let user, session, provider, heartbeatTimeout, abortConnection
 
   function close(data=null) {
     if (!user) return
@@ -124,13 +128,12 @@ export default async function handleConnection(connection, domain, sid) {
 
   connection.onclose = async error => {
     clearTimeout(heartbeatTimeout)
-    if (!session) return
-
-    delete activeConnections[session]
-    //  TODO: if no error passed to onclose, we can go ahead and
-    //        close the session without waiting for reconnection
-    if (error) reconnection(session).catch(() => close('reconnection error'))
-    else close()
+    if (user) {
+      delete activeConnections[session]
+      if (error) reconnection(session).catch(() => close('reconnection error'))
+      else close()
+    }
+    else abortConnection = true
   }
 
   let lastAgent
@@ -150,6 +153,9 @@ export default async function handleConnection(connection, domain, sid) {
       console.log('GOT MESSAGE FOR CONNECTION WITHOUT USER!!!!!!!!!!!', message)
       try {  //  default to first message sid if present
         const authResponse = await authenticate(message, domain, message.sid || sid)
+
+        if (abortConnection) return
+
         user = authResponse.user
         provider = authResponse.provider
         session = authResponse.session
