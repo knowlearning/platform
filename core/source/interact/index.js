@@ -39,7 +39,7 @@ function arrayPathRepresentationToJSONPath(arrayPath) {
   return arrayPath.length ? `$[${arrayPath.map(encodePathReference).join('][')}]` : '$'
 }
 
-export default async function interact( domain, user, scope, patch, timestamp=Date.now() ) {
+export default async function interact( domain, user, scope, patch, context=[], timestamp=Date.now() ) {
   //  TODO: validate that patch's paths can only start with "active", "active_type", or "name"
   await redis.connected
   const id = domain === 'core' && user === 'core' ? scope : await scopeToId(domain, user, scope)
@@ -109,7 +109,7 @@ export default async function interact( domain, user, scope, patch, timestamp=Da
 
     await sync(domain, user, active_type, scope)
 
-    recordPatch(timestamp, id, ii, patch)
+    recordPatch(timestamp, id, ii, patch, domain, user, scope, context)
       .catch(error => console.log('ERROR RECORDING PATCH', error))
 
     return { ii, active_type }

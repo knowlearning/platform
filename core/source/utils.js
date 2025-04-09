@@ -30,17 +30,21 @@ const bigquery = new BigQuery({
 const dataset = bigquery.dataset('core')
 const table = dataset.table('patches')
 
-async function recordPatch(ts, id, index, patch) {
+async function recordPatch(ts, id, index, patch, domain, user, name, context) {
   const timestamp = new Date(ts).toISOString()
 
   return table.insert(patch.map(({ op, path, from=null, value=null }) => ({
     timestamp,
     id,
+    domain,
+    user,
+    name,
     index,
     op,
     path: JSON.stringify(path),
     from: JSON.stringify(from),
-    value: JSON.stringify(value)
+    value: JSON.stringify(value),
+    context: JSON.stringify(context)
   })))
 }
 

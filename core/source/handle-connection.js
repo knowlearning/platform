@@ -248,7 +248,7 @@ export default async function handleConnection(connection, domain, sid) {
           let resolveSideEffects
           outstandingSideEffects[session][id].push(new Promise(resolve => resolveSideEffects = resolve))
 
-          const { ii, active_type } = await interact(domain, user, scope, patch)
+          const { ii, active_type } = await interact(domain, user, scope, patch, context)
           await coreSideEffects({ id, session, domain, user, scope, active_type, patch, si, ii, send })
           if (agent && user !== domain) {
             const data = { scope, patch, ii, id, context }
