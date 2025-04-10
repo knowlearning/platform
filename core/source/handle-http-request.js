@@ -1,7 +1,5 @@
-import { randomBytes, getCookies, requestDomain, uuid } from './utils.js'
+import { randomBytes, getCookies, requestDomain } from './utils.js'
 import handleConnection from './handle-connection.js'
-import Agent from './agent.js'
-import SESSION from './session.js'
 
 function JSONReplacer(key, value) {
   // TODO: some validation to make sure we error instead of sending the wrong response
@@ -80,21 +78,9 @@ export default function handleHTTPRequest(request) {
     }
   })
 
-  const wsId = uuid()
   let socketError
-  socket.addEventListener('open', async () => {
-    const metrics = await Agent.state('metrics')
-    metrics[SESSION].websockets[wsId] = {
-      open: Date.now(),
-      domain
-    }
-  })
   socket.addEventListener('error', error => socketError = error)
-  socket.addEventListener('close', async () => {
-    const metrics = await Agent.state('metrics')
-    delete metrics[SESSION].websockets[wsId]
-    connection.onclose(socketError?.toString())
-  })
+  socket.addEventListener('close', () => connection.onclose(socketError?.toString()))
 
   handleConnection(connection, domain, sid)
 
