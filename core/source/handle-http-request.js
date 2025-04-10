@@ -79,16 +79,24 @@ export default function handleHTTPRequest(request, metricsPromise) {
   })
 
   let socketError
+  let opened = false
+  let closed = false
   socket.addEventListener('open', error => {
-    metricsPromise.then(m => m.websockets.opened += 1)
+    if (!opened) metricsPromise.then(m => m.websockets.opened += 1)
+    else console.log('MULTIPLE WS OPENS')
+    opened = true
   })
   socket.addEventListener('error', error => {
     metricsPromise.then(m => m.websockets.errored += 1)
     socketError = error
   })
   socket.addEventListener('close', () => {
-    metricsPromise.then(m => m.websockets.closed += 1)
-    connection.onclose(socketError?.toString())
+    if (!closed) {
+      metricsPromise.then(m => m.websockets.closed += 1)
+      connection.onclose(socketError?.toString())
+    }
+    else console.log('MULTIPLE WS CLOSES')
+    closed = true
   })
 
   handleConnection(connection, domain, sid)
