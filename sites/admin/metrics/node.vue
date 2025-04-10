@@ -227,7 +227,7 @@
 
     Agent.watch(['metrics', session], state => {
       if (!state.process) return
-      console.log(state)
+
       const now = new Date()
 
       const {
@@ -247,10 +247,7 @@
 
       trace.x.push(now)
       trace.y.push(processCPU)
-      console.log(trace.y)
       Plotly.update(cpuPlot.value, { x: [trace.x], y: [trace.y] })
-
-      console.log(processMemory, totalMemory, usedMemory)
 
       updateGraph(now, processMemory, usedMemory, totalMemory, rx, tx, numConnections)
     }, 'node', 'core')
