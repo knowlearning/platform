@@ -172,7 +172,10 @@ export default async function handleConnection(connection, domain, sid, metricsP
         else {
           if (domain !== 'core') {
             metricsPromise
-              ?.then(metrics => metrics.connections[session] = { user, domain })
+              ?.then(metrics => {
+                if (abortConnection) console.log('CONNECTION ABORTED BEFORE SESSION ESTABLISHED', domain, user, session)
+                else metrics.connections[session] = { user, domain }
+              })
               .catch(error => console.log('ERROR INITIALIZING METRICS', user, domain, session))
           }
           sessionMessageIndexes[session] = -1
