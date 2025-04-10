@@ -99,7 +99,7 @@ export default function handleHTTPRequest(request, metricsPromise) {
     closed = true
   })
 
-  handleConnection(connection, domain, sid)
+  handleConnection(connection, domain, sid, metricsPromise)
 
   return response
 }
