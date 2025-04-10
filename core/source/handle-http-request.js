@@ -17,7 +17,7 @@ function serialize(value) {
   }
 }
 
-export default function handleHTTPRequest(request) {
+export default function handleHTTPRequest(request, metricsPromise) {
   const domain = requestDomain(request)
   const previousSid = getCookies(request.headers)['sid']
   const sid = previousSid || randomBytes(16, 'hex')
@@ -79,8 +79,17 @@ export default function handleHTTPRequest(request) {
   })
 
   let socketError
-  socket.addEventListener('error', error => socketError = error)
-  socket.addEventListener('close', () => connection.onclose(socketError?.toString()))
+  socket.addEventListener('open', error => {
+    metricsPromise.then(m => m.websockets.opened += 1)
+  })
+  socket.addEventListener('error', error => {
+    metricsPromise.then(m => m.websockets.errored += 1)
+    socketError = error
+  })
+  socket.addEventListener('close', () => {
+    metricsPromise.then(m => m.websockets.closed += 1)
+    connection.onclose(socketError?.toString())
+  })
 
   handleConnection(connection, domain, sid)
 

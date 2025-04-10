@@ -16,6 +16,7 @@
   const connectionPlot = ref(null)
 
   const instanceInfo = ref(null)
+  const websocketInfo = ref(null)
   const lastPing = ref(null)
   const connections = ref(null)
 
@@ -241,6 +242,7 @@
       lastPing.value = state.ping
       connections.value = state.connections || {}
       instanceInfo.value = state.instance
+      websocketInfo.value = state.websockets
       const numConnections = Object.keys(connections.value).length
 
       trace.x.push(now)
@@ -260,6 +262,7 @@
     <h1>Node {{session}}</h1>
     <h2>Last Ping: {{lastPingView}}</h2>
     <pre>Instance: {{instanceInfo}}</pre>
+    <pre>Websockets: {{websocketInfo}}</pre>
     <div ref="cpuPlot" />
     <div ref="memPlot" />
     <div ref="netPlot" />

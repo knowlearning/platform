@@ -26,7 +26,7 @@ Deno.serve({ port: PORT }, handler)
 
 function handler(request) {
   ensureDomainConfigured(requestDomain(request))
-  return handleHttpRequest(request)
+  return handleHttpRequest(request, metricsPromise)
 }
 
 globalThis.addEventListener("unhandledrejection", event => {
@@ -34,11 +34,16 @@ globalThis.addEventListener("unhandledrejection", event => {
   event.preventDefault()
 })
 
-Agent
+const metricsPromise = Agent
   .state('metrics')
   .then(metrics => {
     metrics[SESSION] = {
-      connections: {}
+      connections: {},
+      websockets: {
+        opened: 0,
+        closed: 0,
+        errored: 0
+      }
     }
 
     CPUData().then(data => metrics[SESSION].cpu = data)
@@ -69,4 +74,6 @@ Agent
       console.log("Cleanup complete.")
       Deno.exit()
     })
+
+    return metrics[SESSION]
   })
