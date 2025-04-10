@@ -38,7 +38,8 @@ Agent
   .state('metrics')
   .then(metrics => {
     metrics[SESSION] = {
-      connections: {}
+      connections: {},
+      websockets: {}
     }
 
     CPUData().then(data => metrics[SESSION].cpu = data)

@@ -14,6 +14,7 @@
   const memPlot = ref(null)
   const netPlot = ref(null)
   const connectionPlot = ref(null)
+  const wsConnectionPlot = ref(null)
 
   const instanceInfo = ref(null)
   const lastPing = ref(null)
@@ -71,6 +72,7 @@
     const rxData = []
     const txData = []
     const numConnectionData = []
+    const numWsConnectionData = []
 
     const memLayout = {
       title: 'Memory Usage Over Time',
@@ -189,7 +191,36 @@
 
     Plotly.newPlot(connectionPlot.value, connectionTraces, connectionLayout, plotlyOptions)
 
-    function updateGraph(newTime, singleProcess, usedMemory, totalMemory, rxRate, txRate, numConnections) {
+
+    const wsConnectionLayout = {
+      title: 'WS Connections Over Time',
+      xaxis: { title: 'Time' },
+      yaxis: {
+        title: 'Connections'
+      },
+      hovermode: 'closest',
+      showlegend: true,
+      margin: { t: 50, b: 50, l: 50, r: 50 },
+      legend: {
+        x: 0,
+        y: 1,
+        yanchor: 'bottom',
+        orientation: 'h'
+      }
+    }
+
+    const wsConnectionTraces = [
+      {
+        x: timeData,
+        y: numWsConnectionData,
+        name: 'WS Connections',
+        mode: 'lines',
+        line: { color: 'rgba(100, 200, 100, 0.6)' }
+      }
+    ]
+    Plotly.newPlot(wsConnectionPlot.value, wsConnectionTraces, wsConnectionLayout, plotlyOptions)
+
+    function updateGraph(newTime, singleProcess, usedMemory, totalMemory, rxRate, txRate, numConnections, numWsConnections) {
         timeData.push(newTime)
         usedMemoryData.push(usedMemory - singleProcess)
         singleProcessData.push(singleProcess)
@@ -197,6 +228,7 @@
         rxData.push(rxRate)
         txData.push(txRate)
         numConnectionData.push(numConnections)
+        numWsConnectionData.push(numWsConnections)
 
         if (timeData.length > 100) {
           timeData.shift()
@@ -206,6 +238,7 @@
           rxData.shift()
           txData.shift()
           numConnectionData.shift()
+          numWsConnectionData.shift()
         }
 
         Plotly.update(memPlot.value, {
@@ -222,11 +255,15 @@
             x: [timeData],
             y: [numConnectionData]
         })
+
+        Plotly.update(wsConnectionPlot.value, {
+            x: [timeData],
+            y: [numWsConnectionData]
+        })
     }
 
     Agent.watch(['metrics', session], state => {
       if (!state.process) return
-      console.log(state)
       const now = new Date()
 
       const {
@@ -242,15 +279,14 @@
       connections.value = state.connections || {}
       instanceInfo.value = state.instance
       const numConnections = Object.keys(connections.value).length
+      const numWsConnections = Object.keys(state.websockets || {}).length
 
       trace.x.push(now)
       trace.y.push(processCPU)
-      console.log(trace.y)
+
       Plotly.update(cpuPlot.value, { x: [trace.x], y: [trace.y] })
 
-      console.log(processMemory, totalMemory, usedMemory)
-
-      updateGraph(now, processMemory, usedMemory, totalMemory, rx, tx, numConnections)
+      updateGraph(now, processMemory, usedMemory, totalMemory, rx, tx, numConnections, numWsConnections)
     }, 'node', 'core')
   })
 </script>
@@ -264,5 +300,6 @@
     <div ref="memPlot" />
     <div ref="netPlot" />
     <div ref="connectionPlot" />
+    <div ref="wsConnectionPlot" />
   </div>
 </template>
