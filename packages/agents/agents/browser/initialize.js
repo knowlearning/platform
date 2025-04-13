@@ -211,6 +211,7 @@ function embed(environment, iframe) {
 
   function on(event, fn) {
     listeners[event] = fn
+    return this
   }
 
   function auth(token, state) {
