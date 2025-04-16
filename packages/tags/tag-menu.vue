@@ -7,10 +7,8 @@
       default: 'tags.knowlearning.systems'
     },
     partition: String,
-    modelValue: {
-      type: Array,
-      default: () => []
-    },
+    tags: Array,
+    modelValue: Array,
     selectLeavesOnly: Boolean,
     LabelComponent: Object,
   })
@@ -29,7 +27,7 @@
   <TagTaggingsList
     :selected="modelValue"
     @select="select"
-    :tags="modelValue"
+    :tags="tags"
     :domain="domain"
     :partition="partition"
     :select-leaves-only="selectLeavesOnly"
