@@ -32,7 +32,6 @@
     :tags="modelValue"
     :domain="domain"
     :partition="partition"
-    :selected="selected"
     :select-leaves-only="selectLeavesOnly"
     :LabelComponent="LabelComponent"
   />
