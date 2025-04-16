@@ -1,5 +1,6 @@
 <script setup>
   import TagTaggingsList from './filters/tag-taggings-list.vue'
+  import DefaultLabelComponent from './filters/label-component.vue'
 
   const props = defineProps({
     domain: {
@@ -7,10 +8,13 @@
       default: 'tags.knowlearning.systems'
     },
     partition: String,
-    tags: Array,
+    roots: Array,
     modelValue: Array,
     selectLeavesOnly: Boolean,
-    LabelComponent: Object,
+    LabelComponent:  {
+      type: Object,
+      default: () => DefaultLabelComponent
+    }
   })
 
   const emit = defineEmits(['update:modelValue'])
@@ -27,7 +31,7 @@
   <TagTaggingsList
     :selected="modelValue"
     @select="select"
-    :tags="tags"
+    :tags="roots"
     :domain="domain"
     :partition="partition"
     :select-leaves-only="selectLeavesOnly"
