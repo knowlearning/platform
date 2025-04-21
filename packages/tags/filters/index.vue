@@ -147,7 +147,17 @@
   async function createTag(name) {
     const id = await Agent.create({
       active_type: 'application/json;type=tag-type',
-      active: { name, description: 'A new tag' }
+      active: {
+        name,
+        description: 'A new tag',
+        translations: {
+          source_language: 'en-us',
+          paths: [
+            [ 'name' ],
+            [ 'description' ]
+          ]
+        }
+      }
     })
     newTagName.value = ''
     selectSingleTag(id)
