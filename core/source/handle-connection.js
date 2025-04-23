@@ -148,7 +148,7 @@ export default async function handleConnection(connection, domain, sid, metricsP
     lastAgent = agent
 
     if (!user) {
-      console.log('GOT MESSAGE FOR CONNECTION WITHOUT USER!!!!!!!!!!!', message)
+      console.log('GOT MESSAGE FOR CONNECTION WITHOUT USER!!!!!!!!!!!', message.domain)
       try {  //  default to first message sid if present
         const authResponse = await authenticate(message, domain, message.sid || sid)
 

@@ -1,5 +1,6 @@
-import { uuid, environment, decryptBase64String } from '../utils.js'
+import { uuid, environment, decryptBase64String, verifySignature } from '../utils.js'
 import JWTVerification from './verify-jwt.js'
+import Agent from '../agent.js'
 
 const { AUTH_SERVICE_SECRET_KEY, OAUTH_CREDENTIALS } = environment
 
@@ -27,7 +28,18 @@ export default function authenticateToken(domain, token, authority) {
           })
         }
         else if (OAuthProviderCredentials[provider.toUpperCase()]) JWTVerification(provider, code, resolve, reject)
-        else resolve(anonymousProviderResponse(uuid()))
+        else {
+          // test custom provider
+          const { message, signature } = JSON.parse(await decryptBase64String(AUTH_SERVICE_SECRET_KEY, code))
+          const { user, created, name } = JSON.parse(await decryptBase64String(AUTH_SERVICE_SECRET_KEY, message))
+          const { credentials: [{ user_public_key }] } = await Agent.state(user)
+          if (verifySignature(message, signature, user_public_key)) {
+            
+          }
+          else {
+            reject('ERROR VERIFYING CODE')
+          }
+        }
       }
       catch (error) {
         console.warn(`ERROR DECRYPTING OR PARSING TOKEN FOR ${domain}`, error)

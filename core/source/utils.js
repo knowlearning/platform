@@ -190,6 +190,11 @@ function pemToArrayBuffer(pem) {
   return array.buffer;
 }
 
+function verifySignature(message, signature, publicKey) {
+  //  TODO use nacl to verify
+  return false
+}
+
 
 export {
   pg,
@@ -217,5 +222,6 @@ export {
   PatchProxy,
   Agent,
   applyPatch,
+  verifySignature,
   recordPatch
 }
