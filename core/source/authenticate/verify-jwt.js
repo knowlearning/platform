@@ -3,7 +3,7 @@ import { query } from '../postgres.js'
 import getExistingUser from './existing-user.js'
 
 const { OAUTH_CREDENTIALS } = environment
-const JWT_VERIFICATION_TIMEOUT = 2500
+const JWT_VERIFICATION_TIMEOUT = 10_000
 
 const JWKS_ENDPOINTS = {
   google: 'https://accounts.google.com/.well-known/openid-configuration',
