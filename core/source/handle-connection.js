@@ -193,6 +193,7 @@ export default async function handleConnection(connection, domain, sid, metricsP
         connection.send({
           domain,
           server: SESSION,
+          serverPublicKey: AUTH_SERVICE_PUBLIC_KEY,
           session,
           auth: { user, provider, info: authResponse.info, JWT },
           ack: sessionMessageIndexes[session]
