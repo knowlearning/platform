@@ -1,4 +1,4 @@
-import { jwt, jwkToPem, uuid, environment, decryptSymmetric } from '../utils.js'
+import { jwt, jwkToPem, uuid, isUUID, environment, decryptSymmetric } from '../utils.js'
 import saveSession from './save-session.js'
 import * as hash from './hash.js'
 import interact from '../interact/index.js'
@@ -64,12 +64,15 @@ export default async function authenticate(message, domain, sid) {
   const { user, provider, provider_id, info } = await authenticateToken(domain, message.token, authority)
   console.log('NEW SESSION FOR USER', user, domain, session.slice(0, 4))
 
-  const userPatch = [
-    { op: 'add', value: USER_TYPE, path: ['active_type'] },
-    { op: 'add', value: { provider_id, provider }, path: ['active'] }
-  ]
 
-  await interact(ADMIN_DOMAIN, 'users', user, userPatch)
+  if (!isUUID(provider)) { // when provider is uuid, that means it is a user who created the users uuid in the system
+    const userPatch = [
+      { op: 'add', value: USER_TYPE, path: ['active_type'] },
+      { op: 'add', value: { provider_id, provider }, path: ['active'] }
+    ]
+
+    await interact(ADMIN_DOMAIN, 'users', user, userPatch)
+  }
 
   if (message.token !== 'anonymous-ephemeral') {
     //  TODO: consider leaving a record of the ephemeral user session, but

@@ -190,7 +190,6 @@ function pemToArrayBuffer(pem) {
   return array.buffer;
 }
 
-
 export {
   pg,
   jwt,
@@ -202,6 +201,7 @@ export {
   randomBytes,
   decodeBase64String,
   decryptBase64String,
+  decodeBase64,
   createRedisClient,
   createGCSClient,
   cryptoDigest,
