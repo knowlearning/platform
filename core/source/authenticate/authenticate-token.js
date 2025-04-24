@@ -1,4 +1,4 @@
-import { uuid, environment, decryptBase64String, verifySignature } from '../utils.js'
+import { uuid, environment, decryptBase64String, decodeBase64, box } from '../utils.js'
 import JWTVerification from './verify-jwt.js'
 import Agent from '../agent.js'
 
@@ -29,12 +29,24 @@ export default function authenticateToken(domain, token, authority) {
         }
         else if (OAuthProviderCredentials[provider.toUpperCase()]) JWTVerification(provider, code, resolve, reject)
         else {
-          // test custom provider
-          const { message, signature } = JSON.parse(await decryptBase64String(AUTH_SERVICE_SECRET_KEY, code))
-          const { user, created, name } = JSON.parse(await decryptBase64String(AUTH_SERVICE_SECRET_KEY, message))
+          const { proofKey, senderKey, message } = JSON.parse(await decryptBase64String(AUTH_SERVICE_SECRET_KEY, code))
+          const decryptedMessage = new TextDecoder().decode(decrypt(
+            decodeBase64(proofKey),
+            decodeBase64(senderKey),
+            decodeBase64(message)
+          ))
+
+          const { user, created, name } = JSON.parse(decryptedMessage)
           const { credentials: [{ user_public_key }] } = await Agent.state(user)
-          if (verifySignature(message, signature, user_public_key)) {
-            
+          const { owner } = await Agent.metadata(user)
+
+          if (user_public_key === senderKey && Date.now() - created < 30_000) {
+            resolve({
+              user,
+              provider_id: user,
+              provider: owner,
+              info: { name, picture: null }
+            })
           }
           else {
             reject('ERROR VERIFYING CODE')
@@ -56,4 +68,14 @@ function anonymousProviderResponse(id) {
     provider: 'anonymous',
     info: { name: 'anonymous', picture: null }
   }
+}
+
+const decrypt = (mySecretKey, theirPublicKey, encryptedMessageBufferWithNonce) => {
+  const nonce = encryptedMessageBufferWithNonce.slice(0, box.nonceLength)
+  const encryptedMessageBuffer = encryptedMessageBufferWithNonce.slice(box.nonceLength)
+  const decrypted = box.open(encryptedMessageBuffer, nonce, theirPublicKey, mySecretKey)
+
+  if (!decrypted) throw new Error('Could not decrypt message')
+
+  return decrypted
 }
