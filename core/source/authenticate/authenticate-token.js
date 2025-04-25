@@ -36,7 +36,7 @@ export default function authenticateToken(domain, token, authority) {
             decodeBase64(message)
           ))
 
-          const { user, created, name } = JSON.parse(decryptedMessage)
+          const { user, created, info } = JSON.parse(decryptedMessage)
           const { credentials: [{ user_public_key }] } = await Agent.state(user)
           const { owner } = await Agent.metadata(user)
 
@@ -45,7 +45,7 @@ export default function authenticateToken(domain, token, authority) {
               user,
               provider_id: user,
               provider: owner,
-              info: { name, picture: null }
+              info
             })
           }
           else {
