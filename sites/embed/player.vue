@@ -98,6 +98,10 @@
   let candliGameId
   if (embedding.value.id.startsWith('https://pila.cand.li/')) {
     candliGameId = (new URL(embedding.value.id)).searchParams.get('game')
+    const altGameId = embedding.value.id.split('?')[1]
+    if (altGameId?.startsWith('incredible_machine')) {
+      candliGameId = `candli_editor/${altGameId.slice(0, 19)}`
+    }
   }
 
   await clearOutLatestCompetencies()
