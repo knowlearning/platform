@@ -15,6 +15,7 @@ export interface AgentEnvironment {
   server: string;
   session: string;
   context: string[];
+  variables: object;
 }
 
 export interface AgentUploadInfo {
