@@ -78,7 +78,7 @@ export default function EmbeddedAgent() {
   async function environment(user) {
     const response = await send({ type: 'environment', user })
     //  keep copy on initialize symantics for environment variables
-    if (!variables) variables = response.variables
+    if (!variables && !user) variables = response.variables
     return { ...response, variables }
   }
 
