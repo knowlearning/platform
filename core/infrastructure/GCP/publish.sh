@@ -47,8 +47,10 @@ if [ "$1" = "production" ]; then
   export OAUTH_CREDENTIALS="$(cat ../.credentials/OAUTH_CREDENTIALS)"
   export POSTGRES_PASSWORD="$(cat ../.credentials/POSTGRES_PASSWORD)"
   export REDIS_PASSWORD="$(cat ../.credentials/REDIS_PASSWORD)"
-  export INSECURE_DEVELOPMENT_CERT="$(cat ../.credentials/INSECURE_DEVELOPMENT_CERT)"
-  export INSECURE_DEVELOPMENT_KEY="$(cat ../.credentials/INSECURE_DEVELOPMENT_KEY)"
+  export SSL_CERT="$(cat ../.credentials/SSL_CERT)"
+  export SSL_KEY="$(cat ../.credentials/SSL_KEY)"
+  export PUBLIC_ENCRYPTION_KEY="$(cat ../.credentials/PUBLIC_ENCRYPTION_KEY)"
+  export SECRET_ENCRYPTION_KEY="$(cat ../.credentials/SECRET_ENCRYPTION_KEY)"
 
   while true; do
     gcloud compute ssh admin@$INSTANCE_NAME \
@@ -60,8 +62,8 @@ if [ "$1" = "production" ]; then
           OAUTH_CREDENTIALS \
           POSTGRES_PASSWORD \
           REDIS_PASSWORD \
-          INSECURE_DEVELOPMENT_CERT \
-          INSECURE_DEVELOPMENT_KEY" \
+          SSL_CERT \
+          SSL_KEY" \
       "bash -s" < ../start.sh && break
     echo "Retrying in 3 seconds..."
     sleep 3

@@ -10,8 +10,8 @@ const METRICS_POLL_INTERVAL = 5000
 const {
   MODE,
   PORT,
-  INSECURE_DEVELOPMENT_CERT: cert,
-  INSECURE_DEVELOPMENT_KEY: key,
+  SSL_CERT: cert,
+  SSL_KEY: key,
   TLS_PORT,
   ADMIN_DOMAIN
 } = environment

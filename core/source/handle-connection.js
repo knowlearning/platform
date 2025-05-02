@@ -7,21 +7,12 @@ import subscriptions from './subscriptions.js'
 import coreSideEffects from './core-side-effects.js'
 import domainAgent from './domain-agent/index.js'
 
-const HEARTBEAT_INTERVAL = 5000
-const SESSION_RECONNECTION_INTERVAL = 60000
-
-const { AUTH_SERVICE_SECRET_KEY } = environment
-
-const AUTH_SERVICE_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA59Uz6jvBJF3B8/7xMqGo
-XkIhLFvTCHuFIGuCNNZGCJUnSk2ne6Jp1ehUIarliJwzrvfr2HMe0PvzAJyZqQIs
-uz0Lt867TTojCAKJunxbcrwEhzvz0FNjNu1wpgkSHFvd1uTvRSZqauqUmG0HqC17
-HSmBaXivB49B/pviowVJc+mUJJ9MROtOiL4JN5niHnLbt6QVi6NITAJkOwtoRhck
-5j0KLvfrq18R8QrfDOq3v5hWlrA6j1wPvTW1mzFk8MrOZw935mMDdMivFAm/DltM
-NT5I3YnLZpcl1e/fydC+B6zSz2nZfLb2iDBbADDVj2+i9JUEFomg6ng1DjHUGMYc
-ZQIDAQAB
------END PUBLIC KEY-----
-`
+const {
+  AUTH_SERVICE_SECRET_KEY,
+  PUBLIC_ENCRYPTION_KEY,
+  SESSION_RECONNECTION_INTERVAL = 60_000,
+  HEARTBEAT_INTERVAL = 5_000
+} = environment
 
 const activeConnections = {}
 const sessionMessageIndexes = {}
@@ -193,7 +184,7 @@ export default async function handleConnection(connection, domain, sid, metricsP
         connection.send({
           domain,
           server: SESSION,
-          serverPublicKey: AUTH_SERVICE_PUBLIC_KEY,
+          serverPublicKey: PUBLIC_ENCRYPTION_KEY,
           session,
           auth: { user, provider, info: authResponse.info, JWT },
           ack: sessionMessageIndexes[session]
