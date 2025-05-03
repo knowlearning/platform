@@ -1,5 +1,6 @@
 import { parse as parseYAML } from 'https://deno.land/std@0.207.0/yaml/mod.ts'
-import { validate as isUUID, v5 as uuidv5 } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
+import { validate as isUUID } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
+import { v5 as uuidv5 } from 'npm:uuid@11.1.0'
 import { createClient as createRedisClient } from 'npm:redis@4.7.0'
 import * as pg from 'https://deno.land/x/postgres@v0.19.3/mod.ts'
 import Agent from 'npm:@knowlearning/agents@0.9.172/agents/generic/index.js'

@@ -1,3 +1,5 @@
+import { decodeBase64, box } from '../utils.js'
+
 export default function decryptJSON(secretKey, publicKey, encryptedMessage) {
   return JSON.parse(
     new TextDecoder().decode(
