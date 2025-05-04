@@ -62,6 +62,8 @@ if [ "$1" = "production" ]; then
           OAUTH_CREDENTIALS \
           POSTGRES_PASSWORD \
           REDIS_PASSWORD \
+          PUBLIC_ENCRYPTION_KEY \
+          SECRET_ENCRYPTION_KEY \
           SSL_CERT \
           SSL_KEY" \
       "bash -s" < ../start.sh && break
