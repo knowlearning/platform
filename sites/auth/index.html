@@ -59,7 +59,10 @@ ZQIDAQAB
           query.scope = 'profile'
           url = CLASSLINK_OAUTH2_URL
         }
-        else url = `https://${provider}`
+        else {
+          query.origin = document.referrer
+          url = `https://${provider}`
+        }
 
         window.location.href = `${url}?${objectToQuerystring(query)}`
       }
