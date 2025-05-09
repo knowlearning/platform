@@ -29,6 +29,9 @@ export default {
       connected: 'BIGINT',
       authenticated: 'BIGINT',
       provider: 'TEXT'
+    },
+    indices: {
+      session_credential: { column: 'session_credential' }
     }
   }
 }
