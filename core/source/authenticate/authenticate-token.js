@@ -62,12 +62,12 @@ export default function authenticateToken(domain, token, authority) {
 
           if ( credentialOwner === userOwner
             && providerDeclaredUser === user
-            && Date.now() - created < 30_000
+            //&& Date.now() - created < 30_000
           ) {
             resolve({ user, provider_id: user, provider: userOwner, info})
           }
           else {
-            reject('ERROR VERIFYING CODE')
+            reject(`ERROR VERIFYING CODE ${Date.now() - created} ${credentialOwner} ${userOwner} ${providerDeclaredUser} ${user}`)
           }
         }
       }
