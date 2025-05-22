@@ -127,7 +127,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
 
         if (!authed) {
           //  TODO: credential refresh flow instead of forcing login
-          if (message.error) return login()
+          if (message.error) alert('Authentication Error. Please try again.')
 
           authed = true
           if (!user) { // this is the first authed websocket connection
