@@ -124,6 +124,15 @@ async function createIndex(domain, name, table, column) {
   `)
 }
 
+async function createGinIndex(domain, name, table, column) {
+  await query(domain, `
+    DO $$
+    BEGIN
+      CREATE INDEX IF NOT EXISTS ${purifiedName(name)} ON ${purifiedName(table)} USING GIN (${purifiedName(column)});
+    END $$;
+  `)
+}
+
 async function createFunction(domain, name, definition) {
   await deleteFunction(domain, name) // if arguments change, postgres treats functions with the same name as different
 
@@ -239,6 +248,7 @@ async function setColumn(domain, table, column, id, value) {
 export {
   createTable,
   createIndex,
+  createGinIndex,
   removeTable,
   removeColumn,
   setColumn,

@@ -209,9 +209,10 @@ async function syncTables(domain, tables, report) {
 
     tableTasks.push(`Creating ${Object.keys(indices).length} indices`)
 
-    await Object.entries(indices).map(async ([name, { column }]) =>  {
+    await Object.entries(indices).map(async ([name, { column, gin }]) =>  {
       tableTasks.push(`Creating index named ${name} on ${table} for ${column}`)
-      await postgres.createIndex(domain, name, table, column)
+      if (gin) await postgres.createGinIndex(domain, name, table, column)
+      else await postgres.createIndex(domain, name, table, column)
     })
 
     if (rows.length > 0) {
