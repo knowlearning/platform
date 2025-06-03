@@ -36,7 +36,7 @@ export default function handleHTTPRequest(request, metricsPromise) {
   if (request.headers.get("upgrade") != "websocket") {
     headers.set("Access-Control-Allow-Origin",  `https://${domain}`)
     headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-    headers.set("Access-Control-Allow-CREDENTIALS", "true")
+    headers.set("Access-Control-Allow-Credentials", "true")
     headers.set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 
     const isSidCheck = request.url.endsWith('/_sid-check')

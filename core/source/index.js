@@ -1,11 +1,38 @@
-import { environment, requestDomain } from './utils.js'
+import { environment, requestDomain, SocketIOServer } from './utils.js'
 import handleHttpRequest from './handle-http-request.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
 import Agent from './agent.js'
 import SESSION from './session.js'
 import { CPUData, processData, networkData, getInstanceInfo } from './metrics.js'
 
+const io = new SocketIOServer({
+  cors: {
+    origin: [
+      'https://localhost:5173',
+      'https://websocket-connection-test.netlify.app'
+    ],
+    allowedHeaders: ["sid"],
+    credentials: true,
+  },
+})
+
+io.on("connection", (socket) => {
+  console.log(`socket ${socket.id} connected`)
+
+  socket.emit("hello", "world")
+
+  socket.on("disconnect", (reason) => {
+    console.log(`socket ${socket.id} disconnected due to ${reason}`)
+  })
+})
+
+const socketIOHandler = io.handler()
+
 const METRICS_POLL_INTERVAL = 5000
+const SOCKET_IO_HOSTS = [
+  'socket-io.localhost:8765',
+  'socket-io.api.knowlearning.systems'
+]
 
 const {
   MODE,
@@ -19,14 +46,16 @@ const {
 ensureDomainConfigured(ADMIN_DOMAIN)
 ensureDomainConfigured('core')
 
-
 if (cert && key) Deno.serve({ port: TLS_PORT, cert, key }, handler)
 
 Deno.serve({ port: PORT }, handler)
 
-function handler(request) {
-  ensureDomainConfigured(requestDomain(request))
-  return handleHttpRequest(request, metricsPromise)
+async function handler(request, info) {
+  const domain = requestDomain(request)
+  ensureDomainConfigured(domain)
+  const url = new URL(request.url)
+  if (SOCKET_IO_HOSTS.includes(url.host)) return socketIOHandler(request, info)
+  else return handleHttpRequest(request, metricsPromise)
 }
 
 globalThis.addEventListener("unhandledrejection", event => {

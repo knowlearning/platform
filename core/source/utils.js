@@ -16,6 +16,7 @@ import { getCookies } from 'https://deno.land/std@0.214.0/http/cookie.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
 import { decodeBase64 } from "https://deno.land/std/encoding/base64.ts"
 import { BigQuery } from "npm:@google-cloud/bigquery@7.9.3"
+import { Server as SocketIOServer } from "https://deno.land/x/socket_io@0.2.1/mod.ts";
 
 const environment = Deno.env.toObject()
 
@@ -219,5 +220,6 @@ export {
   PatchProxy,
   Agent,
   applyPatch,
+  SocketIOServer,
   recordPatch
 }
