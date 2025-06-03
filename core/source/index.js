@@ -31,7 +31,7 @@ const socketIOHandler = io.handler()
 const METRICS_POLL_INTERVAL = 5000
 const SOCKET_IO_HOSTS = [
   'socket-io.localhost:8765',
-  'socket-io.api.knowlearning.systems'
+  'socket-io.knowlearning.systems'
 ]
 
 const {
