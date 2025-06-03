@@ -19,7 +19,7 @@ const io = new SocketIOServer({
 io.on("connection", (socket) => {
   console.log(`socket ${socket.id} connected`)
 
-  socket.emit("hello", "world")
+  socket.on('api', () => socket.emit('api', { ack: -1, auth: { provider: 'anonymous' } }))
 
   socket.on("disconnect", (reason) => {
     console.log(`socket ${socket.id} disconnected due to ${reason}`)
