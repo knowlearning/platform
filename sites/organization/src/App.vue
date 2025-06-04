@@ -139,9 +139,8 @@
         />
         <h1 id="contact-us-header">Contact Us</h1>
         <p>
-          We invite you to contact us if you are interested in
-          our services, want to participate or contribute, have a
-          question, or have something interesting to share.
+          Want to collaborate, contribute, or just connect?
+          We’d love to hear from you.
         </p>
         <em>
           <a href="mailto:info@knowlearning.org">info@knowlearning.org</a>
