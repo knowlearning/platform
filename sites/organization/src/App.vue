@@ -68,8 +68,7 @@
       <h2>Vision</h2>
       We see a future where everyone has
       <em>free access to world class learning experiences</em>
-      and well structured ways to interact with them that are appropriate to
-      their situations and learning goals, whatever they may be.
+      in ways that fit their needs, goals, and circumstances.
     </div>
   </VisibilityTracker>
   <VisibilityTracker v-slot="{ scrolledBy }">
