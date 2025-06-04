@@ -93,7 +93,7 @@
       <h2>Values</h2>
       Technology should be optimized to empower users, not enrich
       providers. KnowLearning is a registered non-profit to serve
-      a mission more important than share price.
+      a greater mission than share price.
       <ul>
         <li>
           <em>People First</em>
