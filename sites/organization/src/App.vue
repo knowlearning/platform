@@ -92,8 +92,8 @@
       />
       <h2>Values</h2>
       Technology should be optimized to serve end users, not to enrich
-      providers. KnowLearning is a registered non-profit to keep it oriented
-      toward a mission far more important than share price.
+      providers. KnowLearning is a registered non-profit to serve
+      a mission far more important than share price.
       <ul>
         <li>
           <em>People First</em>
