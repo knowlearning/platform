@@ -4,6 +4,7 @@
   import VisionIcon from './vision-icon.vue'
   import GoalsIcon from './goals-icon.vue'
   import ValuesIcon from './values-icon.vue'
+  import ContactIcon from './contact-icon.vue'
   import WordScroller from './word-scroller.vue'
 
   const year = new Date().getFullYear()
@@ -129,19 +130,25 @@
       </ul>
     </div>
   </VisibilityTracker>
-  <div id="contact-us">
-    <div>
-      <h1 id="contact-us-header">Contact Us</h1>
-      <p>
-        We invite you to contact us if you are interested in
-        our services, want to participate or contribute, have a
-        question, or have something interesting to share.
-      </p>
-      <em>
-        <a href="mailto:info@knowlearning.org">info@knowlearning.org</a>
-      </em>
+  <VisibilityTracker v-slot="{ scrolledBy }">
+    <div id="contact-us">
+      <div>
+        <ContactIcon
+          style="height: 100px"
+          :progress="scrolledBy"
+        />
+        <h1 id="contact-us-header">Contact Us</h1>
+        <p>
+          We invite you to contact us if you are interested in
+          our services, want to participate or contribute, have a
+          question, or have something interesting to share.
+        </p>
+        <em>
+          <a href="mailto:info@knowlearning.org">info@knowlearning.org</a>
+        </em>
+      </div>
     </div>
-  </div>
+  </VisibilityTracker>
   <div id="footer">
     © 2019-{{ year }} KnowLearning
   </div>

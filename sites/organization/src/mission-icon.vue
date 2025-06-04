@@ -12,7 +12,7 @@
       :style="`
         fill: rgb(216, 216, 216);
         paint-order: fill markers;
-        stroke: rgb(0, 0, 0);
+        stroke: #ab7f4e;
         stroke-dashoffset: ${Math.round(80 * (1-props.progress) / 8) * 8};
         stroke-dasharray: 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 80;
       `"

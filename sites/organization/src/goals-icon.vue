@@ -4,7 +4,7 @@
     <path
       :transform="`translate(0 ${20 * (1-props.progress)})`"
       style="
-        fill: rgb(216, 216, 216);
+        fill: #00f961;
         stroke: rgb(0, 0, 0);
       "
       d="M 418.844 199.476 L 431.634 206.799 L 419.226 211.356 L 418.844 199.476 Z"

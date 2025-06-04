@@ -20,7 +20,7 @@
       />
       <ellipse
         :style="`
-          fill: #FEFADC;
+          fill: #ffffc2;
           stroke: rgb(0, 0, 0);
           opacity: ${props.progress};
         `"
