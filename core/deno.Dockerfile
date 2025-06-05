@@ -20,7 +20,6 @@ CMD [ \
   "--allow-write", \
   "--allow-read", \
   "--allow-run", \
-  "--unstable-worker-options", \
   "--v8-flags=--max-old-space-size=8000", \
   "./source/index.js" \
 ]

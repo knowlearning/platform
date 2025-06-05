@@ -19,20 +19,7 @@ export default function createAgent(domain, script, DomainAgents) {
     await writeFile(filename, script)
     const workerUrl = new URL(filename, import.meta.url).href
 
-    const worker = new Worker(workerUrl, {
-      type: "module",
-      deno: {
-        permissions: {
-          env: ['AGENT_TOKEN'],
-          hrtime: false,
-          net: false,
-          ffi: false,
-          read: false,
-          run: false,
-          write: false,
-        },
-      }
-    })
+    const worker = new Worker(workerUrl, { type: "module" })
 
     worker.onerror = event => {
       console.log('DOMAIN AGENT ERROR', event)
