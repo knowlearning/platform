@@ -30,14 +30,15 @@ if [ "$1" = "production" ]; then
   # Deploy infrastructure
 
   export PROJECT="opensourcelearningplatform"
-  export REGION="us-central1"
-  export ZONE="us-central1-a"
-  export INSTANCE_NAME="my-deno-instance-1"
-  export STATIC_IP_NAME="my-static-ip-1"
+
   # export REGION="us-central1"
-  # export ZONE="us-central1-b"
-  # export INSTANCE_NAME="my-deno-instance-2"
-  # export STATIC_IP_NAME="my-static-ip-2"
+  # export ZONE="us-central1-a"
+  # export INSTANCE_NAME="my-deno-instance-1"
+  # export STATIC_IP_NAME="my-static-ip-1"
+  export REGION="us-central1"
+  export ZONE="us-central1-b"
+  export INSTANCE_NAME="my-deno-instance-2"
+  export STATIC_IP_NAME="my-static-ip-2"
   # export REGION="asia-southeast1"
   # export ZONE="asia-southeast1-a"
   # export INSTANCE_NAME="my-deno-instance-3"

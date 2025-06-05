@@ -36,13 +36,11 @@
   </div>
   <div id="hero">
     <div>
-      A non-profit organization
-      <br>
-      dedicated to a new generation of
+      A nonprofit dedicated to
       <br>
       <WordScroller />
       <br>
-      digital learning experiences
+      digital learning experiences.
     </div>
   </div>
   <VisibilityTracker v-slot="{ scrolledBy }">
