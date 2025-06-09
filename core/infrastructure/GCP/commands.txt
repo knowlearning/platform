@@ -1,0 +1,7 @@
+gcloud compute ssh my-deno-instance-2 \
+  --zone=us-central1-b \
+  -- -L 9229:localhost:9229
+
+gcloud compute scp my-deno-instance-2:/home/admin/output.log \
+  ./output2-06-08-25.log \
+  --zone=us-central1-b

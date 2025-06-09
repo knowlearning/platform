@@ -6,6 +6,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 while true; do
     echo "$(date): Starting service..." >> $1
     sudo -E ~/.deno/bin/deno run \
+        --inspect \
         --allow-sys \
         --allow-net \
         --allow-write \
