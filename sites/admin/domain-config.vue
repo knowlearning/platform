@@ -15,6 +15,7 @@
           if (arrayMatch(['postgres', 'queries', '*', 'body'], path)) return 'postgresql'
           else if (arrayMatch(['agent'], path)) return 'javascript'
         }"
+        :hidden="['secrets']"
         :resolveWidget="resolveWidget"
         fill-height
       />
@@ -45,7 +46,7 @@ if (!myConfig.deployment) myConfig.deployment = null
 async function claim() {
   const start = Date.now()
   claimMessage.value = 'claiming...'
-  const { token, report } = await Agent.claim(this.domain)
+  const { token, report } = await Agent.claim(domain)
   claimReport.value = report
   const elapsed = Date.now() - start
   await new Promise(r => setTimeout(r, 500 - elapsed))
