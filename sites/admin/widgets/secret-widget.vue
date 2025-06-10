@@ -18,7 +18,9 @@ ZQIDAQAB
     const secret = prompt('Enter your new secret here. It will be encrypted with the server public key for security.')
     if (!secret) return
 
-    const encryptedSecret = await encryptString(CORE_AUTH_SERVICE_PUBLIC_KEY, secret)
+    const { serverPublicKey } = await Agent.environment()
+
+    const encryptedSecret = await encryptString(serverPublicKey, secret)
     props.update(encryptedSecret)
   }
 </script>

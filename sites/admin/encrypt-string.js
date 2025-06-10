@@ -1,50 +1,38 @@
+import { box, randomBytes, secretbox } from 'tweetnacl'
+import { encodeBase64, decodeBase64, encodeUTF8, decodeUTF8 } from 'tweetnacl-util'
 
-export default async function encryptString(publicKeyPem, plainText) {
-  const publicKey = await crypto.subtle.importKey(
-    'spki',
-    pemToArrayBuffer(publicKeyPem),
-    { name: 'RSA-OAEP', hash: 'SHA-256' },
-    true,
-    ['encrypt']
-  )
-
-  const symmetricKey = await crypto.subtle.generateKey(
-    { name: 'AES-GCM', length: 256 },
-    true,
-    ['encrypt', 'decrypt']
-  )
-
-  const encodedPlainText = new TextEncoder().encode(plainText);
-  const iv = crypto.getRandomValues(new Uint8Array(12))
-  const encryptedData = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    symmetricKey,
-    encodedPlainText
-  )
-
-  const exportedSymmetricKey = await crypto.subtle.exportKey('raw', symmetricKey)
-
-  const encryptedSymmetricKey = await crypto.subtle.encrypt(
-    { name: 'RSA-OAEP' },
-    publicKey,
-    exportedSymmetricKey
-  )
-
-  const serialized = [
-    encodeURIComponent(btoa(String.fromCharCode(...new Uint8Array(iv)))),
-    encodeURIComponent(btoa(String.fromCharCode(...new Uint8Array(encryptedData)))),
-    encodeURIComponent(btoa(String.fromCharCode(...new Uint8Array(encryptedSymmetricKey))))
-  ].join(',')
-
-  return serialized
+export const generateKeyPair = async key => {
+  if (key) {
+    const keyBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key))
+    return box.keyPair.fromSecretKey(new Uint8Array(keyBuffer))
+  }
+  else return box.keyPair()
 }
 
-function pemToArrayBuffer(pem) {
-  const b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s/g, '')
-  const binary = atob(b64)
-  const array = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) {
-    array[i] = binary.charCodeAt(i)
-  }
-  return array.buffer
+export const encrypt = (mySecretKey, theirPublicKey, messageBuffer) => {
+  const nonce = randomBytes(box.nonceLength)
+  const encrypted = box(messageBuffer, nonce, theirPublicKey, mySecretKey)
+
+  const fullMessage = new Uint8Array(nonce.length + encrypted.length)
+  fullMessage.set(nonce)
+  fullMessage.set(encrypted, nonce.length)
+
+  return fullMessage
+}
+
+export const decrypt = (mySecretKey, theirPublicKey, encryptedMessageBufferWithNonce) => {
+  const nonce = encryptedMessageBufferWithNonce.slice(0, box.nonceLength)
+  const encryptedMessageBuffer = encryptedMessageBufferWithNonce.slice(box.nonceLength)
+  const decrypted = box.open(encryptedMessageBuffer, nonce, theirPublicKey, mySecretKey)
+
+  if (!decrypted) throw new Error('Could not decrypt message')
+
+  return decrypted
+}
+
+export default async function encryptString(publicKey, plainText) {
+  const { secretKey } =  await generateKeyPair()
+  return encodeBase64(
+    encrypt(secretKey, decodeBase64(publicKey), decodeUTF8(plainText))
+  )
 }
