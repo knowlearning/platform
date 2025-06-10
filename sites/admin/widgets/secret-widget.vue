@@ -16,6 +16,8 @@ ZQIDAQAB
 
   async function update() {
     const secret = prompt('Enter your new secret here. It will be encrypted with the server public key for security.')
+    if (!secret) return
+
     const encryptedSecret = await encryptString(CORE_AUTH_SERVICE_PUBLIC_KEY, secret)
     props.update(encryptedSecret)
   }

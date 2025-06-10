@@ -19,7 +19,6 @@
   })
 
   const state = ref(await Agent.state(id))
-  console.log('state value', state.value)
   const cm = ref()
 
   let outstandingPatch = null
