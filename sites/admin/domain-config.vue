@@ -6,7 +6,6 @@
       <v-btn @click="claimMessage = null">Okay</v-btn>
     </div>
     <v-btn v-else @click="claim">Become admin for {{ domain }}</v-btn>
-    <SecretManager :secrets="reactiveSecrets" />
     <Suspense>
       <YAMLEditor
         :key="domain"
@@ -16,7 +15,7 @@
           if (arrayMatch(['postgres', 'queries', '*', 'body'], path)) return 'postgresql'
           else if (arrayMatch(['agent'], path)) return 'javascript'
         }"
-        :hidden="['secrets']"
+        :hidden="[]"
         :resolveWidget="resolveWidget"
         fill-height
       />
@@ -25,13 +24,13 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 import ReportViewer from './report-viewer.vue'
 import YAMLEditor from '@knowlearning/editor/editor.vue'
 import YAMLValueReplacer from './yaml-value-replacer.vue'
 import DeploymentWidget from './widgets/deployment.vue'
-import SecretManager from './secret-manager.vue'
+import SecretWidget from './widgets/secret-widget.vue'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
@@ -44,8 +43,6 @@ const claimReport = ref(null)
 
 if (!myConfig.deployment) myConfig.deployment = null
 if (!myConfig.secrets) myConfig.secrets = { firstSecret: 'shhh!' }
-
-const reactiveSecrets = reactive(myConfig.secrets)
 
 async function claim() {
   const start = Date.now()
@@ -86,6 +83,12 @@ function resolveWidget(path) {
   else if (arrayMatch(path, ['deployment'])) {
     return {
       component: DeploymentWidget,
+      props: {}
+    }
+  }
+  else if (path[0] === 'secrets' && path.length === 2) {
+    return {
+      component: SecretWidget,
       props: {}
     }
   }
