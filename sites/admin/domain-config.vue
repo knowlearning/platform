@@ -6,6 +6,7 @@
       <v-btn @click="claimMessage = null">Okay</v-btn>
     </div>
     <v-btn v-else @click="claim">Become admin for {{ domain }}</v-btn>
+    <SecretManager :secrets="reactiveSecrets" />
     <Suspense>
       <YAMLEditor
         :key="domain"
@@ -24,12 +25,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { vueScopeComponent } from '@knowlearning/agents/vue.js'
 import ReportViewer from './report-viewer.vue'
 import YAMLEditor from '@knowlearning/editor/editor.vue'
 import YAMLValueReplacer from './yaml-value-replacer.vue'
 import DeploymentWidget from './widgets/deployment.vue'
+import SecretManager from './secret-manager.vue'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
@@ -37,11 +39,13 @@ const { domain } = defineProps({ domain: String })
 
 const { auth: { user, provider } } = await Agent.environment()
 const myConfig = await Agent.state(domain)
-const acceptedConfig = await Agent.state(domain, window.location.host)
 const claimMessage = ref(null)
 const claimReport = ref(null)
 
 if (!myConfig.deployment) myConfig.deployment = null
+if (!myConfig.secrets) myConfig.secrets = { firstSecret: 'shhh!' }
+
+const reactiveSecrets = reactive(myConfig.secrets)
 
 async function claim() {
   const start = Date.now()
