@@ -10,17 +10,12 @@
     id,
     resolveLanguage,
     resolveWidget,
-    fillHeight,
-    hidden
+    fillHeight
   } = defineProps({
     id: String,
     resolveLanguage: Function,
     resolveWidget: Function,
-    fillHeight: Boolean,
-    hidden: {
-      type: Array,
-      default: () => []
-    }
+    fillHeight: Boolean
   })
 
   const state = ref(await Agent.state(id))
@@ -45,20 +40,18 @@
 
   const code = computed({
     get() {
-      const shallowStateCopy = { ...state.value }
-      hidden.forEach(key => delete shallowStateCopy[key])
       if (cm.value) {
         const doc = cm.value.view.state.doc.toString()
         try {
-          const diff = compare(YAML.parse(doc, { strict: true }), shallowStateCopy)
+          const diff = compare(YAML.parse(doc, { strict: true }), state.value)
           //  TODO: smarter text insertion update
-          return diff.length ? YAML.stringify(shallowStateCopy, { blockQuote: 'literal' }) : doc
+          return diff.length ? YAML.stringify(state.value, { blockQuote: 'literal' }) : doc
         }
         catch (error) {
           return doc
         }
       }
-      else return  YAML.stringify(shallowStateCopy, { blockQuote: 'literal' })
+      else return  YAML.stringify(state.value, { blockQuote: 'literal' })
     },
     set(value) {
       try {
