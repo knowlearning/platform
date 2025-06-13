@@ -15,7 +15,6 @@
           if (arrayMatch(['postgres', 'queries', '*', 'body'], path)) return 'postgresql'
           else if (arrayMatch(['agent'], path)) return 'javascript'
         }"
-        :hidden="['secrets']"
         :resolveWidget="resolveWidget"
         fill-height
       />
@@ -36,12 +35,10 @@ const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 const { domain } = defineProps({ domain: String })
 
 const { auth: { user, provider } } = await Agent.environment()
-const myConfig = await Agent.state(domain)
+
 const acceptedConfig = await Agent.state(domain, window.location.host)
 const claimMessage = ref(null)
 const claimReport = ref(null)
-
-if (!myConfig.deployment) myConfig.deployment = null
 
 async function claim() {
   const start = Date.now()
@@ -60,12 +57,6 @@ async function claim() {
       Alternatively, make your website "${domain}/.well-known/knowlearning-admin-challenge" respond with "${token}"
     `
   }
-}
-
-
-async function deployConfig() {
-  myConfig.deployment = uuid()
-  await Agent.synced()
 }
 
 function downloadConfig(id) {
