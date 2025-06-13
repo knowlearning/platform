@@ -1,13 +1,15 @@
-import { uuid, writeFile } from '../utils.js'
+import { uuid, writeFile, decryptString, environment } from '../utils.js'
 import coreState from '../core-state.js'
 import handleConnection from '../handle-connection.js'
 import createSession from './create-session.js'
 import createConnection from './create-connection.js'
 
+const { SECRET_ENCRYPTION_KEY } = environment
+
 const connections = {}
 const HEARTBEAT_INTERVAL = 5000
 
-export default function createAgent(domain, script, DomainAgents) {
+export default function createAgent(domain, script, secrets={}, DomainAgents) {
   return new Promise(async (resolve, reject) => {
     //  Initialize new session to make core logs
     const agentSessions = await coreState(domain, 'sessions', domain)
@@ -63,7 +65,12 @@ export default function createAgent(domain, script, DomainAgents) {
 
         const targetDomain = data.domain || domain
         const sid = await createSession(targetDomain, domain)
-        handleConnection(connections[data.connection], targetDomain, sid)
+        const decodedSecrets = Object.fromEntries(
+          Object
+            .entries(secrets)
+            .map(([name, value]) => [name, decryptString(SECRET_ENCRYPTION_KEY, value)])
+        )
+        handleConnection(connections[data.connection], targetDomain, sid, decodedSecrets)
       }
       connections[data.connection].onmessage(data)
     }

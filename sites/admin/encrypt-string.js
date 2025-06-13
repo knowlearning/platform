@@ -30,10 +30,10 @@ export const decrypt = (mySecretKey, theirPublicKey, encryptedMessageBufferWithN
   return decrypted
 }
 
-export default async function encryptString(publicKey, plainText) {
+export default async function encryptString(theirPublicKey, plainText) {
   const { publicKey, secretKey } =  await generateKeyPair()
 
-  const encrypted = await encrypt(secretKey, decodeBase64(publicKey), decodeUTF8(plainText))
+  const encrypted = encrypt(secretKey, decodeBase64(theirPublicKey), decodeUTF8(plainText))
   const combined = new Uint8Array(publicKey.length + encrypted.length)
 
   combined.set(publicKey)

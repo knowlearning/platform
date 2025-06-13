@@ -40,7 +40,7 @@ function reconnection(session) {
   })
 }
 
-export default async function handleConnection(connection, domain, sid, metricsPromise) {
+export default async function handleConnection(connection, domain, sid, metricsPromise, secrets={}) {
   let user, session, provider, heartbeatTimeout, abortConnection
 
   function close(data=null) {
@@ -187,7 +187,8 @@ export default async function handleConnection(connection, domain, sid, metricsP
           serverPublicKey: PUBLIC_ENCRYPTION_KEY,
           session,
           auth: { user, provider, info: authResponse.info, JWT },
-          ack: sessionMessageIndexes[session]
+          ack: sessionMessageIndexes[session],
+          secrets
         })
 
         activeConnections[session] = connection
