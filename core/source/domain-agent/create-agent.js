@@ -36,19 +36,6 @@ export default function createAgent(domain, script, secrets={}, DomainAgents) {
       worker.terminate()
     }
 
-    let workerPongTimeout
-    function resetPongTimeout() {
-      clearTimeout(workerPongTimeout)
-      workerPongTimeout = setTimeout(
-        () => {
-          console.log('CLOSING AGENT DUE TO HEARTBEAT_INTERVAL PONG TIMEOUT', domain)
-          delete DomainAgents[domain]
-          worker.terminate()
-        },
-        HEARTBEAT_INTERVAL + 1000
-      )
-    }
-
     worker.onmessage = async ({ data }) => {
       if (!data) {
         //  clear ping response expectationtimeout

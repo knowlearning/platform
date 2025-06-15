@@ -5,6 +5,7 @@ import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
 import subscriptions from './subscriptions.js'
 import coreSideEffects from './core-side-effects.js'
+import handleSideEffects from './handle-side-effects.js'
 import domainAgent from './domain-agent/index.js'
 
 const {
@@ -246,6 +247,8 @@ export default async function handleConnection(connection, domain, sid, metricsP
             const data = { scope, patch, ii, id, context }
             agent.send({ type: 'mutate', session, data, context })
           }
+
+          await handleSideEffects({ domain, user, scope, patch, ii, id, context, session })
 
           resolveSideEffects()
         }
