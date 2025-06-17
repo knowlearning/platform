@@ -2,8 +2,10 @@ import configuration from './configuration.js'
 
 const domainWorkers = {}
 
-async function handleSideEffects({ domain, user, scope, patch, ii, id, context, session }) {
+export default async function handleSideEffects({ domain, user, scope, patch, ii, id, context, session }) {
   const config = await configuration(domain)
+
+  console.log('GOT DOMAIN CONFIG, checking for side effects for patch!', domain, user, scope, id)
 
   //  TODO:
   //    check if domain has side effect match for this patch
@@ -16,7 +18,9 @@ async function handleSideEffects({ domain, user, scope, patch, ii, id, context, 
 
 const workerScript = `
   //  TODO: better sub agent to expose to scripts
-  import Agent from 'npm:@knowlearning/agents/deno.js'
+  import Agent, { getAgent } from 'npm:@knowlearning/agents/deno.js'
+
+  const testAgent = getAgent('test.knowlearning.systems')
 
   self.onmessage = e => {
     try {
@@ -56,6 +60,7 @@ function startWorker(domain) {
   const url = URL.createObjectURL(blob)
 
   const worker = new Worker(url, { type: "module" })
+  let initialized = false
 
   worker.onerror = (e) => {
     console.error("Worker crashed:", e.message)
@@ -64,7 +69,12 @@ function startWorker(domain) {
   }
 
   worker.onmessage = (e) => {
-    console.log("Received:", e.data);
+    if (!initialized) {
+      // TODO: expect initialization message
+      //       and initialize connection for this domain agent
+      //       to the domain it should be for
+    }
+    console.log("Received:", domain, e.data);
   }
 
   domainWorkers[domain] = worker
