@@ -18,17 +18,14 @@ export default async function handleSideEffects({ domain, user, scope, patch, ii
 
 const workerScript = `
   //  TODO: better sub agent to expose to scripts
-  import Agent, { getAgent } from 'npm:@knowlearning/agents/deno.js'
+  import EmbeddedAgent from 'npm:@knowlearning/agents/embedded.js'
 
-  const testAgent = getAgent('test.knowlearning.systems')
+  const Agent = EmbeddedAgent(self)
 
   self.onmessage = e => {
-    try {
-      const result = runSafely(e.data)
-      self.postMessage({ ok: true, result })
-    } catch (err) {
-      self.postMessage({ ok: false, error: err.message })
-    }
+    runSafely(e.data)
+      .then(() => null) //  TODO: report back successful run
+      .catch(error => console.log('AGENT ERROR', error))
   }
 
   function runSafely(code) {
@@ -48,9 +45,9 @@ const workerScript = `
       "crypto",
     ]
 
-    const sandbox = new Function( ...blockedGlobals, \`"use strict"; return (\${code});\`)
+    const sandbox = new Function(Agent, ...blockedGlobals, \`"use strict"; return (\${code});\`)
 
-    return sandbox(...blockedGlobals.map(() => undefined));
+    return sandbox(Agent, ...blockedGlobals.map(() => undefined));
   }
 `
 
@@ -69,11 +66,7 @@ function startWorker(domain) {
   }
 
   worker.onmessage = (e) => {
-    if (!initialized) {
-      // TODO: expect initialization message
-      //       and initialize connection for this domain agent
-      //       to the domain it should be for
-    }
+    //  TODO: implement handling of embedded agent messages at root level here
     console.log("Received:", domain, e.data);
   }
 
