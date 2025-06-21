@@ -1,3 +1,4 @@
+import { uuid } from './utils.js'
 import configuration from './configuration.js'
 
 const domainWorkers = {}
@@ -21,6 +22,8 @@ const workerScript = `
   import EmbeddedAgent from 'npm:@knowlearning/agents/embedded.js'
 
   const Agent = EmbeddedAgent(self)
+
+  console.log('WORKER SCRIPT RUNNING!!!!!!!!!!!!!!!')
 
   self.onmessage = e => {
     runSafely(e.data)
@@ -52,6 +55,7 @@ const workerScript = `
 `
 
 function startWorker(domain) {
+  const session = uuid()
   console.log("Starting worker...")
   const blob = new Blob([workerScript], { type: "application/javascript" })
   const url = URL.createObjectURL(blob)
@@ -66,6 +70,10 @@ function startWorker(domain) {
   }
 
   worker.onmessage = (e) => {
+    if (!initialized) {
+      worker.postMessage({ type: 'setup' , session })
+      initialized = true
+    }
     //  TODO: implement handling of embedded agent messages at root level here
     console.log("Received:", domain, e.data);
   }
