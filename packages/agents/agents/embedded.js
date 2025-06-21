@@ -2,7 +2,7 @@ import { validate as isUUID, v1 as uuid } from 'uuid'
 import PatchProxy from '@knowlearning/patch-proxy'
 import watchImplementation from './watch.js'
 
-export default function EmbeddedAgent(parent) {
+export default function EmbeddedAgent(postMessage) {
   let messageIndex = 0
   let resolveSession
   const session = new Promise(r => resolveSession = r)
@@ -17,13 +17,12 @@ export default function EmbeddedAgent(parent) {
 
     messageIndex += 1
     try {
-      parent
-        .postMessage({
-          ...message,
-          session: await session,
-          requestId,
-          index: messageIndex
-        }, '*')
+      postMessage({
+        ...message,
+        session: await session,
+        requestId,
+        index: messageIndex
+      })
       return new Promise((resolve, reject) => {
         responses[requestId] = { resolve, reject }
       })

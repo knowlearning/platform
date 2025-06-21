@@ -16,7 +16,6 @@ import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
 import { BigQuery } from "npm:@google-cloud/bigquery@7.9.3"
 import { Server as SocketIOServer } from "https://deno.land/x/socket_io@0.2.1/mod.ts"
 import { encodeBase64, decodeBase64 } from "jsr:@std/encoding@1.0.10"
-
 const environment = Deno.env.toObject()
 
 const {
