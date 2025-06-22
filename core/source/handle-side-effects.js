@@ -28,6 +28,7 @@ export default async function handleSideEffects({ domain, user, scope, patch, ii
         state.x = state.x || 0
         state.x += 1
         console.log("Agent state:", await Agent.state("stately"))
+        console.log("Agent environment:", await Agent.environment())
       `
      })
 }
@@ -110,6 +111,15 @@ function startWorker(domain) {
 
       const { ii } = await interact(stateRequestDomain, user, scope, patch)
       worker.postMessage({ requestId, response: { ii }, session })
+    }
+    else if (e.data.type === 'environment') {
+      const { requestId } = e.data
+      worker
+        .postMessage({
+          requestId,
+          response: { secrets: { secrets: 'are no fun' } },
+          session
+        })
     }
     else {
       console.log("TODO: implement unhandled agent message type", domain, e.data)
