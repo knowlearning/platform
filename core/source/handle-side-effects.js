@@ -43,17 +43,19 @@ export default async function handleSideEffects({ domain, user, scope, patch, ii
   }
 
   //  TODO: be able to await side effect function run and add context to it
-  domainWorkers[domain]
-    .postMessage({
-      type: 'script',
-      script: `
-        const state = await Agent.state("stately")
-        state.x = state.x || 0
-        state.x += 1
-        console.log("Agent state:", await Agent.state("stately"))
-        console.log("Agent environment:", await Agent.environment())
-      `
-     })
+
+  // TODO: move test script into test suite
+  // domainWorkers[domain]
+  //   .postMessage({
+  //     type: 'script',
+  //     script: `
+  //       const state = await Agent.state("stately")
+  //       state.x = state.x || 0
+  //       state.x += 1
+  //       console.log("Agent state:", await Agent.state("stately"))
+  //       console.log("Agent environment:", await Agent.environment())
+  //     `
+  //    })
 }
 
 const workerScript = `
