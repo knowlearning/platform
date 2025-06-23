@@ -1,23 +1,46 @@
-import { uuid } from './utils.js'
+import { uuid, environment as ENV, decryptString} from './utils.js'
 import * as redis from './redis.js'
 import configuration from './configuration.js'
 import scopeToId from './scope-to-id.js'
 import interact from './interact/index.js'
+import SESSION from './session.js'
 
 const domainWorkers = {}
+const currentConfig = {}
+
+const {
+  SECRET_ENCRYPTION_KEY,
+  PUBLIC_ENCRYPTION_KEY
+} = ENV
 
 export default async function handleSideEffects({ domain, user, scope, patch, ii, id, context, session }) {
   if (domain === 'core') return
 
   const config = await configuration(domain)
 
-  console.log('GOT DOMAIN CONFIG, checking for side effects for patch!', domain, user, scope, id)
-
   //  TODO:
   //    check if domain has side effect match for this patch
   //    execute side effect script in worker
+  const newConfig = config !== currentConfig[domain]
+  currentConfig[domain] = config
 
-  if (!domainWorkers[domain]) startWorker(domain)
+  if (newConfig && domainWorkers[domain]) {
+    domainWorkers[domain].terminate()
+    delete domainWorkers[domain]
+  }
+
+  if (!domainWorkers[domain]) {
+    const environment = {
+      domain,
+      server: SESSION,
+      serverPublicKey: PUBLIC_ENCRYPTION_KEY,
+      session,
+      auth: { user: domain, provider: 'core' },
+      secrets: await decodeSecrets(config.secrets || {}),
+      variables: {}
+    }
+    startWorker(domain, environment)
+  }
 
   //  TODO: be able to await side effect function run and add context to it
   domainWorkers[domain]
@@ -73,7 +96,7 @@ const workerScript = `
   }
 `
 
-function startWorker(domain) {
+function startWorker(domain, environment) {
   const session = uuid()
   console.log("Starting worker...")
   const blob = new Blob([workerScript], { type: "application/javascript" })
@@ -117,7 +140,7 @@ function startWorker(domain) {
       worker
         .postMessage({
           requestId,
-          response: { secrets: { secrets: 'are no fun' } },
+          response: environment,
           session
         })
     }
@@ -127,4 +150,18 @@ function startWorker(domain) {
   }
 
   domainWorkers[domain] = worker
+}
+
+async function decodeSecrets(secrets) {
+  return (
+    Object
+      .fromEntries(
+        Object
+          .entries(secrets)
+          .map(([key, encryptedSecret]) => [
+            key,
+            decryptString(SECRET_ENCRYPTION_KEY, encryptedSecret)
+          ])
+      )
+  )
 }

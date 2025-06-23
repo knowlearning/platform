@@ -193,7 +193,11 @@ function pemToArrayBuffer(pem) {
 async function encryptString(theirPublicKey, plainText) {
   const { publicKey, secretKey } =  await generateKeyPair()
 
-  const encrypted = encrypt(secretKey, decodeBase64(theirPublicKey), new TextDecoder().decode(plainText))
+  const encrypted = encrypt(
+    secretKey,
+    decodeBase64(theirPublicKey),
+    new TextEncoder().encode(plainText)
+  )
   const combined = new Uint8Array(publicKey.length + encrypted.length)
 
   combined.set(publicKey)
@@ -207,7 +211,7 @@ function decryptString(secretKey, encryptedText) {
   const publicKey = data.slice(0, 32)
   const ciphertext = data.slice(32)
 
-  return new TextEncoder().encode(
+  return new TextDecoder().decode(
     decrypt(
       decodeBase64(secretKey),
       publicKey,
