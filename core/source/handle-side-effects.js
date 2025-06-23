@@ -97,7 +97,6 @@ const workerScript = `
       "process",
       "Function",
       "eval",
-      "fetch",
       "WebSocket",
       "setTimeout",
       "setInterval",
