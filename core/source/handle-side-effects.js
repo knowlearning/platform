@@ -1,4 +1,4 @@
-import { uuid, environment as ENV, decryptString} from './utils.js'
+import { uuid, environment as ENV, decryptString, evalFilter } from './utils.js'
 import * as redis from './redis.js'
 import configuration from './configuration.js'
 import scopeToId from './scope-to-id.js'
@@ -18,9 +18,28 @@ export default async function handleSideEffects({ domain, user, scope, patch, ii
 
   const config = await configuration(domain)
 
-  //  TODO:
-  //    check if domain has side effect match for this patch
-  //    execute side effect script in worker
+  const agentSideEffects = []
+
+  if (!config.agents) return
+
+  const baseVariables = { domain, user, scope, id, ii, patch, context, session }
+
+  await Promise.all(
+    patch
+      .map(async patchPart => {
+        const variables = { ...baseVariables, ...patchPart }
+        await Promise.all(
+          config
+            .agents
+            .map(async ({ filter, script }) => {
+              if (await evalFilter(filter, variables)) {
+                agentSideEffects.push({ script, variables })
+              }
+            })
+        )
+      })
+  )
+
   const newConfig = config !== currentConfig[domain]
   currentConfig[domain] = config
 
@@ -37,25 +56,21 @@ export default async function handleSideEffects({ domain, user, scope, patch, ii
       session,
       auth: { user: domain, provider: 'core' },
       secrets: await decodeSecrets(config.secrets || {}),
-      variables: {}
+      variables: {} //  TODO: decide what variables should be set
     }
     startWorker(domain, environment)
   }
 
-  //  TODO: be able to await side effect function run and add context to it
-
-  // TODO: move test script into test suite
-  // domainWorkers[domain]
-  //   .postMessage({
-  //     type: 'script',
-  //     script: `
-  //       const state = await Agent.state("stately")
-  //       state.x = state.x || 0
-  //       state.x += 1
-  //       console.log("Agent state:", await Agent.state("stately"))
-  //       console.log("Agent environment:", await Agent.environment())
-  //     `
-  //    })
+  //  TODO: be able to await side effect function run to execute side effects sequentially
+  agentSideEffects
+    .forEach(({ script, variables }) => {
+      domainWorkers[domain]
+        .postMessage({
+          type: 'script',
+          script,
+          variables
+        })
+    })
 }
 
 const workerScript = `
@@ -66,7 +81,8 @@ const workerScript = `
 
   self.onmessage = e => {
     if (e.data.type === 'script') {
-      runSafely(e.data.script)
+      const { script, variables } = e.data
+      runSafely(script, variables)
         .then(() => null) //  TODO: report back successful run
         .catch(error => console.log('AGENT ERROR', error))
     }
@@ -74,7 +90,7 @@ const workerScript = `
 
   postMessage({ type: 'initialize' })
 
-  function runSafely(code) {
+  function runSafely(script, variables) {
     const blockedGlobals = [
       "Deno",
       "require",
@@ -92,15 +108,20 @@ const workerScript = `
     const sandbox = new Function(
       "Agent",
       ...blockedGlobals,
-      \`return (async () => { \${code} })();\`
-    );
-    return sandbox(Agent, ...blockedGlobals.map(() => undefined));
+      ...Object.keys(variables),
+      \`return (async () => { \${script} })();\`
+    )
+
+    return sandbox(
+      Agent,
+      ...blockedGlobals.map(() => undefined),
+      ...Object.values(variables)
+    )
   }
 `
 
 function startWorker(domain, environment) {
   const session = uuid()
-  console.log("Starting worker...")
   const blob = new Blob([workerScript], { type: "application/javascript" })
   const url = URL.createObjectURL(blob)
 

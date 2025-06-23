@@ -16,12 +16,16 @@ import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
 import { BigQuery } from "npm:@google-cloud/bigquery@7.9.3"
 import { Server as SocketIOServer } from "https://deno.land/x/socket_io@0.2.1/mod.ts"
 import { encodeBase64, decodeBase64 } from "jsr:@std/encoding@1.0.10"
+import jexl from 'npm:jexl@2.3.0'
+
 const environment = Deno.env.toObject()
 
 const {
   GC_PROJECT_ID,
   GCS_SERVICE_ACCOUNT_CREDENTIALS
 } = environment
+
+const evalFilter = (expression, variables) => jexl.eval(expression, variables)
 
 const bigquery = new BigQuery({
   projectId: GC_PROJECT_ID,
@@ -249,6 +253,7 @@ export {
   PatchProxy,
   Agent,
   applyPatch,
+  evalFilter,
   SocketIOServer,
   encryptString,
   decryptString,
