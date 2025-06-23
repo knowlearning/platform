@@ -447,7 +447,7 @@ agent: |
           })
       })
     }
-    doTests(configureDomain)
+    //doTests(configureDomain)
     doTests(configureDomainNew)
   })
 }
