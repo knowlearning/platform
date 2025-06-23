@@ -185,13 +185,11 @@ agent: |
       })
 
     child.on('mutate', async mutation => {
-      console.log('MUTATION!!!!!!!!!!!!!!!!!!!', mutation)
       if (mutation.scope.startsWith('mirror-no-reset')) {
         const myState = await Agent.state(mutation.scope)
         fastJSONPatch.applyPatch(myState, standardJSONPatch(mutation.patch))
       }
       else if (mutation.scope.startsWith('mirror-reconnect')) {
-        console.log('AGENT RECONNECTING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         Agent.reconnect()
         const myState = await Agent.state(mutation.scope)
         setTimeout(() => {
@@ -447,7 +445,7 @@ agent: |
           })
       })
     }
-    doTests(configureDomain)
+    //doTests(configureDomain)
     doTests(configureDomainNew)
   })
 }

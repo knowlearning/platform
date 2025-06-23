@@ -29,6 +29,7 @@ import ReportViewer from './report-viewer.vue'
 import YAMLEditor from '@knowlearning/editor/editor.vue'
 import YAMLValueReplacer from './yaml-value-replacer.vue'
 import DeploymentWidget from './widgets/deployment.vue'
+import SecretWidget from './widgets/secret-widget.vue'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
@@ -36,7 +37,6 @@ const { domain } = defineProps({ domain: String })
 
 const { auth: { user, provider } } = await Agent.environment()
 
-const acceptedConfig = await Agent.state(domain, window.location.host)
 const claimMessage = ref(null)
 const claimReport = ref(null)
 
@@ -73,6 +73,12 @@ function resolveWidget(path) {
   else if (arrayMatch(path, ['deployment'])) {
     return {
       component: DeploymentWidget,
+      props: {}
+    }
+  }
+  else if (path[0] === 'secrets' && path.length === 2) {
+    return {
+      component: SecretWidget,
       props: {}
     }
   }

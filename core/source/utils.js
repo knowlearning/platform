@@ -11,12 +11,12 @@ import jwt from 'npm:jsonwebtoken@8.5.1'
 import nacl from 'npm:tweetnacl@1.0.3'
 import PatchProxy from 'npm:@knowlearning/patch-proxy@1.3.2'
 import { Storage as createGCSClient } from 'npm:@google-cloud/storage@5.18.2'
-import { exists as fileExists } from "https://deno.land/std/fs/mod.ts"
 import { getCookies } from 'https://deno.land/std@0.214.0/http/cookie.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
-import { decodeBase64 } from "https://deno.land/std/encoding/base64.ts"
 import { BigQuery } from "npm:@google-cloud/bigquery@7.9.3"
-import { Server as SocketIOServer } from "https://deno.land/x/socket_io@0.2.1/mod.ts";
+import { Server as SocketIOServer } from "https://deno.land/x/socket_io@0.2.1/mod.ts"
+import { encodeBase64, decodeBase64 } from "jsr:@std/encoding@1.0.10"
+import jexl from 'npm:jexl@2.3.0'
 
 const environment = Deno.env.toObject()
 
@@ -24,6 +24,8 @@ const {
   GC_PROJECT_ID,
   GCS_SERVICE_ACCOUNT_CREDENTIALS
 } = environment
+
+const evalFilter = (expression, variables) => jexl.eval(expression, variables)
 
 const bigquery = new BigQuery({
   projectId: GC_PROJECT_ID,
@@ -192,6 +194,37 @@ function pemToArrayBuffer(pem) {
   return array.buffer;
 }
 
+async function encryptString(theirPublicKey, plainText) {
+  const { publicKey, secretKey } =  await generateKeyPair()
+
+  const encrypted = encrypt(
+    secretKey,
+    decodeBase64(theirPublicKey),
+    new TextEncoder().encode(plainText)
+  )
+  const combined = new Uint8Array(publicKey.length + encrypted.length)
+
+  combined.set(publicKey)
+  combined.set(encrypted, publicKey.length)
+
+  return encodeBase64(combined)
+}
+
+function decryptString(secretKey, encryptedText) {
+  const data = decodeBase64(encryptedText)
+  const publicKey = data.slice(0, 32)
+  const ciphertext = data.slice(32)
+
+  return new TextDecoder().decode(
+    decrypt(
+      decodeBase64(secretKey),
+      publicKey,
+      ciphertext
+    )
+  )
+}
+
+
 export {
   pg,
   jwt,
@@ -220,6 +253,9 @@ export {
   PatchProxy,
   Agent,
   applyPatch,
+  evalFilter,
   SocketIOServer,
+  encryptString,
+  decryptString,
   recordPatch
 }

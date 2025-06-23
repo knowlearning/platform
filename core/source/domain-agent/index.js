@@ -20,7 +20,7 @@ export default function domainAgent(domain, refresh=false) {
 
     if (config.agent) {
       try {
-        const domainAgent = await createAgent(domain, config.agent, DomainAgents)
+        const domainAgent = await createAgent(domain, config.agent, config.secrets, DomainAgents)
         resolve(domainAgent)
       }
       catch (error) {

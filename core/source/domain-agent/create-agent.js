@@ -7,7 +7,7 @@ import createConnection from './create-connection.js'
 const connections = {}
 const HEARTBEAT_INTERVAL = 5000
 
-export default function createAgent(domain, script, DomainAgents) {
+export default function createAgent(domain, script, secrets={}, DomainAgents) {
   return new Promise(async (resolve, reject) => {
     //  Initialize new session to make core logs
     const agentSessions = await coreState(domain, 'sessions', domain)
@@ -32,19 +32,6 @@ export default function createAgent(domain, script, DomainAgents) {
       //  remove domain agent from rotation so it will be reinitialized on next ask
       delete DomainAgents[domain]
       worker.terminate()
-    }
-
-    let workerPongTimeout
-    function resetPongTimeout() {
-      clearTimeout(workerPongTimeout)
-      workerPongTimeout = setTimeout(
-        () => {
-          console.log('CLOSING AGENT DUE TO HEARTBEAT_INTERVAL PONG TIMEOUT', domain)
-          delete DomainAgents[domain]
-          worker.terminate()
-        },
-        HEARTBEAT_INTERVAL + 1000
-      )
     }
 
     worker.onmessage = async ({ data }) => {
