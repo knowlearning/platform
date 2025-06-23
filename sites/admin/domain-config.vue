@@ -36,12 +36,9 @@ const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 const { domain } = defineProps({ domain: String })
 
 const { auth: { user, provider } } = await Agent.environment()
-const myConfig = await Agent.state(domain)
+
 const claimMessage = ref(null)
 const claimReport = ref(null)
-
-if (!myConfig.deployment) myConfig.deployment = null
-if (!myConfig.secrets) myConfig.secrets = { firstSecret: 'shhh!' }
 
 async function claim() {
   const start = Date.now()
@@ -60,12 +57,6 @@ async function claim() {
       Alternatively, make your website "${domain}/.well-known/knowlearning-admin-challenge" respond with "${token}"
     `
   }
-}
-
-
-async function deployConfig() {
-  myConfig.deployment = uuid()
-  await Agent.synced()
 }
 
 function downloadConfig(id) {
