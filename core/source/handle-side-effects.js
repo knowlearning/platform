@@ -18,10 +18,9 @@ export default async function handleSideEffects({ domain, user, scope, patch, ii
 
   const config = await configuration(domain)
 
-  const agentSideEffects = []
-
   if (!config.agents) return
 
+  const agentSideEffects = []
   const baseVariables = { domain, user, scope, id, ii, patch, context, session }
 
   await Promise.all(
