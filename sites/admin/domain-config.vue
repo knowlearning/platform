@@ -15,7 +15,6 @@
           if (arrayMatch(['postgres', 'queries', '*', 'body'], path)) return 'postgresql'
           else if (arrayMatch(['agent'], path)) return 'javascript'
         }"
-        :hidden="[]"
         :resolveWidget="resolveWidget"
         fill-height
       />
