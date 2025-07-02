@@ -31,18 +31,40 @@ if [ "$1" = "production" ]; then
 
   export PROJECT="opensourcelearningplatform"
 
-  export REGION="us-central1"
-  export ZONE="us-central1-a"
-  export INSTANCE_NAME="my-deno-instance-1"
-  export STATIC_IP_NAME="my-static-ip-1"
-  # export REGION="us-central1"
-  # export ZONE="us-central1-b"
-  # export INSTANCE_NAME="my-deno-instance-2"
-  # export STATIC_IP_NAME="my-static-ip-2"
-  # export REGION="asia-southeast1"
-  # export ZONE="asia-southeast1-a"
-  # export INSTANCE_NAME="my-deno-instance-3"
-  # export STATIC_IP_NAME="my-static-ip-3"
+  echo "Select an environment:"
+  echo "1) us-a"
+  echo "2) us-b"
+  echo "3) asia"
+
+  read -p "Enter choice [1-3]: " choice
+
+  case "$choice" in
+    1)
+      export REGION="us-central1"
+      export ZONE="us-central1-a"
+      export INSTANCE_NAME="my-deno-instance-1"
+      export STATIC_IP_NAME="my-static-ip-1"
+      ;;
+    2)
+      export REGION="us-central1"
+      export ZONE="us-central1-b"
+      export INSTANCE_NAME="my-deno-instance-2"
+      export STATIC_IP_NAME="my-static-ip-2"
+      ;;
+    3)
+      export REGION="asia-southeast1"
+      export ZONE="asia-southeast1-a"
+      export INSTANCE_NAME="my-deno-instance-3"
+      export STATIC_IP_NAME="my-static-ip-3"
+      ;;
+    *)
+      echo "Invalid choice"
+      exit 1
+      ;;
+  esac
+
+
+
 
   export GCP_MACHINE="n4-standard-2"
 
