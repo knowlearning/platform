@@ -4,7 +4,7 @@
   import { compare, applyPatch } from 'fast-json-patch'
   import CodeMirror from "vue-codemirror6"
   import mixedLanguageYaml from "./mixed-language-yaml.js"
-  import YAML, { parseDocument } from "yaml"
+  import YAML from "yaml"
 
   const {
     id,
@@ -21,73 +21,31 @@
   const state = ref(await Agent.state(id))
   const cm = ref()
 
-  let outstandingPatch = null
-
-  Agent.watch(id, async () => {
-    while (outstandingPatch) {
-      await Promise.all([
-        outstandingPatch,
-        new Promise(r => setTimeout(r, 1000))
-      ])
-    }
-    Agent.state(id).then(value => {
-      if (compare(state.value, value).length) {
-        state.value = value
-      }
-    })
-  })
-
   const code = computed({
     get() {
-      if (cm.value) {
-        const doc = cm.value.view.state.doc.toString()
-        try {
-          const yamlAst = parseDocument(doc)
-          if (!state.value.__yaml) state.value.__yaml = {}
-
-          const diff = compare(yamlAst, state.value.__yaml)
-          //  TODO: smarter text insertion update
-          return diff.length ? yamlAst.toString() : doc
-        }
-        catch (error) {
-          console.log('Error Getting Doc', error)
-          return doc
-        }
+      if (state.value.__yaml) return state.value.__yaml
+      else {
+        const shallowCopy = { ...state.value }
+        return YAML.stringify(shallowCopy)
       }
-      else return  YAML.stringify(state.value, { blockQuote: 'literal' })
     },
     set(value) {
       try {
-        const yamlAst = parseDocument(value)
-
-        applyPatch(
-          state.value.__yaml,
-          compare(
-            state.value.__yaml,
-            yamlAst
-          )
-        )
+        state.value.__yaml = value
 
         const shallowCopy = { ...state.value }
+        const valueShallowCopy = YAML.parse(value, { strict: true })
+
         delete shallowCopy.__yaml
-        delete value.__yaml
+        delete valueShallowCopy.__yaml
 
         applyPatch(
           state.value,
           compare(
             shallowCopy,
-            YAML.parse(value, { strict: true })
+            valueShallowCopy
           )
         )
-        const thisOutstandingPatch = (
-          Agent
-            .synced()
-            .then(() => setTimeout(() => {
-              if (outstandingPatch === thisOutstandingPatch) outstandingPatch = null
-            }, 1000))
-        )
-
-        outstandingPatch = thisOutstandingPatch
       }
       catch (error) {
         console.log('Error Setting Doc', error)
