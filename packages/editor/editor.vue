@@ -43,7 +43,7 @@
         const doc = cm.value.view.state.doc.toString()
         try {
           const yamlAst = parseDocument(doc)
-          if (state.value.__yaml) state.value.__yaml = {}
+          if (!state.value.__yaml) state.value.__yaml = {}
 
           const diff = compare(yamlAst, state.value.__yaml)
           //  TODO: smarter text insertion update
