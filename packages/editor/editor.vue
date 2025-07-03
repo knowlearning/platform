@@ -4,7 +4,7 @@
   import { compare, applyPatch } from 'fast-json-patch'
   import CodeMirror from "vue-codemirror6"
   import mixedLanguageYaml from "./mixed-language-yaml.js"
-  import YAML from "yaml"
+  import YAML, { parseDocument } from "yaml"
 
   const {
     id,
@@ -42,9 +42,12 @@
       if (cm.value) {
         const doc = cm.value.view.state.doc.toString()
         try {
-          const diff = compare(YAML.parse(doc, { strict: true }), state.value)
+          const yamlAst = parseDocument(doc)
+          if (state.value.__yaml) state.value.__yaml = {}
+
+          const diff = compare(yamlAst, state.value.__yaml)
           //  TODO: smarter text insertion update
-          return diff.length ? YAML.stringify(state.value, { blockQuote: 'literal' }) : doc
+          return diff.length ? yamlAst.toString() : doc
         }
         catch (error) {
           return doc
@@ -54,10 +57,24 @@
     },
     set(value) {
       try {
+        const yamlAst = parseDocument(value)
+
+        applyPatch(
+          state.value.__yaml,
+          compare(
+            state.value.__yaml,
+            yamlAst
+          )
+        )
+
+        const shallowCopy = { ...state.value }
+        delete shallowCopy.__yaml
+        delete value.__yaml
+
         applyPatch(
           state.value,
           compare(
-            state.value,
+            shallowCopy,
             YAML.parse(value, { strict: true })
           )
         )
