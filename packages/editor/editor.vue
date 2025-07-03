@@ -50,6 +50,7 @@
           return diff.length ? yamlAst.toString() : doc
         }
         catch (error) {
+          console.log('Error Getting Doc', error)
           return doc
         }
       }
@@ -89,7 +90,7 @@
         outstandingPatch = thisOutstandingPatch
       }
       catch (error) {
-        console.log('ERROR PARSING WORLD EDIT')
+        console.log('Error Setting Doc', error)
       }
     }
   })
