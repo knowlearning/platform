@@ -17,6 +17,12 @@ import { BigQuery } from "npm:@google-cloud/bigquery@7.9.3"
 import { Server as SocketIOServer } from "https://deno.land/x/socket_io@0.2.1/mod.ts"
 import { encodeBase64, decodeBase64 } from "jsr:@std/encoding@1.0.10"
 import jexl from 'npm:jexl@2.3.0'
+import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.1/mod.js"
+
+const DJWT = {
+  create,
+  getNumericDate
+}
 
 const environment = Deno.env.toObject()
 
@@ -257,5 +263,6 @@ export {
   SocketIOServer,
   encryptString,
   decryptString,
+  DJWT,
   recordPatch
 }
