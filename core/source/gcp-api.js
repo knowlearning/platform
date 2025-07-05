@@ -90,3 +90,78 @@ export async function insertRowsToBigQuery({
 
   return response
 }
+
+const isRetryable = {
+  timeout: true,
+  internalError: true,
+  backendError: true,
+  rateLimitExceeded: true
+}
+
+export function bigQueryBatchInserter({
+  creds,
+  project,
+  dataset,
+  table,
+  batchMs = 1000
+}) {
+  let queue = []
+  let retryQueue = []
+  let timer = null
+
+  async function flush() {
+    if (!queue.length && !retryQueue.length) return
+
+    const batch = [...retryQueue, ...queue]
+    retryQueue = []
+    queue = []
+
+    const rows = batch.map(({ row, insertId }) => ({
+      json: row,
+      insertId
+    }))
+
+    const res = await insertRowsToBigQuery({
+      creds,
+      project,
+      dataset,
+      table,
+      rows
+    })
+
+    if (res.insertErrors) {
+      for (const [indexStr, errors] of Object.entries(res.insertErrors)) {
+        const index = parseInt(indexStr)
+        const { row, insertId } = batch[index]
+
+        const retryable = errors.every(e => isRetryable[e.reason])
+
+        if (retryable) retryQueue.push({ row, insertId })
+        else console.warn("Non-retryable BigQuery insert error:", { row, errors })
+      }
+    }
+  }
+
+  function scheduleFlush() {
+    if (!timer) {
+      timer = setTimeout(async () => {
+        timer = null
+        await flush()
+      }, batchMs)
+    }
+  }
+
+  return {
+    insert(row, insertId = crypto.randomUUID()) {
+      queue.push({ row, insertId })
+      scheduleFlush()
+    },
+    async flush() {
+      if (timer) {
+        clearTimeout(timer)
+        timer = null
+      }
+      await flush()
+    }
+  }
+}
