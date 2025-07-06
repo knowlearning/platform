@@ -39,7 +39,7 @@ supervisord -n -c <(echo "
 nodaemon=true
 
 [program:web]
-command=bash -c 'while true; do ./core/run.sh -- logfile.txt 2>&1 | awk '\''{ print strftime(\"[%Y-%m-%d %H:%M:%S]\"), \$0; fflush(); }'\''; sleep 2; done'
+command=bash -c 'while true; do ./core/run.sh -- logfile.txt 2>&1 | awk '\''{ print strftime(\"[%%Y-%%m-%%d %%H:%%M:%%S]\"), \$0; fflush(); }'\''; sleep 2; done'
 autorestart=false
 stderr_logfile=/dev/stdout
 stdout_logfile=/dev/stdout
