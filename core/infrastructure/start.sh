@@ -34,13 +34,15 @@ LOGFILE=~/output.log
 
 chmod +x core/run.sh
 
-supervisord -n -c <(echo "
+supervisord -c <(echo "
 [supervisord]
-nodaemon=true
+nodaemon=false
 
 [program:web]
-command=bash -c 'while true; do ./core/run.sh -- logfile.txt 2>&1 | awk '\''{ print strftime(\"[%%Y-%%m-%%d %%H:%%M:%%S]\"), \$0; fflush(); }'\''; sleep 2; done'
-autorestart=false
+command=bash -c './core/run.sh -- logfile.txt 2>&1 | awk '\''{ print strftime(\"[%%Y-%%m-%%d %%H:%%M:%%S]\"), \$0; fflush(); }'\'''
+autorestart=true
 stderr_logfile=/dev/stdout
+stderr_logfile_maxbytes=0
 stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
 ")
