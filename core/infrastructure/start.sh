@@ -30,19 +30,20 @@ export REDIS_PORT=12681
 export PORT=80
 export TLS_PORT=443
 
-LOGFILE=~/output.log
-
 chmod +x core/run.sh
 
-supervisord -c <(echo "
+LOGFILE="$HOME/output.log"
+
+supervisord -c <(cat <<EOF
 [supervisord]
 nodaemon=false
 
 [program:web]
-command=bash -c './core/run.sh -- logfile.txt 2>&1 | awk '\''{ print strftime(\"[%%Y-%%m-%%d %%H:%%M:%%S]\"), \$0; fflush(); }'\'''
+command=bash -c './core/run.sh 2>&1 | awk \'{ print strftime("[%%Y-%%m-%%d %%H:%%M:%%S]"), \$0; fflush(); }\' >> "$LOGFILE"'
 autorestart=true
-stderr_logfile=/dev/stdout
-stderr_logfile_maxbytes=0
-stdout_logfile=/dev/stdout
+stdout_logfile=/dev/null
+stderr_logfile=/dev/null
 stdout_logfile_maxbytes=0
-")
+stderr_logfile_maxbytes=0
+EOF
+)
