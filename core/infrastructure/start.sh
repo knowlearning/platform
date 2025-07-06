@@ -39,7 +39,7 @@ supervisord -c <(cat <<EOF
 nodaemon=false
 
 [program:web]
-command=bash -c './core/run.sh 2>&1 | awk \'{ print strftime("[%%Y-%%m-%%d %%H:%%M:%%S]"), \$0; fflush(); }\' >> "$LOGFILE"'
+command=bash -c "core/run.sh 2>&1 | awk '{ print strftime(\"[%%Y-%%m-%%d %%H:%%M:%%S]\"), \$0; fflush(); }' >> '$LOGFILE'"
 autorestart=true
 stdout_logfile=/dev/null
 stderr_logfile=/dev/null
