@@ -125,7 +125,7 @@ export default async function interact( domain, user, scope, patch, context=[], 
     patch
       .map(({ op, path, from=null, value=null }) => {
         bqInsertPatch({
-          timestamp,
+          timestamp: new Date(timestamp).toISOString(),
           id,
           index: ii,
           op,
