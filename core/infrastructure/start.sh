@@ -33,5 +33,5 @@ export TLS_PORT=443
 LOGFILE=~/output.log
 
 chmod +x core/run.sh
-nohup core/run.sh -- $LOGFILE >> $LOGFILE 2>&1 &
+nohup core/run.sh -- "$LOGFILE" 2>&1 | awk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0; fflush(); }' >> "$LOGFILE" &
 disown
