@@ -1,7 +1,7 @@
 #!/bin/bash
 
 sudo apt update
-sudo apt install git unzip -y
+sudo apt install git unzip supervisor -y
 curl -fsSL https://deno.land/install.sh | sh -s -- -y v2.2.7
 
 echo "GETTING PLATFORM REPOSITORY"
@@ -33,5 +33,14 @@ export TLS_PORT=443
 LOGFILE=~/output.log
 
 chmod +x core/run.sh
-nohup core/run.sh -- "$LOGFILE" 2>&1 | awk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0; fflush(); }' >> "$LOGFILE" &
-disown
+
+supervisord -n -c <(echo "
+[supervisord]
+nodaemon=true
+
+[program:web]
+command=bash -c 'while true; do ./core/run.sh -- logfile.txt 2>&1 | awk '\''{ print strftime(\"[%Y-%m-%d %H:%M:%S]\"), \$0; fflush(); }'\''; sleep 2; done'
+autorestart=false
+stderr_logfile=/dev/stdout
+stdout_logfile=/dev/stdout
+")
