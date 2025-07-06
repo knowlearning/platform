@@ -2,6 +2,24 @@ import { DJWT } from './utils.js'
 
 const tokenCache = new Map()
 
+export async function importPrivateKey(pem) {
+  // Remove the header, footer, and line breaks
+  const pemContents = pem
+    .replace(/-----BEGIN PRIVATE KEY-----/, "")
+    .replace(/-----END PRIVATE KEY-----/, "")
+    .replace(/\s+/g, "")
+
+  const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0))
+
+  return await crypto.subtle.importKey(
+    "pkcs8",
+    binaryDer.buffer,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"]
+  )
+}
+
 export async function getAccessToken(creds, scope) {
   const scopeKey = Array.isArray(scope) ? scope.join(" ") : scope
 
@@ -23,7 +41,9 @@ export async function getAccessToken(creds, scope) {
     exp
   }
 
-  const jwt = await DJWT.create({ alg: "RS256", typ: "JWT" }, payload, creds.private_key)
+  const key = await importPrivateKey(creds.private_key)
+
+  const jwt = await DJWT.create({ alg: "RS256", typ: "JWT" }, payload, key)
 
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -47,9 +67,9 @@ export async function getAccessToken(creds, scope) {
   return access_token
 }
 
-async function gcpPOST(url, scopes, payload) {
+async function gcpPOST(creds, url, scopes, payload) {
   const token = await getAccessToken(creds, scopes)
-  const response = fetch(url, {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${token}`,
@@ -74,7 +94,8 @@ export async function insertRowsToBigQuery({
   table,
   rows
 }) {
-  const response = await gcpPost(
+  const response = await gcpPOST(
+    creds,
     `https://bigquery.googleapis.com/bigquery/v2/projects/${project}/datasets/${dataset}/tables/${table}/insertAll`,
     'https://www.googleapis.com/auth/bigquery',
     {
@@ -85,7 +106,7 @@ export async function insertRowsToBigQuery({
   )
 
   if (response.insertErrors) {
-    console.warn("Insert errors:", JSON.stringify(json.insertErrors, null, 2))
+    console.warn("Insert errors:", JSON.stringify(response.insertErrors, null, 2))
   }
 
   return response
@@ -130,15 +151,10 @@ export function bigQueryBatchInserter({
     })
 
     if (res.insertErrors) {
-      for (const [indexStr, errors] of Object.entries(res.insertErrors)) {
-        const index = parseInt(indexStr)
-        const { row, insertId } = batch[index]
-
-        const retryable = errors.every(e => isRetryable[e.reason])
-
-        if (retryable) retryQueue.push({ row, insertId })
-        else console.warn("Non-retryable BigQuery insert error:", { row, errors })
-      }
+      Object
+        .values(res.insertErrors)
+        .filter(({ errors }) => errors.every(e => isRetryable[e.reason]))
+        .forEach(({ index }) => retryQueue.push(batch[index]))
     }
   }
 

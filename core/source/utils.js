@@ -13,11 +13,10 @@ import PatchProxy from 'npm:@knowlearning/patch-proxy@1.3.2'
 import { Storage as createGCSClient } from 'npm:@google-cloud/storage@5.18.2'
 import { getCookies } from 'https://deno.land/std@0.214.0/http/cookie.ts'
 import { encodeToString } from 'https://deno.land/std@0.90.0/encoding/hex.ts'
-import { BigQuery } from "npm:@google-cloud/bigquery@7.9.3"
 import { Server as SocketIOServer } from "https://deno.land/x/socket_io@0.2.1/mod.ts"
 import { encodeBase64, decodeBase64 } from "jsr:@std/encoding@1.0.10"
 import jexl from 'npm:jexl@2.3.0'
-import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.1/mod.js"
+import { create, getNumericDate } from "https://deno.land/x/djwt@v3.0.1/mod.ts"
 
 const DJWT = {
   create,
@@ -26,37 +25,7 @@ const DJWT = {
 
 const environment = Deno.env.toObject()
 
-const {
-  GC_PROJECT_ID,
-  GCS_SERVICE_ACCOUNT_CREDENTIALS
-} = environment
-
 const evalFilter = (expression, variables) => jexl.eval(expression, variables)
-
-const bigquery = new BigQuery({
-  projectId: GC_PROJECT_ID,
-  credentials: JSON.parse(GCS_SERVICE_ACCOUNT_CREDENTIALS)
-})
-const dataset = bigquery.dataset('core')
-const table = dataset.table('patches')
-
-async function recordPatch(ts, id, index, patch, domain, user, name, context) {
-  const timestamp = new Date(ts).toISOString()
-
-  return table.insert(patch.map(({ op, path, from=null, value=null }) => ({
-    timestamp,
-    id,
-    domain,
-    user,
-    name,
-    index,
-    op,
-    path: JSON.stringify(path),
-    from: JSON.stringify(from),
-    value: JSON.stringify(value),
-    context: JSON.stringify(context)
-  })))
-}
 
 const { box } = nacl
 const uuid = () => crypto.randomUUID()
@@ -263,6 +232,5 @@ export {
   SocketIOServer,
   encryptString,
   decryptString,
-  DJWT,
-  recordPatch
+  DJWT
 }
