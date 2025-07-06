@@ -1,7 +1,20 @@
-import { recordPatch } from '../utils.js'
+import { bigQueryBatchInserter } from '../gcp-api.js'
 import * as redis from '../redis.js'
 import scopeToId from '../scope-to-id.js'
 import sync from './sync.js'
+import { environment } from '../utils.js'
+
+const {
+  GC_PROJECT_ID,
+  GCS_SERVICE_ACCOUNT_CREDENTIALS
+} = environment
+
+const { insert: bqInsertPatch } = bigQueryBatchInserter({
+  creds: JSON.parse(GCS_SERVICE_ACCOUNT_CREDENTIALS),
+  project: GC_PROJECT_ID,
+  dataset: 'core',
+  table: 'patches'
+})
 
 const MAINTENANCE_SCRIPT = `
   local active_size = redis.call('JSON.DEBUG', 'MEMORY', KEYS[1])
@@ -109,8 +122,22 @@ export default async function interact( domain, user, scope, patch, context=[], 
 
     await sync(domain, user, active_type, scope)
 
-    recordPatch(timestamp, id, ii, patch, domain, user, scope, context)
-      .catch(error => console.log('ERROR RECORDING PATCH', error))
+    patch
+      .map(({ op, path, from=null, value=null }) => {
+        bqInsertPatch({
+          timestamp: new Date(timestamp).toISOString(),
+          id,
+          index: ii,
+          op,
+          path: JSON.stringify(path),
+          from: JSON.stringify(from),
+          value: JSON.stringify(value),
+          domain,
+          user,
+          name: scope,
+          context: JSON.stringify(context)
+        })
+      })
 
     return { ii, active_type }
   }
