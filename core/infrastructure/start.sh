@@ -18,7 +18,6 @@ SERVICE_NAME="my-deno-app"
 USER_NAME="$(whoami)"
 DENO_BIN="$HOME/.deno/bin/deno"
 APP_PATH="$HOME/platform/core/source/index.js"
-LOG_PATH="$HOME/output.log"
 CERT_PATH="/etc/ssl/certs/ca-certificates.crt"
 
 # 1. Write the systemd service file
@@ -40,9 +39,7 @@ ExecStart=${DENO_BIN} run \\
   ${APP_PATH}
 WorkingDirectory=${HOME}
 Restart=always
-RestartSec=3
-StandardOutput=append:${LOG_PATH}
-StandardError=append:${LOG_PATH}
+RestartSec=1
 User=${USER_NAME}
 Environment=AUTH_SERVICE_SECRET_KEY
 Environment=GCS_SERVICE_ACCOUNT_CREDENTIALS
