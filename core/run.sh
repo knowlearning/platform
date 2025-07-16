@@ -1,6 +1,11 @@
 #!/bin/bash
-
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+cleanup() {
+  kill "$child"
+  wait "$child"
+  exit 0
+}
 
 sudo -E ~/.deno/bin/deno run \
     --allow-sys \
