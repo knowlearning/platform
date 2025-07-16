@@ -14,7 +14,7 @@ git checkout trunk
 SERVICE_NAME="my-deno-app"
 USER_NAME="$(whoami)"
 DENO_BIN="$HOME/.deno/bin/deno"
-APP_PATH="$HOME/core/source/index.js"
+APP_PATH="$HOME/platform/core/source/index.js"
 LOG_PATH="$HOME/output.log"
 CERT_PATH="/etc/ssl/certs/ca-certificates.crt"
 
