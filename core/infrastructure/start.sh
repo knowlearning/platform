@@ -6,6 +6,9 @@ sudo apt update
 sudo apt install git unzip -y
 curl -fsSL https://deno.land/install.sh | sh -s -- -y v2.2.7
 
+# allow deno binary to bind to low ports
+sudo setcap 'cap_net_bind_service=+ep' $HOME/.deno/bin/deno
+
 echo "GETTING PLATFORM REPOSITORY"
 git clone https://github.com/knowlearning/platform.git
 cd platform
