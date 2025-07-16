@@ -2,33 +2,41 @@ import { environment } from './utils.js'
 
 const { MODE } = environment
 
-async function processMemCPUData() {
+async function run(cmd, capture = "stdout") {
   const process = Deno.run({
-    cmd: ["ps", "-p", Deno.pid.toString(), "-o", "%cpu,%mem"],
+    cmd,
     stdout: "piped",
     stderr: "piped"
   })
 
-  const output = await process.output()
-  process.close()
+  try {
+    const [output, error] = await Promise.all([
+      process.output(),
+      process.stderrOutput()
+    ])
+    return new TextDecoder().decode(capture === 'stdout' ? output : error)
+  }
+  finally {
+    process.close()
+  }
+}
 
-  const lines = (new TextDecoder().decode(output)).split('\n').map(l => l.trim())
+async function processMemCPUData() {
+  const command = ["ps", "-p", Deno.pid.toString(), "-o", "%cpu,%mem"]
+
+  const lines = (await run(command)).split('\n').map(l => l.trim())
   const [cpu, mem] = lines[1].split(/\s+/)
+
   return {
     cpu: parseFloat(cpu)/100,
     mem: parseFloat(mem)/100
   }
 }
-async function getCpuStats() {
-  const process = Deno.run({
-    cmd: ["cat", "/proc/stat"],
-    stdout: "piped",
-    stderr: "piped"
-  })
 
-  const output = await process.output()
-  const text = new TextDecoder().decode(output)
-  process.close()
+async function getCpuStats() {
+  const command = ["cat", "/proc/stat"]
+
+  const text = await run(command)
 
   const match = text.match(/^cpu\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/)
   if (match) {
@@ -51,15 +59,9 @@ async function getCpuStats() {
 }
 
 export async function processData() {
-  const freeProcess = Deno.run({
-    cmd: ['free', '-b'],
-    stdout: 'piped',
-    stderr: 'piped'
-  })
+  const command = ['free', '-b']
 
-  const freeOutput = await freeProcess.output()
-  const decodedFreeOutput = new TextDecoder().decode(freeOutput)
-  const freeLines = decodedFreeOutput.trim().split('\n')
+  const freeLines = (await run(command)).trim().split('\n')
   const memoryData = freeLines[1].split(/\s+/)
 
   const { cpu, mem } = await processMemCPUData()
@@ -83,20 +85,10 @@ export async function processData() {
 // Deno script to capture CPU data using lscpu
 
 export async function CPUData() {
-  const cpuProcess = Deno.run({
-    cmd: ['lscpu'],
-    stdout: 'piped',
-    stderr: 'piped'
-  })
+  const decodedOutput = await run(['lscpu'])
 
-  const output = await cpuProcess.output()
-  const decodedOutput = new TextDecoder().decode(output)
-
-  const errorOutput = await cpuProcess.stderrOutput()
-  const decodedError = new TextDecoder().decode(errorOutput)
-
-  if (decodedError) {
-    console.error('Error:', decodedError)
+  if (!decodedOutput) {
+    console.error('Error Collecting CPU data')
     return null
   }
 

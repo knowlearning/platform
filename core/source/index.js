@@ -83,12 +83,14 @@ const metricsPromise = Agent
       lastCall = Date.now()
       metrics[SESSION].ping = lastCall
       try {
-        metrics[SESSION].process = await processData()
-        metrics[SESSION].network = await networkData()
+        await Promise.all([
+          processData().then(d => metrics[SESSION].process = d),
+          networkData().then(d => metrics[SESSION].network = d)
+        ])
       } catch (error) {
         metrics[SESSION].error = error.toString()
       }
-      setTimeout(pollMetrics, lastCall + METRICS_POLL_INTERVAL - Date.now())
+      setTimeout(pollMetrics, METRICS_POLL_INTERVAL)
     }
 
     pollMetrics()
