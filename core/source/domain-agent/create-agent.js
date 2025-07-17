@@ -1,4 +1,4 @@
-import { uuid, writeFile } from '../utils.js'
+import { uuid } from '../utils.js'
 import coreState from '../core-state.js'
 import handleConnection from '../handle-connection.js'
 import createSession from './create-session.js'
@@ -15,10 +15,7 @@ export default function createAgent(domain, script, secrets={}, DomainAgents) {
     agentSessions[coreSessionId] = { log: 'Initialized new agent' }
     const coreSession = agentSessions[coreSessionId]
 
-    const filename = `/${uuid()}.js`
-    await writeFile(filename, script)
-    const workerUrl = new URL(filename, import.meta.url).href
-
+    const workerUrl = URL.createObjectURL(new Blob([script], { type: "application/javascript" }))
     const worker = new Worker(workerUrl, { type: "module" })
 
     worker.onerror = event => {
