@@ -81,11 +81,11 @@ sh core/deploy.sh $PROFILE
 sequenceDiagram
   participant Patch Client as Patch Client
   participant API Process as API Process
-  participant State Process as State Process
-  participant Etcd as Etcd
-  participant Owner State Process as Owner State Process
-  participant Tiered Storage as Tiered Storage
   participant Domain Worker as Domain Worker
+  participant State Process as State Process
+  participant Owner State Process as Owner State Process
+  participant Etcd as Etcd
+  participant Tiered Storage as Tiered Storage
   participant Postgres DB as Postgres DB
 
   Patch Client ->> API Process: patch request for ID
@@ -124,7 +124,7 @@ sequenceDiagram
     API Process ->> Domain Worker: configure
     API Process ->> Postgres DB: configure
   end
-  API Process ->> Postgres DB: update data miror for domain specfied data
+  API Process ->> Postgres DB: update data mirror for domain specfied data
   API Process ->> Domain Worker: post-persistence handler
   Domain Worker ->> API Process: handler result
   API Process ->> Patch Client: acknowledge patch with side effect results
@@ -133,5 +133,4 @@ sequenceDiagram
     State Process ->> API Process: SUB_ID patch
     API Process ->> Patch Client: SUB_ID patch
   end
-
 ```
