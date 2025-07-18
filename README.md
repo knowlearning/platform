@@ -85,8 +85,12 @@ sequenceDiagram
   participant Etcd as Etcd
   participant Owner State Process as Owner State Process
   participant Tiered Storage as Tiered Storage
+  participant Domain Worker as Domain Worker
+  participant Postgres DB as Postgres DB
 
   Patch Client ->> API Process: patch request for ID
+  API Process ->> Domain Worker: pre-persistence handler
+  Domain Worker ->> API Process: handler result
   API Process ->> State Process: patch request for ID
   State Process ->> Etcd: get or claim ownership
   Etcd ->> State Process: Owner State Process for ID
@@ -119,6 +123,8 @@ sequenceDiagram
   else claim or configure patch
     API Process ->> API Process: TODO: document
   end
+  API Process ->> Domain Worker: post-persistence handler
+  Domain Worker ->> API Process: handler result
   API Process ->> Patch Client: acknowledge patch with side effect results
   loop while API Process interested in SUB_ID
     Owner State Process ->> State Process: SUB_ID patch
