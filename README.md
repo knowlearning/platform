@@ -84,7 +84,6 @@ sequenceDiagram
   participant Domain Worker as Domain Worker
   participant State Process as State Process
   participant Owner State Process as Owner State Process
-  participant Etcd as Etcd
   participant Tiered Storage as Tiered Storage
   participant Postgres DB as Postgres DB
 
@@ -92,8 +91,7 @@ sequenceDiagram
   API Process ->> Domain Worker: pre-persistence handler
   Domain Worker ->> API Process: handler result
   API Process ->> State Process: patch request for ID
-  State Process ->> Etcd: get or claim ownership
-  Etcd ->> State Process: Owner State Process for ID
+  State Process ->> State Process: Get ID Owner State Process<br>From Hash Function
   State Process ->> Owner State Process: patch request for ID
   opt missing local state for ID
     Owner State Process ->> Tiered Storage: fetch last page
@@ -105,8 +103,7 @@ sequenceDiagram
   State Process ->> API Process: acknowledge patch
   alt subscription patch
     API Process ->> State Process: state request for SUB_ID
-    State Process ->> Etcd: get or claim ownership
-    Etcd ->> State Process: Owner State Process for SUB_ID
+    State Process ->> State Process: Get SUB_ID Owner State Process<br>From Hash Function
     State Process ->> Owner State Process: state request for SUB_ID
     opt missing local state for SUB_ID
       Owner State Process ->> Tiered Storage: fetch last page
