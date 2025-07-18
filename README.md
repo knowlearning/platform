@@ -114,6 +114,10 @@ sequenceDiagram
   else query patch
     API Process ->> Postgres DB: submit query
     Postgres DB ->> API Process: query response
+  else upload/download patch
+    API Process ->> API Process: authorize and generate url
+  else claim or configure patch
+    API Process ->> API Process: TODO: document
   end
   API Process ->> Patch Client: acknowledge patch with side effect results
   loop while API Process interested in SUB_ID
