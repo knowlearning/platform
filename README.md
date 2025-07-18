@@ -121,7 +121,8 @@ sequenceDiagram
   else upload/download patch
     API Process ->> API Process: authorize and generate url
   else claim or configure patch
-    API Process ->> API Process: TODO: document
+    API Process ->> Domain Worker: configure
+    API Process ->> Postgres DB: configure
   end
   API Process ->> Domain Worker: post-persistence handler
   Domain Worker ->> API Process: handler result
