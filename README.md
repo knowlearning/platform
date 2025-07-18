@@ -120,7 +120,7 @@ sequenceDiagram
     Postgres DB ->> API Process: query response
   else upload/download patch
     API Process ->> API Process: authorize and generate url
-  else claim or configure patch
+  else configure domain patch
     API Process ->> Domain Worker: configure
     API Process ->> Postgres DB: configure
   end
