@@ -79,40 +79,47 @@ sh core/deploy.sh $PROFILE
 # Sequence Diagram
 ```mermaid
 sequenceDiagram
-  participant Subscription Client
-  participant Patch Client
-  participant API Process
-  participant Etcd
-  participant State Process
-  participant Owner State Process
-  participant Cold Storage
+  participant Patch Client as Patch Client
+  participant API Process as API Process
+  participant State Process as State Process
+  participant Etcd as Etcd
+  participant Owner State Process as Owner State Process
+  participant Tiered Storage as Tiered Storage
 
-  Subscription Client ->> API Process: subscription request for ID
-  API Process ->> State Process: subscription request for ID
-  State Process ->> Etcd: get owner of ID or claim ownership
-  Etcd ->> State Process: Owner State Process for ID
-  State Process ->> Owner State Process: state  request for ID
-  opt missing local state for ID
-    Owner State Process ->> Cold Storage: fetch last page
-    Cold Storage ->> Owner State Process: last page
-    Owner State Process ->> Owner State Process: calculate ID state
-  end
-  Owner State Process ->> State Process: state for ID
-  State Process ->> API Process: state for ID
-  API Process ->> Subscription Client: state for ID
   Patch Client ->> API Process: patch request for ID
   API Process ->> State Process: patch request for ID
   State Process ->> Etcd: get or claim ownership
   Etcd ->> State Process: Owner State Process for ID
   State Process ->> Owner State Process: patch request for ID
-    opt missing local state for ID
-    Owner State Process ->> Cold Storage: fetch last page
-    Cold Storage ->> Owner State Process: last page
+  opt missing local state for ID
+    Owner State Process ->> Tiered Storage: fetch last page
+    Tiered Storage ->> Owner State Process: last page
     Owner State Process ->> Owner State Process: calculate ID state
   end
-  Owner State Process ->> Owner State Process: apply patch
+  Owner State Process ->> Owner State Process: apply patch to local state
   Owner State Process ->> State Process: acknowledge patch
-  State Process ->> Patch Client: acknowledge patch
-  State Process ->> API Process: forward patches to ID
-  API Process ->> Subscription Client: forward patches to ID
+  State Process ->> API Process: acknowledge patch
+  alt subscription patch
+    API Process ->> State Process: state request for SUB_ID
+    State Process ->> Etcd: get or claim ownership
+    Etcd ->> State Process: Owner State Process for SUB_ID
+    State Process ->> Owner State Process: state request for SUB_ID
+    opt missing local state for ID
+      Owner State Process ->> Tiered Storage: fetch last page
+      Tiered Storage ->> Owner State Process: last page
+      Owner State Process ->> Owner State Process: calculate SUB_ID state
+    end
+    Owner State Process ->> State Process: state for SUB_ID
+    State Process ->> API Process: state for SUB_ID
+  else query patch
+    API Process ->> Postgres DB: submit query
+    Postgres DB ->> API Process: query response
+  end
+  API Process ->> Patch Client: acknowledge patch with side effect results
+  loop while API Process interested in SUB_ID
+    Owner State Process ->> State Process: SUB_ID patch
+    State Process ->> API Process: SUB_ID patch
+    API Process ->> Patch Client: SUB_ID patch
+  end
+
 ```
