@@ -124,6 +124,7 @@ sequenceDiagram
     API Process ->> Domain Worker: configure
     API Process ->> Postgres DB: configure
   end
+  API Process ->> Postgres DB: update data miror for domain specfied data
   API Process ->> Domain Worker: post-persistence handler
   Domain Worker ->> API Process: handler result
   API Process ->> Patch Client: acknowledge patch with side effect results
