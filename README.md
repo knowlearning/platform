@@ -104,7 +104,7 @@ sequenceDiagram
     State Process ->> Etcd: get or claim ownership
     Etcd ->> State Process: Owner State Process for SUB_ID
     State Process ->> Owner State Process: state request for SUB_ID
-    opt missing local state for ID
+    opt missing local state for SUB_ID
       Owner State Process ->> Tiered Storage: fetch last page
       Tiered Storage ->> Owner State Process: last page
       Owner State Process ->> Owner State Process: calculate SUB_ID state
