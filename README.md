@@ -3,20 +3,17 @@
 First install [docker](https://docs.docker.com/get-docker/),
 
 ```sh
-# Run a local docker registry.
-docker run -d -p 5000:5000 --restart=always --name registry registry:2
+# Deploy the core application in dev mode
+sh core/develop.sh
 
-# Set up a local kind cluster and deploy the core application.
-sh core/deploy.sh --setup
+# Deployment
+Install [docker](https://docs.docker.com/get-docker/),
+[gcloud](https://cloud.google.com/sdk/docs/install).
+```
 
 # Deployment
 
-Install [docker](https://docs.docker.com/get-docker/),
-[gcloud](https://cloud.google.com/sdk/docs/install).
-
-## GKE cluster
-
-### Login
+## Auth
 
 Use these commands to load required credentials into your
 environment:
@@ -27,7 +24,7 @@ gcloud auth login web
 gcloud config set project opensourcelearningplatform
 ```
 
-#### Setup
+## Setup
 
 ```sh
 # Set CORS config for production bucket.
@@ -36,7 +33,7 @@ gsutil cors set \
   gs://development-bucket-opensourcelearningplatform
 ```
 
-#### Deployment
+## Publish
 
 ```sh
 sh core/infrastructure/GCP/publish.sh production
