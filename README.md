@@ -65,7 +65,7 @@ sequenceDiagram
     API Process ->> Postgres DB: submit query
     Postgres DB ->> API Process: query response
   else upload/download patch
-    API Process ->> API Process: authorize and generate url
+    API Process ->> API Process: generate authorized url
   else configure domain patch
     API Process ->> Domain Worker: configure
     API Process ->> Postgres DB: configure
@@ -116,7 +116,8 @@ patch or state request for ID:
                 log this issue
                 treat ID specific patch file as authoritative
               if interaction patches from leader files don't agree, patches from most recent leader win
-        if is patch request:
+        if state request send state
+        else if is patch request:
           if interaction index ahead of current state's + 1:
             respond to patching client with request to replay patches
           if interaction index below current'states + 1:
@@ -124,6 +125,7 @@ patch or state request for ID:
           else:
             if not out of sync:
               apply to current state
+              send state to requester if specified
               send patch to all other ID owners that have expressed interest
             save patch to leader interaction patch file:
               bundle patches in bulk
