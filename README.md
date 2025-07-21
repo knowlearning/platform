@@ -48,35 +48,18 @@ sequenceDiagram
   participant Patch Client as Patch Client
   participant API Process as API Process
   participant Domain Worker as Domain Worker
-  participant State Process as State Process
-  participant Owner State Process as Owner State Process
-  participant Tiered Storage as Tiered Storage
+  participant State Process as State Process Cluster
   participant Postgres DB as Postgres DB
 
   Patch Client ->> API Process: patch request for ID
   API Process ->> Domain Worker: pre-persistence handler
   Domain Worker ->> API Process: handler result
   API Process ->> State Process: patch request for ID
-  State Process ->> State Process: Get ID Owner State Process<br>From Hash Function
-  State Process ->> Owner State Process: patch request for ID
-  opt missing local state for ID
-    Owner State Process ->> Tiered Storage: fetch last page
-    Tiered Storage ->> Owner State Process: last page
-    Owner State Process ->> Owner State Process: calculate ID state
-  end
-  Owner State Process ->> Owner State Process: apply patch to local state
-  Owner State Process ->> State Process: acknowledge patch
+  State Process ->> State Process: Handle patch request as outlined below
   State Process ->> API Process: acknowledge patch
   alt subscription patch
     API Process ->> State Process: state request for SUB_ID
-    State Process ->> State Process: Get SUB_ID Owner State Process<br>From Hash Function
-    State Process ->> Owner State Process: state request for SUB_ID
-    opt missing local state for SUB_ID
-      Owner State Process ->> Tiered Storage: fetch last page
-      Tiered Storage ->> Owner State Process: last page
-      Owner State Process ->> Owner State Process: calculate SUB_ID state
-    end
-    Owner State Process ->> State Process: state for SUB_ID
+    State Process ->> State Process: Handle state request as outlined below
     State Process ->> API Process: state for SUB_ID
   else query patch
     API Process ->> Postgres DB: submit query
@@ -92,7 +75,6 @@ sequenceDiagram
   Domain Worker ->> API Process: handler result
   API Process ->> Patch Client: acknowledge patch with side effect results
   loop while API Process interested in SUB_ID
-    Owner State Process ->> State Process: SUB_ID patch
     State Process ->> API Process: SUB_ID patch
     API Process ->> Patch Client: SUB_ID patch
   end
