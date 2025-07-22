@@ -39,7 +39,9 @@ gsutil cors set \
 sh core/infrastructure/GCP/publish.sh production
 ```
 
-# Sequence Diagram
+# System Spec
+
+## Client Request Loop
 ```mermaid
 sequenceDiagram
   participant Patch Client as Patch Client
@@ -52,11 +54,31 @@ sequenceDiagram
   API Process ->> Domain Worker: pre-persistence handler
   Domain Worker ->> API Process: handler result
   API Process ->> State Process: patch request for ID
-  State Process ->> State Process: Handle patch request as outlined below
+  Note over State Process: Handle patch request as outlined below
   State Process ->> API Process: acknowledge patch
+  Note over API Process,Postgres DB: core side effects in sequence diagram below
+  API Process ->> Postgres DB: update data mirror for domain specfied data
+  API Process ->> Domain Worker: post-persistence handler
+  Domain Worker ->> API Process: handler result
+  API Process ->> Patch Client: acknowledge patch with side effect results
+  loop while API Process interested in SUB_ID
+    State Process ->> API Process: SUB_ID patch
+    API Process ->> Patch Client: SUB_ID patch
+  end
+```
+
+## Core Side Effects
+
+```mermaid
+sequenceDiagram
+  participant API Process
+  participant Domain Worker
+  participant Postgres DB
+  participant State Process as State Process Cluster
+
   alt subscription patch
     API Process ->> State Process: state request for SUB_ID
-    State Process ->> State Process: Handle state request as outlined below
+    Note over State Process: Handle state request as outlined below
     State Process ->> API Process: state for SUB_ID
   else query patch
     API Process ->> Postgres DB: submit query
@@ -66,14 +88,6 @@ sequenceDiagram
   else configure domain patch
     API Process ->> Domain Worker: configure
     API Process ->> Postgres DB: configure
-  end
-  API Process ->> Postgres DB: update data mirror for domain specfied data
-  API Process ->> Domain Worker: post-persistence handler
-  Domain Worker ->> API Process: handler result
-  API Process ->> Patch Client: acknowledge patch with side effect results
-  loop while API Process interested in SUB_ID
-    State Process ->> API Process: SUB_ID patch
-    API Process ->> Patch Client: SUB_ID patch
   end
 ```
 
