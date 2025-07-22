@@ -1,9 +1,42 @@
+authorize:
+  sameDomain:
+    postgres: same_domain_authorization
+  crossDomain:
+    postgres: cross_domain_authorization
 postgres:
   tables: {}
+  functions:
+    same_domain_authorization:
+      returns: BOOLEAN
+      language: PLpgSQL
+      body: |
+        BEGIN
+          RETURN TRUE;
+        END;
+      arguments:
+      - name: requestingUser
+        type: TEXT
+      - name: requestedScope
+        type: TEXT
+    cross_domain_authorization:
+      returns: BOOLEAN
+      language: PLpgSQL
+      body: |
+        BEGIN
+          RETURN TRUE;
+        END;
+      arguments:
+      - name: requestingDomain
+        type: TEXT
+      - name: requestingUser
+        type: TEXT
+      - name: requestedScope
+        type: TEXT
 agent: |
   import Agent, { getAgent } from 'npm:@knowlearning/agents/deno.js'
 
-  const xApiAgent = getAgent('f74e9cb3-2b53-4c85-9b0c-f1d61b032b3f.localhost:5444')
+  // XAPI Agent
+  const xApiAgent = getAgent('xapi.knowlearning.systems')
 
   Agent.on('child', child => {
       const { environment: { user } } = child
@@ -18,4 +51,30 @@ agent: |
               })
           }
       })
+  })
+
+  // TAGS Agent
+  const TagAgent = getAgent('tags.knowlearning.systems')
+  const agentTags = await TagAgent.state('tags')
+
+  function addTag(tagId, contentId) {
+    if (!agentTags.value[tagId]) agentTags.value[tagId] = {}
+    agentTags.value[tagId][contentId] = true
+  }
+
+  Agent.on('child', child => {
+    const { environment: { user } } = child
+
+    child.on('mutate', ({ scope, patch }) => {
+      if (scope === 'tags') {
+        patch.forEach(async ({ path, value:patchValue }) => {
+          if (path.length === 2) {
+            const [ tagId, contentId ] = path
+            const { value, partition=user } = patchValue
+            if (!agentTags[tagId]) agentTags[tagId] = {}
+            agentTags[tagId][contentId] = { contributor: user, partition, value }
+          }
+        })
+      }
+    })
   })
