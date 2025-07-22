@@ -61,25 +61,28 @@ sequenceDiagram
   API Process ->> Domain Worker: post-persistence handler
   Domain Worker ->> API Process: handler result
   API Process ->> Patch Client: acknowledge patch with side effect results
-  loop while API Process interested in SUB_ID
-    State Process ->> API Process: SUB_ID patch
-    API Process ->> Patch Client: SUB_ID patch
-  end
 ```
 
 ## Core Side Effects
 
 ```mermaid
 sequenceDiagram
+  participant Patch Client
   participant API Process
   participant Domain Worker
-  participant Postgres DB
   participant State Process as State Process Cluster
+  participant Postgres DB
 
   alt subscription patch
     API Process ->> State Process: state request for SUB_ID
     Note over State Process: Handle state request as outlined below
     State Process ->> API Process: state for SUB_ID
+    loop while API Process interested in SUB_ID
+      State Process ->> API Process: SUB_ID patch
+      loop for patch client interested in SUB_ID
+        API Process ->> Patch Client: SUB_ID patch
+      end
+    end
   else query patch
     API Process ->> Postgres DB: submit query
     Postgres DB ->> API Process: query response
