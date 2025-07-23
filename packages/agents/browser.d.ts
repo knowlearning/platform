@@ -39,6 +39,7 @@ export interface Agent {
   environment(userId?: string): Promise<AgentEnvironment>;
   close(): void;
   reset(ns: string): Promise<void>;
+  //  TODO: add query function
   synced(): Promise<void>;
 }
 
