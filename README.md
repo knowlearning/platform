@@ -94,9 +94,9 @@ sequenceDiagram
     API Process ->> Domain Worker: configure
     API Process ->> Postgres DB: configure
   else session close patch
-    opt if outstanding close script for session
+    loop for outstanding close scripts in session
       API Process ->> Domain Worker: execute close script
-      Note over Domain Worker: act as a Patch Client
+      Note over Domain Worker: act as a Patch Client<br>in expected context
     end
   end
 ```
