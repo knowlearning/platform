@@ -57,7 +57,7 @@ sequenceDiagram
   API Process ->> State Process: patch request for ID
   Note over State Process: Handle patch request as outlined below
   State Process ->> API Process: acknowledge patch
-  Note over API Process,Postgres DB: core side effects in sequence diagram below
+  Note over API Process,Postgres DB: handle core side effects from<br>sequence diagram below
   API Process ->> Postgres DB: update data mirror for domain specfied data
   API Process ->> Domain Worker: post-persistence handler
   Note over Domain Worker: act as a Patch Client
@@ -96,7 +96,7 @@ sequenceDiagram
   else session close patch
     loop for outstanding close scripts in session
       API Process ->> Domain Worker: execute close script
-      Note over Domain Worker: act as a Patch Client<br>in expected context
+      Note over Domain Worker: act as a Patch Client
     end
   end
 ```
