@@ -103,6 +103,14 @@ sequenceDiagram
 
 ## State Process Spec
 
+### Current Spec
+
+State requests simply return state from redis and subscribe to pub sub for the uuid associated with given state.
+
+Patch requests simply apply the patch to the RedisJSON object for the give state uuid.
+
+### Future Spec
+
 ```
 patch or state request for ID:
   use consistent hash function on ID to get X owner processes
