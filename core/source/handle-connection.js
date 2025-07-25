@@ -76,7 +76,7 @@ export default async function handleConnection(connection, domain, sid, metricsP
         .all(
           Object
             .values(guarantees[session])
-            .map(handleGuarantee)
+            .map(guarantee => handleGuarantee(domain, user, session, guarantee))
          )
         .catch(e => console.log(e))
       delete guarantees[session]
