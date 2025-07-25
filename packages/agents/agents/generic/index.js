@@ -189,14 +189,14 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     reactions[event].forEach(f => f(data))
   }
 
-  async function guarantee(script) {
+  async function guarantee(script, namespaces=[], context=[]) {
     const { session } = await environment()
     const id = uuid()
     interact('sessions', [
       {
         op: 'add',
         path: ['active', session, 'guarantees', id],
-        value: { script }
+        value: { script, namespaces, context }
       }
     ], false)
   }

@@ -1,4 +1,4 @@
-import { uuid, environment as ENV, decryptString, evalFilter } from './utils.js'
+import { uuid, isUUID, environment as ENV, decryptString, evalFilter } from './utils.js'
 import * as redis from './redis.js'
 import configuration from './configuration.js'
 import scopeToId from './scope-to-id.js'
@@ -97,7 +97,7 @@ const workerScript = `
   }
 `
 
-function startWorker(environment) {
+function startWorker(environment, namespaces) {
   const session = uuid()
   const blob = new Blob([workerScript], { type: "application/javascript" })
   const url = URL.createObjectURL(blob)
@@ -122,7 +122,9 @@ function startWorker(environment) {
       if (!user) user = environment.user
       if (!stateRequestDomain) stateRequestDomain = environment.domain
 
-      const id = await scopeToId(stateRequestDomain, user, scope)
+      const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
+
+      const id = await scopeToId(stateRequestDomain, user, namespacedScope)
       const { active={} } = await redis.client.json.get(id)
       worker.postMessage({ requestId, response: active, session })
     }
@@ -132,7 +134,9 @@ function startWorker(environment) {
       const user = environment.user
       if (!stateRequestDomain) stateRequestDomain = environment.domain
 
-      const { ii } = await interact(stateRequestDomain, user, scope, patch)
+      const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
+
+      const { ii } = await interact(stateRequestDomain, user, namespacedScope, patch)
       worker.postMessage({ requestId, response: { ii }, session })
     }
     else if (e.data.type === 'environment') {
@@ -148,6 +152,20 @@ function startWorker(environment) {
           },
           session
         })
+    }
+    else if (e.data.type === 'metadata') {
+      let { scope, user, domain: requestDomain, requestId } = e.data
+
+      if (!user) user = environment.user
+      if (!requestDomain) requestDomain = environment.domain
+
+      const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
+
+      const id = await scopeToId(requestDomain, user, namespacedScope)
+      const response = await redis.client.json.get(id)
+      delete response.active
+      delete response.history
+      worker.postMessage({ requestId, response, session })
     }
     else {
       console.log("TODO: implement unhandled agent message type", environment.domain, e.data)
@@ -171,17 +189,28 @@ async function decodeSecrets(secrets) {
   )
 }
 
-export function executeWorkerScript(domain, user, script, variables, session) {
-  if (!domainWorkers[domain]) {
-    startWorker({
-      domain,
-      server: SESSION,
-      serverPublicKey: PUBLIC_ENCRYPTION_KEY,
-      session,
-      auth: { user, provider: 'core' },
-      variables: {} //  TODO: decide what variables should be set
-    })
+export function executeWorkerScript(domain, user, script, variables, session, context=[], namespaces=[]) {
+  //  TODO: clean up dormant workers
+  if (!domainWorkers[domain + JSON.stringify({context, namespaces})]) {
+    startWorker(
+      {
+        domain,
+        server: SESSION,
+        serverPublicKey: PUBLIC_ENCRYPTION_KEY,
+        session,
+        context,
+        auth: { user, provider: 'core' },
+        variables: {} //  TODO: decide what variables should be set
+      },
+      namespaces
+    )
   }
 
   domainWorkers[domain].postMessage({ type: 'script', script, variables })
+}
+
+function getNamespacedScope(namespace, scope) {
+  const allow = namespace?.allow || []
+  const prefix = typeof namespace === 'string' ? namespace : namespace?.prefix
+  return prefix && !isUUID(scope) && !allow.some(allowPrefix => scope.startsWith(allowPrefix)) ? `${prefix}/${scope}` : scope
 }

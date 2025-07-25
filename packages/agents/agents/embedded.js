@@ -202,6 +202,7 @@ export default function EmbeddedAgent(postMessage) {
   function reconnect() { return send({ type: 'reconnect' }) }
   function synced() { return send({ type: 'synced' }) }
   function close(info) { return send({ type: 'close', info }) }
+  function guarantee(script, namespaces, context) { return send({ type: 'guarantee', script, namespaces, context }) }
 
   return {
     embedded: true,

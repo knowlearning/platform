@@ -163,6 +163,10 @@ function embed(environment, iframe) {
     else if (type === 'disconnect') sendDown(await Agent.disconnect())
     else if (type === 'reconnect') sendDown(await Agent.reconnect())
     else if (type === 'synced') sendDown(await Agent.synced())
+    else if (type === 'guarantee') {
+      const { script, namespaces=[], context=[] } = message
+      sendDown(await Agent.guarantee(script, [environment.namespace || '', ...namespaces], [environment.id, ...context]))
+    }
     else {
       console.log('Unknown message type passed up...', message)
       sendDown({})
