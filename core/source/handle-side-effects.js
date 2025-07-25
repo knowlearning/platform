@@ -47,29 +47,8 @@ export default async function handleSideEffects({ domain, user, scope, patch, ii
     delete domainWorkers[domain]
   }
 
-  if (!domainWorkers[domain]) {
-    const environment = {
-      domain,
-      server: SESSION,
-      serverPublicKey: PUBLIC_ENCRYPTION_KEY,
-      session,
-      auth: { user: domain, provider: 'core' },
-      secrets: await decodeSecrets(config.secrets || {}),
-      variables: {} //  TODO: decide what variables should be set
-    }
-    startWorker(domain, environment)
-  }
-
   //  TODO: be able to await side effect function run to execute side effects sequentially
-  agentSideEffects
-    .forEach(({ script, variables }) => {
-      domainWorkers[domain]
-        .postMessage({
-          type: 'script',
-          script,
-          variables
-        })
-    })
+  agentSideEffects.forEach(se => executeWorkerScript(domain, domain, se.script, se.variables, session))
 }
 
 const workerScript = `
@@ -118,7 +97,7 @@ const workerScript = `
   }
 `
 
-function startWorker(domain, environment) {
+function startWorker(environment) {
   const session = uuid()
   const blob = new Blob([workerScript], { type: "application/javascript" })
   const url = URL.createObjectURL(blob)
@@ -128,7 +107,7 @@ function startWorker(domain, environment) {
 
   worker.onerror = (e) => {
     console.error("Worker crashed:", e.message)
-    delete domainWorkers[domain]
+    delete domainWorkers[environment.domain]
     worker.terminate()
   }
 
@@ -140,8 +119,8 @@ function startWorker(domain, environment) {
     else if (e.data.type === 'state') {
       let { scope, user, domain: stateRequestDomain, requestId } = e.data
 
-      if (!user) user = domain
-      if (!stateRequestDomain) stateRequestDomain = domain
+      if (!user) user = environment.user
+      if (!stateRequestDomain) stateRequestDomain = environment.domain
 
       const id = await scopeToId(stateRequestDomain, user, scope)
       const { active={} } = await redis.client.json.get(id)
@@ -150,27 +129,32 @@ function startWorker(domain, environment) {
     else if (e.data.type === 'interact') {
       let { scope, domain: stateRequestDomain, requestId, patch } = e.data
 
-      const user = domain
-      if (!stateRequestDomain) stateRequestDomain = domain
+      const user = environment.user
+      if (!stateRequestDomain) stateRequestDomain = environment.domain
 
       const { ii } = await interact(stateRequestDomain, user, scope, patch)
       worker.postMessage({ requestId, response: { ii }, session })
     }
     else if (e.data.type === 'environment') {
+      const { secrets } = await configuration(environment.domain)
+
       const { requestId } = e.data
       worker
         .postMessage({
           requestId,
-          response: environment,
+          response: {
+            ...environment,
+            secrets: await decodeSecrets(secrets || {}),
+          },
           session
         })
     }
     else {
-      console.log("TODO: implement unhandled agent message type", domain, e.data)
+      console.log("TODO: implement unhandled agent message type", environment.domain, e.data)
     }
   }
 
-  domainWorkers[domain] = worker
+  domainWorkers[environment.domain] = worker
 }
 
 async function decodeSecrets(secrets) {
@@ -185,4 +169,19 @@ async function decodeSecrets(secrets) {
           ])
       )
   )
+}
+
+export function executeWorkerScript(domain, user, script, variables, session) {
+  if (!domainWorkers[domain]) {
+    startWorker({
+      domain,
+      server: SESSION,
+      serverPublicKey: PUBLIC_ENCRYPTION_KEY,
+      session,
+      auth: { user, provider: 'core' },
+      variables: {} //  TODO: decide what variables should be set
+    })
+  }
+
+  domainWorkers[domain].postMessage({ type: 'script', script, variables })
 }
