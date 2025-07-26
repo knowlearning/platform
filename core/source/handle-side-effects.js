@@ -130,13 +130,9 @@ function startWorker(environment, namespaces) {
     }
     else if (e.data.type === 'interact') {
       let { scope, domain: stateRequestDomain, requestId, patch } = e.data
-
-      const user = environment.user
-      if (!stateRequestDomain) stateRequestDomain = environment.domain
-
+      const { user, context, domain } = environment
       const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
-
-      const { ii } = await interact(stateRequestDomain, user, namespacedScope, patch)
+      const { ii } = await interact(domain, user, namespacedScope, patch, context)
       worker.postMessage({ requestId, response: { ii }, session })
     }
     else if (e.data.type === 'environment') {

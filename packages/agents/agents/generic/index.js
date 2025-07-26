@@ -192,6 +192,7 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
   async function guarantee(script, namespaces=[], context=[]) {
     const { session } = await environment()
     const id = uuid()
+
     interact('sessions', [
       {
         op: 'add',
@@ -199,6 +200,17 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
         value: { script, namespaces, context }
       }
     ], false)
+
+    return {
+      cancel() {
+        interact('sessions', [
+          {
+            op: 'remove',
+            path: ['active', session, 'guarantees', id]
+          }
+        ], false)
+      }
+    }
   }
 
   return {
