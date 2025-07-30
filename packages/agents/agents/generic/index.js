@@ -202,6 +202,9 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     ], false)
 
     return {
+      execute() {
+        //  TODO: use simplified worker wrapper to execute script in restricted environment
+      },
       cancel() {
         interact('sessions', [
           {
