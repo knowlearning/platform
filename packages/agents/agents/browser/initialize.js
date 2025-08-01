@@ -48,6 +48,7 @@ function embed(environment, iframe) {
   const watchers = {}
   const postMessageQueue = []
   const listeners = {}
+  const responses = {}
   let frameLoaded = false
   let embeddedAgentInitialized = false
 
@@ -70,7 +71,10 @@ function embed(environment, iframe) {
   const handleMessage = async message => {
     const { requestId, type } = message
 
-    const sendDown = (response, error) => postMessage({ requestId, response, error })
+    const sendDown = (response, error) => {
+      if (responses[requestId]) responses[requestId](response, error)
+      postMessage({ requestId, response, error })
+    }
 
     if (type === 'error') {
       console.error(message)
@@ -103,7 +107,7 @@ function embed(environment, iframe) {
       const namespacedScope = getNamespacedScope(environment.namespace, scope)
       let before, after
       if (listeners.mutate) before = copy(await Agent.state(namespacedScope))
-      await Agent.interact(namespacedScope, patch, true, [environment.id, ...context])
+      const response = await Agent.interact(namespacedScope, patch, true, [environment.id, ...context])
       if (listeners.mutate) {
         const patchCopy = copy(patch)
         patchCopy.forEach(op => op.path.shift()) //  remove "active" path prefix
@@ -115,7 +119,7 @@ function embed(environment, iframe) {
             patch: patchCopy
           })
       }
-      sendDown({}) // TODO: might want to send down the interaction index
+      sendDown(response)
     }
     else if (type === 'metadata') {
       const { scope, user, domain } = message
@@ -167,8 +171,15 @@ function embed(environment, iframe) {
       const { script, namespaces=[], context=[] } = message
       sendDown(await Agent.guarantee(script, [environment.namespace || '', ...namespaces], [environment.id, ...context]))
     }
+    else if (type === 'response') {
+      const { id, requestId } = message
+      responses[id] = (response, error) => {
+        delete responses[id]
+        sendDown(response, error)
+      }
+    }
     else {
-      console.log('Unknown message type passed up...', message)
+      console.warn('Unknown message type passed up...', message)
       sendDown({})
     }
   }

@@ -228,7 +228,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
   }
 
   function lastMessageResponse() {
-    if (!responses[si]) throw new Error('A response must be requested synchronously with an update')
+    if (!responses[si]) throw new Error('A response must be requested before all outstanding responses have already returned')
 
     return new Promise((res, rej) => responses[si].push([res, rej]))
   }
