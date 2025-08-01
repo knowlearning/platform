@@ -216,6 +216,10 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     }
   }
 
+  function response() {
+    return lastMessageResponse()
+  }
+
   return {
     uuid,
     environment,
@@ -237,6 +241,7 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     reconnect,
     debug,
     guarantee,
+    response,
     on
   }
 }

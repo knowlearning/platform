@@ -12,27 +12,14 @@ export default async function handleSideEffects({ domain, user, scope, patch, ii
   if (!config.agents) return
 
   const agentSideEffects = []
-  const baseVariables = { domain, user, scope, id, ii, patch, context, session }
 
-  await Promise.all(
-    patch
-      .map(async patchPart => {
-        const variables = { ...baseVariables, ...patchPart }
-        await Promise.all(
-          config
-            .agents
-            .map(async ({ filter, script }) => {
-              if (await evalFilter(filter, variables)) {
-                agentSideEffects.push({ script, variables })
-              }
-            })
-        )
-      })
-  )
+  const variables = { domain, user, scope, id, ii, patch, context, session, patch }
 
   const isNewConfig = config !== currentConfig[domain]
   currentConfig[domain] = config
 
-  //  TODO: be able to await side effect function run to execute side effects sequentially
-  agentSideEffects.forEach(se => executeWorkerScript(isNewConfig, domain, domain, se.script, se.variables, session))
+  if (config.sideEffects) {
+    const { script } = config.sideEffects
+    executeWorkerScript(isNewConfig, domain, domain, script, variables, session)
+  }
 }
