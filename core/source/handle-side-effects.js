@@ -9,17 +9,13 @@ export default async function handleSideEffects({ domain, user, scope, patch, ii
 
   const config = await configuration(domain)
 
-  if (!config.agents) return
-
-  const agentSideEffects = []
+  if (!config.sideEffects) return
 
   const variables = { domain, user, scope, id, ii, patch, context, session, patch }
 
   const isNewConfig = config !== currentConfig[domain]
   currentConfig[domain] = config
 
-  if (config.sideEffects) {
-    const { script } = config.sideEffects
-    executeWorkerScript(isNewConfig, domain, domain, script, variables, session)
-  }
+  const { script } = config.sideEffects
+  executeWorkerScript(isNewConfig, domain, domain, script, variables, session)
 }
