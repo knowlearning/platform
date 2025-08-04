@@ -3,22 +3,14 @@ import { environment } from './utils.js'
 const { MODE } = environment
 
 async function run(cmd, capture = "stdout") {
-  const process = Deno.run({
-    cmd,
+  const command = new Deno.Command(cmd[0], {
+    args: cmd.slice(1),
     stdout: "piped",
     stderr: "piped"
   })
 
-  try {
-    const [output, error] = await Promise.all([
-      process.output(),
-      process.stderrOutput()
-    ])
-    return new TextDecoder().decode(capture === 'stdout' ? output : error)
-  }
-  finally {
-    process.close()
-  }
+  const { stdout, stderr } = await command.output()
+  return new TextDecoder().decode(capture === 'stdout' ? stdout : stderr)
 }
 
 async function processMemCPUData() {
