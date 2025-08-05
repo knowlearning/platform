@@ -4,7 +4,9 @@ import interact from './interact/index.js'
 import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
 import subscriptions from './subscriptions.js'
+import guarantees from './guarantees.js'
 import coreSideEffects from './core-side-effects.js'
+import handleGuarantee from './handle-guarantee.js'
 import handleSideEffects from './handle-side-effects.js'
 import domainAgent from './domain-agent/index.js'
 
@@ -67,6 +69,17 @@ export default async function handleConnection(connection, domain, sid, metricsP
          )
         .catch(e => console.log(e))
       delete subscriptions[session]
+    }
+
+    if (guarantees[session]) {
+      Promise
+        .all(
+          Object
+            .values(guarantees[session])
+            .map(guarantee => handleGuarantee(domain, user, session, guarantee))
+         )
+        .catch(e => console.log(e))
+      delete guarantees[session]
     }
 
     interact(domain, user, 'sessions', [
@@ -241,14 +254,31 @@ export default async function handleConnection(connection, domain, sid, metricsP
           let resolveSideEffects
           outstandingSideEffects[session][id].push(new Promise(resolve => resolveSideEffects = resolve))
 
+          const domainSideEffectResponse = handleSideEffects({ domain, user, scope, patch, id, context, session })
           const { ii, active_type } = await interact(domain, user, scope, patch, context)
-          await coreSideEffects({ id, session, domain, user, scope, active_type, patch, si, ii, send })
+
+          await coreSideEffects({
+            id, session, domain, user, scope, active_type, patch, si, ii,
+            send: async message => {
+              try {
+                let errored = false
+                const response = await (
+                  domainSideEffectResponse
+                    .catch(error => {
+                      errored = true
+                    })
+                )
+                if (errored) message.errored = true
+                else if (response) message.response = response
+              }
+              catch (error) { console.warn(error) }
+              finally { send(message) }
+            }
+          })
           if (agent && user !== domain) {
             const data = { scope, patch, ii, id, context }
             agent.send({ type: 'mutate', session, data, context })
           }
-
-          await handleSideEffects({ domain, user, scope, patch, ii, id, context, session })
 
           resolveSideEffects()
         }

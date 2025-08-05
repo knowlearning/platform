@@ -4,6 +4,7 @@ import configuredQuery from './configured-query.js'
 import { applyConfiguration } from './side-effects/configure.js'
 import sideEffects from './side-effects/index.js'
 import subscriptions from './subscriptions.js'
+import guarantees from './guarantees.js'
 import subscribe from './subscribe.js'
 import authorize from './authorize.js'
 import interact from './interact/index.js'
@@ -19,36 +20,50 @@ export default async function coreSideEffects({
 }) {
   if (scope === 'sessions') {
     const { op, path, value } = patch[0]
-    if (op === 'add' && path.length === 4 && path[0] === 'active' && path[1] === session) {
+    if (path.length === 4 && path[0] === 'active' && path[1] === session) {
       try {
-        if (path[2] === 'queries') {
-          const { query, params=[], domain:targetDomain=domain, context=[] } = value
-          const queryId = path[3]
-          const queryStart = Date.now()
-          const { rows } = await configuredQuery(domain, targetDomain, query, params, user, context)
-          const metricsPatch = [{ op: 'add', path: ['active', session, 'query', queryId, 'core_latency'], value: Date.now() - queryStart }]
-          interact(domain, user, scope, metricsPatch)
-          send({ si, ii, rows })
-        }
-        else if (path[2] === 'subscriptions') {
-          const { scope: subscribedScope, user:scopeUser=user, domain:scopeDomain=domain } = value
-          const subscribeId = await scopeToId(scopeDomain, scopeUser, subscribedScope)
-          if (await authorize(user, domain, subscribeId)) {
-            if (!subscriptions[session]) subscriptions[session] = {}
-
-            const ss = subscriptions[session]
-            if (!ss[subscribeId]) ss[subscribeId] = subscribe(subscribeId, send, subscribedScope)
-
-            const state = await redis.client.json.get(subscribeId)
-            send({ ...state, id: subscribeId, si })
+        if (op === 'add') {
+          if (path[2] === 'queries') {
+            const { query, params=[], domain:targetDomain=domain, context=[] } = value
+            const queryId = path[3]
+            const queryStart = Date.now()
+            const { rows } = await configuredQuery(domain, targetDomain, query, params, user, context)
+            const metricsPatch = [{ op: 'add', path: ['active', session, 'query', queryId, 'core_latency'], value: Date.now() - queryStart }]
+            interact(domain, user, scope, metricsPatch)
+            send({ si, ii, rows })
           }
-          else {
-            let error = `User ${user} Not Autorized To Access ${subscribedScope}`
-            if (scopeDomain !== domain) error += ` in ${scopeDomain}`
-            send({ si, ii, error })
+          else if (path[2] === 'subscriptions') {
+            const { scope: subscribedScope, user:scopeUser=user, domain:scopeDomain=domain } = value
+            const subscribeId = await scopeToId(scopeDomain, scopeUser, subscribedScope)
+            if (await authorize(user, domain, subscribeId)) {
+              if (!subscriptions[session]) subscriptions[session] = {}
+
+              const ss = subscriptions[session]
+              if (!ss[subscribeId]) ss[subscribeId] = subscribe(subscribeId, send, subscribedScope)
+
+              const state = await redis.client.json.get(subscribeId)
+              send({ ...state, id: subscribeId, si })
+            }
+            else {
+              let error = `User ${user} Not Autorized To Access ${subscribedScope}`
+              if (scopeDomain !== domain) error += ` in ${scopeDomain}`
+              send({ si, ii, error })
+            }
           }
+          else if (path[2] === 'guarantees') {
+            if (!guarantees[session]) guarantees[session] = {}
+            const guaranteeId = path[3]
+            guarantees[session][guaranteeId] = value
+          }
+          else send({ si, ii })
         }
-        else send({ si, ii })
+        if (op === 'remove') {
+          if (path[2] === 'guarantees') {
+            const guaranteeId = path[3]
+            delete guarantees[session][guaranteeId]
+          }
+          else send({ si, ii })
+        }
       }
       catch (error) {
         console.warn(error)

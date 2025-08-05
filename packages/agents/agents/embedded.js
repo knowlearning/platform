@@ -12,8 +12,10 @@ export default function EmbeddedAgent(postMessage) {
 
   const [ watch, removeWatcher ] = watchImplementation({ metadata, state, watchers, synced, sentUpdates, environment })
 
+  let lastRequestId
+
   async function send(message) {
-    const requestId = message.requestId || uuid()
+    const requestId = lastRequestId = message.requestId || uuid()
 
     messageIndex += 1
     try {
@@ -202,6 +204,8 @@ export default function EmbeddedAgent(postMessage) {
   function reconnect() { return send({ type: 'reconnect' }) }
   function synced() { return send({ type: 'synced' }) }
   function close(info) { return send({ type: 'close', info }) }
+  function guarantee(script, namespaces, context) { return send({ type: 'guarantee', script, namespaces, context }) }
+  function response(id=lastRequestId) { return send({ type: 'response', id }) }
 
   return {
     embedded: true,
@@ -222,6 +226,7 @@ export default function EmbeddedAgent(postMessage) {
     reconnect,
     synced,
     close,
+    response,
     query
   }
 }

@@ -28,9 +28,10 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
   ] = messageQueue({ token, sid, domain, Connection, watchers, states, applyPatch, log, login, interact, reboot, trigger, handleDomainMessage, variables })
 
   // initialize session
+  const initialSessionData = { queries: {}, subscriptions: {}, guarantees: {} }
   environment()
     .then(({ session }) => {
-      interact('sessions', [{ op: 'add', path: ['active', session], value: { queries: {}, subscriptions: {} } }], false)
+      interact('sessions', [{ op: 'add', path: ['active', session], value: initialSessionData }], false)
     })
 
   const internalReferences = {
@@ -188,6 +189,37 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     reactions[event].forEach(f => f(data))
   }
 
+  async function guarantee(script, namespaces=[], context=[]) {
+    const { session } = await environment()
+    const id = uuid()
+
+    interact('sessions', [
+      {
+        op: 'add',
+        path: ['active', session, 'guarantees', id],
+        value: { script, namespaces, context }
+      }
+    ], false)
+
+    return {
+      execute() {
+        //  TODO: use simplified worker wrapper to execute script in restricted environment
+      },
+      cancel() {
+        interact('sessions', [
+          {
+            op: 'remove',
+            path: ['active', session, 'guarantees', id]
+          }
+        ], false)
+      }
+    }
+  }
+
+  function response() {
+    return lastMessageResponse()
+  }
+
   return {
     uuid,
     environment,
@@ -208,6 +240,8 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     disconnect,
     reconnect,
     debug,
+    guarantee,
+    response,
     on
   }
 }

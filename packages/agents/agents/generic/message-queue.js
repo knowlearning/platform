@@ -227,7 +227,11 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
     return syncPromise
   }
 
-  function lastMessageResponse() { return new Promise((res, rej) => responses[si].push([res, rej])) }
+  function lastMessageResponse() {
+    if (!responses[si]) throw new Error('A response must be requested before all outstanding responses have already returned')
+
+    return new Promise((res, rej) => responses[si].push([res, rej]))
+  }
 
   function disconnect() {
     log('DISCONNECTED AGENT!!!!!!!!!!!!!!!')
