@@ -71,15 +71,23 @@ async function client(domain) {
   })
 }
 
-async function query(database, text, values, rowMode) {
-  const c = await (await client(database)).connect()
-  let result
-  try {
-    result = await c.queryObject(text, values)
-  } finally {
-    c.release()
+async function query(database, text, values, rowMode, maxRetries = 5, delayMs = 200) {
+  let attempt = 0
+  while (true) {
+    try {
+      const pool = await client(database)
+      const connection = await pool.connect()
+      try {
+        return await connection.queryObject({ text, args: values, rowMode })
+      } finally {
+        connection.release()
+      }
+    } catch (err) {
+      attempt++
+      if (attempt >= maxRetries) throw err
+      await new Promise(res => setTimeout(res, delayMs))
+    }
   }
-  return result
 }
 
 async function createTable(domain, table, columns) {
