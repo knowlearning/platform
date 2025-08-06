@@ -4,8 +4,7 @@ import configuration from './configuration.js'
 import scopeToId from './scope-to-id.js'
 import * as redis from './redis.js'
 import interact from './interact/index.js'
-
-const domainWorkers = {}
+import { domainWorkers } from './stateful.js'
 
 const {
   SECRET_ENCRYPTION_KEY,

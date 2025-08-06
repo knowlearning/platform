@@ -3,8 +3,8 @@ import coreState from '../core-state.js'
 import handleConnection from '../handle-connection.js'
 import createSession from './create-session.js'
 import createConnection from './create-connection.js'
+import { domainAgentConnections as connections } from '../stateful.js'
 
-const connections = {}
 const HEARTBEAT_INTERVAL = 5000
 
 export default function createAgent(domain, script, secrets={}, DomainAgents) {

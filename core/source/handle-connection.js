@@ -3,12 +3,19 @@ import authenticate from './authenticate/index.js'
 import interact from './interact/index.js'
 import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
-import subscriptions from './subscriptions.js'
-import guarantees from './guarantees.js'
 import coreSideEffects from './core-side-effects.js'
 import handleGuarantee from './handle-guarantee.js'
 import handleSideEffects from './handle-side-effects.js'
 import domainAgent from './domain-agent/index.js'
+import {
+  guarantees,
+  activeConnections,
+  sessionMessageIndexes,
+  responseBuffers,
+  outstandingSideEffects,
+  reconnectionPromiseResolvers,
+  subscriptions
+} from './stateful.js'
 
 const {
   AUTH_SERVICE_SECRET_KEY,
@@ -16,12 +23,6 @@ const {
   SESSION_RECONNECTION_INTERVAL = 60_000,
   HEARTBEAT_INTERVAL = 5_000
 } = environment
-
-const activeConnections = {}
-const sessionMessageIndexes = {}
-const responseBuffers = {}
-const outstandingSideEffects = {}
-const reconnectionPromiseResolvers = {}
 
 function reconnection(session) {
   return new Promise((resolve, reject) => {

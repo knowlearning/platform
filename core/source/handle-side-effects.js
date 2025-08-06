@@ -1,11 +1,12 @@
 import { evalFilter } from './utils.js'
 import configuration from './configuration.js'
 import executeWorkerScript from './execute-worker-script.js'
-
-const currentConfig = {}
+import { configCache } from './stateful.js'
 
 export default async function handleSideEffects({ domain, user, scope, patch, ii, id, context, session }) {
   if (domain === 'core') return
+
+  const cachedConfig = configCache[domain]
 
   const config = await configuration(domain)
 
@@ -13,8 +14,7 @@ export default async function handleSideEffects({ domain, user, scope, patch, ii
 
   const variables = { domain, user, scope, id, ii, patch, context, session, patch }
 
-  const isNewConfig = config !== currentConfig[domain]
-  currentConfig[domain] = config
+  const isNewConfig = config !== cachedConfig
 
   const { script } = config.sideEffects
   executeWorkerScript(isNewConfig, domain, domain, script, variables, session)

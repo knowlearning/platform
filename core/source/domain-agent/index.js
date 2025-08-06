@@ -1,7 +1,6 @@
 import configuration from '../configuration.js'
 import createAgent from './create-agent.js'
-
-const DomainAgents = {}
+import { DomainAgents } from '../stateful.js'
 
 export default function domainAgent(domain, refresh=false) {
   if (DomainAgents[domain]) {

@@ -3,8 +3,6 @@ import scopeToId from './scope-to-id.js'
 import configuredQuery from './configured-query.js'
 import { applyConfiguration } from './side-effects/configure.js'
 import sideEffects from './side-effects/index.js'
-import subscriptions from './subscriptions.js'
-import guarantees from './guarantees.js'
 import subscribe from './subscribe.js'
 import authorize from './authorize.js'
 import interact from './interact/index.js'
@@ -12,6 +10,7 @@ import * as redis from './redis.js'
 import coreState, { coreStateSynced } from './core-state.js'
 import { domainAdmin } from './configuration.js'
 import SESSION from './session.js'
+import { guarantees, subscriptions } from './stateful.js'
 
 const { ADMIN_DOMAIN, MODE } = environment
 

@@ -1,6 +1,5 @@
 import { subscriptions, connected } from './redis.js'
-
-const subscriptionResponses = {}
+import { subscriptionResponses } from './stateful.js'
 
 //  TODO: clean up subscriptions when no more subscribers
 export default function subscribe(id, callback, scope) {

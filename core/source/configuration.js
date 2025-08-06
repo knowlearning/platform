@@ -6,11 +6,10 @@ import domainAgent from './domain-agent/index.js'
 import ADMIN_DOMAIN_CONFIG from './admin-domain-config.js'
 import POSTGRES_DEFAULT_TABLES from './postgres-default-tables.js'
 import SESSION from './session.js'
+import { configCache as cache } from './stateful.js'
 
 const { ADMIN_DOMAIN } = environment
 const DOMAIN_CONFIG_SCOPE = 'domain-config'
-
-const cache = {}
 
 //  invalidate cached domain config on claim change
 subscribe(DOMAIN_CONFIG_SCOPE, ({ patch: [{ path, value }] }) => {
@@ -41,8 +40,8 @@ export async function domainAdmin(domain) {
   else return null
 }
 
-export default async function configuration(domain) {
-  if (domain === ADMIN_DOMAIN) return ADMIN_DOMAIN_CONFIG
+export default async function configuration(domain, notifyIfNew) {
+  if (domain === ADMIN_DOMAIN) cache[domain] = ADMIN_DOMAIN_CONFIG
 
   if (cache[domain]) return cache[domain]
 

@@ -10,6 +10,7 @@ import POSTGRES_DEFAULT_TABLES from '../postgres-default-tables.js'
 import configuration from '../configuration.js'
 import scopeToId from '../scope-to-id.js'
 import SESSION from '../session.js'
+import { configuredDomains } from '../stateful.js'
 
 const EXISTING_TABLES_QUERY = `
   SELECT tablename
@@ -363,7 +364,6 @@ const DOMAIN_CONFIGURED_QUERY = `SELECT EXISTS (
   WHERE table_name = 'metadata'
 )`
 
-const configuredDomains = {}
 export async function ensureDomainConfigured(domain) {
   //  TODO: more reliable check
   if (!configuredDomains[domain]) {

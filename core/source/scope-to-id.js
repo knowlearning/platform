@@ -4,6 +4,7 @@ import * as redis from './redis.js'
 import * as postgres from './postgres.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
 import sync from './interact/sync.js'
+import { scopeToIdCache as cache } from './stateful.js'
 
 const { ADMIN_DOMAIN } = environment
 
@@ -16,7 +17,6 @@ const MOST_RECENT_NAMED_SCOPE_QUERY = `
   ORDER BY created
   DESC
 `
-const cache = {}
 
 function cacheScope(domain, user, scope, id) {
   if (!cache[domain]) cache[domain] = {[user]:{[scope]:id}}

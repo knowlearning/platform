@@ -1,4 +1,5 @@
 import { randomBytes, pg, environment, escapePostgresLiteral } from './utils.js'
+import { postgresClientPools as clientPools } from './stateful.js'
 
 // necessary to ensure that
 function purifiedName(name) {
@@ -46,8 +47,6 @@ const config = {
   user: 'postgres',
   password: POSTGRES_PASSWORD
 }
-
-const clientPools = {}
 
 async function client(domain) {
   if (clientPools[domain]) return clientPools[domain]

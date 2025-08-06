@@ -1,8 +1,7 @@
 import { applyPatch, Agent, uuid } from './utils.js'
 import handleConnection from './handle-connection.js'
 import createSession from './domain-agent/create-session.js'
-
-const agents = {}
+import { agents } from './stateful.js'
 
 function getAgent(domain, forceNew) {
   if (agents[domain] && !forceNew) return agents[domain]

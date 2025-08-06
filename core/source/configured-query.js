@@ -2,6 +2,7 @@ import { environment } from './utils.js'
 import * as postgres from './postgres.js'
 import configuration, { domainAdmin } from './configuration.js'
 import { pg } from './utils.js'
+import { schemaCache } from './stateful.js'
 
 const {
   MODE,
@@ -11,8 +12,6 @@ const {
 } = environment
 
 const CLIENT_CLEANUP_THRESHOLD = 30_000
-
-const schemaCache = {}
 
 setInterval(() => {
   Object.entries(schemaCache).map(async ([schema, p]) => {

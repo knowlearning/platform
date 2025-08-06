@@ -1,6 +1,5 @@
 import { DJWT } from './utils.js'
-
-const tokenCache = new Map()
+import { gcpTokenCache as tokenCache } from './stateful.js'
 
 export async function importPrivateKey(pem) {
   // Remove the header, footer, and line breaks
