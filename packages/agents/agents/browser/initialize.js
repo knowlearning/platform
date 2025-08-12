@@ -150,7 +150,7 @@ function embed(environment, iframe) {
       Agent
         .query(query, params, domain, [environment.id, ...context])
         .then(sendDown)
-        .catch(error => sendDown(null, error.error))
+        .catch(error => sendDown(null, error))
     }
     else if (type === 'upload') {
       const { info } = message

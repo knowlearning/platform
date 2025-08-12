@@ -128,6 +128,7 @@ else {
   mocha.run()
 
   describe(`${mode.length > 4 ? `Embed Level ${mode.length - 4}` : 'Root'} Core API`, function () {
+    latestBugfixes()
     if (mode.length === 4) postgres()
     if (mode.length === 4) domainAgents()
     stateTest()
@@ -141,7 +142,6 @@ else {
     namespacedEmbeddings()
     if (mode.length === 4) reconnect()
     uploads()
-    latestBugfixes()
     multiAgent()
   })
 

@@ -158,23 +158,10 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     ], false)
     try {
       const response = await lastMessageResponse()
-      const { rows } = response
-
-      interact('sessions', [
-        {
-          op: 'add',
-          path: ['active', session, 'queries', id, 'agent_latency'],
-          value: Date.now() - requested
-        },
-        {
-          op: 'remove',
-          path: ['active', session, 'queries', id]
-        }
-      ], false)
-      return rows
+      return response.rows
     }
     catch (error) {
-      throw error
+      throw error.error
     }
   }
 

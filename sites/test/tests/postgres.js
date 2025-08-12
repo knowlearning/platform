@@ -418,7 +418,7 @@ postgres:
         Agent
           .query('my-old-test-table')
           .catch(e => {
-            erroredExpectedly = e.error === '42P01'
+            erroredExpectedly = e === '42P01'
             error = e
           })
       if (!erroredExpectedly) throw new Error(`Expected postgres 42P01 error on query involving new table; received ${error}`)
