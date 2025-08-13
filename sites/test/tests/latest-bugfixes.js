@@ -13,7 +13,7 @@ export default function latestBugfixes() {
       let erroredExpectedly, error, unexpectedResult
       await
         Agent
-          .query('does-not-exist-and-not-authorized',[], 'example.knowlearning.systems')
+          .query('does-not-exist-and-not-authorized',[], 'simple-mirror-config.localhost:5112')
           .then(result => unexpectedResult = result)
           .catch(e => {
             erroredExpectedly = true

@@ -61,54 +61,7 @@ export default async function (requestingDomain, targetDomain, queryName, params
   if (typeof queryDefinition === 'string') queryBody = queryDefinition
   else if (queryDefinition?.body) queryBody = queryDefinition.body
 
-  //  TODO: make sure requesting domain is accounted for in view generation/user id
-  if (!queryBody && config?.postgres?.views) {
-    //  TODO: check if queryName is a parseable query... if not abort
-    //  TODO: include context when constructing view id and view
-    const context_string = btoa(JSON.stringify(context))
-    const schema = `schema_${config.id.replaceAll('-', '')}_${user.replaceAll('-', '')}_${context_string}`
-    if (!schemaCache[schema]) {
-      schemaCache[schema] = new Promise(async (resolve) => {
-        const username = 'user_' + crypto.randomUUID().replace(/-/g, '').slice(0, 16)
-        const password = crypto.randomUUID().replace(/-/g, '').slice(0, 16)
-
-        await postgres.query(targetDomain, `CREATE USER ${username} WITH PASSWORD '${password}'`)
-        await postgres.query(targetDomain, `CREATE SCHEMA IF NOT EXISTS ${schema}`)
-        await postgres.query(targetDomain, `REVOKE ALL PRIVILEGES ON SCHEMA public FROM ${username}`)
-        await postgres.query(targetDomain, `REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM ${username}`)
-        await postgres.query(targetDomain, `ALTER ROLE ${username} SET search_path = ${schema}`)
-
-        //  TODO: consider these limits
-        await postgres.query(targetDomain, `ALTER ROLE ${username} SET work_mem = '512MB'`)
-        await postgres.query(targetDomain, `ALTER ROLE ${username} SET statement_timeout = '2s'`)
-
-        await Promise.all(Object.entries(config.postgres.views).map(async ([view, { query }]) => {
-          //  TODO: supply context as an argument to the create or replace view function
-          await postgres.query(targetDomain, `CREATE OR REPLACE VIEW ${schema}.${view} AS ${query}`)
-          await postgres.query(targetDomain, `GRANT USAGE ON SCHEMA ${schema} TO ${username}`)
-          await postgres.query(targetDomain, `GRANT SELECT ON ALL TABLES IN SCHEMA ${schema} TO ${username}`)
-        }))
-
-        const client = new pg.Client({
-          hostname: POSTGRES_HOST,
-          port: POSTGRES_PORT,
-          database: postgres.domainToDbName(targetDomain),
-          user: username,
-          password
-        })
-
-        await client.connect()
-
-        resolve({ client, username, domain: targetDomain })
-      })
-    }
-
-    const cacheResult = await schemaCache[schema]
-    cacheResult.used = Date.now()
-    const [q, p] = injectNamedParams(queryName, targetDomain, requestingDomain, user, context, params)
-    return cacheResult.client.queryObject(q, p)
-  }
-  else if (queryBody) {
+  if (queryBody) {
     const [q, p] = injectNamedParams(queryBody, targetDomain, requestingDomain, user, context, params)
 
     return postgres.query(targetDomain, q, p, true).catch(error => {
