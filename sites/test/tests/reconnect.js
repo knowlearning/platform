@@ -105,5 +105,9 @@ export default function () {
         expect(orignalEnv.auth.provider).to.equal(postEnv.auth.provider)
       }
     )
+
+    it('Allows reconnection without explicit disconnection', async function () {
+        await Agent.reconnect()
+    })
   })
 }
