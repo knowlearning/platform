@@ -48,11 +48,11 @@ export default async function handleConnection(connection, domain, sid, metricsP
   let user, session, provider, heartbeatTimeout, abortConnection
 
   function close(data=null) {
-    if (!user) return
+    if (!user || activeConnections[session] !== connection) return
 
     //  TODO: tear down listeners
-    delete responseBuffers[session]
     delete activeConnections[session]
+    delete responseBuffers[session]
     delete outstandingSideEffects[session]
 
     metricsPromise
@@ -166,14 +166,7 @@ export default async function handleConnection(connection, domain, sid, metricsP
 
         //  TODO: consider making this cross server
         if (sessionMessageIndexes[session] !== undefined) {
-          if (reconnectionPromiseResolvers[session]) {
-            reconnectionPromiseResolvers[session]()
-          }
-          else {
-            connection.send({ error: 'Session reconnection failed' })
-            connection.close()
-            return
-          }
+          reconnectionPromiseResolvers[session]?.()
         }
         else {
           if (domain !== 'core') {
