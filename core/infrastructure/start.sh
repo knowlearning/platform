@@ -60,6 +60,8 @@ Environment=REDIS_HOST
 Environment=REDIS_PORT
 Environment=PORT
 Environment=TLS_PORT
+Environment=SSL_CERT
+Environment=SSL_KEY
 
 [Install]
 WantedBy=multi-user.target
@@ -75,6 +77,8 @@ sudo systemctl set-environment \
   REDIS_PASSWORD="$REDIS_PASSWORD" \
   PUBLIC_ENCRYPTION_KEY="$PUBLIC_ENCRYPTION_KEY" \
   SECRET_ENCRYPTION_KEY="$SECRET_ENCRYPTION_KEY" \
+  SSL_CERT="$SSL_CERT"\
+  SSL_KEY="$SSL_KEY"\
   GCS_BUCKET_NAME=development-bucket-opensourcelearningplatform \
   MODE=production \
   ADMIN_DOMAIN=admin.knowlearning.systems \
