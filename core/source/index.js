@@ -46,9 +46,7 @@ const {
 ensureDomainConfigured(ADMIN_DOMAIN)
 ensureDomainConfigured('core')
 
-if (cert && key) Deno.serve({ port: TLS_PORT, cert, key }, handler)
-
-Deno.serve({ port: PORT }, handler)
+Deno.serve({ port: TLS_PORT, cert, key }, handler)
 
 async function handler(request, info) {
   const domain = requestDomain(request)
