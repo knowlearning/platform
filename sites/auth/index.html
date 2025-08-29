@@ -16,6 +16,9 @@
       const CLASSLINK_CLIENT_ID = 'c17067461192207630e7cc2ae2d82cccf1f28f20bd10'
       const CLASSLINK_OAUTH2_URL = 'https://launchpad.classlink.com/oauth2/v2/auth'
 
+      const LINE_CLIENT_ID = '2008017560'
+      const LINE_OAUTH2_URL = 'https://access.line.me/oauth2/v2.1/authorize'
+
       const CORE_AUTH_SERVICE_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA59Uz6jvBJF3B8/7xMqGo
 XkIhLFvTCHuFIGuCNNZGCJUnSk2ne6Jp1ehUIarliJwzrvfr2HMe0PvzAJyZqQIs
@@ -58,6 +61,11 @@ ZQIDAQAB
           query.prompt = 'select_account'
           query.scope = 'profile'
           url = CLASSLINK_OAUTH2_URL
+        }
+        else if (provider === 'line') {
+          query.client_id = LINE_CLIENT_ID
+          query.scope = 'profile'
+          url = LINE_OAUTH2_URL
         }
         else {
           query.origin = document.referrer
