@@ -208,6 +208,7 @@ export default async function handleConnection(connection, domain, sid, metricsP
         }
       }
       catch (error) {
+        throw error
         console.log('Error Authorizing Agent', error)
         try {
           connection.send({ error: 'First Message Must Be A Valid Auth Message' })

@@ -40,6 +40,8 @@ export default async function JWTVerification(provider, code, resolve, reject) {
 
   if (response.error) return reject(response.error)
 
+  console.log('RESPONSE!!!!!!!!!!!!', response)
+
   const { id_token } = response // TODO: probably want to store access token...
   const kid = kidFromToken(id_token)
 
@@ -93,6 +95,7 @@ async function fetchJWKs(provider, retries=0) {
   return (
     fetchJSON(jwks_uri)
       .then(({ keys }) => {
+        console.log('PROVIDER', provider, keys)
         keys.forEach(k => providerJWKs[provider][k.kid] = k)
       })
       .catch(error => {
