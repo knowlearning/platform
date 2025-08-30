@@ -117,7 +117,14 @@ function passTokenChallenge(provider, decoded) {
 }
 
 function passLineTokenChallenge({ exp, iat, aud, iss }) {
-  return true
+  const now = Math.ceil(Date.now() / 1000)
+
+  return (
+    exp > now &&
+    iat < now &&
+    aud === OAuthProviderCredentials.LINE.web.client_id &&
+    iss === 'https://access.line.me'
+  )
 }
 
 function passClassLinkTokenChallenge({ exp, iat, aud, iss }) {
@@ -127,7 +134,7 @@ function passClassLinkTokenChallenge({ exp, iat, aud, iss }) {
     exp > now &&
     iat < now &&
     aud === OAuthProviderCredentials.CLASSLINK.web.client_id &&
-    'https://launchpad.classlink.com' === iss
+    iss === 'https://launchpad.classlink.com'
   )
 }
 
