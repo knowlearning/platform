@@ -40,16 +40,21 @@ export default async function JWTVerification(provider, code, resolve, reject) {
 
   if (response.error) return reject(response.error)
 
-  console.log('RESPONSE!!!!!!!!!!!!', response)
-
   const { id_token } = response // TODO: probably want to store access token...
-  const kid = kidFromToken(id_token)
+  const { kid, alg } = parseToken(id_token)
 
-  if (!providerJWKs[provider][kid]) await fetchJWKs(provider)
-  if (!providerJWKs[provider][kid]) return reject('Public key not found')
+  let codeForVerification
 
-  const encoded = jwkToPem(providerJWKs[provider][kid])
-  jwt.verify(id_token, encoded, async (error, decoded, claims) => {
+  if (kid) {
+    if (!providerJWKs[provider][kid]) await fetchJWKs(provider)
+    if (!providerJWKs[provider][kid]) return reject('Public key not found')
+
+    codeForVerification = jwkToPem(providerJWKs[provider][kid])
+  }
+  else if (alg === 'HS256') codeForVerification = client_secret
+  else return reject('id_token did not provide sufficient info')
+
+  jwt.verify(id_token, codeForVerification, async (error, decoded, claims) => {
     if (error) return reject(error)
 
     if (passTokenChallenge(provider, decoded)) {
@@ -72,10 +77,9 @@ export default async function JWTVerification(provider, code, resolve, reject) {
   })
 }
 
-function kidFromToken(token) {
+function parseToken(token) {
   //  get kid header from token
-  const { kid } = JSON.parse(decodeBase64String(token.split('.').shift()))
-  return kid
+  return JSON.parse(decodeBase64String(token.split('.').shift()))
 }
 
 // set up providerJWKs entry for all providers in JWKS_ENDPOINTS
@@ -95,7 +99,6 @@ async function fetchJWKs(provider, retries=0) {
   return (
     fetchJSON(jwks_uri)
       .then(({ keys }) => {
-        console.log('PROVIDER', provider, keys)
         keys.forEach(k => providerJWKs[provider][k.kid] = k)
       })
       .catch(error => {
@@ -158,7 +161,7 @@ async function fetchJSON(url) {
 
 async function coreVerfication(token, resolve, reject) {
   throw new Error('TODO: consider core verification')
-  const kid = kidFromToken(token)
+  const { kid } = parseToken(token)
 
   const ownToken = await fs.promises.readFile('/var/run/secrets/kubernetes.io/serviceaccount/token')
   const certAuthority = await fs.promises.readFile('/var/run/secrets/kubernetes.io/serviceaccount/ca.crt')
