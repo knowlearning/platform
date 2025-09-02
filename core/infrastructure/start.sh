@@ -2,6 +2,13 @@
 
 set -euo pipefail
 
+# enable swap space
+sudo fallocate -l 4G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
 sudo apt update
 sudo apt install git unzip -y
 curl -fsSL https://deno.land/install.sh | sh -s -- -y v2.2.7
@@ -34,13 +41,15 @@ ExecStart=${DENO_BIN} run \\
   --allow-read \\
   --allow-run \\
   --cert=${CERT_PATH} \\
-  --v8-flags=--max-old-space-size=8000 \\
+  --v8-flags=--max-old-space-size=6000 \\
   --allow-env \\
   ${APP_PATH}
 WorkingDirectory=${HOME}
 Restart=always
 RestartSec=1
 User=${USER_NAME}
+MemoryMax=8G
+MemoryHigh=6G
 Environment=AUTH_SERVICE_SECRET_KEY
 Environment=GCS_SERVICE_ACCOUNT_CREDENTIALS
 Environment=OAUTH_CREDENTIALS
