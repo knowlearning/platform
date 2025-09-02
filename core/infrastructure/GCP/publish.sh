@@ -1,6 +1,5 @@
 #!/bin/bash
 
-if [ "$1" = "production" ]; then
   while true; do
     # Check if gcloud is already logged in
     GCLOUD_USER=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
@@ -98,7 +97,3 @@ if [ "$1" = "production" ]; then
     echo "Retrying in 3 seconds..."
     sleep 3
   done
-
-else
-  echo "Usage: $0 production"
-fi
