@@ -1,6 +1,18 @@
 import infrastructureRequest from './infrastructure-request.js'
 
-export default async function createFirewallRule(provider, name, { project, targetTag }) {
+export default async function createFirewallRule(
+  provider,
+  name,
+  {
+    project,
+    targetTag,
+    IPProtocol = "tcp",
+    ports = ["80", "443"],
+    sourceRanges = ["0.0.0.0/0"],
+    priority = 1000,
+    direction = "INGRESS"
+  }
+) {
   console.log("Creating firewall rule...")
 
   const response = await infrastructureRequest(
@@ -9,16 +21,11 @@ export default async function createFirewallRule(provider, name, { project, targ
     `https://compute.googleapis.com/compute/v1/projects/${project}/global/firewalls`,
     {
       name,
-      direction: "INGRESS",
-      priority: 1000,
-      allowed: [
-        {
-          IPProtocol: "tcp",
-          ports: ["80", "443"],
-        },
-      ],
+      direction,
+      priority,
+      allowed: [{ IPProtocol, ports }],
       targetTags: [targetTag],
-      sourceRanges: ["0.0.0.0/0"]
+      sourceRanges
     }
   )
 

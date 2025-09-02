@@ -1,9 +1,10 @@
 import reserveStaticIp from './reserve-static-ip.js'
 import createFirewallRule from './create-firewall-rule.js'
 import createInstance from './create-instance.js'
+import fetchCloudflareIpRanges from './fetch-cloudflare-ip-address-ranges.js'
 
 const image = "projects/debian-cloud/global/images/family/debian-11"
-const httpFirewallRule = "http-firewall-rule"
+const cloudflareFirewallRule = "cloudflare-firewall-rule"
 const httpFirewallTag = "http-firewall-tag"
 
 const project = Deno.env.get("PROJECT")
@@ -31,5 +32,13 @@ sudo systemctl restart sshd
 `
 
 const staticIp = await reserveStaticIp('GCP', staticIpName, { project, region })
-await createFirewallRule('GCP', httpFirewallRule, { project, targetTag: httpFirewallTag })
+await createFirewallRule(
+  'GCP',
+  cloudflareFirewallRule,
+  {
+    project,
+    targetTag: httpFirewallTag,
+    sourceRanges: await fetchCloudflareIpRanges()
+  }
+)
 await createInstance('GCP', instance, { project, zone, machine, image, script, staticIp, tags: [httpFirewallTag] })
