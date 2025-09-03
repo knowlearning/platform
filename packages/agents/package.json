@@ -5,6 +5,7 @@
   "main": "node.js",
   "browser": "browser.js",
   "type": "module",
+  "types": "types.d.ts",
   "directories": {
     "example": "examples",
     "test": "test"

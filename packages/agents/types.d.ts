@@ -19,12 +19,12 @@ export interface AgentEnvironment {
 }
 
 export interface AgentUploadInfo {
-  name?: string,
-  type?: string,
-  data?: string | ArrayBuffer,
-  id?: string,
-  browser?: boolean,
-  accept?: string,
+  name?: string;
+  type?: string;
+  data?: string | ArrayBuffer;
+  id?: string;
+  browser?: boolean;
+  accept?: string;
 }
 
 export interface Agent {
