@@ -5,13 +5,13 @@ First install [docker](https://docs.docker.com/get-docker/),
 ```sh
 # Deploy the core application in dev mode
 sh core/develop.sh
-
-# Deployment
-Install [docker](https://docs.docker.com/get-docker/),
-[gcloud](https://cloud.google.com/sdk/docs/install).
 ```
 
 # Deployment
+
+To deploy you must install
+[docker](https://docs.docker.com/get-docker/) and
+[gcloud](https://cloud.google.com/sdk/docs/install).
 
 ## Auth
 
@@ -107,7 +107,7 @@ sequenceDiagram
 
 State requests simply return state from redis and subscribe to pub sub for the uuid associated with given state.
 
-Patch requests simply apply the patch to the RedisJSON object for the give state uuid.
+Patch requests simply apply the patch to the RedisJSON object for the given state uuid.
 
 ### Future Spec
 
