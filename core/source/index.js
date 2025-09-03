@@ -57,7 +57,8 @@ async function handler(request, info) {
   const domain = requestDomain(request)
   ensureDomainConfigured(domain)
   const url = new URL(request.url)
-  if (SOCKET_IO_HOSTS.includes(url.host)) return socketIOHandler(request, info)
+  if (request.url.endsWith('/_sid-check')) return handleHttpRequest(request)
+  else if (SOCKET_IO_HOSTS.includes(url.host)) return socketIOHandler(request, info)
   else return handleHttpRequest(request, metricsPromise)
 }
 

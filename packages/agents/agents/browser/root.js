@@ -11,7 +11,35 @@ const API_HOST = localStorage.getItem('API_HOST') || 'api.knowlearning.systems'
 // const API_HOST = 'api-test.knowlearning.systems'
 // const API_HOST = 'localhost:8765'
 
+// TODO: remove sid hack when partitioned cookies via WS handshakes are supported
+async function ensureSidEstablished() {
+  const response = await fetch(`https://${API_HOST}/_sid-check`, {
+    method: 'GET',
+    credentials: 'include'
+  })
+
+  const hasLocalStorageSID = !!localStorage.getItem('sid')
+  if (response.status === 201) {
+    if (!hasLocalStorageSID) {
+      const sentSid = await response.text()
+      localStorage.setItem('sid', sentSid)
+      location.reload()
+    }
+  }
+  else if (response.status === 200) {
+    if (hasLocalStorageSID) {
+      localStorage.removeItem('sid')
+      location.reload()
+    }
+  }
+  else {
+    console.warn('Issue Connecting To the API Server')
+  }
+}
+
 export default options => {
+  ensureSidEstablished()
+
   const Connection = function () {
     const sid = localStorage.getItem('sid')
 
