@@ -1,9 +1,11 @@
-import { requestDomain } from './utils.js'
+import { getCookies, requestDomain } from './utils.js'
 import handleConnection from './handle-connection.js'
 
 export default function handleSocketIOConnection(socket, metricsPromise) {
   const domain = requestDomain({ headers: socket.handshake.headers })
-  const sid = socket.handshake.headers['sid'] || socket.id
+  const sid = getCookies(socket.handshake.headers)['sid']
+
+  if (!sid) return
 
   let sendOnCloseErrorReported = false
   let closeOnCloseErrorReported = false
