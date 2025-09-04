@@ -168,7 +168,8 @@
       type: 'pie',
       labels: [],
       values: [],
-      textinfo: 'label+value+percent',
+      textinfo: 'none',
+      hoverinfo: 'label+value+percent',
       hole: 0.3
     }], connectionLayout, plotlyOptions)
 
