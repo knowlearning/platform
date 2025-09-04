@@ -48,18 +48,18 @@ export default async function handleConnection(connection, domain, sid, metricsP
   let user, session, provider, heartbeatTimeout, abortConnection
 
   function close(data=null) {
+    metricsPromise
+      ?.then(m => delete m.connections[session])
+      .catch(error => {
+        console.log('ERROR removing connection data', domain, user, session, error)
+      }) // TODO: assess if missed case here on reconnect attempt
+
     if (!user || activeConnections[session] !== connection) return
 
     //  TODO: tear down listeners
     delete activeConnections[session]
     delete responseBuffers[session]
     delete outstandingSideEffects[session]
-
-    metricsPromise
-      ?.then(m => delete m.connections[session])
-      .catch(error => {
-        console.log('ERROR removing connection data', domain, user, session, error)
-      })
 
     if (subscriptions[session]) {
       Promise
