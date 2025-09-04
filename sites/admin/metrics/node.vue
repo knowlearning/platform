@@ -7,7 +7,7 @@
   dayjs.extend(relativeTime)
 
   const { session } = defineProps({
-  	session: String
+    session: String
   })
 
   const cpuPlot = ref(null)
@@ -32,11 +32,11 @@
   onMounted(() => {
     const trace = {
       name: 'CPU Utilization',
-      x: [],  // Time values in date format
-      y: [],  // Metric values (0 to 1)
+      x: [],
+      y: [],
       type: 'scatter',
-      mode: 'lines', // Removes dots, keeps only the line
-      line: { shape: 'spline', color: 'blue' } // Makes the line smooth
+      mode: 'lines',
+      line: { shape: 'spline', color: 'blue' }
     }
 
     const layout = {
@@ -45,10 +45,10 @@
       autosize: true,
       xaxis: {
         title: 'Time (HH:MM:SS)',
-        type: 'date',  // Ensures correct time handling
-        tickformat: '%H:%M:%S'  // Displays hours and minutes
+        type: 'date',
+        tickformat: '%H:%M:%S'
       },
-      margin: { t: 50, b: 50, l: 50, r: 50 },  // Adjust margins to give more space
+      margin: { t: 50, b: 50, l: 50, r: 50 },
       yaxis: { title: 'Metric Value', range: [0, 1] },
       showlegend: true,
       legend: {
@@ -59,9 +59,7 @@
       }
     }
 
-    const plotlyOptions = {
-      displaylogo: false
-    }
+    const plotlyOptions = { displaylogo: false }
 
     Plotly.newPlot(cpuPlot.value, [trace], layout, plotlyOptions)
 
@@ -71,18 +69,20 @@
     const freeMemoryData = []
     const rxData = []
     const txData = []
-    const numConnectionData = []
+
+    // connections per domain
+    const domainData = reactive({})  // domain -> { x: [], y: [] }
 
     const memLayout = {
       title: 'Memory Usage Over Time',
       xaxis: { title: 'Time' },
       yaxis: {
         title: 'Memory (MB)',
-        tickformat: '~s', // Uses SI prefixes (k, M, G, etc.)
+        tickformat: '~s',
         ticksuffix: 'B'
       },
       hovermode: 'closest',
-      margin: { t: 50, b: 50, l: 50, r: 50 },  // Adjust margins to give more space
+      margin: { t: 50, b: 50, l: 50, r: 50 },
       legend: {
         x: 0,
         y: 1,
@@ -127,11 +127,11 @@
       xaxis: { title: 'Time' },
       yaxis: {
         title: 'Network (bytes/s)',
-        tickformat: '~s', // Uses SI prefixes (k, M, G, etc.)
+        tickformat: '~s',
         ticksuffix: 'B/s'
       },
       hovermode: 'closest',
-      margin: { t: 50, b: 50, l: 50, r: 50 },  // Adjust margins to give more space
+      margin: { t: 50, b: 50, l: 50, r: 50 },
       legend: {
         x: 0,
         y: 1,
@@ -159,14 +159,10 @@
 
     Plotly.newPlot(netPlot.value, netTraces, netLayout, plotlyOptions)
 
-
-
     const connectionLayout = {
-      title: 'Connections Over Time',
+      title: 'Connections Over Time (per Domain)',
       xaxis: { title: 'Time' },
-      yaxis: {
-        title: 'Connections'
-      },
+      yaxis: { title: 'Users' },
       hovermode: 'closest',
       showlegend: true,
       margin: { t: 50, b: 50, l: 50, r: 50 },
@@ -178,52 +174,74 @@
       }
     }
 
-    const connectionTraces = [
-      {
-        x: timeData,
-        y: numConnectionData,
-        name: 'User Connections',
-        mode: 'lines',
-        line: { color: 'rgba(100, 200, 100, 0.6)' }
-      }
-    ]
+    Plotly.newPlot(connectionPlot.value, [], connectionLayout, plotlyOptions)
 
-    Plotly.newPlot(connectionPlot.value, connectionTraces, connectionLayout, plotlyOptions)
+    function updateGraph(newTime, singleProcess, usedMemory, totalMemory, rxRate, txRate, connectionsObj) {
+      timeData.push(newTime)
+      usedMemoryData.push(usedMemory - singleProcess)
+      singleProcessData.push(singleProcess)
+      freeMemoryData.push(totalMemory - usedMemory)
+      rxData.push(rxRate)
+      txData.push(txRate)
 
-    function updateGraph(newTime, singleProcess, usedMemory, totalMemory, rxRate, txRate, numConnections) {
-        timeData.push(newTime)
-        usedMemoryData.push(usedMemory - singleProcess)
-        singleProcessData.push(singleProcess)
-        freeMemoryData.push(totalMemory - usedMemory)
-        rxData.push(rxRate)
-        txData.push(txRate)
-        numConnectionData.push(numConnections)
+      // count sessions per domain
+      const domainCounts = {}
+      Object.values(connectionsObj).forEach(({ domain }) => {
+        if (!domain) return
+        domainCounts[domain] = (domainCounts[domain] || 0) + 1
+      })
 
-        if (timeData.length > 100) {
-          timeData.shift()
-          singleProcessData.shift()
-          usedMemoryData.shift()
-          freeMemoryData.shift()
-          rxData.shift()
-          txData.shift()
-          numConnectionData.shift()
+      // update per-domain traces
+      for (const [domain, count] of Object.entries(domainCounts)) {
+        if (!domainData[domain]) {
+          domainData[domain] = { x: [], y: [] }
+          Plotly.addTraces(connectionPlot.value, {
+            x: domainData[domain].x,
+            y: domainData[domain].y,
+            name: domain,
+            mode: 'none',
+            stackgroup: 'one',
+            fill: 'tonexty'
+          })
         }
+        domainData[domain].x.push(newTime)
+        domainData[domain].y.push(count)
 
-        Plotly.update(memPlot.value, {
-            x: [timeData, timeData, timeData],
-            y: [usedMemoryData, singleProcessData, freeMemoryData]
-        })
+        if (domainData[domain].x.length > 100) {
+          domainData[domain].x.shift()
+          domainData[domain].y.shift()
+        }
+      }
 
-        Plotly.update(netPlot.value, {
-            x: [timeData, timeData],
-            y: [rxData, txData]
-        })
+      if (timeData.length > 100) {
+        timeData.shift()
+        singleProcessData.shift()
+        usedMemoryData.shift()
+        freeMemoryData.shift()
+        rxData.shift()
+        txData.shift()
+      }
 
-        Plotly.update(connectionPlot.value, {
-            x: [timeData],
-            y: [numConnectionData]
-        })
+      Plotly.update(memPlot.value, {
+        x: [timeData, timeData, timeData],
+        y: [usedMemoryData, singleProcessData, freeMemoryData]
+      })
+
+      Plotly.update(netPlot.value, {
+        x: [timeData, timeData],
+        y: [rxData, txData]
+      })
+
+      // update all domain traces at once
+      const xs = []
+      const ys = []
+      for (const d in domainData) {
+        xs.push(domainData[d].x)
+        ys.push(domainData[d].y)
+      }
+      Plotly.update(connectionPlot.value, { x: xs, y: ys })
     }
+
 
     Agent.watch(['metrics', session], state => {
       if (!state.process) return
@@ -243,13 +261,12 @@
       connections.value = state.connections || {}
       instanceInfo.value = state.instance
       websocketInfo.value = state.websockets
-      const numConnections = Object.keys(connections.value).length
 
       trace.x.push(now)
       trace.y.push(processCPU)
       Plotly.update(cpuPlot.value, { x: [trace.x], y: [trace.y] })
 
-      updateGraph(now, processMemory, usedMemory, totalMemory, rx, tx, numConnections)
+      updateGraph(now, processMemory, usedMemory, totalMemory, rx, tx, connections.value)
     }, 'node', 'core')
   })
 </script>
