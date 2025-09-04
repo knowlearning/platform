@@ -70,9 +70,6 @@
     const rxData = []
     const txData = []
 
-    // connections per domain
-    const domainData = reactive({})  // domain -> { x: [], y: [] }
-
     const memLayout = {
       title: 'Memory Usage Over Time',
       xaxis: { title: 'Time' },
@@ -160,21 +157,20 @@
     Plotly.newPlot(netPlot.value, netTraces, netLayout, plotlyOptions)
 
     const connectionLayout = {
-      title: 'Connections Over Time (per Domain)',
-      xaxis: { title: 'Time' },
-      yaxis: { title: 'Users' },
-      hovermode: 'closest',
+      title: 'Current Connections (per Domain)',
+      height: 300,
       showlegend: true,
-      margin: { t: 50, b: 50, l: 50, r: 50 },
-      legend: {
-        x: 0,
-        y: 1,
-        yanchor: 'bottom',
-        orientation: 'h'
-      }
+      margin: { t: 50, b: 50, l: 50, r: 50 }
     }
 
-    Plotly.newPlot(connectionPlot.value, [], connectionLayout, plotlyOptions)
+    // initialize empty pie chart
+    Plotly.newPlot(connectionPlot.value, [{
+      type: 'pie',
+      labels: [],
+      values: [],
+      textinfo: 'label+value+percent',
+      hole: 0.3
+    }], connectionLayout, plotlyOptions)
 
     function updateGraph(newTime, singleProcess, usedMemory, totalMemory, rxRate, txRate, connectionsObj) {
       timeData.push(newTime)
@@ -183,35 +179,6 @@
       freeMemoryData.push(totalMemory - usedMemory)
       rxData.push(rxRate)
       txData.push(txRate)
-
-      // count sessions per domain
-      const domainCounts = {}
-      Object.values(connectionsObj).forEach(({ domain }) => {
-        if (!domain) return
-        domainCounts[domain] = (domainCounts[domain] || 0) + 1
-      })
-
-      // update per-domain traces
-      for (const [domain, count] of Object.entries(domainCounts)) {
-        if (!domainData[domain]) {
-          domainData[domain] = { x: [], y: [] }
-          Plotly.addTraces(connectionPlot.value, {
-            x: domainData[domain].x,
-            y: domainData[domain].y,
-            name: domain,
-            mode: 'none',
-            stackgroup: 'one',
-            fill: 'tonexty'
-          })
-        }
-        domainData[domain].x.push(newTime)
-        domainData[domain].y.push(count)
-
-        if (domainData[domain].x.length > 100) {
-          domainData[domain].x.shift()
-          domainData[domain].y.shift()
-        }
-      }
 
       if (timeData.length > 100) {
         timeData.shift()
@@ -232,16 +199,22 @@
         y: [rxData, txData]
       })
 
-      // update all domain traces at once
-      const xs = []
-      const ys = []
-      for (const d in domainData) {
-        xs.push(domainData[d].x)
-        ys.push(domainData[d].y)
-      }
-      Plotly.update(connectionPlot.value, { x: xs, y: ys })
-    }
+      // compute session counts per domain
+      const domainCounts = {}
+      Object.values(connectionsObj).forEach(({ domain }) => {
+        if (!domain) return
+        domainCounts[domain] = (domainCounts[domain] || 0) + 1
+      })
 
+      const labels = Object.keys(domainCounts)
+      const values = Object.values(domainCounts)
+
+      // update pie chart with current state
+      Plotly.update(connectionPlot.value, {
+        labels: [labels],
+        values: [values]
+      })
+    }
 
     Agent.watch(['metrics', session], state => {
       if (!state.process) return
