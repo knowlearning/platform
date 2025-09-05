@@ -35,6 +35,7 @@ After=network.target
 
 [Service]
 ExecStart=${DENO_BIN} run \\
+  --inspect=127.0.0.1:9229 \\
   --allow-sys \\
   --allow-net \\
   --allow-write \\
