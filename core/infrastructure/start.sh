@@ -41,7 +41,6 @@ ExecStart=${DENO_BIN} run \\
   --allow-read \\
   --allow-run \\
   --cert=${CERT_PATH} \\
-  --v8-flags=--max-old-space-size=6000 \\
   --allow-env \\
   ${APP_PATH}
 WorkingDirectory=${HOME}
