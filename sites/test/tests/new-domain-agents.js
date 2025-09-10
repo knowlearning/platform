@@ -17,25 +17,27 @@ async function configure(domain, configuration, awaitInitialized) {
 }
 
 export default function () {
-  const SIMPLE_RESPONSE = uuid()
-
-  const SIMPLE_RESPONSE_CONFIG = `
+  const getSimpleResponseConfig = response => `
   sideEffects:
     script: |
       console.log('Doing simple response config test...')
-      await new Promise(r => setTimeout(r, 100))
-      return '${SIMPLE_RESPONSE}'
+      await new Promise(r => setTimeout(r))
+      return '${response}'
   `
 
   describe('New Domain Agent', function () {
-    it('Gets expected response', async function () {
-      const { domain } = await Agent.environment()
-      const report = await configure(domain, SIMPLE_RESPONSE_CONFIG, true)
-      const x = await Agent.state('hmmm')
-      x.a = 100
-      const r = await Agent.response()
-      expect(r.response).to.equal(SIMPLE_RESPONSE)
-      console.log('response.....', r)
+    it('Gets expected responses after reconfigurations', async function () {
+      for (let i=0; i<3; i++) {
+        this.timeout(5000)
+        const response = Agent.uuid()
+        const { domain } = await Agent.environment()
+        const report = await configure(domain, getSimpleResponseConfig(response), true)
+        const x = await Agent.state(Agent.uuid())
+        x.a = 100
+        const r = await Agent.response()
+        expect(r.response).to.equal(response)
+      }
     })
   })
+
 }
