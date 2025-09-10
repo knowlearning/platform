@@ -146,13 +146,15 @@ async function decodeSecrets(secrets) {
 }
 
 export default function executeWorkerScript(refreshWorker, domain, user, script, variables, session, context=[], namespaces=[]) {
-  if (refreshWorker && domainWorkers[domainWorkers]) {
-    domainWorkers[domain].terminate()
-    delete domainWorkers[domain]
+  const workerKey = domain + JSON.stringify({context, namespaces})
+
+  if (refreshWorker && domainWorkers[workerKey]) {
+    domainWorkers[workerKey].terminate()
+    delete domainWorkers[workerKey]
   }
 
   //  TODO: clean up dormant workers
-  if (!domainWorkers[domain + JSON.stringify({context, namespaces})]) {
+  if (!domainWorkers[workerKey]) {
     startWorker(
       {
         domain,
@@ -167,7 +169,7 @@ export default function executeWorkerScript(refreshWorker, domain, user, script,
     )
   }
 
-  domainWorkers[domain].postMessage({ type: 'script', script, variables })
+  domainWorkers[workerKey].postMessage({ type: 'script', script, variables })
 }
 
 function getNamespacedScope(namespace, scope) {
