@@ -4,7 +4,7 @@ import configuration from './configuration.js'
 import scopeToId from './scope-to-id.js'
 import * as redis from './redis.js'
 import interact from './interact/index.js'
-import { domainWorkers } from './stateful.js'
+import { domainWorkers, domainWorkerResponses } from './stateful.js'
 
 const {
   SECRET_ENCRYPTION_KEY,
@@ -19,9 +19,9 @@ const workerScript = `
 
   self.onmessage = e => {
     if (e.data.type === 'script') {
-      const { script, variables } = e.data
+      const { script, variables, id } = e.data
       runSafely(script, variables)
-        .then(() => null) //  TODO: report back successful run
+        .then(response => postMessage({ type: 'respond', id, response })) //  TODO: report back successful run
         .catch(error => console.log('AGENT ERROR', error))
     }
   }
@@ -75,6 +75,12 @@ function startWorker(environment, namespaces) {
     if (e.data.type === 'initialize') {
       initialized = true
       worker.postMessage({ type: 'setup', session })
+    }
+    else if (e.data.type === 'respond') {
+      const { id, response, error } = e.data
+      if (error) domainWorkerResponses[id].reject(error)
+      else domainWorkerResponses[id].resolve(response)
+      delete domainWorkerResponses[id]
     }
     else if (e.data.type === 'state') {
       let { scope, user, domain: stateRequestDomain, requestId } = e.data
@@ -163,13 +169,17 @@ export default function executeWorkerScript(refreshWorker, domain, user, script,
         session,
         context,
         auth: { user, provider: 'core' },
-        variables: {} //  TODO: decide what variables should be set
+        variables
       },
       namespaces
     )
   }
 
-  domainWorkers[workerKey].postMessage({ type: 'script', script, variables })
+  const id = uuid()
+
+  domainWorkers[workerKey].postMessage({ type: 'script', script, variables, id })
+
+  return new Promise((resolve, reject) => domainWorkerResponses[id] = { resolve, reject })
 }
 
 function getNamespacedScope(namespace, scope) {

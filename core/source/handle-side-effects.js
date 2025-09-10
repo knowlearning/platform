@@ -17,5 +17,5 @@ export default async function handleSideEffects({ domain, user, scope, patch, ii
   const isNewConfig = config !== cachedConfig
 
   const { script } = config.sideEffects
-  executeWorkerScript(isNewConfig, domain, domain, script, variables, session)
+  return executeWorkerScript(isNewConfig, domain, domain, script, variables, session)
 }

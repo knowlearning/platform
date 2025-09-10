@@ -5,6 +5,7 @@ export const configCache = {}
 export const schemaCache = {}
 export const outstandingCoreStateInteractions = new Set()
 export const domainWorkers = {}
+export const domainWorkerResponses = {}
 export const gcpTokenCache = new Map()
 export const guarantees = {}
 
