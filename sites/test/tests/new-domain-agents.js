@@ -1,12 +1,5 @@
 import YAML from 'yaml'
-
-const SIMPLE_RESPONSE_CONFIG = `
-sideEffects:
-  script: |
-    console.log('Doing simple response config test...')
-    await new Promise(r => setTimeout(r, 100))
-    return 'expected simple response'
-`
+import { v4 as uuid } from 'uuid'
 
 async function configure(domain, configuration, awaitInitialized) {
   const config = YAML.parse(configuration)
@@ -14,33 +7,34 @@ async function configure(domain, configuration, awaitInitialized) {
 
   const configState = await Agent.state(`configuration/${domain}`)
 
-  console.log('config state...', configState)
-
   Object.assign(configState, config)
-  console.log('about to sync')
   await Agent.synced()
-  console.log('synced 1')
-  await Agent.synced()
-  console.log('synced 2')
   configState.deployment = report
   await pause(10)
   await Agent.synced()
-  console.log('synced 3', awaitInitialized)
 
   return report
 }
 
 export default function () {
+  const SIMPLE_RESPONSE = uuid()
+
+  const SIMPLE_RESPONSE_CONFIG = `
+  sideEffects:
+    script: |
+      console.log('Doing simple response config test...')
+      await new Promise(r => setTimeout(r, 100))
+      return '${SIMPLE_RESPONSE}'
+  `
+
   describe('New Domain Agent', function () {
     it('Gets expected response', async function () {
       const { domain } = await Agent.environment()
-      console.log('CONFIGURING...')
       const report = await configure(domain, SIMPLE_RESPONSE_CONFIG, true)
-      console.log('CONFIGUREDDDD...', report)
       const x = await Agent.state('hmmm')
       x.a = 100
       const r = await Agent.response()
-      expect(r.response).to.equal('expected simple response')
+      expect(r.response).to.equal(SIMPLE_RESPONSE)
       console.log('response.....', r)
     })
   })
