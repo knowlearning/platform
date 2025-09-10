@@ -37,7 +37,7 @@ const workerScript = `
       "Function",
       "eval",
       "WebSocket",
-      "setTimeout",
+      //"setTimeout",
       "setInterval",
       "crypto"
     ]
@@ -128,7 +128,7 @@ function startWorker(environment, namespaces) {
     }
   }
 
-  domainWorkers[environment.domain] = worker
+  return worker
 }
 
 async function decodeSecrets(secrets) {
@@ -155,7 +155,7 @@ export default function executeWorkerScript(refreshWorker, domain, user, script,
 
   //  TODO: clean up dormant workers
   if (!domainWorkers[workerKey]) {
-    startWorker(
+    domainWorkers[workerKey] = startWorker(
       {
         domain,
         server: SESSION,

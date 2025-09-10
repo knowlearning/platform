@@ -8,27 +8,25 @@ sideEffects:
     return 'expected simple response'
 `
 
-const domainAgentConfigured = id => new Promise(r => Agent.watch(id, u => {
-  if (u.state.tasks?.agent?.[1] === 'done') r()
-}))
-const domainAgentInitialized = id => new Promise(r => Agent.watch(id, u => {
-  if (u.state.tasks?.agent?.[0]) r()
-}))
-
 async function configure(domain, configuration, awaitInitialized) {
   const config = YAML.parse(configuration)
   const report = uuid()
 
   const configState = await Agent.state(`configuration/${domain}`)
 
+  console.log('config state...', configState)
+
   Object.assign(configState, config)
+  console.log('about to sync')
   await Agent.synced()
+  console.log('synced 1')
   await Agent.synced()
+  console.log('synced 2')
   configState.deployment = report
   await pause(10)
   await Agent.synced()
+  console.log('synced 3', awaitInitialized)
 
-  awaitInitialized ? await domainAgentInitialized(report) : await domainAgentConfigured(report)
   return report
 }
 
@@ -36,7 +34,14 @@ export default function () {
   describe('New Domain Agent', function () {
     it('Gets expected response', async function () {
       const { domain } = await Agent.environment()
-      await configure(domain, SIMPLE_RESPONSE_CONFIG)
+      console.log('CONFIGURING...')
+      const report = await configure(domain, SIMPLE_RESPONSE_CONFIG, true)
+      console.log('CONFIGUREDDDD...', report)
+      const x = await Agent.state('hmmm')
+      x.a = 100
+      const r = await Agent.response()
+      expect(r.response).to.equal('expected simple response')
+      console.log('response.....', r)
     })
   })
 }
