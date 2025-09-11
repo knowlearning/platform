@@ -21,8 +21,21 @@ const workerScript = `
     if (e.data.type === 'script') {
       const { script, variables, id } = e.data
       runSafely(script, variables)
-        .then(response => postMessage({ type: 'respond', id, response })) //  TODO: report back successful run
-        .catch(error => console.log('AGENT ERROR', error))
+        .then(response => {
+          postMessage({
+            type: 'respond',
+            id,
+            response: response ? JSON.parse(JSON.stringify(response)) : response
+          })
+        })
+        .catch(error => {
+          console.log('AGENT ERROR', error)
+          postMessage({
+            type: 'respond',
+            id,
+            error: error.toString()
+          })
+        })
     }
   }
 
