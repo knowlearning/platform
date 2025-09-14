@@ -6,8 +6,6 @@ import * as redis from './redis.js'
 import interact from './interact/index.js'
 import { domainWorkers, domainWorkerResponses } from './stateful.js'
 
-const workerScript = Deno.readTextFileSync(new URL('./worker-script.js', import.meta.url))
-
 const {
   SECRET_ENCRYPTION_KEY,
   PUBLIC_ENCRYPTION_KEY
@@ -15,11 +13,12 @@ const {
 
 function startWorker(environment, namespaces) {
   const session = uuid()
-  const blob = new Blob([workerScript], { type: "application/javascript" })
-  const url = URL.createObjectURL(blob)
-
-  const worker = new Worker(url, { type: "module" })
   let initialized = false
+
+  const worker = new Worker(
+    new URL("./domain-worker/index.js", import.meta.url).href,
+    { type: "module" }
+  )
 
   worker.onerror = (e) => {
     console.error("Worker crashed:", e.message)
