@@ -40,20 +40,21 @@ function startWorker(environment, namespaces) {
     else if (e.data.type === 'state') {
       let { scope, user, domain: stateRequestDomain, requestId } = e.data
 
-      if (!user) user = environment.user
-      if (!stateRequestDomain) stateRequestDomain = environment.domain
+      if (!user) user = environment.auth.user
 
       const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
 
-      const id = await scopeToId(stateRequestDomain, user, namespacedScope)
+      const id = await scopeToId(stateRequestDomain || environment.domain, user, namespacedScope)
       const { active={} } = await redis.client.json.get(id)
       worker.postMessage({ requestId, response: active, session })
     }
     else if (e.data.type === 'interact') {
       let { scope, domain: stateRequestDomain, requestId, patch } = e.data
-      const { user, context, domain } = environment
+
+      const { auth: { user } , context, domain } = environment
       const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
-      const { ii } = await interact(domain, user, namespacedScope, patch, context)
+      const { ii } = await interact(stateRequestDomain || domain, user, namespacedScope, patch, context)
+
       worker.postMessage({ requestId, response: { ii }, session })
     }
     else if (e.data.type === 'environment') {
@@ -73,12 +74,11 @@ function startWorker(environment, namespaces) {
     else if (e.data.type === 'metadata') {
       let { scope, user, domain: requestDomain, requestId } = e.data
 
-      if (!user) user = environment.user
-      if (!requestDomain) requestDomain = environment.domain
+      if (!user) user = environment.auth.user
 
       const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
 
-      const id = await scopeToId(requestDomain, user, namespacedScope)
+      const id = await scopeToId(requestDomain || environment.domain, user, namespacedScope)
       const response = await redis.client.json.get(id)
       delete response.active
       delete response.history

@@ -1,9 +1,32 @@
 import YAML from 'yaml'
-import { v4 as uuid } from 'uuid'
+
+const MIRROR_FIELD_DOMAIN = 'mirror-field.localhost:5112'
+
+const mirrorFieldConfig = `
+  sideEffects:
+    script: |
+      patch.forEach(async op => {
+        if (op.path.length === 2 && op.path[1] === 'mirror') {
+          const state = await Agent.state(scope)
+          state.mirror = op.value
+        }
+      })
+`
+const toMirrorFieldConfig = `
+  sideEffects:
+    script: |
+      patch.forEach(async op => {
+        if (op.path.length === 2 && op.path[1] === 'mirror') {
+          const MirrorAgent = getAgent('${MIRROR_FIELD_DOMAIN}')
+          const state = await MirrorAgent.state(scope)
+          state.mirror = op.value
+        }
+      })
+`
 
 async function configure(domain, configuration, awaitInitialized) {
   const config = YAML.parse(configuration)
-  const report = uuid()
+  const report = Agent.uuid()
 
   const configState = await Agent.state(`configuration/${domain}`)
 
@@ -17,6 +40,9 @@ async function configure(domain, configuration, awaitInitialized) {
 }
 
 export default function () {
+
+  const mirrorFieldDomainConfigured = configure(MIRROR_FIELD_DOMAIN, mirrorFieldConfig)
+
   const getSimpleResponseConfig = response => `
   sideEffects:
     script: |
@@ -91,6 +117,27 @@ export default function () {
       x.asdf = 1
       const { response: { ii } } = await Agent.response()
       expect(ii).to.equal(4)
+    })
+
+    it('Can work with domains connected to each other', async function () {
+      this.timeout(3000)
+      await mirrorFieldDomainConfigured
+      await configure('localhost:5112', toMirrorFieldConfig)
+      const id = `x-${Agent.uuid()}`
+      const state = await Agent.state(id)
+      const dataToMirror = Agent.uuid()
+      state.mirror = dataToMirror
+      let resolve
+
+      Agent
+        .watch(
+          id,
+          update => update.state.mirror === dataToMirror && resolve(),
+          'localhost:5112',
+          MIRROR_FIELD_DOMAIN
+        )
+
+      await new Promise(r => resolve = r)
     })
   })
 

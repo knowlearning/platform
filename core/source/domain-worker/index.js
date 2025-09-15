@@ -1,6 +1,11 @@
 import EmbeddedAgent from 'npm:@knowlearning/agents@0.9.179/agents/embedded.js'
 
 const Agent = EmbeddedAgent(postMessage)
+// TODO: move "getAgent" into Agent.connect(domain) structure
+const getAgent = domain => {
+  postMessage({ type: 'initialize' })
+  return EmbeddedAgent(message => postMessage({ ...message, domain }))
+}
 
 self.onmessage = e => {
   if (e.data.type === 'script') {
@@ -40,15 +45,20 @@ function runSafely(script, variables) {
     "crypto"
   ]
 
+  const extraGlobals = {
+    Agent,
+    getAgent
+  }
+
   const sandbox = new Function(
-    "Agent",
+    ...Object.keys(extraGlobals),
     ...blockedGlobals,
     ...Object.keys(variables),
     `return (async () => { ${script} })();`
   )
 
   return sandbox(
-    Agent,
+    ...Object.values(extraGlobals),
     ...blockedGlobals.map(() => undefined),
     ...Object.values(variables)
   )
