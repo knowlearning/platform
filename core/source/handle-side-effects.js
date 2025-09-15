@@ -10,7 +10,7 @@ export default async function handleSideEffects({ domain, user, scope, patch, ii
 
   const config = await configuration(domain)
 
-  if (!config.sideEffects) return
+  if (!config.sideEffects || user === domain) return
 
   const variables = { domain, user, scope, id, ii, patch, context, session, patch }
 

@@ -2,6 +2,8 @@ import { uuid, isUUID, environment as ENV, decryptString } from './utils.js'
 import SESSION from './session.js'
 import configuration from './configuration.js'
 import scopeToId from './scope-to-id.js'
+import handleSideEffects from './handle-side-effects.js'
+import coreSideEffects from './core-side-effects.js'
 import * as redis from './redis.js'
 import interact from './interact/index.js'
 import { domainWorkers, domainWorkerResponses } from './stateful.js'
@@ -37,6 +39,20 @@ function startWorker(environment, namespaces) {
       else domainWorkerResponses[id].resolve(response)
       delete domainWorkerResponses[id]
     }
+    else if (e.data.type === 'environment') {
+      const { secrets } = await configuration(environment.domain)
+
+      const { requestId } = e.data
+      worker
+        .postMessage({
+          requestId,
+          response: {
+            ...environment,
+            secrets: await decodeSecrets(secrets || {}),
+          },
+          session
+        })
+    }
     else if (e.data.type === 'state') {
       let { scope, user, domain: stateRequestDomain, requestId } = e.data
 
@@ -53,23 +69,34 @@ function startWorker(environment, namespaces) {
 
       const { auth: { user } , context, domain } = environment
       const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
+
+      const id = await scopeToId(domain, user, scope)
+      const domainSideEffectResponse = handleSideEffects({
+        domain: stateRequestDomain || domain,
+        user, scope, patch, id, context, session
+      })
       const { ii } = await interact(stateRequestDomain || domain, user, namespacedScope, patch, context)
 
-      worker.postMessage({ requestId, response: { ii }, session })
-    }
-    else if (e.data.type === 'environment') {
-      const { secrets } = await configuration(environment.domain)
-
-      const { requestId } = e.data
-      worker
-        .postMessage({
-          requestId,
-          response: {
-            ...environment,
-            secrets: await decodeSecrets(secrets || {}),
-          },
-          session
-        })
+      const si = null
+      //  TODO: unify. the following block is repeated in handle-connection
+      await coreSideEffects({
+        id, session, domain, user, scope, active_type: null, patch, si, ii,
+        send: async message => {
+          try {
+            let errored = false
+            const response = await (
+              domainSideEffectResponse
+                .catch(error => {
+                  errored = true
+                })
+            )
+            if (errored) message.errored = true
+            else if (response) message.response = response
+          }
+          catch (error) { console.warn(error) }
+          finally { worker.postMessage({ requestId, response: { ii }, session }) }
+        }
+      })
     }
     else if (e.data.type === 'metadata') {
       let { scope, user, domain: requestDomain, requestId } = e.data

@@ -12,6 +12,16 @@ const mirrorFieldConfig = `
         }
       })
 `
+const mirrorFieldConfig2 = `
+  sideEffects:
+    script: |
+      patch.forEach(async op => {
+        if (op.path.length === 2 && op.path[1] === 'mirror') {
+          const state = await Agent.state(scope)
+          state.mirror = op.value + '2'
+        }
+      })
+`
 const toMirrorFieldConfig = `
   sideEffects:
     script: |
@@ -20,6 +30,7 @@ const toMirrorFieldConfig = `
           const MirrorAgent = getAgent('${MIRROR_FIELD_DOMAIN}')
           const state = await MirrorAgent.state(scope)
           state.mirror = op.value
+          const { auth: { user } } = await Agent.environment()
         }
       })
 `
@@ -33,15 +44,15 @@ async function configure(domain, configuration, awaitInitialized) {
   Object.assign(configState, config)
   await Agent.synced()
   configState.deployment = report
-  await pause(10)
-  await Agent.synced()
 
-  return report
+  return new Promise(resolve => {
+    Agent.watch(report, ({ state }) => {
+      if (state.end) resolve()
+    }, 'localhost:5111', 'localhost:5111')
+  })
 }
 
 export default function () {
-
-  const mirrorFieldDomainConfigured = configure(MIRROR_FIELD_DOMAIN, mirrorFieldConfig)
 
   const getSimpleResponseConfig = response => `
   sideEffects:
@@ -57,7 +68,7 @@ export default function () {
         this.timeout(5000)
         const response = Agent.uuid()
         const { domain } = await Agent.environment()
-        const report = await configure(domain, getSimpleResponseConfig(response), true)
+        await configure(domain, getSimpleResponseConfig(response))
         const x = await Agent.state(Agent.uuid())
         x.a = 100
         const r = await Agent.response()
@@ -75,7 +86,7 @@ export default function () {
             state.myOwnId = id
       `
       const { domain } = await Agent.environment()
-      await configure(domain, stateSettingConfig, true)
+      await configure(domain, stateSettingConfig)
       await Agent.state()
       const x = await Agent.state(stateId)
       expect(x.myOwnId).to.equal(stateId)
@@ -89,7 +100,7 @@ export default function () {
             return Agent.environment().then(e => e.domain)
       `
       const { domain } = await Agent.environment()
-      await configure(domain, stateSettingConfig, true)
+      await configure(domain, stateSettingConfig)
       const x = await Agent.state('x')
       x.asdf = 1
       const { response } = await Agent.response()
@@ -112,32 +123,58 @@ export default function () {
             return Agent.metadata('${stateId}')
       `
       const { domain } = await Agent.environment()
-      await configure(domain, stateSettingConfig, true)
+      await configure(domain, stateSettingConfig)
       const x = await Agent.state('x')
       x.asdf = 1
       const { response: { ii } } = await Agent.response()
       expect(ii).to.equal(4)
     })
 
-    it('Can work with domains connected to each other', async function () {
+    it('Allows domain agents (configured) to connect to each other', async function () {
       this.timeout(3000)
-      await mirrorFieldDomainConfigured
       await configure('localhost:5112', toMirrorFieldConfig)
-      const id = `x-${Agent.uuid()}`
-      const state = await Agent.state(id)
+      await configure(MIRROR_FIELD_DOMAIN, mirrorFieldConfig)
+      const scope = `x-${Agent.uuid()}`
+      const state = await Agent.state(scope)
+      const dataToMirror = Agent.uuid()
+      state.mirror = dataToMirror
+
+      return new Promise(resolve => {
+        Agent
+          .watch(
+            scope,
+            update => {
+              console.log('hmmm', update.state)
+              if (update.state.mirror === dataToMirror) resolve()
+            },
+            MIRROR_FIELD_DOMAIN,
+            MIRROR_FIELD_DOMAIN
+          )
+      })
+    })
+
+    it('Allows domain agents (reconfigured) to connect to each other', async function () {
+      this.timeout(3000)
+      await configure('localhost:5112', toMirrorFieldConfig)
+      await configure(MIRROR_FIELD_DOMAIN, mirrorFieldConfig2)
+      await pause(1000)
+      const scope = `x-${Agent.uuid()}`
+      const state = await Agent.state(scope)
       const dataToMirror = Agent.uuid()
       state.mirror = dataToMirror
       let resolve
 
-      Agent
-        .watch(
-          id,
-          update => update.state.mirror === dataToMirror && resolve(),
-          'localhost:5112',
-          MIRROR_FIELD_DOMAIN
-        )
-
-      await new Promise(r => resolve = r)
+      return new Promise(resolve => {
+        Agent
+          .watch(
+            scope,
+            update => {
+              if (update.state.mirror === dataToMirror + '2') resolve()
+            },
+            MIRROR_FIELD_DOMAIN,
+            MIRROR_FIELD_DOMAIN
+          )
+      })
     })
   })
 
