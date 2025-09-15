@@ -2,6 +2,18 @@ import YAML from 'yaml'
 
 const MIRROR_FIELD_DOMAIN = 'mirror-field.localhost:5112'
 
+const BROKEN_SYNTAX_CONFIG = `
+  sideEffects:
+    script: |
+      await async syntax error
+`
+
+const BROKEN_RUNTIME_CONFIG = `
+  sideEffects:
+    script: |
+      runtimeError()
+`
+
 const mirrorFieldConfig = `
   sideEffects:
     script: |
@@ -63,6 +75,24 @@ export default function () {
   `
 
   describe('New Domain Agent', function () {
+    it('Is resilient against broken side effect scripts (syntax)', async function () {
+      const { domain } = await Agent.environment()
+      await configure(domain, BROKEN_SYNTAX_CONFIG)
+      const x = await Agent.state(Agent.uuid())
+      x.a = 100
+      const response = await Agent.response()
+      expect(response.errored).to.equal(true)
+    })
+
+    it('Is resilient against broken side effect scripts (runtime)', async function () {
+      const { domain } = await Agent.environment()
+      await configure(domain, BROKEN_RUNTIME_CONFIG)
+      const x = await Agent.state(Agent.uuid())
+      x.a = 100
+      const response = await Agent.response()
+      expect(response.errored).to.equal(true)
+    })
+
     it('Gets expected responses after reconfigurations', async function () {
       for (let i=0; i<3; i++) {
         this.timeout(5000)

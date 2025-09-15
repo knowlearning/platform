@@ -31,7 +31,7 @@ self.onmessage = e => {
 
 postMessage({ type: 'initialize' })
 
-function runSafely(script, variables) {
+async function runSafely(script, variables) {
   const blockedGlobals = [
     "Deno",
     "require",
