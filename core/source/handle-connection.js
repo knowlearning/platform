@@ -254,21 +254,12 @@ export default async function handleConnection(connection, domain, sid, metricsP
 
           await coreSideEffects({
             id, session, domain, user, scope, active_type, patch, si, ii,
-            send: async message => {
-              try {
-                let errored = false
-                const response = await (
-                  domainSideEffectResponse
-                    .catch(error => {
-                      errored = true
-                    })
-                )
-                if (errored) message.errored = true
-                else if (response) message.response = response
-              }
-              catch (error) { console.warn(error) }
-              finally { send(message) }
-            }
+            send: async message => (
+              domainSideEffectResponse
+                .then(response => message.response = response)
+                .catch(error => message.errored = true)
+                .finally(() => send(message))
+            )
           })
           if (agent && user !== domain) {
             const data = { scope, patch, ii, id, context }

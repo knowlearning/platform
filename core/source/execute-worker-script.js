@@ -81,21 +81,19 @@ function startWorker(environment, namespaces) {
       //  TODO: unify. the following block is repeated in handle-connection
       await coreSideEffects({
         id, session, domain, user, scope, active_type: null, patch, si, ii,
-        send: async message => {
-          try {
-            let errored = false
-            const response = await (
-              domainSideEffectResponse
-                .catch(error => {
-                  errored = true
+        send: async message => (
+          domainSideEffectResponse
+            .then(response => message.response = response)
+            .catch(error => message.errored = true)
+            .finally(() => {
+              worker
+                .postMessage({
+                  session,
+                  requestId,
+                  response: message
                 })
-            )
-            if (errored) message.errored = true
-            else if (response) message.response = response
-          }
-          catch (error) { console.warn(error) }
-          finally { worker.postMessage({ requestId, response: { ii }, session }) }
-        }
+            })
+        )
       })
     }
     else if (e.data.type === 'metadata') {
