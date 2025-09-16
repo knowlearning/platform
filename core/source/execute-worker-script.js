@@ -84,7 +84,7 @@ function startWorker(environment, namespaces) {
         send: async message => (
           domainSideEffectResponse
             .then(response => message.response = response)
-            .catch(error => message.errored = true)
+            .catch(error => message.log = error)
             .finally(() => {
               worker
                 .postMessage({

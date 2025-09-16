@@ -81,7 +81,7 @@ export default function () {
       const x = await Agent.state(Agent.uuid())
       x.a = 100
       const response = await Agent.response()
-      expect(response.errored).to.equal(true)
+      expect(response.log).to.equal('SyntaxError: Unexpected identifier \'syntax\'')
     })
 
     it('Is resilient against broken side effect scripts (runtime)', async function () {
@@ -90,7 +90,7 @@ export default function () {
       const x = await Agent.state(Agent.uuid())
       x.a = 100
       const response = await Agent.response()
-      expect(response.errored).to.equal(true)
+      expect(response.log).to.equal('ReferenceError: runtimeError is not defined')
     })
 
     it('Gets expected responses after reconfigurations', async function () {

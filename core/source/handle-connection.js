@@ -257,7 +257,7 @@ export default async function handleConnection(connection, domain, sid, metricsP
             send: async message => (
               domainSideEffectResponse
                 .then(response => message.response = response)
-                .catch(error => message.errored = true)
+                .catch(error => message.log = error)
                 .finally(() => send(message))
             )
           })
