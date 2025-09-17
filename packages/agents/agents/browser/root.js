@@ -7,7 +7,7 @@ import { io } from 'socket.io-client'
 const TEST_DOMAIN = 'tests.knowlearning.systems'
 const LANGUAGES = [...navigator.languages]
 
-const API_HOST = localStorage.getItem('API_HOST') || 'api.knowlearning.systems'
+const API_HOST = localStorage.getItem('API_HOST') || 'socket-io.knowlearning.systems'
 // const API_HOST = 'api-test.knowlearning.systems'
 // const API_HOST = 'localhost:8765'
 
