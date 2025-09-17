@@ -1,5 +1,6 @@
 import { environment, requestDomain, SocketIOServer } from './utils.js'
 import handleHttpRequest from './handle-http-request.js'
+import handleSocketIOConnection from './handle-socketio-connection.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
 import Agent from './agent.js'
 import SESSION from './session.js'
@@ -7,13 +8,12 @@ import { CPUData, processData, networkData, getInstanceInfo } from './metrics.js
 
 const io = new SocketIOServer({
   cors: {
-    origin: [
-      'https://localhost:5173',
-      'https://websocket-connection-test.netlify.app'
-    ],
+    origin: (origin, callback) => {
+      callback(null, origin)
+    },
     allowedHeaders: ["sid"],
-    credentials: true,
-  },
+    credentials: true
+  }
 })
 
 io.on("connection", (socket) => {
@@ -27,6 +27,11 @@ io.on("connection", (socket) => {
 })
 
 const socketIOHandler = io.handler()
+
+io.on("connection", (socket) => {
+  console.log(`socket ${socket.id} connected`)
+  handleSocketIOConnection(socket, metricsPromise)
+})
 
 const METRICS_POLL_INTERVAL = 5000
 const SOCKET_IO_HOSTS = [
@@ -52,7 +57,8 @@ async function handler(request, info) {
   const domain = requestDomain(request)
   ensureDomainConfigured(domain)
   const url = new URL(request.url)
-  if (SOCKET_IO_HOSTS.includes(url.host)) return socketIOHandler(request, info)
+  if (request.url.endsWith('/_sid-check')) return handleHttpRequest(request)
+  else if (SOCKET_IO_HOSTS.includes(url.host)) return socketIOHandler(request, info)
   else return handleHttpRequest(request, metricsPromise)
 }
 
@@ -67,6 +73,11 @@ const metricsPromise = Agent
     metrics[SESSION] = {
       connections: {},
       websockets: {
+        opened: 0,
+        closed: 0,
+        errored: 0
+      },
+      socketio: {
         opened: 0,
         closed: 0,
         errored: 0

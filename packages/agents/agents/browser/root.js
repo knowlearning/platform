@@ -2,19 +2,22 @@ import { v1 as uuid } from 'uuid'
 import { applyPatch } from 'fast-json-patch'
 import { getToken, login, logout } from './auth.js'
 import GenericAgent from '../generic/index.js'
+import { io } from 'socket.io-client'
 
 const TEST_DOMAIN = 'tests.knowlearning.systems'
 const LANGUAGES = [...navigator.languages]
 
 const API_HOST = localStorage.getItem('API_HOST') || 'api.knowlearning.systems'
-//  const API_HOST = 'api-test.knowlearning.systems'
-//const API_HOST = 'localhost:8765'
+// const API_HOST = 'api-test.knowlearning.systems'
+// const API_HOST = 'localhost:8765'
 
-//  TODO: remove this hack when we can set partitioned sid cookie through websocket handshake
-//        deno is partly in the way on teh set side, and browser support is in the way for
-//        the client side.
+// TODO: remove sid hack when partitioned cookies via WS handshakes are supported
 async function ensureSidEstablished() {
-  const response = await fetch(`https://${API_HOST}/_sid-check`, { method: 'GET', credentials: 'include' })
+  const response = await fetch(`https://${API_HOST}/_sid-check`, {
+    method: 'GET',
+    credentials: 'include'
+  })
+
   const hasLocalStorageSID = !!localStorage.getItem('sid')
   if (response.status === 201) {
     if (!hasLocalStorageSID) {
@@ -24,7 +27,6 @@ async function ensureSidEstablished() {
     }
   }
   else if (response.status === 200) {
-    //  if we reach here, assumably the server has seen an sid cookie
     if (hasLocalStorageSID) {
       localStorage.removeItem('sid')
       location.reload()
@@ -37,20 +39,44 @@ async function ensureSidEstablished() {
 
 export default options => {
   ensureSidEstablished()
+
   const Connection = function () {
+    const sid = localStorage.getItem('sid')
 
-    const ws = new WebSocket(`wss://${API_HOST}`)
+    // socket.io client connection
+    const socket = io(`https://${API_HOST}`, {
+      withCredentials: true,
+      extraHeaders: sid ? { sid } : {}
+    })
 
-    this.send = message => ws.send(JSON.stringify(message))
-    this.close = info => {
-      this.send({ type: 'close', info })
-      ws.close()
+    this.send = message => {
+      try {
+        socket.emit('message', message)
+      } catch (err) {
+        console.warn('Error sending via socket.io', err)
+      }
     }
 
-    ws.onopen = () => this.onopen()
-    ws.onmessage = ({ data }) => this.onmessage(data.length === 0 ? null : JSON.parse(data))
-    ws.onerror = error => this.onerror && this.onerror(error)
-    ws.onclose = error => this.onclose && this.onclose(error)
+    this.close = info => {
+      this.send({ type: 'close', info })
+      socket.disconnect()
+    }
+
+    socket.on('connect', () => {
+      if (this.onopen) this.onopen()
+    })
+
+    socket.on('message', (data) => {
+      if (this.onmessage) this.onmessage(data)
+    })
+
+    socket.on('error', (err) => {
+      if (this.onerror) this.onerror(err)
+    })
+
+    socket.on('disconnect', (reason) => {
+      if (this.onclose) this.onclose(reason)
+    })
 
     return this
   }
