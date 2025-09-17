@@ -71,10 +71,14 @@ function startWorker(environment, namespaces) {
       const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
 
       const id = await scopeToId(domain, user, scope)
+      const log = []
+      let response
       const domainSideEffectResponse = handleSideEffects({
         domain: stateRequestDomain || domain,
         user, scope, patch, id, context, session
       })
+        .then(r => response = r)
+        .catch(error => log.push(error))
       const { ii } = await interact(stateRequestDomain || domain, user, namespacedScope, patch, context)
 
       const si = null
@@ -83,14 +87,16 @@ function startWorker(environment, namespaces) {
         id, session, domain, user, scope, active_type: null, patch, si, ii,
         send: async message => (
           domainSideEffectResponse
-            .then(response => message.response = response)
-            .catch(error => message.log = error)
             .finally(() => {
               worker
                 .postMessage({
                   session,
                   requestId,
-                  response: message
+                  response: {
+                    ...message,
+                    log,
+                    response
+                  }
                 })
             })
         )

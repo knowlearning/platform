@@ -63,7 +63,7 @@ async function handler(request, info) {
 }
 
 globalThis.addEventListener("unhandledrejection", event => {
-  console.log("UNHANDLED REJECTION HANDLER", event)
+  console.log("UNHANDLED REJECTION HANDLER", event, event.stack)
   event.preventDefault()
 })
 

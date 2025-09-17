@@ -19,7 +19,6 @@ self.onmessage = e => {
         })
       })
       .catch(error => {
-        console.log('AGENT ERROR', error)
         postMessage({
           type: 'respond',
           id,
