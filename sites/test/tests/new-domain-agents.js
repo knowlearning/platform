@@ -206,6 +206,23 @@ export default function () {
           )
       })
     })
+
+    it('Throws error on permission violation', async () => {
+      const config = `
+        sideEffects:
+          script: |
+            //  This tries to import index.js from core/source/domain-worker/
+            await import('./index.js')
+            return 'success'
+      `
+      await configure('localhost:5112', config)
+
+      const state = await Agent.state(Agent.uuid())
+      state.x = 100
+      const { response, log } = await Agent.response()
+      expect(response).to.not.equal('success')
+      expect(log.length).to.equal(1)
+    })
   })
 
 }
