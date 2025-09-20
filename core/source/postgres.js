@@ -72,22 +72,28 @@ async function client(domain) {
 
 async function query(database, text, values, rowMode, maxRetries = 5, delayMs = 200) {
   let attempt = 0
+  const pool = await client(database)
+
   while (true) {
+    let connection
     try {
-      const pool = await client(database)
-      const connection = await pool.connect()
-      try {
-        return await connection.queryObject({ text, args: values, rowMode })
-      } finally {
-        connection.release()
-      }
+      connection = await pool.connect()
+      return await connection.queryObject({ text, args: values, rowMode })
     } catch (err) {
       attempt++
+
+      // TODO: only fatal connection errors should force connection end
+      // forcibly close / evict
+      if (connection) try { await connection.end() } catch (_) {}
+
       if (attempt >= maxRetries) throw err
       await new Promise(res => setTimeout(res, delayMs))
+    } finally {
+      if (connection) try { connection.release() } catch (_) {}
     }
   }
 }
+
 
 async function createTable(domain, table, columns) {
   //  TODO: remove columns that no longer exist
