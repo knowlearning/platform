@@ -35,6 +35,10 @@ export default defineConfig({
       {
         find: 'uuid',
         replacement: __dirname + '/node_modules/uuid/dist/esm-browser/index.js'
+      },
+      {
+        find: 'socket.io-client',
+        replacement: __dirname + '/node_modules/socket.io-client/dist/socket.io.esm.min.js'
       }
     ]
   }

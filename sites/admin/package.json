@@ -20,6 +20,7 @@
     "flatpickr": "^4.6.13",
     "json-2-csv": "^5.5.9",
     "plotly.js-dist": "^3.0.1",
+    "socket.io-client": "^4.8.1",
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1",
     "uuid": "^9.0.1",
