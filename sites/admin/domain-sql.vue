@@ -27,7 +27,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import converter from 'json-2-csv'
+import { json2csv } from 'json-2-csv'
 
 // Props
 const props = defineProps({
@@ -52,7 +52,7 @@ async function downloadCSV() {
   if (!response.value || !response.value.length) return
 
   try {
-    const csv = await converter.json2csvAsync(response.value)
+    const csv = await json2csv(response.value)
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
 
