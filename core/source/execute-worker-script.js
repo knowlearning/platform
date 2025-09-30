@@ -6,7 +6,7 @@ import handleSideEffects from './handle-side-effects.js'
 import coreSideEffects from './core-side-effects.js'
 import * as redis from './redis.js'
 import interact from './interact/index.js'
-import { domainWorkers, domainWorkerResponses } from './stateful.js'
+import { domainWorkers, resolveDomainWorker, domainWorkerResponses } from './stateful.js'
 
 const {
   SECRET_ENCRYPTION_KEY,
@@ -137,12 +137,11 @@ async function decodeSecrets(secrets) {
   )
 }
 
-export default function executeWorkerScript(refreshWorker, domain, user, script, variables, session, context=[], namespaces=[]) {
-  const workerKey = domain + JSON.stringify({context, namespaces})
-
-  if (refreshWorker && domainWorkers[workerKey]) {
-    domainWorkers[workerKey].terminate()
-    delete domainWorkers[workerKey]
+export default async function executeWorkerScript(refreshWorker, domain, user, script, variables, session, context=[], namespaces=[]) {
+  // TODO: check if we have a domain worker calling in
+  if (!resolveDomainWorker[domain]) {
+    //  TODO: kick off worker process and import resolveDomainWorker at the connection layer
+    const workerConnection = await new Promise(resolve => resolveDomainWorker[domain] = resolve)
   }
 
   //  TODO: clean up dormant workers
