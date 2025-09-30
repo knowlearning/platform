@@ -8,7 +8,7 @@
       :key="embedding.id"
       :id="embedding.id"
       @close="handleClose"
-      allow="camera;microphone;fullscreen"
+      allow="camera;microphone;clipboard-write;fullscreen"
     />
     <Splitter
       v-else

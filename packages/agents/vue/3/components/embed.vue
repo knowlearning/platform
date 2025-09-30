@@ -8,7 +8,7 @@
       height: 100%;
       border: none;
     "
-    allow="camera;microphone"
+    allow="camera;microphone;clipboard-write;fullscreen"
   />
 </template>
 
