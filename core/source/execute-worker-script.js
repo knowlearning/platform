@@ -29,7 +29,6 @@ function startWorker(environment, namespaces) {
   }
 
   worker.onmessage = async (e) => {
-    console.log('GOT MESSAGE!', e)
     if (e.data.type === 'initialize') {
       initialized = true
       worker.postMessage({ type: 'setup', session })
