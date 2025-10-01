@@ -1,34 +1,64 @@
-import EmbeddedAgent from 'npm:@knowlearning/agents@0.9.179/agents/embedded.js'
+import { readLines } from "https://deno.land/std@0.224.0/io/read_lines.ts"
+import EmbeddedAgent from "npm:@knowlearning/agents@0.9.179/agents/embedded.js"
 
-const Agent = EmbeddedAgent(postMessage)
-// TODO: move "getAgent" into Agent.connect(domain) structure
-const getAgent = domain => {
-  postMessage({ type: 'initialize' })
-  return EmbeddedAgent(message => postMessage({ ...message, domain }))
+//  TODO: consider allowing EmbeddedAgent configuration of listener, rather than overwriting like this
+const otherListeners = []
+globalThis.addEventListener = (_type, fn) => otherListeners.push(fn)
+
+function postMessage(message) {
+  console.log(JSON.stringify(message))
 }
 
-self.onmessage = e => {
-  if (e.data.type === 'script') {
-    const { script, variables, id } = e.data
-    runSafely(script, variables)
-      .then(response => {
-        postMessage({
-          type: 'respond',
-          id,
-          response: response ? JSON.parse(JSON.stringify(response)) : response
-        })
+const Agent = EmbeddedAgent(postMessage)
+
+// TODO: move "getAgent" into Agent.connect(domain) structure
+const getAgent = (domain) => {
+  postMessage({ type: "initialize" })
+  return EmbeddedAgent((message) => postMessage({ ...message, domain }))
+}
+
+// Handle messages coming in from parent via stdin
+async function handleMessages() {
+  for await (const line of readLines(Deno.stdin)) {
+    if (!line.trim()) continue
+
+    try {
+      await onmessage({ data: JSON.parse(line) })
+    }
+    catch (err) {
+      postMessage({
+        type: "respond",
+        error: err.message
       })
-      .catch(error => {
-        postMessage({
-          type: 'respond',
-          id,
-          error: error.toString()
-        })
-      })
+    }
   }
 }
 
-postMessage({ type: 'initialize' })
+async function onmessage(e) {
+  if (e.data.type === "script") {
+    const { script, variables, id } = e.data
+    runSafely(script, variables)
+      .then((response) => {
+        postMessage({
+          type: "respond",
+          id,
+          response: response ? JSON.parse(JSON.stringify(response)) : response,
+        })
+      })
+      .catch((error) => {
+        postMessage({
+          type: "respond",
+          id,
+          error: error.toString(),
+        })
+      })
+  }
+  else otherListeners.forEach(fn => fn(e))
+}
+
+// Startup handshake
+postMessage({ type: "initialize" })
+handleMessages()
 
 async function runSafely(script, variables) {
   const blockedGlobals = [
@@ -41,12 +71,12 @@ async function runSafely(script, variables) {
     "WebSocket",
     //"setTimeout",
     "setInterval",
-    "crypto"
+    "crypto",
   ]
 
   const extraGlobals = {
     Agent,
-    getAgent
+    getAgent,
   }
 
   const sandbox = new Function(
@@ -59,6 +89,6 @@ async function runSafely(script, variables) {
   return sandbox(
     ...Object.values(extraGlobals),
     ...blockedGlobals.map(() => undefined),
-    ...Object.values(variables)
+    ...Object.values(variables),
   )
 }

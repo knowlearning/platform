@@ -212,7 +212,7 @@ export default function () {
         sideEffects:
           script: |
             //  This tries to import index.js from core/source/domain-worker/
-            await import('./index.js')
+            await import('../index.js')
             return 'success'
       `
       await configure('localhost:5112', config)

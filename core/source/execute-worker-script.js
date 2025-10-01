@@ -6,6 +6,7 @@ import handleSideEffects from './handle-side-effects.js'
 import coreSideEffects from './core-side-effects.js'
 import * as redis from './redis.js'
 import interact from './interact/index.js'
+import isolatedWorker from './isolated-worker.js'
 import { domainWorkers, domainWorkerResponses } from './stateful.js'
 
 const {
@@ -17,9 +18,8 @@ function startWorker(environment, namespaces) {
   const session = uuid()
   let initialized = false
 
-  const worker = new Worker(
-    new URL("./domain-worker/index.js", import.meta.url).href,
-    { type: "module" }
+  const worker = isolatedWorker(
+    new URL("./domain-worker/index.js", import.meta.url).href
   )
 
   worker.onerror = (e) => {
@@ -29,6 +29,7 @@ function startWorker(environment, namespaces) {
   }
 
   worker.onmessage = async (e) => {
+    console.log('GOT MESSAGE!', e)
     if (e.data.type === 'initialize') {
       initialized = true
       worker.postMessage({ type: 'setup', session })
