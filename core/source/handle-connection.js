@@ -249,26 +249,25 @@ export default async function handleConnection(connection, domain, sid, metricsP
           let resolveSideEffects
           outstandingSideEffects[session][id].push(new Promise(resolve => resolveSideEffects = resolve))
 
-          const domainSideEffectResponse = handleSideEffects({ domain, user, scope, patch, id, context, session })
+          const log = []
+          let response
+          const domainSideEffectResponse = (
+            handleSideEffects({ domain, user, scope, patch, id, context, session })
+              .then(r => response = r)
+              .catch(error => log.push(error))
+          )
           const { ii, active_type } = await interact(domain, user, scope, patch, context)
 
           await coreSideEffects({
             id, session, domain, user, scope, active_type, patch, si, ii,
-            send: async message => {
-              try {
-                let errored = false
-                const response = await (
-                  domainSideEffectResponse
-                    .catch(error => {
-                      errored = true
-                    })
-                )
-                if (errored) message.errored = true
-                else if (response) message.response = response
-              }
-              catch (error) { console.warn(error) }
-              finally { send(message) }
-            }
+            send: async message => (
+              domainSideEffectResponse
+                .finally(() => {
+                  message.log = log
+                  message.response = response
+                  send(message)
+                })
+            )
           })
           if (agent && user !== domain) {
             const data = { scope, patch, ii, id, context }

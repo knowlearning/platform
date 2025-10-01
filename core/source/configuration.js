@@ -19,7 +19,6 @@ subscribe(DOMAIN_CONFIG_SCOPE, ({ patch: [{ path, value }] }) => {
 
     delete cache[domain]
     if (value?.server !== SESSION) {
-      console.log('UPDATING DOMAIN AGENT', value, path)
       domainAgent(domain, true)
     }
   }

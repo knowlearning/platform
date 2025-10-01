@@ -11,6 +11,7 @@ import metadata from './tests/metadata.js'
 import uploads from './tests/uploads.js'
 import postgres from './tests/postgres.js'
 import domainAgents from './tests/domain-agents.js'
+import newDomainAgents from './tests/new-domain-agents.js'
 import vuex from './tests/vuex.js'
 import stateTest from './tests/state.js'
 import environmentTest from './tests/environment.js'
@@ -131,6 +132,7 @@ else {
     latestBugfixes()
     if (mode.length === 4) postgres()
     if (mode.length === 4) domainAgents()
+    if (mode.length === 4) newDomainAgents()
     stateTest()
     environmentTest()
     metadata()

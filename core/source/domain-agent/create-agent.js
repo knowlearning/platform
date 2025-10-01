@@ -19,8 +19,6 @@ export default function createAgent(domain, script, secrets={}, DomainAgents) {
     const worker = new Worker(workerUrl, { type: "module" })
 
     worker.onerror = event => {
-      console.log('DOMAIN AGENT ERROR', event)
-
       coreSession.log = prettyPrintErrorEvent(event)
       reject(event)
       //  Stop unhandled child error event from closing the core server
