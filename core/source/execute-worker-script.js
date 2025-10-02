@@ -19,7 +19,7 @@ function startWorker(environment, namespaces) {
   let initialized = false
 
   const worker = isolatedWorker(
-    new URL("./domain-worker/index.js", import.meta.url).href
+    new URL("./domain-worker/index.js", import.meta.url).pathname
   )
 
   worker.onerror = (e) => {
