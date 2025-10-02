@@ -18,7 +18,7 @@ const mirrorFieldConfig = `
   sideEffects:
     script: |
       patch.forEach(async op => {
-        if (op.path.length === 2 && op.path[1] === 'mirror') {
+        if (op.path.length === 1 && op.path[0] === 'mirror') {
           const state = await Agent.state(scope)
           state.mirror = op.value
         }
@@ -28,7 +28,7 @@ const mirrorFieldConfig2 = `
   sideEffects:
     script: |
       patch.forEach(async op => {
-        if (op.path.length === 2 && op.path[1] === 'mirror') {
+        if (op.path.length === 1 && op.path[0] === 'mirror') {
           const state = await Agent.state(scope)
           state.mirror = op.value + '2'
         }
@@ -38,7 +38,7 @@ const toMirrorFieldConfig = `
   sideEffects:
     script: |
       patch.forEach(async op => {
-        if (op.path.length === 2 && op.path[1] === 'mirror') {
+        if (op.path.length === 1 && op.path[0] === 'mirror') {
           const MirrorAgent = getAgent('${MIRROR_FIELD_DOMAIN}')
           const state = await MirrorAgent.state(scope)
           state.mirror = op.value
