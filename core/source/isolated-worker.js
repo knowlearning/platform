@@ -1,9 +1,9 @@
 export default function isolatedWorker(modulePath) {
   const cmd = new Deno.Command(Deno.execPath(), {
-    args: ["run", modulePath],
-    stdin: "piped",
-    stdout: "piped",
-    stderr: "piped"
+    args: ['run', '--allow-net', modulePath],
+    stdin: 'piped',
+    stdout: 'piped',
+    stderr: 'piped'
   })
 
   const child = cmd.spawn()
