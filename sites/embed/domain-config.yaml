@@ -40,16 +40,17 @@ agent: |
 
   Agent.on('child', child => {
       const { environment: { user } } = child
-
-      child.on('mutate', async ({ scope, patch }) => {
-          if (patch[0].path[0] === 'xapi') {
+      child.on('mutate', ({ id, scope, patch, context }) => {
+          patch.forEach(async ({ path, value }) => {
+            if (path[0] === 'xapi' && path.length === 1 && value) {
               const x = await xApiAgent.state(`xapi/${Agent.uuid()}`)
               Object.assign(x, {
-                  ...patch[0].value,
-                  origin: scope,
-                  context: {}
+                  ...value,
+                  source: id,
+                  context
               })
-          }
+            }
+          })
       })
   })
 
