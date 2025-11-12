@@ -30,7 +30,7 @@ export default function handleHTTPRequest(request, metricsPromise) {
     //  TODO: add partitioned when we can (must wait unti we can successfully set sid with ws connection)
     const expireDate = new Date()
     expireDate.setTime(expireDate.getTime() + (30 * 24 * 60 * 60 * 1000))
-    headers.set('set-cookie', `sid=${sid}; Secure; HttpOnly; SameSite=None; Expires=${expireDate.toUTCString()}; Partitioned;`)
+    headers.set('set-cookie', `sid=${sid}; Secure; HttpOnly; Path=/; SameSite=None; Expires=${expireDate.toUTCString()}; Partitioned;`)
   }
 
   if (request.headers.get("upgrade") != "websocket") {
