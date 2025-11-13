@@ -5,11 +5,6 @@ export default function handleSocketIOConnection(socket, metricsPromise) {
   const domain = requestDomain({ headers: socket.handshake.headers })
   const sid = getCookies(socket.handshake.headers)['sid']
 
-  if (!sid) {
-    console.log('NO SID PROVIDED ON SOCKET HANDSHAKE')
-    return
-  }
-
   let sendOnCloseErrorReported = false
   let closeOnCloseErrorReported = false
   let socketError
