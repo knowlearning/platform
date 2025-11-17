@@ -121,7 +121,6 @@
         await Agent.synced()
         try { await Agent.response() }
         catch (error) {}
-        await new Promise(r => setTimeout(r, 1000))
         const latestCompetencies = await Agent.state(`pila/latest_competencies/${candliGameId}`)
         Agent.close({ competencies: copy(latestCompetencies), success: info?.success })
       }
