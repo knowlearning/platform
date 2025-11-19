@@ -37,7 +37,7 @@ export interface Agent {
   upload(info?: AgentUploadInfo): Promise<string>;
   download(id?: string): Promise<Response>;
   environment(userId?: string): Promise<AgentEnvironment>;
-  close(): void;
+  close(info: any): void;
   reset(ns: string): Promise<void>;
   //  TODO: add query function
   synced(): Promise<void>;
