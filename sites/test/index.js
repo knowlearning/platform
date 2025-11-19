@@ -40,6 +40,18 @@ if (id.startsWith('reconnect_test')) {
   }
   else location.reload()
 }
+if (id === 'embed_close_sync_test') {
+  const stateId = uuid()
+  const x = await Agent.state(stateId)
+  for (let i=0; i<100; i++) {
+    await new Promise( r => setTimeout(r) )
+    x.a = i
+  }
+  await new Promise( r => setTimeout(r) )
+  x.a = 'expected'
+  await Agent.synced()
+  Agent.close(stateId)
+}
 else if (mode === 'EMBEDED_WATCHER_TEST_MODE') {
   const states = []
   const unwatch = Agent.watch(id, ({ patch, state }) => {
