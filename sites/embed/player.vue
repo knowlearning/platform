@@ -116,11 +116,12 @@
   //  candli example: https://pila.cand.li/pila-play.html?game=0adb500fa86a5cc6b62ab7ca3680ec64
   async function handleClose(info) {
     closed.value = true
+    console.log('HANDLING CLOSE!', info, candliGameId, embedded)
     if (embedded) {
       if (candliGameId) {
-        await Agent.synced()
-        try { await Agent.response() }
-        catch (error) {}
+        // await Agent.synced()
+        // try { await Agent.response() }
+        // catch (error) {}
         const latestCompetencies = await Agent.state(`pila/latest_competencies/${candliGameId}`)
         Agent.close({ competencies: copy(latestCompetencies), success: info?.success })
       }
