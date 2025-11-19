@@ -40,8 +40,8 @@ if (id.startsWith('reconnect_test')) {
   }
   else location.reload()
 }
-if (id === 'embed_close_sync_test') {
-  const stateId = uuid()
+if (id.split('/')[0] === 'embed_close_sync_test') {
+  const stateId = id.split('/')[1]
   const x = await Agent.state(stateId)
   for (let i=0; i<100; i++) {
     await new Promise( r => setTimeout(r) )

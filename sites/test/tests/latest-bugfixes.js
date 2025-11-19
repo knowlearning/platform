@@ -20,23 +20,29 @@ export default function latestBugfixes() {
       if (!erroredExpectedly) throw new Error(`Expected auth error on query; received unexpected result: ${unexpectedResult}`)
     })
 
-    it('Properly syncs to updates from an embedded frame', async function () {
-      const iframe = document.createElement('iframe')
-      iframe.style = "border: none; width: 0; height: 0;"
-      document.body.appendChild(iframe)
-      const { on } = Agent.embed({ id: 'embed_close_sync_test' }, iframe)
-
-      let resolve
-      const done = new Promise(r => resolve = r)
-
-      on('close', async info => {
-        const state = await Agent.state(info)
-        document.body.removeChild(iframe)
-        if (state.a !== 'expected') throw new Error('State not synced')
-        else resolve()
-      })
-
-      await done
-    })
+    it('Properly syncs to updates from an embedded frame, uuid', embeddedSyncTest(uuid()))
+    it('Properly syncs to updates from an embedded frame, name', embeddedSyncTest(`name-${uuid()}`))
   })
+}
+
+
+function embeddedSyncTest(id) {
+  return async function () {
+    const iframe = document.createElement('iframe')
+    iframe.style = "border: none; width: 0; height: 0;"
+    document.body.appendChild(iframe)
+    const { on } = Agent.embed({ id: `embed_close_sync_test/${id}` }, iframe)
+
+    let resolve
+    const done = new Promise(r => resolve = r)
+
+    on('close', async info => {
+      const state = await Agent.state(info)
+      document.body.removeChild(iframe)
+      if (state.a !== 'expected') throw new Error('State not synced')
+      else resolve()
+    })
+
+    await done
+  }
 }
