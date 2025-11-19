@@ -119,7 +119,7 @@
     console.log('HANDLING CLOSE!', info, candliGameId, embedded)
     if (embedded) {
       if (candliGameId) {
-        // await Agent.synced()
+        await Agent.synced()
         // try { await Agent.response() }
         // catch (error) {}
         const latestCompetencies = await Agent.state(`pila/latest_competencies/${candliGameId}`)
