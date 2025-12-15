@@ -1,6 +1,22 @@
 import { getCookies, requestDomain } from './utils.js'
 import handleConnection from './handle-connection.js'
 
+function JSONReplacer(key, value) {
+  // TODO: some validation to make sure we error instead of sending the wrong response
+  //       for cases where bigint is actually larger than int
+  return typeof value === 'bigint' ? parseInt(value.toString()) : value
+}
+
+function serialize(value) {
+  try {
+    return JSON.stringify(value)
+  }
+  catch (error) {
+    console.warn('Error stringifying return message', error)
+    return JSON.stringify(value, JSONReplacer)
+  }
+}
+
 export default function handleSocketIOConnection(socket, metricsPromise) {
   const domain = requestDomain({ headers: socket.handshake.headers })
   const sid = getCookies(socket.handshake.headers)['sid']
@@ -14,7 +30,7 @@ export default function handleSocketIOConnection(socket, metricsPromise) {
     send(message) {
       if (socket.connected) {
         try {
-          socket.emit('message', message)  // same channel name as WS `message` events
+          socket.emit('message', message ? JSON.parse(serialize(message)) : undefined)  // same channel name as WS `message` events
         } catch (err) {
           console.warn('Socket.IO send failed', domain, message, err)
         }
