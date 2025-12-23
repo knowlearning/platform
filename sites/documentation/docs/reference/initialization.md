@@ -13,7 +13,7 @@ All API operations can be accessed through an "Agent" instance.
 ### Create an Agent
 
 ```js
-import Agent from '@knowlearning/agents/browser.js'
+import Agent from '@knowlearning/agents'
 ```
 
 This ```Agent``` instance is used to do all communication with the KnowLearning core.
