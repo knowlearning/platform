@@ -56,7 +56,7 @@ Once the above questions are answered, an app has everything it needs to initial
 The recommended scaffold implementation we will dive into now will explicitly show how to answer these questions in code:
 
 ```js
-import Agent from '@knowlearning/agents/browser.js'
+import Agent from '@knowlearning/agents'
 import { v4 as uuid, validate as isUUID } from 'uuid'
 
 const { auth: { user, provider } } = await Agent.environment()
