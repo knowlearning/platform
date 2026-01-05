@@ -25,4 +25,18 @@ const connected = Promise.all([
   subscriptions.connect()
 ]).then(() => console.log('CONNECTED!'))
 
-export { client, subscriptions, connected }
+async function setScope(id, path, state, options) {
+  await connected
+  return redis.client.set(id, path, state, options)
+}
+
+async function getScope(id, options) {
+  await connected
+  return client.json.get(id, options)
+}
+
+async function scopeExists(id) {
+  return redis.client.exists(id)
+}
+
+export { client, subscriptions, connected, getScope, scopeExists }
