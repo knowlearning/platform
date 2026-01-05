@@ -1,5 +1,5 @@
 import { createGCSClient, uuid, environment } from './utils.js'
-import * as redis from './redis.js'
+import { getScope } from './redis.js'
 
 const DOWNLOAD_RETRY_INTERVAL = 1000
 
@@ -55,7 +55,7 @@ async function download(id, retries=3, internal=false) {
   //        otherwise download referenced object as here
 
   try {
-    const [uploadId] = await redis.client.json.get(id, { path: ['$.active.id'] })
+    const [uploadId] = await getScope(id, { path: ['$.active.id'] })
     const expires = Date.now() + 15 * 60 * 1000
     const options = { action: 'read', expires }
 

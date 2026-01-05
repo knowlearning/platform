@@ -1,5 +1,5 @@
 import { parseYAML, environment } from './utils.js';
-import * as redis from './redis.js'
+import { getScope } from './redis.js'
 import { download } from './storage.js'
 import subscribe from './subscribe.js'
 import domainAgent from './domain-agent/index.js'
@@ -25,8 +25,6 @@ subscribe(DOMAIN_CONFIG_SCOPE, ({ patch: [{ path, value }] }) => {
 })
 
 export async function domainAdmin(domain) {
-  await redis.connected
-
   //  the admin for X.localhost domains is always userid = X
   if (domain.endsWith('.localhost')) {
     const parts = domain.split('.')
@@ -34,7 +32,7 @@ export async function domainAdmin(domain) {
   }
 
   const path = [`$.active["${domain}"]`]
-  const res = await redis.client.json.get(DOMAIN_CONFIG_SCOPE, { path })
+  const res = await getScope(DOMAIN_CONFIG_SCOPE, { path })
   if (res && res[0]) return res[0].admin
   else return null
 }
@@ -44,16 +42,14 @@ export default async function configuration(domain, notifyIfNew) {
 
   if (cache[domain]) return cache[domain]
 
-  await redis.connected
-
   try {
     const path = [`$.active["${domain}"]`]
-    const [domainConfig] = await redis.client.json.get(DOMAIN_CONFIG_SCOPE, { path })
+    const [domainConfig] = await getScope(DOMAIN_CONFIG_SCOPE, { path })
 
     if (domainConfig) {
       const { admin, config } = domainConfig
       if (config) {
-        const stateConfig = (await redis.client.json.get(config))?.active
+        const stateConfig = (await getScope(config))?.active
         if (stateConfig?.deployment) cache[domain] = stateConfig
         else {
           //  TODO: deprecate this fallback
