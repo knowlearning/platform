@@ -2,6 +2,7 @@ import RootAgent from './root.js'
 import EmbeddedAgent from './embedded.js'
 import { v1 as uuid, validate as validateUUID } from 'uuid'
 import selectFile from './select-file.js'
+import isDomain from './is-domain.js'
 
 let Agent = window.__default_knowlearning_agent
 
@@ -208,7 +209,8 @@ function embed(environment, iframe) {
     const { id } = environment
     if (validateUUID(id)) {
       const { domain } = await Agent.metadata(id)
-      iframe.src = `${protocol}//${domain}/${id}`
+      const { player } = await Agent.state(id)
+      iframe.src = `${protocol}//${isDomain(player) ? player : domain}/${id}`
     }
     else iframe.src = id //  TODO: ensure is url
 
