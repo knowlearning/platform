@@ -209,7 +209,7 @@ function embed(environment, iframe) {
     const { id } = environment
     if (validateUUID(id)) {
       const { domain } = await Agent.metadata(id)
-      const { player } = await Agent.state(id)
+      const player = (await Agent.state(id))?.reference?.player
       iframe.src = `${protocol}//${isDomain(player) ? player : domain}/${id}`
     }
     else iframe.src = id //  TODO: ensure is url
