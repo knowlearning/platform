@@ -27,7 +27,7 @@ const connected = Promise.all([
 
 async function setScope(id, path, state, options) {
   await connected
-  return redis.client.set(id, path, state, options)
+  return client.json.set(id, path, state, options)
 }
 
 async function getScope(id, options) {
@@ -36,7 +36,42 @@ async function getScope(id, options) {
 }
 
 async function scopeExists(id) {
-  return redis.client.exists(id)
+  await connected
+  return client.exists(id)
 }
 
-export { client, subscriptions, connected, getScope, scopeExists }
+async function subscribe(id, cb) {
+  await connected
+  return subscriptions.subscribe(id, cb)
+}
+
+async function idsInDomain(domain) {
+  await connected
+  return client.sendCommand(['smembers', domain])
+}
+
+async function publish(id, message) {
+  await connected
+  return client.publish(id, message)
+}
+
+async function scopeTransaction(domain) {
+  await connected
+  return client.multi()
+}
+
+async function setKey(id, value, options) {
+  await connected
+  return client.set(id, value, options)
+}
+
+export {
+  scopeExists,
+  setKey,
+  setScope,
+  getScope,
+  publish,
+  subscribe,
+  idsInDomain,
+  scopeTransaction
+}

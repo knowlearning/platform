@@ -1,5 +1,5 @@
 import { bigQueryBatchInserter } from '../gcp-api.js'
-import * as redis from '../redis.js'
+import { publish, getScope, scopeTransaction } from '../redis.js'
 import scopeToId from '../scope-to-id.js'
 import sync from './sync.js'
 import { environment } from '../utils.js'
@@ -54,16 +54,15 @@ function arrayPathRepresentationToJSONPath(arrayPath) {
 
 export default async function interact( domain, user, scope, patch, context=[], timestamp=Date.now() ) {
   //  TODO: validate that patch's paths can only start with "active", "active_type", or "name"
-  await redis.connected
   const id = domain === 'core' && user === 'core' ? scope : await scopeToId(domain, user, scope)
-  const info = await redis.client.json.get(id, { path: ['$.domain', '$.owner' ]})
+  const info = await getScope(id, { path: ['$.domain', '$.owner' ]})
 
   if (info !== null && (domain !== info?.['$.domain'][0] || user !== info?.['$.owner'][0])) {
     console.log('DOMAIN OR USER MISMATCH FOR PATCH', info, domain, user, scope, patch)
     throw new Error('DOMAIN OR USER MISMATCH FOR PATCH')
   }
 
-  const transaction = redis.client.multi()
+  const transaction = await scopeTransaction(domain)
   transaction.json.set(id, '$.active', {}, { NX: true }) // initialize state to empty object if does not exist
   transaction.json.numIncrBy(id, '$.ii', 1)
 
@@ -115,9 +114,7 @@ export default async function interact( domain, user, scope, patch, context=[], 
     //  TODO: cache active_types so as not to require fetch on each interaction
     const active_type = response[response.length-1][0]
 
-    redis
-      .client
-      .publish(id, JSON.stringify({ domain, user, scope: id, patch, ii })) //  TODO: fix this odd scope/id situation...
+    publish(id, JSON.stringify({ domain, user, scope: id, patch, ii })) //  TODO: fix this odd scope/id situation...
       .catch(error => console.log('ERROR PUBLISHING!!!!!!!!', domain, user, scope, id, error))
 
     await sync(domain, user, active_type, scope)

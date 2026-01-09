@@ -1,4 +1,4 @@
-import { subscriptions, connected } from './redis.js'
+import { subscribe as scopeSubscribe } from './redis.js'
 import { subscriptionResponses } from './stateful.js'
 
 //  TODO: clean up subscriptions when no more subscribers
@@ -10,15 +10,11 @@ export default function subscribe(id, callback, scope) {
 
   if (!subscriptionResponses[id]) {
     subscriptionResponses[id] = []
-    connected
-      .then(() => {
-        subscriptions
-          .subscribe(id, message => {
-            if (!subscriptionResponses[id]) subscriptionResponses[id] = []
-            const update = JSON.parse(message)
-            subscriptionResponses[id].forEach(cb => cb(update))
-          })
-      })
+    scopeSubscribe(id, message => {
+      if (!subscriptionResponses[id]) subscriptionResponses[id] = []
+      const update = JSON.parse(message)
+      subscriptionResponses[id].forEach(cb => cb(update))
+    })
   }
 
   const sendUpdate = update => {
