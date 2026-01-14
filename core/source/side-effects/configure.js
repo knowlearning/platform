@@ -180,7 +180,7 @@ async function syncTables(domain, tables, report) {
     const start = batchNum * typeBatchSize
     const end = start + typeBatchSize
     const batchIds = allIds.slice(start, end)
-    const transaction = await scopeTransaction()
+    const transaction = await scopeTransaction(domain)
     batchIds.forEach(id => transaction.json.get(id, { path: [`$.active_type`] }))
     const batchTypes = await transaction.exec()
 
@@ -220,7 +220,7 @@ async function syncTables(domain, tables, report) {
       const batchSize = 100_000
       //  too many transactions queued up will trigger a "RangeError: Too many elements passed to Promise.all"
       for (let batchNum=0; batchNum * batchSize < rows.length; batchNum += 1) {
-        const transaction = await scopeTransaction()
+        const transaction = await scopeTransaction(domain)
         //  TODO: limit fetched data to data in table columns
         const start = batchNum * batchSize
         const end = start + batchSize
@@ -358,14 +358,13 @@ async function syncFunctions(domain, functions, report) {
 
 }
 
-const DOMAIN_CONFIGURED_QUERY = `SELECT EXISTS (
-  SELECT 1
-  FROM information_schema.tables
-  WHERE table_name = 'metadata'
-)`
-
 export async function ensureDomainConfigured(domain) {
   //  TODO: more reliable check
+  const DOMAIN_CONFIGURED_QUERY = `SELECT EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_name = 'metadata'
+  )`
   if (!configuredDomains[domain]) {
     configuredDomains[domain] = new Promise(async resolve => {
       const { rows: [{ exists: configured }] } = await postgres.query(domain, DOMAIN_CONFIGURED_QUERY)

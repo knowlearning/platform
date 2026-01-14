@@ -10,7 +10,7 @@ export default async function ({ domain, user, session, patch, si, ii, send }) {
       const { id, type, name } = value
       const { url, info } = await upload(type)
 
-      const isSet = await setKey(info.id, id, { NX: true })
+      const isSet = await setKey(domain, info.id, id, { NX: true })
       if (!isSet) throw new Error(`Error reserving id for upload ${id}`)
 
       const patch = [
