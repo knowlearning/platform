@@ -33,7 +33,7 @@ export default async function scopeToId(domain, user, scope) {
     if (await scopeExists(scope)) return scope
 
     const state = initializationState(domain, user, scope)
-    await setScope(domain, scope, '$', state, { NX: true })
+    await setScope(scope, '$', state, { NX: true })
     await sync(domain, user, state.active_type, scope)
     return scope
   }
@@ -48,7 +48,7 @@ export default async function scopeToId(domain, user, scope) {
     const id = uuid()
     cacheScope(domain, user, scope, id)
     const state = initializationState(domain, user, scope)
-    await setScope(domain, id, '$', state)
+    await setScope(id, '$', state)
     await sync(domain, user, state.active_type, id)
     return id
   }
