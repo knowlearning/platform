@@ -139,10 +139,16 @@ async function idsInDomain(domain) {
   return client.sendCommand(['smembers', domain])
 }
 
+//  TODO: guard against multiple publishes to same client
 async function publish(id, message) {
-  //  TODO: publish to all domain clients
-  const { client } = await getConnection(domainToDatabaseId.default)
-  return client.publish(id, message)
+  return Promise.all(
+    Object
+      .values(connections)
+      .map(async connectionPromise => {
+        const { client } = await connectionPromise
+        return client.publish(id, message)
+      })
+  )
 }
 
 async function scopeTransaction(domain) {
