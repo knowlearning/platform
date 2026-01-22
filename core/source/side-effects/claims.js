@@ -11,7 +11,7 @@ const { MODE, ADMIN_DOMAIN } = environment
 //  TODO: remove need for core to have initialization state and rely on
 //        side effects for individual application/json;type=claim scopes
 const state = initializationState('core', 'core')
-setScope('domain-config', '$', state, { NX: true })
+setScope('core', 'domain-config', '$', state, { NX: true })
 
 export default async function claims({ domain, user, session, patch, si, ii, send }) {
   if (domain === ADMIN_DOMAIN || MODE === 'local') { //  can claim from any domain on local

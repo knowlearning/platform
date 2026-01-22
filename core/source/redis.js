@@ -32,18 +32,14 @@ const domainToDatabaseId = {
 //        databaseIdToConnection cache
 ///////////////////////////////////////////////////////////////
 
+const connections = {}
 
-
-
-
-
-
-
-
-const clientCache = {}
+Object
+  .keys(REDIS_DATABASE_CREDENTIALS)
+  .forEach(getConnection)
 
 async function getConnection(databaseId) {
-  if (clientCache[databaseId]) return clientCache[databaseId]
+  if (connections[databaseId]) return connections[databaseId]
 
   const { HOST, PORT, PASSWORD } = REDIS_DATABASE_CREDENTIALS[databaseId]
   const connectionInfo = {
@@ -56,31 +52,66 @@ async function getConnection(databaseId) {
   client.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
   subscriptions.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
 
-  clientCache[databaseId] = (
+  connections[databaseId] = (
     Promise
-      .all([ client.connect(), subscriptions.connect() ])
+      .all([
+        client.connect(),
+        subscriptions.connect()
+      ])
       .then(() => ({ client, subscriptions }))
   )
 
-  return clientCache[databaseId]
+  return connections[databaseId]
 }
 
 //  TODO: REPLACE ALL getConnection(domainToDatabaseId.default)
 
+const scopeClientCache = {}
+
 async function clientForScope(id) {
-  const scopeDomain = scopeDomainCache[id]
-  if (scopeDomain) return clientForDomain(scopeDomain)
-  //  TODO: simultaneosly ask all clients for this id and return client that has it
-  return getConnection(domainToDatabaseId.default).then(({ client }) => client)
+  if (scopeClientCache[id]) return scopeClientCache[id]
+
+  let resolve, reject
+
+  scopeClientCache[id] = new Promise((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+
+  const databaseId = await Promise
+    .any(
+      Object
+        .entries(connections)
+        .map(async ([databaseId, connectionPromise]) => {
+          const connection = await connectionPromise
+          if (await connection.client.exists(id)) return databaseId
+          else throw new Error('No client')
+        })
+    )
+    .catch(() => {
+      console.warn(`No client for scope ${id}`)
+      return null
+    })
+
+  if (databaseId) {
+    const client = await getConnection(databaseId).then(({ client }) => client)
+    resolve(client)
+    return client
+  }
+  else {
+    delete scopeClientCache[id]
+    resolve(null)
+    return null
+  }
 }
 
 async function clientForDomain(domain) {
-  return getConnection(domainToDatabaseId.default).then(({ client }) => client)
+  const databaseId = domainToDatabaseId[domain] || domainToDatabaseId.default
+  return getConnection(databaseId).then(({ client }) => client)
 }
 
-async function setScope(id, path, state, options) {
-  //  TODO: use domain to choose client
-  const client = await clientForScope(id)
+async function setScope(domain, id, path, state, options) {
+  let client = await clientForScope(id) || await clientForDomain(domain)
   return client.json.set(id, path, state, options)
 }
 
