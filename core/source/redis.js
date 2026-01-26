@@ -118,7 +118,6 @@ async function scopeExists(id) {
 }
 
 async function subscribe(id, cb) {
-  //  TODO: choose databaseId for connection based on location of server
   const regionId = await getRegionId() || 'default'
   const databaseId = regionToDatabaseId[regionId] || DEFAULT_DATABASE_ID
   const { subscriptions } = await getConnection(databaseId)
@@ -127,7 +126,7 @@ async function subscribe(id, cb) {
 
 async function idsInDomain(domain) {
   //  TODO: find client where this set is set to be able to make this request
-  const { client } = await getConnection(DEFAULT_DATABASE_ID)
+  const client = await clientForDomain(domain)
   return client.sendCommand(['smembers', domain])
 }
 
