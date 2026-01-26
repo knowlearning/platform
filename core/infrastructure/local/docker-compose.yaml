@@ -41,8 +41,8 @@ services:
       - PORT=8000
       - SERVE_HOST=serve:8765
       - SERVICE_ACCOUNT_TOKEN=/var/run/secrets/kubernetes.io/serviceaccount/token
-      - REDIS_PASSWORD=
       - POSTGRES_PASSWORD=insecure-dev-password
+      - REDIS_CREDENTIALS={"default-us-east-1":{"user":"default","host":"redis","port":"6379","password":""}}
       - PUBLIC_ENCRYPTION_KEY=${PUBLIC_ENCRYPTION_KEY}
       - SECRET_ENCRYPTION_KEY=${SECRET_ENCRYPTION_KEY}
       - ADMIN_DOMAIN=localhost:5111
@@ -50,8 +50,6 @@ services:
       - INTERNAL_GCS_API_ENDPOINT=http://gcs-emulator:8000
       - EXTERNAL_GCS_API_ENDPOINT=https://localhost:4443
       - GCS_BUCKET_NAME=local-gcs-bucket
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_PASSWORD=insecure-development-password

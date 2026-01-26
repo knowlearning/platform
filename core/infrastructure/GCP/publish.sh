@@ -74,7 +74,7 @@ if [ "$1" = "production" ]; then
   export GCS_SERVICE_ACCOUNT_CREDENTIALS="$(cat ../.credentials/GCS_SERVICE_ACCOUNT_CREDENTIALS)"
   export OAUTH_CREDENTIALS="$(cat ../.credentials/OAUTH_CREDENTIALS)"
   export POSTGRES_PASSWORD="$(cat ../.credentials/POSTGRES_PASSWORD)"
-  export REDIS_PASSWORD="$(cat ../.credentials/REDIS_PASSWORD)"
+  export REDIS_CREDENTIALS="$(cat ../.credentials/REDIS_CREDENTIALS)"
   export SSL_CERT="$(cat ../.credentials/SSL_CERT)"
   export SSL_KEY="$(cat ../.credentials/SSL_KEY)"
   export PUBLIC_ENCRYPTION_KEY="$(cat ../.credentials/PUBLIC_ENCRYPTION_KEY)"
@@ -89,7 +89,7 @@ if [ "$1" = "production" ]; then
           GCS_SERVICE_ACCOUNT_CREDENTIALS \
           OAUTH_CREDENTIALS \
           POSTGRES_PASSWORD \
-          REDIS_PASSWORD \
+          REDIS_CREDENTIALS \
           PUBLIC_ENCRYPTION_KEY \
           SECRET_ENCRYPTION_KEY \
           SSL_CERT \

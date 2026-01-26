@@ -1,18 +1,6 @@
 import { createRedisClient, environment } from './utils.js'
 
-const {
-  REDIS_HOST,
-  REDIS_PORT,
-  REDIS_PASSWORD
-} = environment
-
-//  TODO: store in JSON in env
-
-
-const REDIS_DATABASE_CREDENTIALS = {
-  'thailand-ap-southeast-1': { HOST: REDIS_HOST, PORT: REDIS_PORT, PASSWORD: REDIS_PASSWORD },
-  'default-us-east-1': { HOST: REDIS_HOST, PORT: REDIS_PORT, PASSWORD: REDIS_PASSWORD },
-}
+const REDIS_CREDENTIALS = JSON.parse(environment.REDIS_CREDENTIALS)
 
 const scopeDomainCache = {
   'domain-config': 'core' // TODO relate the value to a client were that scope is held
@@ -23,28 +11,22 @@ const domainToDatabaseId = {
   default: 'default-us-east-1'
 }
 
-
-
-
-///////////////////////////////////////////////////////////////
-//  TODO: getConnection for every entry in
-//        REDIS_DATABASE_CREDENTIALS and store in
-//        databaseIdToConnection cache
-///////////////////////////////////////////////////////////////
-
 const connections = {}
 
 Object
-  .keys(REDIS_DATABASE_CREDENTIALS)
+  .keys(REDIS_CREDENTIALS)
   .forEach(getConnection)
 
 async function getConnection(databaseId) {
   if (connections[databaseId]) return connections[databaseId]
 
-  const { HOST, PORT, PASSWORD } = REDIS_DATABASE_CREDENTIALS[databaseId]
+  const { host, port, password } = REDIS_CREDENTIALS[databaseId]
   const connectionInfo = {
-    socket: { host: HOST, port: PORT },
-    password: PASSWORD
+    socket: {
+      host,
+      port
+    },
+    password
   }
   const client = createRedisClient(connectionInfo)
   const subscriptions = createRedisClient(connectionInfo)
