@@ -1,5 +1,6 @@
-import { createRedisClient, environment } from './utils.js'
+import { createRedisClient, environment, getRegionId } from './utils.js'
 
+const { REGION } = environment
 const REDIS_CREDENTIALS = JSON.parse(environment.REDIS_CREDENTIALS)
 
 const scopeDomainCache = {
@@ -10,6 +11,13 @@ const domainToDatabaseId = {
   'thailand.pilaproject.org': 'thailand-ap-southeast-1',
   default: 'default-us-east-1'
 }
+
+const regionToDatabaseId = {
+  'ap-southeast-1': 'thailand-ap-southeast-1',
+  default: 'default-us-east-1'
+}
+
+const DEFAULT_DATABASE_ID = 'default-us-east-1'
 
 const connections = {}
 
@@ -111,13 +119,15 @@ async function scopeExists(id) {
 
 async function subscribe(id, cb) {
   //  TODO: choose databaseId for connection based on location of server
-  const { subscriptions } = await getConnection(domainToDatabaseId.default)
+  const regionId = await getRegionId() || 'default'
+  const databaseId = regionToDatabaseId[regionId] || DEFAULT_DATABASE_ID
+  const { subscriptions } = await getConnection(databaseId)
   return subscriptions.subscribe(id, cb)
 }
 
 async function idsInDomain(domain) {
   //  TODO: find client where this set is set to be able to make this request
-  const { client } = await getConnection(domainToDatabaseId.default)
+  const { client } = await getConnection(DEFAULT_DATABASE_ID)
   return client.sendCommand(['smembers', domain])
 }
 
