@@ -129,10 +129,12 @@ async function decodeSecrets(secrets) {
       .fromEntries(
         Object
           .entries(secrets)
-          .map(([key, encryptedSecret]) => [
-            key,
-            decryptString(SECRET_ENCRYPTION_KEY, encryptedSecret)
-          ])
+          .map(([key, encryptedSecret]) => {
+            let secret
+            try       { secret = decryptString(SECRET_ENCRYPTION_KEY, encryptedSecret) }
+            catch (e) { secret = null }
+            return [key, secret]
+          })
       )
   )
 }

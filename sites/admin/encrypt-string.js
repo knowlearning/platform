@@ -55,3 +55,5 @@ function decryptString(secretKey, encryptedText) {
     )
   )
 }
+
+window.encryptString = encryptString

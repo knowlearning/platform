@@ -223,6 +223,40 @@ export default function () {
       expect(log.length).to.equal(1)
       expect(log[0]).to.equal('TypeError: Requires read access to "/source/index.js", run again with the --allow-read flag')
     })
+
+    it('Sends back improperly encoded secrets as null', async () => {
+      const config = `
+        secrets:
+          improperly_encoded_secret: Y6OvsoSoSQlkbEe7TwlmIAIaDJMOFtFo52Xy/ioJNT1tPrlvszdDF2OMJ57N5+pAgmLh2WOadvLBNHqQnM3QHnN47p4cnoRwWQCsGn6cawmkhd4=
+        sideEffects:
+          script: |
+            const { secrets } = await Agent.environment()
+            return secrets.improperly_encoded_secret
+      `
+      await configure('localhost:5112', config)
+      const state = await Agent.state(Agent.uuid())
+      state.x = 100
+      const { response, log } = await Agent.response()
+      console.log('RESPONSE', response, log)
+      expect(response).to.equal(null)
+    })
+
+    it('makes properly encoded secrets available to worker scripts', async () => {
+      const config = `
+        secrets:
+          properly_encoded_secret: GPAXy5QiOSuZ41cTZaEbkFhZgvF/H1tIJ0xYxOCiQwKQFtlQer1x40RhsQAcTGwdNgOft4SgDhDOEOqjaP0pnKauKS3YCev9W72461CI+ebtjqV4FFIuSHTQUKDK44TZ
+        sideEffects:
+          script: |
+            const { secrets } = await Agent.environment()
+            return secrets.properly_encoded_secret
+      `
+      await configure('localhost:5112', config)
+      const state = await Agent.state(Agent.uuid())
+      state.x = 100
+      const { response, log } = await Agent.response()
+      console.log('RESPONSE', response, log)
+      expect(response).to.equal('not-very-secret-actually')
+    })
   })
 
 }
