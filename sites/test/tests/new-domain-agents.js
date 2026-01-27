@@ -54,7 +54,7 @@ async function configure(domain, configuration, awaitInitialized) {
   const configState = await Agent.state(`configuration/${domain}`)
 
   Object.assign(configState, config)
-  await Agent.synced()
+  await Agent.response() //  TODO: investigate why awaiting synced here results in 'Throws error on permission violation' test timeout
   configState.deployment = report
 
   return new Promise(resolve => {
@@ -216,12 +216,12 @@ export default function () {
             return 'success'
       `
       await configure('localhost:5112', config)
-
       const state = await Agent.state(Agent.uuid())
       state.x = 100
       const { response, log } = await Agent.response()
       expect(response).to.not.equal('success')
       expect(log.length).to.equal(1)
+      expect(log[0]).to.equal('TypeError: Requires read access to "/source/index.js", run again with the --allow-read flag')
     })
   })
 
