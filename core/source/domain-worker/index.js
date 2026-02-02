@@ -64,7 +64,7 @@ async function runSafely(script, variables) {
   const blockedGlobals = [
     "Deno",
     "require",
-    "globalThis",
+    //"globalThis",
     "process",
     "Function",
     "eval",
