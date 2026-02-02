@@ -12,7 +12,8 @@
         :id="`configuration/${domain}`"
         :resolveLanguage="path => {
           if (path[path.length-1] === 'markdown') return 'markdown'
-          if (arrayMatch(['postgres', 'queries', '*', 'body'], path)) return 'postgresql'
+          else if (path[path.length-1] === 'script') return 'javascript'
+          else if (arrayMatch(['postgres', 'queries', '*', 'body'], path)) return 'postgresql'
           else if (arrayMatch(['agent'], path)) return 'javascript'
         }"
         :resolveWidget="resolveWidget"
