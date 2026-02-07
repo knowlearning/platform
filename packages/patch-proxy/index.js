@@ -1,7 +1,7 @@
 export { standardJSONPatch } from './utils.js'
 
-const proxies = new Set()
-const parentPaths = new Map()
+const proxies = new WeakSet()
+const parentPaths = new WeakMap()
 
 // TODO: make serialization more reliable... basically: handle if prop includes "
 //       ephemeral paths must be supplied like [['path', 1], ['another', 'deep', 'path']]
