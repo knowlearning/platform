@@ -50,6 +50,8 @@ export default options => {
     })
 
     this.send = message => {
+      //  TODO: more sophisticated enable/disable of debug messaging
+      debugLog('SEND', message)
       try {
         socket.emit('message', message)
       } catch (err) {
@@ -67,6 +69,7 @@ export default options => {
     })
 
     socket.on('message', (data) => {
+      debugLog('RECV', data)
       if (this.onmessage) this.onmessage(data)
     })
 
@@ -109,4 +112,8 @@ export default options => {
   }
 
   return agent
+}
+
+function debugLog() {
+  if (localStorage.getItem('__default_knowlearning_agent.debug')) console.log(...arguments)
 }
