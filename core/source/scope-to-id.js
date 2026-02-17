@@ -1,6 +1,6 @@
 import { isUUID, uuid, environment } from './utils.js'
 import initializationState from './initialization-state.js'
-import * as redis from './redis.js'
+import { scopeExists, setScope } from './redis.js'
 import * as postgres from './postgres.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
 import sync from './interact/sync.js'
@@ -30,10 +30,10 @@ export default async function scopeToId(domain, user, scope) {
   await ensureDomainConfigured(domain)
 
   if (isUUID(scope)) {
-    if (await redis.client.exists(scope)) return scope
+    if (await scopeExists(scope)) return scope
 
     const state = initializationState(domain, user, scope)
-    await redis.client.json.set(scope, '$', state, { NX: true })
+    await setScope(domain, scope, '$', state, { NX: true })
     await sync(domain, user, state.active_type, scope)
     return scope
   }
@@ -48,7 +48,7 @@ export default async function scopeToId(domain, user, scope) {
     const id = uuid()
     cacheScope(domain, user, scope, id)
     const state = initializationState(domain, user, scope)
-    await redis.client.json.set(id, '$', state)
+    await setScope(domain, id, '$', state)
     await sync(domain, user, state.active_type, id)
     return id
   }

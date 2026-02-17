@@ -1,6 +1,6 @@
 import { upload } from '../storage.js'
 import interact from '../interact/index.js'
-import * as redis from '../redis.js'
+import { setKey } from '../redis.js'
 
 export default async function ({ domain, user, session, patch, si, ii, send }) {
   for (let index = 0; index < patch.length; index++) {
@@ -10,7 +10,7 @@ export default async function ({ domain, user, session, patch, si, ii, send }) {
       const { id, type, name } = value
       const { url, info } = await upload(type)
 
-      const isSet = await redis.client.set(info.id, id, { NX: true })
+      const isSet = await setKey(domain, info.id, id, { NX: true })
       if (!isSet) throw new Error(`Error reserving id for upload ${id}`)
 
       const patch = [

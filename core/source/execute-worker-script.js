@@ -4,7 +4,7 @@ import configuration from './configuration.js'
 import scopeToId from './scope-to-id.js'
 import handleSideEffects from './handle-side-effects.js'
 import coreSideEffects from './core-side-effects.js'
-import * as redis from './redis.js'
+import { getScope } from './redis.js'
 import interact from './interact/index.js'
 import isolatedWorker from './isolated-worker.js'
 import { domainWorkers, domainWorkerResponses } from './stateful.js'
@@ -61,7 +61,7 @@ function startWorker(environment, namespaces) {
       const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
 
       const id = await scopeToId(stateRequestDomain || environment.domain, user, namespacedScope)
-      const { active={} } = await redis.client.json.get(id)
+      const { active={} } = await getScope(id)
       worker.postMessage({ requestId, response: active, session })
     }
     else if (e.data.type === 'interact') {
@@ -110,7 +110,7 @@ function startWorker(environment, namespaces) {
       const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
 
       const id = await scopeToId(requestDomain || environment.domain, user, namespacedScope)
-      const response = await redis.client.json.get(id)
+      const response = await getScope(id)
       delete response.active
       delete response.history
       worker.postMessage({ requestId, response, session })

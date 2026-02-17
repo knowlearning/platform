@@ -199,6 +199,68 @@ function decryptString(secretKey, encryptedText) {
   )
 }
 
+let regionCache
+
+function isDefinitelyNotGcpNetworkError(err) {
+  const msg = String(err?.message ?? err)
+  return (
+    msg.includes("ENOTFOUND") ||
+    msg.includes("EAI_AGAIN") ||
+    msg.includes("ECONNREFUSED") ||
+    msg.includes("No address associated with hostname") ||
+    msg.includes("Name or service not known")
+  )
+}
+
+async function getRegionId({
+  retries = 3,
+  delayMs = 100
+} = {}) {
+  if (regionCache !== undefined) return regionCache
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(
+        "http://metadata.google.internal/computeMetadata/v1/instance/zone",
+        { headers: { "Metadata-Flavor": "Google" } }
+      )
+
+      if (!res.ok) {
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, delayMs))
+          continue
+        }
+        regionCache = null
+        return null
+      }
+
+      const zonePath = await res.text()
+      const zone = zonePath.split("/").pop()
+      if (!zone) {
+        regionCache = null
+        return null
+      }
+
+      regionCache = zone.replace(/-[a-z]$/, "")
+      return regionCache
+    } catch (err) {
+      if (isDefinitelyNotGcpNetworkError(err)) {
+        regionCache = null
+        return null
+      }
+
+      // ambiguous: could be transient on GCP, so retry a bit
+      if (attempt < retries) await new Promise(r => setTimeout(r, delayMs))
+      else {
+        regionCache = null
+        return null
+      }
+    }
+  }
+}
+
+
+
 
 export {
   pg,
@@ -232,5 +294,6 @@ export {
   SocketIOServer,
   encryptString,
   decryptString,
-  DJWT
+  DJWT,
+  getRegionId
 }

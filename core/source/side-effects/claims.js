@@ -1,7 +1,7 @@
 import { environment, uuid, randomBytes, PatchProxy } from '../utils.js'
 import coreState from '../core-state.js'
 import interact from '../interact/index.js'
-import * as redis from '../redis.js'
+import { setScope, getScope } from '../redis.js'
 import initializationState from '../initialization-state.js'
 
 const CHALLENGE_TIMEOUT_LIMIT = 1000 * 60 * 5
@@ -10,10 +10,8 @@ const { MODE, ADMIN_DOMAIN } = environment
 
 //  TODO: remove need for core to have initialization state and rely on
 //        side effects for individual application/json;type=claim scopes
-redis.connected.then(() => {
-  const state = initializationState('core', 'core')
-  redis.client.json.set('domain-config', '$', state, { NX: true })
-})
+const state = initializationState('core', 'core')
+setScope('core', 'domain-config', '$', state, { NX: true })
 
 export default async function claims({ domain, user, session, patch, si, ii, send }) {
   if (domain === ADMIN_DOMAIN || MODE === 'local') { //  can claim from any domain on local
@@ -25,7 +23,7 @@ export default async function claims({ domain, user, session, patch, si, ii, sen
         const claimedDomain = value.domain //  TODO: graceful fail
 
         //  Make sure the domain config is initialized
-        redis.client.json.set('domain-config', `$["active"][${JSON.stringify(claimedDomain)}]`, {}, { NX: true })
+        getScope('domain-config', `$["active"][${JSON.stringify(claimedDomain)}]`, {}, { NX: true })
 
         const report = uuid()
         send({ si, ii, token, report })
