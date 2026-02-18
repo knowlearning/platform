@@ -1,6 +1,7 @@
 import { validate as isUUID, v1 as uuid } from 'uuid'
 import PatchProxy from '@knowlearning/patch-proxy'
 import watchImplementation from './watch.js'
+import sync from './sync.js'
 
 export default function EmbeddedAgent(postMessage) {
   let messageIndex = 0
@@ -227,6 +228,7 @@ export default function EmbeddedAgent(postMessage) {
     synced,
     close,
     response,
+    sync,
     query
   }
 }

@@ -86,5 +86,31 @@ console.log('POST GETTING THIRD STATE')
       //t1.hmm = 1
       await Agent.synced()
     })
+
+    it('Agent.sync syncs state to target and does not share references with target', async function () {
+      const id = 'test'
+
+      const state = await Agent.state(id)
+      state.y = 1
+
+      const target = {
+        y: 2,
+        nested: { a: 1, deep: { b: 2 } },
+        arr: [{ k: 'v' }]
+      }
+
+      Agent.sync(state, target)
+
+      // 1) structural equality
+      expect(state).to.deep.equal(target)
+
+      // 2) no reference sharing (patch should not reference target)
+      expect(state).to.not.equal(target)
+      expect(state.nested).to.not.equal(target.nested)
+      expect(state.nested.deep).to.not.equal(target.nested.deep)
+      expect(state.arr).to.not.equal(target.arr)
+      expect(state.arr[0]).to.not.equal(target.arr[0])
+    })
+
   })
 }

@@ -4,6 +4,7 @@ import messageQueue from './message-queue.js'
 import stateImplementation from './state.js'
 import watchImplementation from '../watch.js'
 import downloadImplementation from '../download.js'
+import sync from '../sync.js'
 
 // TODO: consider using something better than name as mechanism
 //       for resoling default scope in context
@@ -229,6 +230,7 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     debug,
     guarantee,
     response,
+    sync,
     on
   }
 }
