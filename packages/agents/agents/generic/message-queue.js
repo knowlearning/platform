@@ -1,5 +1,6 @@
 import { validate as isUUID } from 'uuid'
 import { standardJSONPatch } from '@knowlearning/patch-proxy'
+import pkg from '../../package.json' assert { type: 'json' }
 
 const HEARTBEAT_TIMEOUT = 10000
 const DOMAIN_MESSAGES = { open: true, mutate: true, close: true }
@@ -36,7 +37,15 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
     authenticated: null
   }
 
-  async function environment() { return { variables, ...(await environmentPromise), context: [] } }
+  async function environment() {
+    const { version } = pkg
+    return {
+      variables,
+      ...(await environmentPromise),
+      context: [],
+      version
+    }
+  }
 
   function queueMessage({ scope, patch, context }) {
     if (lastSynchronousScopePatched === scope) {
