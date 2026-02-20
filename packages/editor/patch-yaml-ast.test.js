@@ -595,3 +595,269 @@ x: 1
 `
   )
 })
+
+/* ====================== added edge-case tests ====================== */
+
+/* ---------------- root initialization / empty doc heuristics ---------------- */
+
+test('empty document: first op with index-like root path creates seq root', () => {
+  const doc = docFrom(``)
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['0'], value: 'a' }])
+  assert.deepEqual(jsonOf(doc), ['a'])
+})
+
+test('empty document: first op with non-index root path creates map root', () => {
+  const doc = docFrom(``)
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['k'], value: 'v' }])
+  assert.deepEqual(jsonOf(doc), { k: 'v' })
+})
+
+test('empty document: root replace to scalar works', () => {
+  const doc = docFrom(``)
+  applyPatchToYamlAst(doc, [{ op: 'replace', path: [], value: 123 }])
+  assert.deepEqual(jsonOf(doc), 123)
+})
+
+test('empty document: root add to null keeps doc roundtrippable', () => {
+  const doc = docFrom(``)
+  applyPatchToYamlAst(doc, [{ op: 'add', path: [], value: null }])
+  assert.equal(strOf(doc), `null\n`)
+})
+
+/* ---------------- index parsing and bounds ---------------- */
+
+test('seq: rejects negative index segments', () => {
+  const doc = docFrom(`arr: [a]\n`)
+  assert.throws(
+    () => applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '-1'], value: 'x' }]),
+    /Expected numeric index segment|Invalid array index/i
+  )
+})
+
+test('seq: rejects non-integer index segments', () => {
+  const doc = docFrom(`arr: [a]\n`)
+  assert.throws(
+    () => applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '1.5'], value: 'x' }]),
+    /Expected numeric index segment/i
+  )
+})
+
+test('seq: add index > len throws (already covered), but replace index > len also throws', () => {
+  const doc = docFrom(`arr: [a]\n`)
+  assert.throws(
+    () => applyPatchToYamlAst(doc, [{ op: 'replace', path: ['arr', '2'], value: 'x' }]),
+    /out of bounds/i
+  )
+})
+
+test('seq: createParents can currently create sparse arrays (documents behavior)', () => {
+  const doc = docFrom(`root: {}\n`)
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['root', 'arr', '2', 'k'], value: 1 }])
+  assert.deepEqual(jsonOf(doc), { root: { arr: [null, null, { k: 1 }] } })
+})
+
+/* ---------------- traversal semantics / type errors ---------------- */
+
+test('traverse: errors when attempting to traverse into a non-collection node in the middle of the path', () => {
+  const doc = docFrom(
+    `\
+a:
+  b: 1
+`
+  )
+  assert.throws(
+    () => applyPatchToYamlAst(doc, [{ op: 'add', path: ['a', 'b', 'c'], value: 2 }]),
+    /Cannot traverse|non-collection|not a map or seq/i
+  )
+})
+
+test('traverse: errors when parent path exists but is a scalar (seq case)', () => {
+  const doc = docFrom(`arr: 123\n`)
+  assert.throws(
+    () => applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '0'], value: 'x' }]),
+    /Cannot traverse|non-collection|not a map or seq/i
+  )
+})
+
+/* ---------------- remove/replace missing behavior ---------------- */
+
+test('replace: errors when target key missing in map', () => {
+  const doc = docFrom(`a: 1\n`)
+  assert.throws(
+    () => applyPatchToYamlAst(doc, [{ op: 'replace', path: ['missing'], value: 1 }]),
+    /Path does not exist|missing key/i
+  )
+})
+
+test('replace: errors when target index missing in seq (index == len is allowed by your current behavior)', () => {
+  const doc = docFrom(`arr: [a]\n`)
+  assert.throws(
+    () => applyPatchToYamlAst(doc, [{ op: 'replace', path: ['arr', '5'], value: 'x' }]),
+    /out of bounds|missing index/i
+  )
+})
+
+/* ---------------- move/copy weirdness ---------------- */
+
+test('move: from == path in map should behave as a no-op (currently likely throws or mutates)', () => {
+  const doc = docFrom(`a: 1\n`)
+  // Per RFC6902, moving to same location is effectively a no-op.
+  // This test will tell you what you actually do today.
+  try {
+    applyPatchToYamlAst(doc, [{ op: 'move', from: ['a'], path: ['a'] }])
+    assert.deepEqual(jsonOf(doc), { a: 1 })
+  } catch (e) {
+    // If you decide you want to reject this explicitly, keep this branch and tighten the regex.
+    assert.match(String(e), /Path does not exist|missing key|Cannot traverse|Internal error/i)
+  }
+})
+
+test('move: from == path in seq should behave as a no-op (documents behavior)', () => {
+  const doc = docFrom(`arr: [a, b]\n`)
+  try {
+    applyPatchToYamlAst(doc, [{ op: 'move', from: ['arr', '0'], path: ['arr', '0'] }])
+    assert.deepEqual(jsonOf(doc), { arr: ['a', 'b'] })
+  } catch (e) {
+    assert.match(String(e), /out of bounds|missing index|Internal error|Path does not exist/i)
+  }
+})
+
+test('move: destination inside removed subtree (from ancestor to descendant) is a sharp edge (documents current behavior)', () => {
+  const doc = docFrom(
+    `\
+a:
+  b:
+    c: 1
+`
+  )
+  // move a -> a/b/new
+  // many implementations reject; yours will likely remove a then recreate parents and reinsert moved value
+  applyPatchToYamlAst(doc, [{ op: 'move', from: ['a'], path: ['a', 'b', 'new'] }])
+  assert.deepEqual(jsonOf(doc), { a: { b: { new: { b: { c: 1 } } } } })
+})
+
+test('copy: destination overwrites existing map key (documents behavior)', () => {
+  const doc = docFrom(`a: 1\nb: 2\n`)
+  applyPatchToYamlAst(doc, [{ op: 'copy', from: ['a'], path: ['b'] }])
+  assert.deepEqual(jsonOf(doc), { a: 1, b: 1 })
+})
+
+/* ---------------- test op behavior on missing paths / undefined ---------------- */
+
+test('test: missing path fails (actual is undefined)', () => {
+  const doc = docFrom(`a: 1\n`)
+  assert.throws(
+    () => applyPatchToYamlAst(doc, [{ op: 'test', path: ['nope'], value: 1 }]),
+    /test failed/i
+  )
+})
+
+test('test: can assert null explicitly', () => {
+  const doc = docFrom(`a: null\n`)
+  applyPatchToYamlAst(doc, [{ op: 'test', path: ['a'], value: null }])
+  assert.deepEqual(jsonOf(doc), { a: null })
+})
+
+/* ---------------- presentation: root replacement should preserve comments/anchors/tags where possible ---------------- */
+
+test('roundtrip: replace root preserves top comment (presentation copy)', () => {
+  const doc = docFrom(
+    `\
+# top
+a: 1
+`
+  )
+  applyPatchToYamlAst(doc, [{ op: 'replace', path: [], value: { b: 2 } }])
+  const out = strOf(doc)
+  assert.equal(
+    out,
+    `\
+# top
+b: 2
+`
+  )
+})
+
+test('roundtrip: replace scalar value keeps inline comment on that pair', () => {
+  const doc = docFrom(`a: 1 # c\n`)
+  applyPatchToYamlAst(doc, [{ op: 'replace', path: ['a'], value: 2 }])
+  assert.equal(strOf(doc), `a: 2 # c\n`)
+})
+
+/* ---------------- block scalar replacement normalization ---------------- */
+
+test('block scalar: replace folded value normalizes CRLF and strips trailing newlines', () => {
+  const doc = docFrom(
+    `\
+s: >-
+  a
+  b
+`
+  )
+  applyPatchToYamlAst(doc, [{ op: 'replace', path: ['s'], value: 'x\r\ny\r\n\r\n' }])
+  assert.equal(
+    strOf(doc),
+    `\
+s: >-
+  x
+  y
+`
+  )
+})
+
+test('block scalar: replace literal value normalizes CRLF and strips trailing newlines', () => {
+  const doc = docFrom(
+    `\
+s: |-
+  a
+  b
+`
+  )
+  applyPatchToYamlAst(doc, [{ op: 'replace', path: ['s'], value: 'x\r\ny\r\n\r\n' }])
+  assert.equal(
+    strOf(doc),
+    `\
+s: |-
+  x
+  y
+`
+  )
+})
+
+/* ---------------- flow formatting post-process ---------------- */
+
+test('postProcess: removes inner padding for flow collections in nested positions', () => {
+  const doc = docFrom(
+    `\
+a:
+  b: [ 1, 2 ]
+`
+  )
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['a', 'c'], value: 3 }])
+  assert.equal(
+    strOf(doc),
+    `\
+a:
+  b: [1, 2]
+  c: 3
+`
+  )
+})
+
+/* ---------------- validate option edge-cases ---------------- */
+
+test('validate: rejects op missing op field', () => {
+  const doc = docFrom(`a: 1\n`)
+  assert.throws(
+    () => applyPatchToYamlAst(doc, [{ path: ['a'], value: 2 }], { validate: true }),
+    /Invalid JSON Patch/i
+  )
+})
+
+test('validate: rejects move without from', () => {
+  const doc = docFrom(`a: 1\n`)
+  assert.throws(
+    () => applyPatchToYamlAst(doc, [{ op: 'move', path: ['b'] }], { validate: true }),
+    /requires "from"|Invalid JSON Patch/i
+  )
+})

@@ -37,10 +37,14 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
 
     if (op.op === 'add') {
       if (op.path.length === 0) {
+        const oldRoot = root
         const newRoot = toYamlNode(nodeFactory, op.value)
-        preservePresentation(root, newRoot)
+        preservePresentation(oldRoot, newRoot)
         root = newRoot
-        if (doc) doc.contents = root
+        if (doc) {
+          doc.contents = root
+          preserveDocPresentationOnRootReplace(doc, oldRoot, root)
+        }
         continue
       }
 
@@ -61,10 +65,14 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
 
     if (op.op === 'replace') {
       if (op.path.length === 0) {
+        const oldRoot = root
         const newRoot = toYamlNode(nodeFactory, op.value)
-        preservePresentation(root, newRoot)
+        preservePresentation(oldRoot, newRoot)
         root = newRoot
-        if (doc) doc.contents = root
+        if (doc) {
+          doc.contents = root
+          preserveDocPresentationOnRootReplace(doc, oldRoot, root)
+        }
         continue
       }
 
@@ -81,9 +89,13 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
       const newNode = toYamlNode(nodeFactory, copiedValue)
 
       if (op.path.length === 0) {
-        preservePresentation(root, newNode)
+        const oldRoot = root
+        preservePresentation(oldRoot, newNode)
         root = newNode
-        if (doc) doc.contents = root
+        if (doc) {
+          doc.contents = root
+          preserveDocPresentationOnRootReplace(doc, oldRoot, root)
+        }
       } else {
         const { parent, key } = getParentAndKey(nodeFactory, root, op.path, { createParents: true })
         setChild(parent, key, newNode, { replace: false })
@@ -93,6 +105,11 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
     }
 
     if (op.op === 'move') {
+      // RFC6902: moving to the same location is a no-op
+      if (Array.isArray(op.from) && Array.isArray(op.path) && samePath(op.from, op.path)) {
+        continue
+      }
+
       const fromNode = getNodeAtPath(root, op.from)
       if (fromNode === undefined) throw new Error(`Path does not exist (from=${JSON.stringify(op.from)})`)
 
@@ -109,10 +126,14 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
 
       // Then add at destination
       if (op.path.length === 0) {
+        const oldRoot = root
         const newRoot = toYamlNode(nodeFactory, movedValue)
-        preservePresentation(root, newRoot)
+        preservePresentation(oldRoot, newRoot)
         root = newRoot
-        if (doc) doc.contents = root
+        if (doc) {
+          doc.contents = root
+          preserveDocPresentationOnRootReplace(doc, oldRoot, root)
+        }
       } else {
         const { parent, key } = getParentAndKey(nodeFactory, root, op.path, { createParents: true })
         setChild(parent, key, toYamlNode(nodeFactory, movedValue), { replace: false })
@@ -194,6 +215,15 @@ function normalizeOp(op) {
   return op
 }
 
+function samePath(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b)) return false
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (String(a[i]) !== String(b[i])) return false
+  }
+  return true
+}
+
 function pathArrayToPointer(pathArr) {
   if (!Array.isArray(pathArr)) throw new Error('path must be an array')
   return (
@@ -266,6 +296,14 @@ function getOrCreateChild(doc, parent, seg, nextSeg, { createParents }) {
     const idx = toIndex(seg)
     if (idx < 0) throw new Error(`Invalid array index: ${String(seg)}`)
 
+    // Avoid sparse sequences: materialize gaps with explicit null scalars
+    if (idx >= parent.items.length) {
+      if (!createParents) throw new Error(`Path does not exist (missing index ${idx})`)
+      while (parent.items.length < idx) parent.items.push(toYamlNode(doc, null))
+      parent.items.push(makeContainerForNext(doc, nextSeg))
+      return parent.items[idx]
+    }
+
     if (parent.items[idx] == null) {
       if (!createParents) throw new Error(`Path does not exist (missing index ${idx})`)
       parent.items[idx] = makeContainerForNext(doc, nextSeg)
@@ -308,6 +346,7 @@ function setChild(parent, key, newNode, { replace }) {
         normalizeScalarValueForPreservedStyle(oldValue, newNode)
       }
     } else {
+      if (replace) throw new Error(`Path does not exist (missing key "${key.name}")`)
       parent.items.push(new YAML.Pair(key.name, newNode))
     }
     return
@@ -560,6 +599,17 @@ function preservePresentation(oldNode, newNode) {
     copyIfPresent(newNode, oldNode, 'blockIndent')
     copyIfPresent(newNode, oldNode, 'format')
   }
+}
+
+function preserveDocPresentationOnRootReplace(doc, oldRoot, newRoot) {
+  if (!doc) return
+
+  const top = doc.commentBefore ?? (YAML.isNode(oldRoot) ? oldRoot.commentBefore : undefined)
+  if (top != null && top !== '') doc.commentBefore = top
+
+  // Also preserve other document-level presentation where available
+  const docComment = doc.comment ?? (YAML.isNode(oldRoot) ? oldRoot.comment : undefined)
+  if (docComment != null && docComment !== '') doc.comment = docComment
 }
 
 function normalizeScalarValueForPreservedStyle(oldScalar, newScalar) {
