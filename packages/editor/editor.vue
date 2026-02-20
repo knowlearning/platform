@@ -5,6 +5,7 @@
   import CodeMirror from "vue-codemirror6"
   import mixedLanguageYaml from "./mixed-language-yaml.js"
   import YAML from "yaml"
+  import patchYamlAST from './patch-yaml-ast.js'
 
   const {
     id,
@@ -19,6 +20,19 @@
   })
 
   const state = ref(await Agent.state(id))
+
+  const syncedYAMLDoc = YAML.parseDocument(state.value.__yaml || '', {
+    strict: true,
+    keepCstNodes: true,
+    keepNodeTypes: true,
+    keepSourceTokens: true
+  })
+
+  Agent.watch(id, ({ patch }) => {
+    console.log('Apply this patch to the syncedYAMLDoc', patch)
+    //  TODO: implement call here...
+  })
+
   const cm = ref()
 
   const code = computed({

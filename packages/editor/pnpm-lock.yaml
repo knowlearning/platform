@@ -44,6 +44,9 @@ importers:
       eslint-linter-browserify:
         specifier: ^9.21.0
         version: 9.21.0
+      fast-json-patch:
+        specifier: ^3.1.1
+        version: 3.1.1
       pg-query-emscripten:
         specifier: ^5.1.0
         version: 5.1.0
@@ -189,6 +192,9 @@ packages:
 
   estree-walker@2.0.2:
     resolution: {integrity: sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w==}
+
+  fast-json-patch@3.1.1:
+    resolution: {integrity: sha512-vf6IHUX2SBcA+5/+4883dsIjpBTqmfBjmYiWK1savxQmFk4JfBMLa7ynTYOs1Rolp/T1betJxHiGD3g1Mn8lUQ==}
 
   magic-string@0.30.17:
     resolution: {integrity: sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA==}
@@ -483,6 +489,8 @@ snapshots:
   eslint-linter-browserify@9.21.0: {}
 
   estree-walker@2.0.2: {}
+
+  fast-json-patch@3.1.1: {}
 
   magic-string@0.30.17:
     dependencies:
