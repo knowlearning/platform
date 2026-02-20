@@ -8,8 +8,14 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
   const doc = isDocument(docOrNode) ? docOrNode : null
   let root = isDocument(docOrNode) ? docOrNode.contents : docOrNode
 
+  // Minimal: always have a Document-backed node factory so we can create nodes
+  const nodeFactory = doc || new YAML.Document()
+
   if (doc && root == null) {
-    root = doc.createNode(null)
+    // if doc is empty, create a container root so path-based adds work
+    const firstPath = Array.isArray(patchOps?.[0]?.path) ? patchOps[0].path : null
+    const wantsSeqRoot = firstPath && firstPath.length > 0 && looksLikeIndex(firstPath[0])
+    root = nodeFactory.createNode(wantsSeqRoot ? [] : {})
     doc.contents = root
   }
 
@@ -28,13 +34,13 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
 
     if (op.op === 'add') {
       if (op.path.length === 0) {
-        root = toYamlNode(doc, op.value)
+        root = toYamlNode(nodeFactory, op.value)
         if (doc) doc.contents = root
         continue
       }
 
-      const { parent, key } = getParentAndKey(doc, root, op.path, { createParents: true })
-      setChild(parent, key, toYamlNode(doc, op.value), { replace: false })
+      const { parent, key } = getParentAndKey(nodeFactory, root, op.path, { createParents: true })
+      setChild(parent, key, toYamlNode(nodeFactory, op.value), { replace: false })
       continue
     }
 
@@ -43,20 +49,20 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
         throw new Error('Cannot remove the root node; use replace with null if needed')
       }
 
-      const { parent, key } = getParentAndKey(doc, root, op.path, { createParents: false })
+      const { parent, key } = getParentAndKey(nodeFactory, root, op.path, { createParents: false })
       removeChild(parent, key)
       continue
     }
 
     if (op.op === 'replace') {
       if (op.path.length === 0) {
-        root = toYamlNode(doc, op.value)
+        root = toYamlNode(nodeFactory, op.value)
         if (doc) doc.contents = root
         continue
       }
 
-      const { parent, key } = getParentAndKey(doc, root, op.path, { createParents: false })
-      setChild(parent, key, toYamlNode(doc, op.value), { replace: true })
+      const { parent, key } = getParentAndKey(nodeFactory, root, op.path, { createParents: false })
+      setChild(parent, key, toYamlNode(nodeFactory, op.value), { replace: true })
       continue
     }
 
@@ -65,13 +71,13 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
       if (fromNode === undefined) throw new Error(`Path does not exist (from=${JSON.stringify(op.from)})`)
 
       const copiedValue = YAML.isNode(fromNode) ? fromNode.toJSON() : fromNode
-      const newNode = toYamlNode(doc, copiedValue)
+      const newNode = toYamlNode(nodeFactory, copiedValue)
 
       if (op.path.length === 0) {
         root = newNode
         if (doc) doc.contents = root
       } else {
-        const { parent, key } = getParentAndKey(doc, root, op.path, { createParents: true })
+        const { parent, key } = getParentAndKey(nodeFactory, root, op.path, { createParents: true })
         setChild(parent, key, newNode, { replace: false })
       }
 
@@ -86,20 +92,20 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
 
       // remove first (RFC6902 move semantics)
       if (op.from.length === 0) {
-        root = toYamlNode(doc, null)
+        root = toYamlNode(nodeFactory, null)
         if (doc) doc.contents = root
       } else {
-        const { parent: fromParent, key: fromKey } = getParentAndKey(doc, root, op.from, { createParents: false })
+        const { parent: fromParent, key: fromKey } = getParentAndKey(nodeFactory, root, op.from, { createParents: false })
         removeChild(fromParent, fromKey)
       }
 
       // then add at destination
       if (op.path.length === 0) {
-        root = toYamlNode(doc, movedValue)
+        root = toYamlNode(nodeFactory, movedValue)
         if (doc) doc.contents = root
       } else {
-        const { parent, key } = getParentAndKey(doc, root, op.path, { createParents: true })
-        setChild(parent, key, toYamlNode(doc, movedValue), { replace: false })
+        const { parent, key } = getParentAndKey(nodeFactory, root, op.path, { createParents: true })
+        setChild(parent, key, toYamlNode(nodeFactory, movedValue), { replace: false })
       }
 
       continue
@@ -119,7 +125,8 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
     throw new Error(`Unsupported op: ${op.op}`)
   }
 
-  return docOrNode
+  // Minimal ergonomic behavior: return Document unchanged, otherwise return (possibly replaced) root node
+  return doc ? docOrNode : root
 }
 
 /* ---------------- deep equal (no Node built-ins) ---------------- */
@@ -171,7 +178,7 @@ function deepEqual(a, b) {
   return true
 }
 
-/* ---------------- existing helpers (unchanged) ---------------- */
+/* ---------------- existing helpers (unchanged except toYamlNode/getParentAndKey doc arg usage) ---------------- */
 
 function isDocument(x) {
   return x && typeof x === 'object' && 'contents' in x && typeof x.toString === 'function'
@@ -197,8 +204,8 @@ function pathArrayToPointer(pathArr) {
 }
 
 function toYamlNode(doc, value) {
-  if (doc && typeof doc.createNode === 'function') return doc.createNode(value)
-  return YAML.createNode(value)
+  // Minimal fix: always rely on Document#createNode (works across yaml versions)
+  return doc.createNode(value)
 }
 
 function getParentAndKey(doc, root, path, { createParents }) {

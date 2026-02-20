@@ -174,7 +174,6 @@ test('yaml roundtrip sanity: patch results serialize as expected', () => {
 
 test('empty document: add at root initializes doc.contents', () => {
   const doc = docFrom(``)
-  // YAML.parseDocument('') yields an empty doc where contents is typically null
   applyPatchToYamlAst(doc, [{ op: 'add', path: ['a'], value: 1 }])
   assert.deepEqual(jsonOf(doc), { a: 1 })
 })
@@ -196,7 +195,9 @@ test('remove: path [] is rejected explicitly', () => {
 test('node input: can patch doc.contents directly (non-Document)', () => {
   const doc = docFrom(`a: 1\n`)
   const rootNode = doc.contents
-  applyPatchToYamlAst(rootNode, [{ op: 'add', path: ['b'], value: 2 }])
+  const outRoot = applyPatchToYamlAst(rootNode, [{ op: 'add', path: ['b'], value: 2 }])
+  // outRoot should be the same root node reference unless replaced at root
+  assert.ok(outRoot)
   assert.deepEqual(jsonOf(doc), { a: 1, b: 2 })
 })
 
@@ -235,21 +236,18 @@ test('copy: can copy root to become the new root', () => {
 test('move: can move root to become the new root (from [] to [])', () => {
   const doc = docFrom(`a: 1\n`)
   applyPatchToYamlAst(doc, [{ op: 'move', from: [], path: [] }])
-  // move root-to-root is effectively a no-op for value; implementation recreates nodes but value should match
   assert.deepEqual(jsonOf(doc), { a: 1 })
 })
 
 test('move: within same array where destination is after source uses remove-then-insert semantics', () => {
   const doc = docFrom(`arr: [a, b, c, d]\n`)
   applyPatchToYamlAst(doc, [{ op: 'move', from: ['arr', '1'], path: ['arr', '3'] }])
-  // remove b => [a,c,d], then insert b at index 3 => [a,c,d,b]
   assert.deepEqual(jsonOf(doc), { arr: ['a', 'c', 'd', 'b'] })
 })
 
 test('move: within same array where destination is before source', () => {
   const doc = docFrom(`arr: [a, b, c, d]\n`)
   applyPatchToYamlAst(doc, [{ op: 'move', from: ['arr', '3'], path: ['arr', '1'] }])
-  // remove d => [a,b,c], then insert at 1 => [a,d,b,c]
   assert.deepEqual(jsonOf(doc), { arr: ['a', 'd', 'b', 'c'] })
 })
 
