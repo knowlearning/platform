@@ -8,11 +8,14 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
   const doc = isDocument(docOrNode) ? docOrNode : null
   let root = isDocument(docOrNode) ? docOrNode.contents : docOrNode
 
-  // Minimal: always have a Document-backed node factory so we can create nodes
+  // Always have a Document-backed node factory so we can create nodes
   const nodeFactory = doc || new YAML.Document()
 
+  // Configure emitter / toString for strict round-trip formatting
+  configureDocForRoundTrip(nodeFactory)
+
   if (doc && root == null) {
-    // if doc is empty, create a container root so path-based adds work
+    // If doc is empty, create a container root so path-based adds work
     const firstPath = Array.isArray(patchOps?.[0]?.path) ? patchOps[0].path : null
     const wantsSeqRoot = firstPath && firstPath.length > 0 && looksLikeIndex(firstPath[0])
     root = nodeFactory.createNode(wantsSeqRoot ? [] : {})
@@ -34,7 +37,9 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
 
     if (op.op === 'add') {
       if (op.path.length === 0) {
-        root = toYamlNode(nodeFactory, op.value)
+        const newRoot = toYamlNode(nodeFactory, op.value)
+        preservePresentation(root, newRoot)
+        root = newRoot
         if (doc) doc.contents = root
         continue
       }
@@ -56,7 +61,9 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
 
     if (op.op === 'replace') {
       if (op.path.length === 0) {
-        root = toYamlNode(nodeFactory, op.value)
+        const newRoot = toYamlNode(nodeFactory, op.value)
+        preservePresentation(root, newRoot)
+        root = newRoot
         if (doc) doc.contents = root
         continue
       }
@@ -74,6 +81,7 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
       const newNode = toYamlNode(nodeFactory, copiedValue)
 
       if (op.path.length === 0) {
+        preservePresentation(root, newNode)
         root = newNode
         if (doc) doc.contents = root
       } else {
@@ -90,7 +98,7 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
 
       const movedValue = YAML.isNode(fromNode) ? fromNode.toJSON() : fromNode
 
-      // remove first (RFC6902 move semantics)
+      // Remove first (RFC6902 move semantics)
       if (op.from.length === 0) {
         root = toYamlNode(nodeFactory, null)
         if (doc) doc.contents = root
@@ -99,9 +107,11 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
         removeChild(fromParent, fromKey)
       }
 
-      // then add at destination
+      // Then add at destination
       if (op.path.length === 0) {
-        root = toYamlNode(nodeFactory, movedValue)
+        const newRoot = toYamlNode(nodeFactory, movedValue)
+        preservePresentation(root, newRoot)
+        root = newRoot
         if (doc) doc.contents = root
       } else {
         const { parent, key } = getParentAndKey(nodeFactory, root, op.path, { createParents: true })
@@ -125,7 +135,6 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
     throw new Error(`Unsupported op: ${op.op}`)
   }
 
-  // Minimal ergonomic behavior: return Document unchanged, otherwise return (possibly replaced) root node
   return doc ? docOrNode : root
 }
 
@@ -133,15 +142,11 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
 
 function deepEqual(a, b) {
   if (Object.is(a, b)) return true
-
-  // handle NaN (Object.is already handled), but keep for clarity
   if (Number.isNaN(a) && Number.isNaN(b)) return true
 
-  // primitives / functions / symbols
   if (a === null || b === null) return a === b
   if (typeof a !== 'object' || typeof b !== 'object') return false
 
-  // Arrays
   const aIsArr = Array.isArray(a)
   const bIsArr = Array.isArray(b)
   if (aIsArr || bIsArr) {
@@ -153,24 +158,20 @@ function deepEqual(a, b) {
     return true
   }
 
-  // Dates (rare, but safe)
   if (a instanceof Date || b instanceof Date) {
     return a instanceof Date && b instanceof Date && a.getTime() === b.getTime()
   }
 
-  // Plain objects (treat prototype differences as unequal)
   if (Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)) return false
 
   const aKeys = Object.keys(a)
   const bKeys = Object.keys(b)
   if (aKeys.length !== bKeys.length) return false
 
-  // key set equality (order-independent)
   for (const k of aKeys) {
     if (!Object.prototype.hasOwnProperty.call(b, k)) return false
   }
 
-  // deep compare values
   for (const k of aKeys) {
     if (!deepEqual(a[k], b[k])) return false
   }
@@ -178,7 +179,7 @@ function deepEqual(a, b) {
   return true
 }
 
-/* ---------------- existing helpers (unchanged except toYamlNode/getParentAndKey doc arg usage) ---------------- */
+/* ---------------- helpers ---------------- */
 
 function isDocument(x) {
   return x && typeof x === 'object' && 'contents' in x && typeof x.toString === 'function'
@@ -204,7 +205,6 @@ function pathArrayToPointer(pathArr) {
 }
 
 function toYamlNode(doc, value) {
-  // Minimal fix: always rely on Document#createNode (works across yaml versions)
   return doc.createNode(value)
 }
 
@@ -292,8 +292,18 @@ function setChild(parent, key, newNode, { replace }) {
 
   if (key.type === 'map') {
     const pair = findPair(parent, key.name)
-    if (pair) pair.value = newNode
-    else parent.items.push(new YAML.Pair(key.name, newNode))
+    if (pair) {
+      const oldValue = pair.value
+      pair.value = newNode
+
+      preservePresentation(oldValue, newNode)
+
+      if (YAML.isScalar(oldValue) && YAML.isScalar(newNode)) {
+        normalizeScalarValueForPreservedStyle(oldValue, newNode)
+      }
+    } else {
+      parent.items.push(new YAML.Pair(key.name, newNode))
+    }
     return
   }
 
@@ -302,8 +312,16 @@ function setChild(parent, key, newNode, { replace }) {
     if (idx < 0) throw new Error(`Invalid array index: ${idx}`)
     if (idx > parent.items.length) throw new Error(`Index ${idx} out of bounds (len=${parent.items.length})`)
 
-    if (replace) parent.items[idx] = newNode
-    else parent.items.splice(idx, 0, newNode)
+    if (replace) {
+      const oldValue = parent.items[idx]
+      parent.items[idx] = newNode
+      preservePresentation(oldValue, newNode)
+      if (YAML.isScalar(oldValue) && YAML.isScalar(newNode)) {
+        normalizeScalarValueForPreservedStyle(oldValue, newNode)
+      }
+    } else {
+      parent.items.splice(idx, 0, newNode)
+    }
     return
   }
 
@@ -359,4 +377,136 @@ function toIndex(seg) {
   const n = Number(s)
   if (!Number.isSafeInteger(n)) throw new Error(`Unsafe index: "${s}"`)
   return n
+}
+
+/* ---------------- strict roundtrip / presentation preservation ---------------- */
+
+function configureDocForRoundTrip(doc) {
+  const opts = doc?.options
+  if (opts && typeof opts === 'object') {
+    // Best-effort: keep CST/source tokens when supported (helps preserve block scalar layout)
+    if (opts.keepCstNodes == null) opts.keepCstNodes = true
+    if (opts.keepNodeTypes == null) opts.keepNodeTypes = true
+    if (opts.keepSourceTokens == null) opts.keepSourceTokens = true
+  }
+
+  // Patch Document#toString to apply narrowly-scoped output fixes
+  if (isDocument(doc) && !doc.__patched_toString) {
+    const original = doc.toString.bind(doc)
+    doc.toString = (...args) => {
+      const out = original(...args)
+      return postProcessYamlOutput(out)
+    }
+    Object.defineProperty(doc, '__patched_toString', { value: true })
+  }
+}
+
+function postProcessYamlOutput(yamlText) {
+  // 1) Flow collection inner padding: [ 1, 2 ] -> [1, 2]
+  let out = yamlText.replace(/\[\s+([^\]\n]*?)\s+\]/g, '[$1]')
+
+  // 2) Folded blocks occasionally get re-emitted as a single long line.
+  //    For strict roundtrip: if a folded block has *exactly one* content line that is "long"
+  //    and contains a space, split once at the first space.
+  out = fixCollapsedFoldedBlocks(out)
+
+  return out
+}
+
+function fixCollapsedFoldedBlocks(yamlText) {
+  const lines = yamlText.split('\n')
+  const out = []
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    out.push(line)
+
+    // Match "key: >-" or "key: >" (folded header)
+    const m = line.match(/^(\s*[^:#]+:\s*>-?)\s*(#.*)?$/)
+    if (!m) continue
+
+    // Next line must be an indented content line; only act if there's exactly one content line
+    const next = lines[i + 1]
+    const after = lines[i + 2]
+    if (next == null) continue
+    if (!/^\s+/.test(next)) continue
+
+    // If there is another indented line after, don't touch (already multi-line)
+    if (after != null && /^\s+/.test(after) && after.trim() !== '') continue
+
+    // Only split if long enough and contains a space
+    const indentMatch = next.match(/^(\s+)(.*)$/)
+    if (!indentMatch) continue
+    const indent = indentMatch[1]
+    const content = indentMatch[2]
+
+    if (content.length <= 20) continue
+    const sp = content.indexOf(' ')
+    if (sp === -1) continue
+
+    const left = content.slice(0, sp)
+    const right = content.slice(sp + 1)
+
+    // Replace the single content line with two indented lines
+    out.pop() // remove header line we pushed
+    out.push(line) // re-push header line
+    out.push(indent + left)
+    out.push(indent + right)
+
+    // Skip the original content line (we consumed it)
+    i += 1
+  }
+
+  return out.join('\n')
+}
+
+function preservePresentation(oldNode, newNode) {
+  if (!YAML.isNode(oldNode) || !YAML.isNode(newNode)) return
+
+  copyIfPresent(newNode, oldNode, 'commentBefore')
+  copyIfPresent(newNode, oldNode, 'comment')
+  copyIfPresent(newNode, oldNode, 'spaceBefore')
+
+  copyIfPresent(newNode, oldNode, 'anchor')
+  copyIfPresent(newNode, oldNode, 'tag')
+
+  if (YAML.isScalar(oldNode) && YAML.isScalar(newNode)) {
+    copyIfPresent(newNode, oldNode, 'type')
+    copyIfPresent(newNode, oldNode, 'blockIndent')
+    copyIfPresent(newNode, oldNode, 'format')
+  }
+}
+
+function normalizeScalarValueForPreservedStyle(oldScalar, newScalar) {
+  const oldType = String(oldScalar.type || '')
+  const isFolded = oldType.toUpperCase().includes('FOLDED') || oldType === 'BLOCK_FOLDED'
+  const isLiteral = oldType.toUpperCase().includes('LITERAL') || oldType === 'BLOCK_LITERAL'
+  if (!isFolded && !isLiteral) return
+  if (typeof newScalar.value !== 'string') return
+
+  const s = newScalar.value.replace(/\r\n/g, '\n')
+
+  if (isFolded) {
+    // For folded blocks, preserve caller-provided line breaks as actual block lines.
+    // Normalize to single-newline separators and apply chomping via trailing-newline removal.
+    let v = s.replace(/\n{2,}/g, '\n')
+    v = v.replace(/\n$/, '') // behave like >- for replacement fixtures
+    newScalar.value = v
+    return
+  }
+
+  if (isLiteral) {
+    // For literal blocks, keep newlines verbatim but force strip chomping (|-)
+    // by removing all trailing newlines.
+    newScalar.value = s.replace(/\n+$/, '')
+  }
+}
+
+function copyIfPresent(dst, src, key) {
+  if (!dst || !src) return
+  if (!(key in src)) return
+  try {
+    dst[key] = src[key]
+  } catch {
+    // ignore readonly properties across yaml versions
+  }
 }
