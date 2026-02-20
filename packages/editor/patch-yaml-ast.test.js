@@ -1,6 +1,7 @@
 // patch-yaml-ast.test.js
 // Run with: node --test patch-yaml-ast.test.js
 
+// NOTE: array index path segments must be integers (not strings)
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import YAML from 'yaml'
@@ -38,19 +39,19 @@ test('add: creates missing parents (map->map)', () => {
 
 test('add: creates missing parents (map->seq->map)', () => {
   const doc = docFrom(`root: {}\n`)
-  applyPatchToYamlAst(doc, [{ op: 'add', path: ['root', 'items', '0', 'name'], value: 'n1' }])
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['root', 'items', 0, 'name'], value: 'n1' }])
   assert.deepEqual(jsonOf(doc), { root: { items: [{ name: 'n1' }] } })
 })
 
 test('add: inserts into array at index', () => {
   const doc = docFrom(`arr: [a, c]\n`)
-  applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '1'], value: 'b' }])
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', 1], value: 'b' }])
   assert.deepEqual(jsonOf(doc), { arr: ['a', 'b', 'c'] })
 })
 
 test('replace: overwrites array element at index', () => {
   const doc = docFrom(`arr: [a, b, c]\n`)
-  applyPatchToYamlAst(doc, [{ op: 'replace', path: ['arr', '1'], value: 'B' }])
+  applyPatchToYamlAst(doc, [{ op: 'replace', path: ['arr', 1], value: 'B' }])
   assert.deepEqual(jsonOf(doc), { arr: ['a', 'B', 'c'] })
 })
 
@@ -62,7 +63,7 @@ test('remove: removes map key', () => {
 
 test('remove: removes array element', () => {
   const doc = docFrom(`arr: [a, b, c]\n`)
-  applyPatchToYamlAst(doc, [{ op: 'remove', path: ['arr', '1'] }])
+  applyPatchToYamlAst(doc, [{ op: 'remove', path: ['arr', 1] }])
   assert.deepEqual(jsonOf(doc), { arr: ['a', 'c'] })
 })
 
@@ -85,7 +86,7 @@ test('remove: errors if key missing', () => {
 test('add: errors on array index out of bounds (> len)', () => {
   const doc = docFrom(`arr: [a]\n`)
   assert.throws(
-    () => applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '2'], value: 'x' }]),
+    () => applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', 2], value: 'x' }]),
     /out of bounds/i
   )
 })
@@ -118,14 +119,14 @@ test('move: moves value from one path to another (map->map)', () => {
 
 test('copy: copies array element', () => {
   const doc = docFrom(`arr: [a, b, c]\n`)
-  applyPatchToYamlAst(doc, [{ op: 'copy', from: ['arr', '0'], path: ['arr', '2'] }])
+  applyPatchToYamlAst(doc, [{ op: 'copy', from: ['arr', 0], path: ['arr', 2] }])
   // copy inserts at index 2
   assert.deepEqual(jsonOf(doc), { arr: ['a', 'b', 'a', 'c'] })
 })
 
 test('move: moves array element (remove then add semantics)', () => {
   const doc = docFrom(`arr: [a, b, c]\n`)
-  applyPatchToYamlAst(doc, [{ op: 'move', from: ['arr', '0'], path: ['arr', '2'] }])
+  applyPatchToYamlAst(doc, [{ op: 'move', from: ['arr', 0], path: ['arr', 2] }])
   // remove index 0 => [b,c], then insert at index 2 => [b,c,a]
   assert.deepEqual(jsonOf(doc), { arr: ['b', 'c', 'a'] })
 })
@@ -156,7 +157,7 @@ test('multiple ops: behaves like sequential patch application', () => {
   const doc = docFrom(`a: 1\narr: [x]\n`)
   applyPatchToYamlAst(doc, [
     { op: 'add', path: ['b'], value: 2 },
-    { op: 'add', path: ['arr', '1'], value: 'y' },
+    { op: 'add', path: ['arr', 1], value: 'y' },
     { op: 'replace', path: ['a'], value: 10 },
     { op: 'remove', path: ['b'] }
   ])
@@ -220,20 +221,20 @@ test('add: adding an existing map key overwrites its value (object add semantics
 
 test('add: array insert at index == len appends', () => {
   const doc = docFrom(`arr: [a, b]\n`)
-  applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '2'], value: 'c' }])
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', 2], value: 'c' }])
   assert.deepEqual(jsonOf(doc), { arr: ['a', 'b', 'c'] })
 })
 
 test('replace: array replace at index == len currently appends (documents current behavior)', () => {
   const doc = docFrom(`arr: [a, b]\n`)
-  applyPatchToYamlAst(doc, [{ op: 'replace', path: ['arr', '2'], value: 'c' }])
+  applyPatchToYamlAst(doc, [{ op: 'replace', path: ['arr', 2], value: 'c' }])
   assert.deepEqual(jsonOf(doc), { arr: ['a', 'b', 'c'] })
 })
 
 test('remove: errors on missing array index', () => {
   const doc = docFrom(`arr: [a]\n`)
   assert.throws(
-    () => applyPatchToYamlAst(doc, [{ op: 'remove', path: ['arr', '1'] }]),
+    () => applyPatchToYamlAst(doc, [{ op: 'remove', path: ['arr', 1] }]),
     /missing index|Cannot remove missing index/i
   )
 })
@@ -252,13 +253,13 @@ test('move: can move root to become the new root (from [] to [])', () => {
 
 test('move: within same array where destination is after source uses remove-then-insert semantics', () => {
   const doc = docFrom(`arr: [a, b, c, d]\n`)
-  applyPatchToYamlAst(doc, [{ op: 'move', from: ['arr', '1'], path: ['arr', '3'] }])
+  applyPatchToYamlAst(doc, [{ op: 'move', from: ['arr', 1], path: ['arr', 3] }])
   assert.deepEqual(jsonOf(doc), { arr: ['a', 'c', 'd', 'b'] })
 })
 
 test('move: within same array where destination is before source', () => {
   const doc = docFrom(`arr: [a, b, c, d]\n`)
-  applyPatchToYamlAst(doc, [{ op: 'move', from: ['arr', '3'], path: ['arr', '1'] }])
+  applyPatchToYamlAst(doc, [{ op: 'move', from: ['arr', 3], path: ['arr', 1] }])
   assert.deepEqual(jsonOf(doc), { arr: ['a', 'd', 'b', 'c'] })
 })
 
@@ -380,7 +381,7 @@ arr: [1, 3] # flow
 `
   )
 
-  applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '1'], value: 2 }])
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', 1], value: 2 }])
 
   const out = strOf(doc)
 
@@ -401,7 +402,7 @@ arr:
 `
   )
 
-  applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '1'], value: 2 }])
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', 1], value: 2 }])
 
   const out = strOf(doc)
 
@@ -425,7 +426,7 @@ arr:
 `
   )
 
-  applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '1'], value: 2 }])
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', 1], value: 2 }])
 
   const out = strOf(doc)
 
@@ -602,7 +603,7 @@ x: 1
 
 test('empty document: first op with index-like root path creates seq root', () => {
   const doc = docFrom(``)
-  applyPatchToYamlAst(doc, [{ op: 'add', path: ['0'], value: 'a' }])
+  applyPatchToYamlAst(doc, [{ op: 'add', path: [0], value: 'a' }])
   assert.deepEqual(jsonOf(doc), ['a'])
 })
 
@@ -629,7 +630,7 @@ test('empty document: root add to null keeps doc roundtrippable', () => {
 test('seq: rejects negative index segments', () => {
   const doc = docFrom(`arr: [a]\n`)
   assert.throws(
-    () => applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '-1'], value: 'x' }]),
+    () => applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', -1], value: 'x' }]),
     /Expected numeric index segment|Invalid array index/i
   )
 })
@@ -637,7 +638,7 @@ test('seq: rejects negative index segments', () => {
 test('seq: rejects non-integer index segments', () => {
   const doc = docFrom(`arr: [a]\n`)
   assert.throws(
-    () => applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '1.5'], value: 'x' }]),
+    () => applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', 1.5], value: 'x' }]),
     /Expected numeric index segment/i
   )
 })
@@ -645,14 +646,14 @@ test('seq: rejects non-integer index segments', () => {
 test('seq: add index > len throws (already covered), but replace index > len also throws', () => {
   const doc = docFrom(`arr: [a]\n`)
   assert.throws(
-    () => applyPatchToYamlAst(doc, [{ op: 'replace', path: ['arr', '2'], value: 'x' }]),
+    () => applyPatchToYamlAst(doc, [{ op: 'replace', path: ['arr', 2], value: 'x' }]),
     /out of bounds/i
   )
 })
 
 test('seq: createParents can currently create sparse arrays (documents behavior)', () => {
   const doc = docFrom(`root: {}\n`)
-  applyPatchToYamlAst(doc, [{ op: 'add', path: ['root', 'arr', '2', 'k'], value: 1 }])
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['root', 'arr', 2, 'k'], value: 1 }])
   assert.deepEqual(jsonOf(doc), { root: { arr: [null, null, { k: 1 }] } })
 })
 
@@ -674,7 +675,7 @@ a:
 test('traverse: errors when parent path exists but is a scalar (seq case)', () => {
   const doc = docFrom(`arr: 123\n`)
   assert.throws(
-    () => applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '0'], value: 'x' }]),
+    () => applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', 0], value: 'x' }]),
     /Cannot traverse|non-collection|not a map or seq/i
   )
 })
@@ -692,7 +693,7 @@ test('replace: errors when target key missing in map', () => {
 test('replace: errors when target index missing in seq (index == len is allowed by your current behavior)', () => {
   const doc = docFrom(`arr: [a]\n`)
   assert.throws(
-    () => applyPatchToYamlAst(doc, [{ op: 'replace', path: ['arr', '5'], value: 'x' }]),
+    () => applyPatchToYamlAst(doc, [{ op: 'replace', path: ['arr', 5], value: 'x' }]),
     /out of bounds|missing index/i
   )
 })
@@ -715,7 +716,7 @@ test('move: from == path in map should behave as a no-op (currently likely throw
 test('move: from == path in seq should behave as a no-op (documents behavior)', () => {
   const doc = docFrom(`arr: [a, b]\n`)
   try {
-    applyPatchToYamlAst(doc, [{ op: 'move', from: ['arr', '0'], path: ['arr', '0'] }])
+    applyPatchToYamlAst(doc, [{ op: 'move', from: ['arr', 0], path: ['arr', 0] }])
     assert.deepEqual(jsonOf(doc), { arr: ['a', 'b'] })
   } catch (e) {
     assert.match(String(e), /out of bounds|missing index|Internal error|Path does not exist/i)
