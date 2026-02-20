@@ -19,19 +19,26 @@
     fillHeight: Boolean
   })
 
-  const state = ref(await Agent.state(id))
+  let syncedYAMLDoc
 
-  const syncedYAMLDoc = YAML.parseDocument(state.value.__yaml || '', {
-    strict: true,
-    keepCstNodes: true,
-    keepNodeTypes: true,
-    keepSourceTokens: true
-  })
-
-  Agent.watch(id, ({ patch }) => {
-    console.log('Apply this patch to the syncedYAMLDoc', patch)
-    //  TODO: implement call here...
-  })
+  const state = ref(await new Promise(resolve => {
+    Agent.watch(id, ({ patch, state }) => {
+      if (patch) {
+        const nonYAMLOps = patch.filter(({ path, from }) => ((path||from)[0] !== '__yaml'))
+        patchYamlAST(syncedYAMLDoc, nonYAMLOps)
+      }
+      else {
+        //  TODO: ensure __yaml and state are synced
+        syncedYAMLDoc = YAML.parseDocument(state.__yaml || '', {
+          strict: true,
+          keepCstNodes: true,
+          keepNodeTypes: true,
+          keepSourceTokens: true
+        })
+        resolve(state)
+      }
+    })
+  }))
 
   const cm = ref()
 

@@ -372,7 +372,7 @@ function removeChild(parent, key) {
   if (parent == null) throw new Error('Internal error: cannot remove root here')
 
   if (key.type === 'map') {
-    const i = parent.items.findIndex(p => isPairWithKey(p, key.name))
+    const i = parent.items.findIndex(p => YAML.isPair(p) && keyToString(p.key) === key.name)
     if (i === -1) throw new Error(`Cannot remove missing key "${key.name}"`)
     parent.items.splice(i, 1)
     return
@@ -388,23 +388,23 @@ function removeChild(parent, key) {
   throw new Error('Unknown key type')
 }
 
+/* ---- yaml type guards (don’t use constructor.name) ---- */
+
 function isMap(node) {
-  return node && node.constructor && node.constructor.name === 'YAMLMap'
+  return YAML.isMap(node)
 }
 
 function isSeq(node) {
-  return node && node.constructor && node.constructor.name === 'YAMLSeq'
+  return YAML.isSeq(node)
 }
 
 function findPair(mapNode, keyName) {
-  return mapNode.items.find(p => isPairWithKey(p, keyName))
+  return mapNode.items.find(p => YAML.isPair(p) && keyToString(p.key) === keyName)
 }
 
-function isPairWithKey(pair, keyName) {
-  if (!pair || pair.constructor?.name !== 'Pair') return false
-  const k = pair.key
-  if (YAML.isScalar(k)) return String(k.value) === keyName
-  return String(k?.toJSON?.() ?? k) === keyName
+function keyToString(k) {
+  if (YAML.isScalar(k)) return String(k.value)
+  return String(k?.toJSON?.() ?? k)
 }
 
 function looksLikeIndex(seg) {
