@@ -4,7 +4,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import YAML from 'yaml'
-import applyPatchToYamlAst from './patch-yaml-ast.js' // adjust if your file name differs
+import applyPatchToYamlAst from './patch-yaml-ast.js'
 
 function docFrom(yaml) {
   return YAML.parseDocument(yaml)
@@ -166,8 +166,19 @@ test('multiple ops: behaves like sequential patch application', () => {
 test('yaml roundtrip sanity: patch results serialize as expected', () => {
   const doc = docFrom(`a: 1\n`)
   applyPatchToYamlAst(doc, [{ op: 'add', path: ['x', 'y'], value: [1, 2] }])
+
   const out = strOf(doc)
-  assert.match(out, /x:\n(\s+)y:/)
+
+  assert.equal(
+    out,
+    `\
+a: 1
+x:
+  y:
+    - 1
+    - 2
+`
+  )
 })
 
 /* ---------------- additional coverage ---------------- */
@@ -293,5 +304,294 @@ test('normalizeOp: move/copy rejects missing from array', () => {
   assert.throws(
     () => applyPatchToYamlAst(doc, [{ op: 'move', from: '/a', path: ['b'] }]),
     /requires "from" as an array path/i
+  )
+})
+
+/* ---------------- roundtrip: comments + formatting preservation ---------------- */
+
+test('roundtrip: preserves top-level comments when patching elsewhere', () => {
+  const doc = docFrom(
+    `\
+# top comment
+a: 1
+b: 2 # inline b
+`
+  )
+
+  applyPatchToYamlAst(doc, [{ op: 'replace', path: ['a'], value: 10 }])
+
+  const out = strOf(doc)
+
+  assert.equal(
+    out,
+    `\
+# top comment
+a: 10
+b: 2 # inline b
+`
+  )
+})
+
+test('roundtrip: preserves key/pair comment when replacing that value', () => {
+  const doc = docFrom(
+    `\
+a: 1 # keep me
+`
+  )
+
+  applyPatchToYamlAst(doc, [{ op: 'replace', path: ['a'], value: 2 }])
+
+  const out = strOf(doc)
+
+  assert.equal(
+    out,
+    `\
+a: 2 # keep me
+`
+  )
+})
+
+test('roundtrip: preserves commentBefore on a key when adding a sibling key', () => {
+  const doc = docFrom(
+    `\
+# about a
+a: 1
+`
+  )
+
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['b'], value: 2 }])
+
+  const out = strOf(doc)
+
+  assert.equal(
+    out,
+    `\
+# about a
+a: 1
+b: 2
+`
+  )
+})
+
+test('formatting: preserves flow sequence style ([...]) when inserting', () => {
+  const doc = docFrom(
+    `\
+arr: [1, 3] # flow
+`
+  )
+
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '1'], value: 2 }])
+
+  const out = strOf(doc)
+
+  assert.equal(
+    out,
+    `\
+arr: [1, 2, 3] # flow
+`
+  )
+})
+
+test('formatting: preserves block sequence style (- ...) when inserting', () => {
+  const doc = docFrom(
+    `\
+arr:
+  - 1
+  - 3
+`
+  )
+
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '1'], value: 2 }])
+
+  const out = strOf(doc)
+
+  assert.equal(
+    out,
+    `\
+arr:
+  - 1
+  - 2
+  - 3
+`
+  )
+})
+
+test('roundtrip: preserves comments inside a sequence when patching the sequence', () => {
+  const doc = docFrom(
+    `\
+arr:
+  - 1 # one
+  - 3 # three
+`
+  )
+
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['arr', '1'], value: 2 }])
+
+  const out = strOf(doc)
+
+  assert.equal(
+    out,
+    `\
+arr:
+  - 1 # one
+  - 2
+  - 3 # three
+`
+  )
+})
+
+test('roundtrip: preserves map comments while creating missing parents under a different key', () => {
+  const doc = docFrom(
+    `\
+a: 1 # a1
+# comment for b
+b:
+  c: 2 # c2
+`
+  )
+
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['x', 'y', 'z'], value: 10 }])
+
+  const out = strOf(doc)
+
+  assert.equal(
+    out,
+    `\
+a: 1 # a1
+# comment for b
+b:
+  c: 2 # c2
+x:
+  y:
+    z: 10
+`
+  )
+})
+
+/* ---------------- roundtrip: block scalar style (>, |) preservation ---------------- */
+
+test('formatting: preserves folded block scalar style (>) when patching elsewhere', () => {
+  const doc = docFrom(
+    `\
+mystring: >-
+  asdfasdfkajsdfsa
+  aksdjfalsdkjfa
+other: 1
+`
+  )
+
+  applyPatchToYamlAst(doc, [{ op: 'replace', path: ['other'], value: 2 }])
+
+  const out = strOf(doc)
+
+  assert.equal(
+    out,
+    `\
+mystring: >-
+  asdfasdfkajsdfsa
+  aksdjfalsdkjfa
+other: 2
+`
+  )
+})
+
+test('formatting: preserves literal block scalar style (|) when patching elsewhere', () => {
+  const doc = docFrom(
+    `\
+mystring: |-
+  woo!
+  sweet sweet multiline
+other: 1
+`
+  )
+
+  applyPatchToYamlAst(doc, [{ op: 'replace', path: ['other'], value: 2 }])
+
+  const out = strOf(doc)
+
+  assert.equal(
+    out,
+    `\
+mystring: |-
+  woo!
+  sweet sweet multiline
+other: 2
+`
+  )
+})
+
+test('formatting: preserves folded (>) style when replacing that scalar value', () => {
+  const doc = docFrom(
+    `\
+mystring: >-
+  old line 1
+  old line 2
+`
+  )
+
+  applyPatchToYamlAst(doc, [
+    { op: 'replace', path: ['mystring'], value: 'new line 1\nnew line 2\n' }
+  ])
+
+  const out = strOf(doc)
+
+  assert.equal(
+    out,
+    `\
+mystring: >-
+  new line 1
+  new line 2
+`
+  )
+})
+
+test('formatting: preserves literal (|) style when replacing that scalar value', () => {
+  const doc = docFrom(
+    `\
+mystring: |-
+  old literal 1
+  old literal 2
+`
+  )
+
+  applyPatchToYamlAst(doc, [
+    { op: 'replace', path: ['mystring'], value: 'woo!\nsweet sweet multiline\n' }
+  ])
+
+  const out = strOf(doc)
+
+  assert.equal(
+    out,
+    `\
+mystring: |-
+  woo!
+  sweet sweet multiline
+`
+  )
+})
+
+test('formatting: preserves inline comment on block scalar header line', () => {
+  const doc = docFrom(
+    `\
+mystring: | # keep header comment
+  woo!
+  sweet sweet multiline
+other: 1
+`
+  )
+
+  applyPatchToYamlAst(doc, [{ op: 'add', path: ['x'], value: 1 }])
+
+  const out = strOf(doc)
+
+  assert.equal(
+    out,
+    `\
+mystring: | # keep header comment
+  woo!
+  sweet sweet multiline
+other: 1
+x: 1
+`
   )
 })
