@@ -41,10 +41,7 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
         const newRoot = toYamlNode(nodeFactory, op.value)
         preservePresentation(oldRoot, newRoot)
         root = newRoot
-        if (doc) {
-          doc.contents = root
-          preserveDocPresentationOnRootReplace(doc, oldRoot, root)
-        }
+        if (doc) replaceDocRoot(doc, oldRoot, root)
         continue
       }
 
@@ -69,10 +66,7 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
         const newRoot = toYamlNode(nodeFactory, op.value)
         preservePresentation(oldRoot, newRoot)
         root = newRoot
-        if (doc) {
-          doc.contents = root
-          preserveDocPresentationOnRootReplace(doc, oldRoot, root)
-        }
+        if (doc) replaceDocRoot(doc, oldRoot, root)
         continue
       }
 
@@ -92,10 +86,7 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
         const oldRoot = root
         preservePresentation(oldRoot, newNode)
         root = newNode
-        if (doc) {
-          doc.contents = root
-          preserveDocPresentationOnRootReplace(doc, oldRoot, root)
-        }
+        if (doc) replaceDocRoot(doc, oldRoot, root)
       } else {
         const { parent, key } = getParentAndKey(nodeFactory, root, op.path, { createParents: true })
         setChild(parent, key, newNode, { replace: false })
@@ -117,8 +108,9 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
 
       // Remove first (RFC6902 move semantics)
       if (op.from.length === 0) {
+        const oldRoot = root
         root = toYamlNode(nodeFactory, null)
-        if (doc) doc.contents = root
+        if (doc) replaceDocRoot(doc, oldRoot, root)
       } else {
         const { parent: fromParent, key: fromKey } = getParentAndKey(nodeFactory, root, op.from, { createParents: false })
         removeChild(fromParent, fromKey)
@@ -130,10 +122,7 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
         const newRoot = toYamlNode(nodeFactory, movedValue)
         preservePresentation(oldRoot, newRoot)
         root = newRoot
-        if (doc) {
-          doc.contents = root
-          preserveDocPresentationOnRootReplace(doc, oldRoot, root)
-        }
+        if (doc) replaceDocRoot(doc, oldRoot, root)
       } else {
         const { parent, key } = getParentAndKey(nodeFactory, root, op.path, { createParents: true })
         setChild(parent, key, toYamlNode(nodeFactory, movedValue), { replace: false })
@@ -443,12 +432,74 @@ function configureDocForRoundTrip(doc) {
 
   if (isDocument(doc) && !doc.__patched_toString) {
     const original = doc.toString.bind(doc)
+    Object.defineProperty(doc, '__rt_originalToString', { value: original, configurable: true })
+
     doc.toString = (...args) => {
-      const out = original(...args)
+      let out = original(...args)
+
+      // If we snapshotted an original top comment header and the emitter omitted it,
+      // prefix it back exactly once
+      const top = doc.__rt_topPrefix || ''
+      if (top && !out.startsWith(top)) out = top + out
+
       return postProcessYamlOutput(out)
     }
+
     Object.defineProperty(doc, '__patched_toString', { value: true })
   }
+}
+
+function replaceDocRoot(doc, oldRoot, newRoot) {
+  if (!doc) return
+
+  // Snapshot the original leading comment/header from the *pre-swap* rendered YAML.
+  // This is the only representation that's reliably available across yaml versions.
+  if (!doc.__rt_topPrefix) {
+    const originalToString = doc.__rt_originalToString || doc.toString.bind(doc)
+    const before = originalToString()
+    const header = extractLeadingCommentBlock(before)
+    if (header) {
+      try {
+        doc.__rt_topPrefix = header
+      } catch {}
+    }
+  }
+
+  doc.contents = newRoot
+
+  // Still keep AST-level presentation when it exists (harmless, sometimes helpful)
+  preservePresentation(oldRoot, newRoot)
+}
+
+function extractLeadingCommentBlock(yamlText) {
+  const lines = String(yamlText).replace(/\r\n/g, '\n').split('\n')
+  const out = []
+
+  let i = 0
+  while (i < lines.length) {
+    const line = lines[i]
+
+    // keep initial blank lines (rare, but safe)
+    if (line.trim() === '') {
+      out.push(line)
+      i++
+      continue
+    }
+
+    // keep contiguous leading comment lines
+    if (/^\s*#/.test(line)) {
+      out.push(line)
+      i++
+      continue
+    }
+
+    break
+  }
+
+  // If we captured only blanks, ignore
+  if (!out.some(l => /^\s*#/.test(l))) return ''
+
+  return out.join('\n') + '\n'
 }
 
 function postProcessYamlOutput(yamlText) {
@@ -599,17 +650,6 @@ function preservePresentation(oldNode, newNode) {
     copyIfPresent(newNode, oldNode, 'blockIndent')
     copyIfPresent(newNode, oldNode, 'format')
   }
-}
-
-function preserveDocPresentationOnRootReplace(doc, oldRoot, newRoot) {
-  if (!doc) return
-
-  const top = doc.commentBefore ?? (YAML.isNode(oldRoot) ? oldRoot.commentBefore : undefined)
-  if (top != null && top !== '') doc.commentBefore = top
-
-  // Also preserve other document-level presentation where available
-  const docComment = doc.comment ?? (YAML.isNode(oldRoot) ? oldRoot.comment : undefined)
-  if (docComment != null && docComment !== '') doc.comment = docComment
 }
 
 function normalizeScalarValueForPreservedStyle(oldScalar, newScalar) {
