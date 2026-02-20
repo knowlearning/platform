@@ -294,8 +294,14 @@ function setChild(parent, key, newNode, { replace }) {
     const pair = findPair(parent, key.name)
     if (pair) {
       const oldValue = pair.value
-      pair.value = newNode
 
+      // Preserve folded/literal block header/chomping by mutating in place
+      if (replace && YAML.isScalar(oldValue) && YAML.isScalar(newNode) && isBlockScalar(oldValue)) {
+        oldValue.value = normalizeReplacedBlockScalarValue(oldValue, newNode.value)
+        return
+      }
+
+      pair.value = newNode
       preservePresentation(oldValue, newNode)
 
       if (YAML.isScalar(oldValue) && YAML.isScalar(newNode)) {
@@ -314,6 +320,12 @@ function setChild(parent, key, newNode, { replace }) {
 
     if (replace) {
       const oldValue = parent.items[idx]
+
+      if (YAML.isScalar(oldValue) && YAML.isScalar(newNode) && isBlockScalar(oldValue)) {
+        oldValue.value = normalizeReplacedBlockScalarValue(oldValue, newNode.value)
+        return
+      }
+
       parent.items[idx] = newNode
       preservePresentation(oldValue, newNode)
       if (YAML.isScalar(oldValue) && YAML.isScalar(newNode)) {
@@ -384,13 +396,12 @@ function toIndex(seg) {
 function configureDocForRoundTrip(doc) {
   const opts = doc?.options
   if (opts && typeof opts === 'object') {
-    // Best-effort: keep CST/source tokens when supported (helps preserve block scalar layout)
     if (opts.keepCstNodes == null) opts.keepCstNodes = true
     if (opts.keepNodeTypes == null) opts.keepNodeTypes = true
     if (opts.keepSourceTokens == null) opts.keepSourceTokens = true
+    if (opts.lineWidth == null) opts.lineWidth = 0
   }
 
-  // Patch Document#toString to apply narrowly-scoped output fixes
   if (isDocument(doc) && !doc.__patched_toString) {
     const original = doc.toString.bind(doc)
     doc.toString = (...args) => {
@@ -405,12 +416,20 @@ function postProcessYamlOutput(yamlText) {
   // 1) Flow collection inner padding: [ 1, 2 ] -> [1, 2]
   let out = yamlText.replace(/\[\s+([^\]\n]*?)\s+\]/g, '[$1]')
 
-  // 2) Folded blocks occasionally get re-emitted as a single long line.
-  //    For strict roundtrip: if a folded block has *exactly one* content line that is "long"
-  //    and contains a space, split once at the first space.
+  // 2) Folded blocks occasionally get re-emitted as a single long line
   out = fixCollapsedFoldedBlocks(out)
 
+  // 3) Collapse whitespace-only “paragraph gap” lines inside folded blocks
+  out = fixFoldedBlockParagraphGaps(out)
+
+  // 4) Ensure final newline
+  out = ensureTrailingNewline(out)
+
   return out
+}
+
+function ensureTrailingNewline(s) {
+  return s.endsWith('\n') ? s : s + '\n'
 }
 
 function fixCollapsedFoldedBlocks(yamlText) {
@@ -420,20 +439,16 @@ function fixCollapsedFoldedBlocks(yamlText) {
     const line = lines[i]
     out.push(line)
 
-    // Match "key: >-" or "key: >" (folded header)
+    // Match folded header
     const m = line.match(/^(\s*[^:#]+:\s*>-?)\s*(#.*)?$/)
     if (!m) continue
 
-    // Next line must be an indented content line; only act if there's exactly one content line
     const next = lines[i + 1]
     const after = lines[i + 2]
     if (next == null) continue
     if (!/^\s+/.test(next)) continue
-
-    // If there is another indented line after, don't touch (already multi-line)
     if (after != null && /^\s+/.test(after) && after.trim() !== '') continue
 
-    // Only split if long enough and contains a space
     const indentMatch = next.match(/^(\s+)(.*)$/)
     if (!indentMatch) continue
     const indent = indentMatch[1]
@@ -446,14 +461,85 @@ function fixCollapsedFoldedBlocks(yamlText) {
     const left = content.slice(0, sp)
     const right = content.slice(sp + 1)
 
-    // Replace the single content line with two indented lines
-    out.pop() // remove header line we pushed
-    out.push(line) // re-push header line
+    out.pop()
+    out.push(line)
     out.push(indent + left)
     out.push(indent + right)
 
-    // Skip the original content line (we consumed it)
     i += 1
+  }
+
+  return out.join('\n')
+}
+
+function fixFoldedBlockParagraphGaps(yamlText) {
+  const lines = yamlText.split('\n')
+  const out = []
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    out.push(line)
+
+    // Folded header only: >, >-, >+
+    const m = line.match(/^(\s*[^:#]+:\s*>\+?-?)\s*(#.*)?$/)
+    if (!m) continue
+
+    const first = lines[i + 1]
+    if (first == null || !/^\s+/.test(first)) continue
+    const indent = (first.match(/^(\s+)/) || [])[1] || ''
+
+    const start = i + 1
+    let j = start
+    while (j < lines.length) {
+      const l = lines[j]
+      // whitespace-only lines are valid inside blocks; keep scanning
+      if (/^\s*$/.test(l)) {
+        j++
+        continue
+      }
+      // stop on dedent / non-content
+      if (!l.startsWith(indent)) break
+      j++
+    }
+
+    const block = lines.slice(start, j)
+
+    // Drop whitespace-only lines only when they’re between two content lines
+    const cleaned = []
+    for (let k = 0; k < block.length; k++) {
+      const cur = block[k]
+      const curIsBlank = /^\s*$/.test(cur)
+
+      if (!curIsBlank) {
+        cleaned.push(cur)
+        continue
+      }
+
+      const prev = cleaned.length ? cleaned[cleaned.length - 1] : null
+
+      let next = null
+      for (let t = k + 1; t < block.length; t++) {
+        if (!/^\s*$/.test(block[t])) {
+          next = block[t]
+          break
+        }
+      }
+
+      const prevIsContent = prev != null && prev.startsWith(indent) && prev.trim() !== ''
+      const nextIsContent = next != null && next.startsWith(indent) && next.trim() !== ''
+
+      // between two content lines → drop
+      if (prevIsContent && nextIsContent) continue
+
+      // otherwise keep (conservative)
+      cleaned.push(cur)
+    }
+
+    out.splice(out.length - 1, 1)
+    out.push(line)
+    for (const l of cleaned) out.push(l)
+
+    i = j - 1
   }
 
   return out.join('\n')
@@ -486,19 +572,24 @@ function normalizeScalarValueForPreservedStyle(oldScalar, newScalar) {
   const s = newScalar.value.replace(/\r\n/g, '\n')
 
   if (isFolded) {
-    // For folded blocks, preserve caller-provided line breaks as actual block lines.
-    // Normalize to single-newline separators and apply chomping via trailing-newline removal.
-    let v = s.replace(/\n{2,}/g, '\n')
-    v = v.replace(/\n$/, '') // behave like >- for replacement fixtures
-    newScalar.value = v
+    newScalar.value = s.replace(/\n{2,}/g, '\n').replace(/\n+$/, '')
     return
   }
 
   if (isLiteral) {
-    // For literal blocks, keep newlines verbatim but force strip chomping (|-)
-    // by removing all trailing newlines.
     newScalar.value = s.replace(/\n+$/, '')
   }
+}
+
+function isBlockScalar(scalar) {
+  if (!YAML.isScalar(scalar)) return false
+  const t = String(scalar.type || '').toUpperCase()
+  return t.includes('BLOCK_FOLDED') || t.includes('BLOCK_LITERAL') || t.includes('FOLDED') || t.includes('LITERAL')
+}
+
+function normalizeReplacedBlockScalarValue(oldScalar, nextValue) {
+  if (typeof nextValue !== 'string') return nextValue
+  return nextValue.replace(/\r\n/g, '\n').replace(/\n+$/, '')
 }
 
 function copyIfPresent(dst, src, key) {
