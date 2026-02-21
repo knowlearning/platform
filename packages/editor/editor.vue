@@ -1,11 +1,12 @@
 <script setup>
   import Agent from '@knowlearning/agents'
-  import { computed, reactive, ref, watch } from 'vue'
+  import { computed, reactive, ref, watch, onMounted, onUnmounted } from 'vue'
   import { compare, applyPatch } from 'fast-json-patch'
   import CodeMirror from "vue-codemirror6"
   import mixedLanguageYaml from "./mixed-language-yaml.js"
   import YAML from "yaml"
   import patchYamlAST from './patch-yaml-ast.js'
+  import draggable from './draggable.js'
 
   const {
     id,
@@ -18,6 +19,8 @@
     resolveWidget: Function,
     fillHeight: Boolean
   })
+
+  const emit = defineEmits(['gutter-drag'])
 
   let syncedYAMLDoc
 
@@ -83,6 +86,26 @@
         codemirror: cm.value
       } : null
     }
+  })
+
+  let dragTeardown
+  onMounted(() => {
+    const view = cm.value?.view
+    const gutterEl = view.dom.querySelector('.cm-gutters')
+    const emitGutterDrag = event => emit('gutter-drag', event)
+
+    const teardown = draggable(gutterEl)
+    gutterEl.addEventListener('drag', emitGutterDrag)
+
+    dragTeardown = () => {
+      teardown()
+      gutterEl.removeListener('drag', emitGutterDrag)
+    }
+    console.log(gutterEl)
+  })
+
+  onUnmounted(() => {
+    dragTeardown?.()
   })
 
 </script>
