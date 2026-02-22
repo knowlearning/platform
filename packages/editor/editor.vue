@@ -1,12 +1,56 @@
 <script setup>
   import Agent from '@knowlearning/agents'
-  import { computed, reactive, ref, watch, onMounted, onUnmounted } from 'vue'
+  import { computed, reactive, ref, watch, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
   import { compare, applyPatch } from 'fast-json-patch'
   import CodeMirror from "vue-codemirror6"
   import mixedLanguageYaml from "./mixed-language-yaml.js"
   import YAML from "yaml"
   import patchYamlAST from './patch-yaml-ast.js'
   import draggable from './draggable.js'
+
+  import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language'
+  import { oneDark, oneDarkHighlightStyle } from '@codemirror/theme-one-dark'
+
+  const isDark = ref(false)
+
+  onMounted(() => {
+    const mql = window.matchMedia('(prefers-color-scheme: dark)')
+    const sync = () => (isDark.value = mql.matches)
+    sync()
+
+    // Safari < 14 fallback
+    if (mql.addEventListener) mql.addEventListener('change', sync)
+    else mql.addListener(sync)
+
+    onBeforeUnmount(() => {
+      if (!mql) return
+      if (mql.removeEventListener) mql.removeEventListener('change', sync)
+      else mql.removeListener(sync)
+    })
+  })
+
+  const theme = computed(() => (isDark.value ? oneDark : undefined))
+
+  const extensions = computed(() => {
+    const e = [
+      mixedLangaugeYamlExtension,
+      syntaxHighlighting(isDark.value ? oneDarkHighlightStyle : defaultHighlightStyle)
+    ]
+    if (isDark.value) e.push(oneDark)
+    return e
+  })
+
+
+
+
+
+
+
+
+
+
+
+
 
   const {
     id,
@@ -112,6 +156,8 @@
 
 <template>
   <CodeMirror
+    v-model="code"
+    ref="cm"
     :class="{
       'cm-editor-wrapper': true,
       'fill-height': fillHeight
@@ -119,12 +165,9 @@
     basic
     tab
     gutter
-    v-model="code"
-    ref="cm"
+    :dark="isDark"
     :linter="()=>[]"
-    :extensions="[
-      mixedLangaugeYamlExtension
-    ]"
+    :extensions="extensions"
   />
 </template>
 
