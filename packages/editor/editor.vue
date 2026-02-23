@@ -143,7 +143,7 @@
 
     dragTeardown = () => {
       teardown()
-      gutterEl.removeListener('drag', emitGutterDrag)
+      gutterEl.removeEventListener('drag', emitGutterDrag)
     }
     console.log(gutterEl)
   })
