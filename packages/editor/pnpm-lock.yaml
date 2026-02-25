@@ -32,6 +32,9 @@ importers:
       '@codemirror/state':
         specifier: ^6.5.2
         version: 6.5.2
+      '@codemirror/theme-one-dark':
+        specifier: ^6.1.3
+        version: 6.1.3
       '@codemirror/view':
         specifier: ^6.36.4
         version: 6.36.4
@@ -44,6 +47,9 @@ importers:
       eslint-linter-browserify:
         specifier: ^9.21.0
         version: 9.21.0
+      fast-json-patch:
+        specifier: ^3.1.1
+        version: 3.1.1
       pg-query-emscripten:
         specifier: ^5.1.0
         version: 5.1.0
@@ -108,6 +114,9 @@ packages:
 
   '@codemirror/state@6.5.2':
     resolution: {integrity: sha512-FVqsPqtPWKVVL3dPSxy8wEF/ymIEuVzF1PK3VbUgrxXpJUSHQWWZz4JMToquRxnkw+36LTamCZG2iua2Ptq0fA==}
+
+  '@codemirror/theme-one-dark@6.1.3':
+    resolution: {integrity: sha512-NzBdIvEJmx6fjeremiGp3t/okrLPYT0d9orIc7AFun8oZcRk58aejkqhv6spnz4MLAevrKNPMQYXEWMg4s+sKA==}
 
   '@codemirror/view@6.36.4':
     resolution: {integrity: sha512-ZQ0V5ovw/miKEXTvjgzRyjnrk9TwriUB1k4R5p7uNnHR9Hus+D1SXHGdJshijEzPFjU25xea/7nhIeSqYFKdbA==}
@@ -189,6 +198,9 @@ packages:
 
   estree-walker@2.0.2:
     resolution: {integrity: sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w==}
+
+  fast-json-patch@3.1.1:
+    resolution: {integrity: sha512-vf6IHUX2SBcA+5/+4883dsIjpBTqmfBjmYiWK1savxQmFk4JfBMLa7ynTYOs1Rolp/T1betJxHiGD3g1Mn8lUQ==}
 
   magic-string@0.30.17:
     resolution: {integrity: sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA==}
@@ -361,6 +373,13 @@ snapshots:
     dependencies:
       '@marijn/find-cluster-break': 1.0.2
 
+  '@codemirror/theme-one-dark@6.1.3':
+    dependencies:
+      '@codemirror/language': 6.10.8
+      '@codemirror/state': 6.5.2
+      '@codemirror/view': 6.36.4
+      '@lezer/highlight': 1.2.1
+
   '@codemirror/view@6.36.4':
     dependencies:
       '@codemirror/state': 6.5.2
@@ -483,6 +502,8 @@ snapshots:
   eslint-linter-browserify@9.21.0: {}
 
   estree-walker@2.0.2: {}
+
+  fast-json-patch@3.1.1: {}
 
   magic-string@0.30.17:
     dependencies:
