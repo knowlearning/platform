@@ -44,29 +44,41 @@ if [ "$1" = "production" ]; then
       export ZONE="us-central1-a"
       export INSTANCE_NAME="my-deno-instance-1"
       export STATIC_IP_NAME="my-static-ip-1"
+      export GCP_MACHINE="n4-standard-2"
       ;;
     2)
       export REGION="us-central1"
       export ZONE="us-central1-b"
       export INSTANCE_NAME="my-deno-instance-2"
       export STATIC_IP_NAME="my-static-ip-2"
+      export GCP_MACHINE="n4-standard-2"
       ;;
     3)
       export REGION="asia-southeast1"
       export ZONE="asia-southeast1-a"
       export INSTANCE_NAME="my-deno-instance-3"
       export STATIC_IP_NAME="my-static-ip-3"
+      export GCP_MACHINE="n4-standard-2"
+      ;;
+    4)
+      export REGION="europe-west3"
+      export ZONE="europe-west3-a"
+      export INSTANCE_NAME="my-deno-instance-4"
+      export STATIC_IP_NAME="my-static-ip-4"
+      export GCP_MACHINE="n4-standard-2"
+      ;;
+    5)
+      export REGION="europe-west3"
+      export ZONE="europe-west3-b"
+      export INSTANCE_NAME="my-deno-instance-5"
+      export STATIC_IP_NAME="my-static-ip-5"
+      export GCP_MACHINE="n4-standard-2"
       ;;
     *)
       echo "Invalid choice"
       exit 1
       ;;
   esac
-
-
-
-
-  export GCP_MACHINE="n4-standard-2"
 
   deno run --allow-net --allow-run --allow-env index.js
 
