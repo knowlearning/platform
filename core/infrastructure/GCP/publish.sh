@@ -35,6 +35,8 @@ if [ "$1" = "production" ]; then
   echo "1) us-a"
   echo "2) us-b"
   echo "3) asia"
+  echo "4) europe-west3-a"
+  echo "5) europe-west3-b"
 
   read -p "Enter choice [1-3]: " choice
 
