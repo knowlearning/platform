@@ -92,7 +92,7 @@ sudo systemctl set-environment \
   MODE=production \
   ADMIN_DOMAIN=admin.knowlearning.systems \
   GC_PROJECT_ID=opensourcelearningplatform \
-  POSTGRES_HOST=10.42.80.4 \
+  POSTGRES_HOST=10.50.0.2 \
   POSTGRES_PORT=5432 \
   POSTGRES_USER=postgres \
   REDIS_USER=default \
