@@ -97,7 +97,7 @@ sudo systemctl set-environment \
   POSTGRES_USER=postgres \
   REDIS_USER=default \
   REDIS_HOST=redis-15018.fcrce259.eu-central-1-3.ec2.cloud.redislabs.com \
-  REDIS_PORT=15924 \
+  REDIS_PORT=15018 \
   PORT=80 \
   TLS_PORT=443
 
