@@ -1,0 +1,45 @@
+services:
+  claude:
+    image: node:22-bookworm-slim
+    working_dir: /repo
+    tty: true
+    stdin_open: true
+    init: true
+
+    volumes:
+      # Only share the repo you want Claude to access
+      - type: bind
+        source: ./
+        target: /repo
+
+      # Persist Claude config/auth across runs
+      - claude-config:/tmp/home/.config
+
+      # Optional: persist npm cache so installs are faster
+      - claude-npm:/tmp/home/.npm-cache
+      - claude-npm-global:/tmp/home/.npm-global
+
+    command: >
+      bash -lc '
+        set -e
+
+        export HOME=/tmp/home
+        mkdir -p "$HOME" "$HOME/.config"
+
+        npm config set cache "$HOME/.npm-cache" --global >/dev/null
+        npm config set prefix "$HOME/.npm-global" --global >/dev/null
+        export PATH="$HOME/.npm-global/bin:$PATH"
+
+        if ! command -v claude >/dev/null 2>&1; then
+          echo "Installing Claude Code..."
+          npm install -g @anthropic-ai/claude-code
+        fi
+
+        claude
+        exec bash
+      '
+
+volumes:
+  claude-config:
+  claude-npm:
+  claude-npm-global:

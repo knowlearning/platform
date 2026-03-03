@@ -84,15 +84,15 @@ if [ "$1" = "production" ]; then
 
   deno run --allow-net --allow-run --allow-env index.js
 
-  export AUTH_SERVICE_SECRET_KEY="$(cat ../.credentials/AUTH_SERVICE_SECRET_KEY)"
-  export GCS_SERVICE_ACCOUNT_CREDENTIALS="$(cat ../.credentials/GCS_SERVICE_ACCOUNT_CREDENTIALS)"
-  export OAUTH_CREDENTIALS="$(cat ../.credentials/OAUTH_CREDENTIALS)"
-  export POSTGRES_PASSWORD="$(cat ../.credentials/POSTGRES_PASSWORD)"
-  export REDIS_PASSWORD="$(cat ../.credentials/REDIS_PASSWORD)"
-  export SSL_CERT="$(cat ../.credentials/SSL_CERT)"
-  export SSL_KEY="$(cat ../.credentials/SSL_KEY)"
-  export PUBLIC_ENCRYPTION_KEY="$(cat ../.credentials/PUBLIC_ENCRYPTION_KEY)"
-  export SECRET_ENCRYPTION_KEY="$(cat ../.credentials/SECRET_ENCRYPTION_KEY)"
+  export AUTH_SERVICE_SECRET_KEY="$(cat ../../../../.credentials/AUTH_SERVICE_SECRET_KEY)"
+  export GCS_SERVICE_ACCOUNT_CREDENTIALS="$(cat ../../../../.credentials/GCS_SERVICE_ACCOUNT_CREDENTIALS)"
+  export OAUTH_CREDENTIALS="$(cat ../../../../.credentials/OAUTH_CREDENTIALS)"
+  export POSTGRES_PASSWORD="$(cat ../../../../.credentials/POSTGRES_PASSWORD)"
+  export REDIS_PASSWORD="$(cat ../../../../.credentials/REDIS_PASSWORD)"
+  export SSL_CERT="$(cat ../../../../.credentials/SSL_CERT)"
+  export SSL_KEY="$(cat ../../../../.credentials/SSL_KEY)"
+  export PUBLIC_ENCRYPTION_KEY="$(cat ../../../../.credentials/PUBLIC_ENCRYPTION_KEY)"
+  export SECRET_ENCRYPTION_KEY="$(cat ../../../../.credentials/SECRET_ENCRYPTION_KEY)"
 
   while true; do
     gcloud compute ssh admin@$INSTANCE_NAME \
