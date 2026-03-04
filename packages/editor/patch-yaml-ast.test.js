@@ -862,44 +862,10 @@ test('validate: rejects move without from', () => {
     /requires "from"|Invalid JSON Patch/i
   )
 })
+
 /* ====================== CodeMirror 6 updates correctness ====================== */
 /* Minimal in-place updates to your CM6 test helpers + the CM6 tests themselves.
    Paste over your existing CM6 helper section (and only that section). */
-
-function applyChangesToText(text, changes) {
-  const arr = Array.isArray(changes) ? changes : [changes]
-
-  // validate shape + bounds + ordering (CM6 expects ascending, non-overlapping)
-  let prevTo = 0
-  for (const ch of arr) {
-    assert.ok(ch && typeof ch === 'object', 'change must be an object')
-    assert.ok(Number.isInteger(ch.from) && Number.isInteger(ch.to), 'from/to must be integers')
-    assert.ok(ch.from >= 0, 'from must be >= 0')
-    assert.ok(ch.to >= ch.from, 'to must be >= from')
-    assert.ok(ch.to <= text.length, 'to must be within document length')
-    assert.ok(ch.from >= prevTo, 'changes must be sorted and non-overlapping (ascending)')
-    assert.ok(typeof ch.insert === 'string', 'insert must be a string')
-    prevTo = ch.to
-  }
-
-  // apply from end to start to avoid offset juggling
-  let out = text
-  for (let i = arr.length - 1; i >= 0; i--) {
-    const { from, to, insert } = arr[i]
-    out = out.slice(0, from) + insert + out.slice(to)
-  }
-  return out
-}
-
-function applyCM6Updates(text, updates) {
-  let out = text
-  for (const u of updates || []) {
-    assert.ok(u && typeof u === 'object', 'update must be an object')
-    assert.ok('changes' in u, 'update must have changes')
-    out = applyChangesToText(out, u.changes)
-  }
-  return out
-}
 
 // UPDATED: do not require res.before === yamlInput (YAML emitter normalizes formatting)
 function assertUpdatesRoundTrip(yamlInput, patchOps) {
@@ -907,9 +873,6 @@ function assertUpdatesRoundTrip(yamlInput, patchOps) {
   const res = applyPatchToYamlAst(doc, patchOps)
 
   assert.equal(res.after, strOf(doc), 'res.after must match doc.toString() after patch')
-
-  const applied = applyCM6Updates(res.before, res.updates)
-  assert.equal(applied, res.after, 'applying CM6 updates to res.before must equal res.after')
 
   // extra: ensure updates are CM6-valid and strictly in-bounds
   for (const u of res.updates || []) {
@@ -925,6 +888,10 @@ function assertUpdatesRoundTrip(yamlInput, patchOps) {
       assert.equal(typeof ch.insert, 'string', 'insert must be string')
     }
   }
+
+  // APPLY UPDATES USING REAL CODEMIRROR 6 (see applyWithCodeMirror below)
+  const applied = applyWithCodeMirror(res.before, res.updates)
+  assert.equal(applied, res.after, 'applying CM6 updates to res.before must equal res.after')
 }
 
 /* ---- CM6 tests (keep whichever set you want; duplicates are fine but noisy) ---- */
@@ -1021,7 +988,7 @@ arr: [a, b]
     return
   }
 
-  const applied = applyCM6Updates(res.before, res.updates)
+  const applied = applyWithCodeMirror(res.before, res.updates)
   assert.equal(applied, res.after)
   assert.equal(res.after, strOf(doc))
 })
@@ -1123,7 +1090,7 @@ arr: [a, b]
     return
   }
 
-  const applied = applyCM6Updates(res.before, res.updates)
+  const applied = applyWithCodeMirror(res.before, res.updates)
   assert.equal(applied, res.after)
   assert.equal(res.after, strOf(doc))
 })
@@ -1159,7 +1126,7 @@ function expectMinimalCm6({ yaml, ops, expectedAfter, expectedChanges }) {
 
   assert.deepEqual(res.updates, [{ changes }])
 
-  const applied = applyCM6Updates(res.before, res.updates)
+  const applied = applyWithCodeMirror(res.before, res.updates)
   assert.equal(applied, expectedAfter)
 }
 
@@ -1316,7 +1283,7 @@ arr:
 
   assert.deepEqual(res.updates, [{ changes }])
 
-  const applied = applyCM6Updates(res.before, res.updates)
+  const applied = applyWithCodeMirror(res.before, res.updates)
   assert.equal(applied, expectedAfter)
 })
 
