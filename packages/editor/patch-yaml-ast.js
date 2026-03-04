@@ -14,6 +14,20 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
   // Configure emitter / toString for strict round-trip formatting
   configureDocForRoundTrip(nodeFactory)
 
+  // Capture "before" text for edit computation (doc-only)
+  const beforeText = doc ? getDocSourceText(doc) : null
+
+  // Track which paths were touched (for update extraction)
+  const touched = []
+  const touch = (op) => {
+    const o = normalizeOp(op)
+    touched.push({
+      op: o.op,
+      path: o.path,
+      from: o.from
+    })
+  }
+
   if (doc && root == null) {
     // If doc is empty, create a container root so path-based adds work
     const firstPath = Array.isArray(patchOps?.[0]?.path) ? patchOps[0].path : null
@@ -33,6 +47,7 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
   }
 
   for (const raw of patchOps) {
+    touch(raw)
     const op = normalizeOp(raw)
 
     if (op.op === 'add') {
@@ -145,7 +160,25 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
     throw new Error(`Unsupported op: ${op.op}`)
   }
 
-  return doc ? docOrNode : root
+  // ---- compute doc edits from AST ranges (no full string diff) ----
+  const afterText = doc ? doc.toString() : null
+  const updates = doc
+    ? buildYamlEditsFromTouchedPaths({
+        beforeText,
+        afterText,
+        beforeDoc: parseForRanges(beforeText),
+        afterDoc: parseForRanges(afterText),
+        touched
+      })
+    : []
+
+  // Return BOTH the patched value and the edits
+  return {
+    value: doc ? docOrNode : root,
+    updates,
+    before: beforeText,
+    after: afterText
+  }
 }
 
 /* ---------------- deep equal (no Node built-ins) ---------------- */
@@ -690,4 +723,157 @@ function copyIfPresent(dst, src, key) {
   } catch {
     // ignore readonly properties across yaml versions
   }
+}
+
+/* ---------------- updates builder (AST ranges, not string diff) ---------------- */
+
+function getDocSourceText(doc) {
+  const original = doc.__rt_originalToString || doc.toString.bind(doc)
+  return original()
+}
+
+function parseForRanges(text) {
+  return YAML.parseDocument(String(text || ''), {
+    strict: true,
+    keepCstNodes: true,
+    keepNodeTypes: true,
+    keepSourceTokens: true
+  })
+}
+
+function nodeSpan(node) {
+  const r = node?.cstNode?.range || node?.range
+  if (!Array.isArray(r) || r.length < 2) return null
+  const start = r[0]
+  const end = r[1]
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null
+  return { start, end }
+}
+
+function pairSpan(pair) {
+  const r = pair?.cstNode?.range || pair?.value?.cstNode?.range || pair?.value?.range
+  if (!Array.isArray(r) || r.length < 2) return null
+  return { start: r[0], end: r[1] }
+}
+
+function getPairAtPath(doc, path) {
+  if (path.length === 0) return null
+  const parentPath = path.slice(0, -1)
+  const seg = String(path[path.length - 1])
+  const parent = getNodeAtPath(doc.contents, parentPath)
+  if (!YAML.isNode(parent) || !YAML.isMap(parent)) return null
+  return findPair(parent, seg) || null
+}
+
+function getItemAtPath(doc, path) {
+  if (path.length === 0) return null
+  const parentPath = path.slice(0, -1)
+  const idxSeg = path[path.length - 1]
+  const parent = getNodeAtPath(doc.contents, parentPath)
+  if (!YAML.isNode(parent) || !YAML.isSeq(parent)) return null
+  const idx = toIndex(idxSeg)
+  return parent.items[idx] ?? null
+}
+
+function getEditTargetSpan(doc, path) {
+  if (path.length === 0) {
+    // root: best effort is whole document
+    return { start: 0, end: (doc?.toString?.() || '').length }
+  }
+
+  const parentPath = path.slice(0, -1)
+  const parent = getNodeAtPath(doc.contents, parentPath)
+
+  if (YAML.isMap(parent)) {
+    const pair = getPairAtPath(doc, path)
+    const sp = pair ? pairSpan(pair) : null
+    return sp
+  }
+
+  if (YAML.isSeq(parent)) {
+    const item = getItemAtPath(doc, path)
+    const sp = item ? nodeSpan(item) : null
+    return sp
+  }
+
+  return null
+}
+
+function inferInsertionPoint(beforeDoc, path) {
+  // For adds where there was no span in beforeDoc: insert relative to siblings/parent
+  if (path.length === 0) return 0
+  const parentPath = path.slice(0, -1)
+  const parent = getNodeAtPath(beforeDoc.contents, parentPath)
+  const parentSpan = nodeSpan(parent)
+  if (!parentSpan) return 0
+
+  const last = path[path.length - 1]
+
+  if (YAML.isSeq(parent)) {
+    const idx = toIndex(last)
+    // If inserting before an existing item, insert at that item's start
+    if (idx < parent.items.length) {
+      const sp = nodeSpan(parent.items[idx])
+      if (sp) return sp.start
+    }
+    // Else append at end of last item (or parent end)
+    const prev = parent.items[parent.items.length - 1]
+    const prevSp = nodeSpan(prev)
+    return prevSp ? prevSp.end : parentSpan.end
+  }
+
+  if (YAML.isMap(parent)) {
+    // Map order is not stable; safest is append at end of map span
+    return parentSpan.end
+  }
+
+  return parentSpan.end
+}
+
+function buildYamlEditsFromTouchedPaths({ beforeText, afterText, beforeDoc, afterDoc, touched }) {
+  const edits = []
+  if (beforeText == null || afterText == null) return edits
+
+  // Coalesce touched paths (prefer deeper paths first)
+  const uniq = new Map()
+  for (const t of touched) {
+    const k = JSON.stringify({ op: t.op, path: t.path, from: t.from })
+    if (!uniq.has(k)) uniq.set(k, t)
+  }
+  const ops = Array.from(uniq.values()).sort((a, b) => b.path.length - a.path.length)
+
+  for (const t of ops) {
+    const path = t.path
+
+    // Determine old span (what to replace) and new span (what to insert)
+    let oldSpan = getEditTargetSpan(beforeDoc, path)
+    let newSpan = getEditTargetSpan(afterDoc, path)
+
+    // removals: newSpan will be null
+    // adds: oldSpan will be null
+    if (!oldSpan && t.op === 'add') {
+      const at = inferInsertionPoint(beforeDoc, path)
+      oldSpan = { start: at, end: at }
+    }
+
+    // If we still can't localize, fall back to whole-doc replace (rare)
+    if (!oldSpan) {
+      edits.push({ from: 0, to: beforeText.length, insert: afterText })
+      continue
+    }
+
+    const insert = newSpan ? afterText.slice(newSpan.start, newSpan.end) : ''
+
+    edits.push({
+      from: oldSpan.start,
+      to: oldSpan.end,
+      insert,
+      path
+    })
+  }
+
+  // Sort edits descending by `from` so consumers can apply without offset juggling
+  edits.sort((a, b) => b.from - a.from)
+
+  return edits
 }

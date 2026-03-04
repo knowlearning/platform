@@ -31,7 +31,10 @@
     Agent.watch(id, ({ patch, state }) => {
       if (patch) {
         const nonYAMLOps = patch.filter(({ path, from }) => ((path||from)[0] !== '__yaml'))
-        patchYamlAST(syncedYAMLDoc, nonYAMLOps)
+        if (nonYAMLOps.length) {
+          const updates = patchYamlAST(syncedYAMLDoc, nonYAMLOps)
+          console.log('YAML patch updates', updates)
+        }
       }
       else {
         //  TODO: ensure __yaml and state are synced
