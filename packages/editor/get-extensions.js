@@ -3,7 +3,7 @@ import mixedLanguageYaml from "./mixed-language-yaml.js"
 import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language'
 import { oneDark, oneDarkHighlightStyle } from '@codemirror/theme-one-dark'
 
-export default function getExtensions({cm, isDark, resolveLanguage, resolveWidget}) {
+export default function getExtensions({cm, isDark, resolveLanguage, resolveWidget, extra=[] }) {
   const mixedLangaugeYamlExtension = mixedLanguageYaml({
     resolveLanguage,
     resolveWidget: path => {
@@ -16,6 +16,7 @@ export default function getExtensions({cm, isDark, resolveLanguage, resolveWidge
   })
   return computed(() => {
     const e = [
+      ...extra,
       mixedLangaugeYamlExtension,
       syntaxHighlighting(isDark.value ? oneDarkHighlightStyle : defaultHighlightStyle)
     ]

@@ -1,96 +1,142 @@
 <script setup>
-  import Agent from '@knowlearning/agents'
-  import { computed, reactive, ref, watch } from 'vue'
-  import { compare, applyPatch } from 'fast-json-patch'
-  import CodeMirror from "vue-codemirror6"
-  import YAML from "yaml"
-  import patchYamlAST from './patch-yaml-ast.js'
-  import makeGutterDraggable from './make-gutter-draggable.js'
-  import getExtensions from './get-extensions.js'
-  import useDarkMode from './use-dark-mode.js'
+import Agent from '@knowlearning/agents'
+import { ref, watch, computed } from 'vue'
+import { compare, applyPatch } from 'fast-json-patch'
+import CodeMirror from 'vue-codemirror6'
+import YAML from 'yaml'
+import patchYamlAST from './patch-yaml-ast.js'
+import makeGutterDraggable from './make-gutter-draggable.js'
+import getExtensions from './get-extensions.js'
+import useDarkMode from './use-dark-mode.js'
 
-  const isDark = useDarkMode()
+import { Transaction } from '@codemirror/state'
+import { EditorView } from '@codemirror/view'
 
-  const {
-    id,
-    resolveLanguage,
-    resolveWidget,
-    fillHeight
-  } = defineProps({
-    id: String,
-    resolveLanguage: Function,
-    resolveWidget: Function,
-    fillHeight: Boolean
+const isDark = useDarkMode()
+
+const {
+  id,
+  resolveLanguage,
+  resolveWidget,
+  fillHeight
+} = defineProps({
+  id: String,
+  resolveLanguage: Function,
+  resolveWidget: Function,
+  fillHeight: Boolean
+})
+
+const emit = defineEmits(['gutter-drag'])
+const ready = ref(false)
+const cm = ref()
+
+// mirrors what's currently in the CM doc (not bound to the component)
+const editorText = ref('')
+const isProgrammaticChange = ref(false)
+
+function computeTextFromState(s) {
+  if (s.__yaml) return s.__yaml
+  const shallowCopy = { ...s }
+  delete shallowCopy.__yaml
+  return YAML.stringify(shallowCopy)
+}
+
+function applyEditorTextToState(value) {
+  try {
+    state.__yaml = value
+
+    const shallowCopy = { ...state }
+    const valueShallowCopy = YAML.parse(value, { strict: true })
+
+    delete shallowCopy.__yaml
+    delete valueShallowCopy.__yaml
+
+    applyPatch(
+      state,
+      compare(shallowCopy, valueShallowCopy)
+    )
+  } catch (error) {
+    console.log('Error setting doc', error)
+  }
+}
+
+function setEditorDoc(value, { addToHistory = false } = {}) {
+  editorText.value = value
+
+  const view = cm.value?.view
+  if (!view) return
+
+  const current = view.state.doc.toString()
+  if (current === value) return
+
+  isProgrammaticChange.value = true
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: value },
+    annotations: Transaction.addToHistory.of(!!addToHistory)
   })
+  isProgrammaticChange.value = false
+}
 
-  const emit = defineEmits(['gutter-drag'])
+// Load initial state first so CM is never created with a blank doc (undo-safe)
+const state = await Agent.state(id)
 
-  let syncedYAMLDoc
+const syncedYAMLDoc = YAML.parseDocument(state.__yaml || '', {
+  strict: true,
+  keepCstNodes: true,
+  keepNodeTypes: true,
+  keepSourceTokens: true
+})
 
-  const state = ref(await new Promise(resolve => {
-    Agent.watch(id, ({ patch, state }) => {
-      if (patch) {
-        const nonYAMLOps = patch.filter(({ path, from }) => ((path||from)[0] !== '__yaml'))
-        if (nonYAMLOps.length) {
-          const updates = patchYamlAST(syncedYAMLDoc, nonYAMLOps)
-          console.log('YAML patch updates', updates)
-        }
-      }
-      else {
-        //  TODO: ensure __yaml and state are synced
-        syncedYAMLDoc = YAML.parseDocument(state.__yaml || '', {
-          strict: true,
-          keepCstNodes: true,
-          keepNodeTypes: true,
-          keepSourceTokens: true
-        })
-        resolve(state)
-      }
-    })
-  }))
+Agent.watch(id, ({ patch }) => {
+  if (patch) {
+    const nonYAMLOps = patch.filter(({ path, from }) => ((path || from)[0] !== '__yaml'))
+    if (nonYAMLOps.length) {
+      const updates = patchYamlAST(syncedYAMLDoc, nonYAMLOps)
+      console.log('YAML patch updates', updates)
 
-  const cm = ref()
-
-  const code = computed({
-    get() {
-      if (state.value.__yaml) return state.value.__yaml
-      else {
-        const shallowCopy = { ...state.value }
-        return YAML.stringify(shallowCopy)
-      }
-    },
-    set(value) {
-      try {
-        state.value.__yaml = value
-
-        const shallowCopy = { ...state.value }
-        const valueShallowCopy = YAML.parse(value, { strict: true })
-
-        delete shallowCopy.__yaml
-        delete valueShallowCopy.__yaml
-
-        applyPatch(
-          state.value,
-          compare(
-            shallowCopy,
-            valueShallowCopy
-          )
-        )
-      }
-      catch (error) {
-        console.log('Error Setting Doc', error)
-      }
+      // optional editor update if needed
+      // const nextYaml = String(syncedYAMLDoc)
+      // setEditorDoc(nextYaml, { addToHistory: false })
+      // applyEditorTextToState(nextYaml)
     }
-  })
+  }
+})
 
-  const extensions = getExtensions({cm, isDark, resolveLanguage, resolveWidget})
-  makeGutterDraggable(cm, emit)
+// Prime editorText before CM mounts
+editorText.value = computeTextFromState(state)
+ready.value = true
 
+makeGutterDraggable(cm, emit)
+
+const updateListener = EditorView.updateListener.of(update => {
+  if (!update.docChanged) return
+  if (isProgrammaticChange.value) return
+
+  const value = update.state.doc.toString()
+  if (value === editorText.value) return
+
+  editorText.value = value
+  applyEditorTextToState(value)
+})
+
+const extensions = getExtensions({ cm, isDark, resolveLanguage, resolveWidget,  extra: [updateListener] })
+
+watch(
+  cm,
+  (cmp) => {
+    const view = cmp?.view
+    if (!view) return
+
+    // ensure doc matches initial text; do not add to history
+    setEditorDoc(computeTextFromState(state), { addToHistory: false })
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
   <CodeMirror
-    v-model="code"
+    v-if="ready"
     ref="cm"
     :class="{
       'cm-editor-wrapper': true,
@@ -100,16 +146,14 @@
     tab
     gutter
     :dark="isDark"
-    :linter="()=>[]"
+    :linter="() => []"
     :extensions="extensions"
   />
 </template>
 
 <style>
-
-  .cm-editor-wrapper.vue-codemirror.fill-height,
-  .cm-editor-wrapper.fill-height .cm-editor {
-    height: 100%;
-  }
-
+.cm-editor-wrapper.vue-codemirror.fill-height,
+.cm-editor-wrapper.fill-height .cm-editor {
+  height: 100%;
+}
 </style>
