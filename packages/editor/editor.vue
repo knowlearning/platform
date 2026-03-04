@@ -1,15 +1,12 @@
 <script setup>
   import Agent from '@knowlearning/agents'
-  import { computed, reactive, ref, watch, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
+  import { computed, reactive, ref, watch, onMounted, onBeforeUnmount } from 'vue'
   import { compare, applyPatch } from 'fast-json-patch'
   import CodeMirror from "vue-codemirror6"
-  import mixedLanguageYaml from "./mixed-language-yaml.js"
   import YAML from "yaml"
   import patchYamlAST from './patch-yaml-ast.js'
-  import draggable from './draggable.js'
-
-  import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language'
-  import { oneDark, oneDarkHighlightStyle } from '@codemirror/theme-one-dark'
+  import makeGutterDraggable from './make-gutter-draggable.js'
+  import getExtensions from './get-extensions.js'
 
   const isDark = ref(false)
 
@@ -28,29 +25,6 @@
       else mql.removeListener(sync)
     })
   })
-
-  const theme = computed(() => (isDark.value ? oneDark : undefined))
-
-  const extensions = computed(() => {
-    const e = [
-      mixedLangaugeYamlExtension,
-      syntaxHighlighting(isDark.value ? oneDarkHighlightStyle : defaultHighlightStyle)
-    ]
-    if (isDark.value) e.push(oneDark)
-    return e
-  })
-
-
-
-
-
-
-
-
-
-
-
-
 
   const {
     id,
@@ -121,36 +95,8 @@
     }
   })
 
-  const mixedLangaugeYamlExtension = mixedLanguageYaml({
-    resolveLanguage,
-    resolveWidget: path => {
-      const widget = resolveWidget(path)
-      return widget ? {
-        ...widget,
-        codemirror: cm.value
-      } : null
-    }
-  })
-
-  let dragTeardown
-  onMounted(() => {
-    const view = cm.value?.view
-    const gutterEl = view.dom.querySelector('.cm-gutters')
-    const emitGutterDrag = event => emit('gutter-drag', event)
-
-    const teardown = draggable(gutterEl)
-    gutterEl.addEventListener('drag', emitGutterDrag)
-
-    dragTeardown = () => {
-      teardown()
-      gutterEl.removeEventListener('drag', emitGutterDrag)
-    }
-    console.log(gutterEl)
-  })
-
-  onUnmounted(() => {
-    dragTeardown?.()
-  })
+  const extensions = getExtensions({cm, isDark, resolveLanguage, resolveWidget})
+  makeGutterDraggable(cm, emit)
 
 </script>
 

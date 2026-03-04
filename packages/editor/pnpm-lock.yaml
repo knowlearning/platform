@@ -47,6 +47,9 @@ importers:
       eslint-linter-browserify:
         specifier: ^9.21.0
         version: 9.21.0
+      fast-diff:
+        specifier: ^1.3.0
+        version: 1.3.0
       fast-json-patch:
         specifier: ^3.1.1
         version: 3.1.1
@@ -198,6 +201,9 @@ packages:
 
   estree-walker@2.0.2:
     resolution: {integrity: sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w==}
+
+  fast-diff@1.3.0:
+    resolution: {integrity: sha512-VxPP4NqbUjj6MaAOafWeUn2cXWLcCtljklUtZf0Ind4XQ+QPtmA0b18zZy0jIQx+ExRVCR/ZQpBmik5lXshNsw==}
 
   fast-json-patch@3.1.1:
     resolution: {integrity: sha512-vf6IHUX2SBcA+5/+4883dsIjpBTqmfBjmYiWK1savxQmFk4JfBMLa7ynTYOs1Rolp/T1betJxHiGD3g1Mn8lUQ==}
@@ -502,6 +508,8 @@ snapshots:
   eslint-linter-browserify@9.21.0: {}
 
   estree-walker@2.0.2: {}
+
+  fast-diff@1.3.0: {}
 
   fast-json-patch@3.1.1: {}
 
