@@ -31,7 +31,6 @@ const ready = ref(false)
 const cm = ref()
 
 // mirrors what's currently in the CM doc (not bound to the component)
-const editorText = ref('')
 const isProgrammaticChange = ref(false)
 
 function computeTextFromState(s) {
@@ -41,7 +40,7 @@ function computeTextFromState(s) {
   return YAML.stringify(shallowCopy)
 }
 
-function applyEditorTextToState(value) {
+function applyYAMLToState(value) {
   try {
     state.__yaml = value
 
@@ -61,8 +60,6 @@ function applyEditorTextToState(value) {
 }
 
 function setEditorDoc(value, { addToHistory = false } = {}) {
-  editorText.value = value
-
   const view = cm.value?.view
   if (!view) return
 
@@ -97,13 +94,11 @@ Agent.watch(id, ({ patch }) => {
       // optional editor update if needed
       // const nextYaml = String(syncedYAMLDoc)
       // setEditorDoc(nextYaml, { addToHistory: false })
-      // applyEditorTextToState(nextYaml)
+      // applyYAMLToState(nextYaml)
     }
   }
 })
 
-// Prime editorText before CM mounts
-editorText.value = computeTextFromState(state)
 ready.value = true
 
 makeGutterDraggable(cm, emit)
@@ -113,10 +108,9 @@ const updateListener = EditorView.updateListener.of(update => {
   if (isProgrammaticChange.value) return
 
   const value = update.state.doc.toString()
-  if (value === editorText.value) return
+  if (value === state.__yaml) return
 
-  editorText.value = value
-  applyEditorTextToState(value)
+  applyYAMLToState(value)
 })
 
 const extensions = getExtensions({ cm, isDark, resolveLanguage, resolveWidget,  extra: [updateListener] })
@@ -124,11 +118,10 @@ const extensions = getExtensions({ cm, isDark, resolveLanguage, resolveWidget,  
 watch(
   cm,
   (cmp) => {
-    const view = cmp?.view
-    if (!view) return
-
-    // ensure doc matches initial text; do not add to history
-    setEditorDoc(computeTextFromState(state), { addToHistory: false })
+    if (cmp?.view) {
+      const yaml = computeTextFromState(state)
+      setEditorDoc(yaml, { addToHistory: false })
+    }
   },
   { immediate: true }
 )
