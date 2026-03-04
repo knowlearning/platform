@@ -21,6 +21,14 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
   const touched = []
   const touch = (op) => {
     const o = normalizeOp(op)
+
+    // Move affects two locations: remove from `from`, add to `path`
+    if (o.op === 'move') {
+      touched.push({ op: 'remove', path: o.from, from: null })
+      touched.push({ op: 'add', path: o.path, from: null })
+      return
+    }
+
     touched.push({
       op: o.op,
       path: o.path,
@@ -40,7 +48,7 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
     const standardOps = patchOps.map(op => ({
       ...op,
       path: pathArrayToPointer(op.path),
-      ...(op.from != null ? { from: pathArrayToPointer(op.from) } : null)
+      ...(op.from != null ? { from: pathArrayToPointer(op.from) } : {})
     }))
     const err = jsonValidate(standardOps)
     if (err) throw new Error(`Invalid JSON Patch: ${err.message || String(err)}`)
@@ -162,7 +170,8 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
 
   // ---- compute doc edits from AST ranges (no full string diff) ----
   const afterText = doc ? doc.toString() : null
-  const updates = doc
+
+  const edits = doc
     ? buildYamlEditsFromTouchedPaths({
         beforeText,
         afterText,
@@ -171,6 +180,9 @@ export default function applyPatchToYamlAst(docOrNode, patchOps, options = {}) {
         touched
       })
     : []
+
+  // CodeMirror 6 update format: TransactionSpec[]
+  const updates = doc && edits.length ? [{ changes: edits }] : []
 
   // Return BOTH the patched value and the edits
   return {
@@ -347,6 +359,25 @@ function classifyKey(parent, seg) {
   throw new Error('Target parent is not a map or seq')
 }
 
+function adoptScalarStyleFromNeighbors(seq, idx, node) {
+  if (!YAML.isSeq(seq)) return
+  if (!YAML.isScalar(node) || typeof node.value !== 'string') return
+
+  const neighbors = []
+  if (idx - 1 >= 0) neighbors.push(seq.items[idx - 1])
+  if (idx + 1 < seq.items.length) neighbors.push(seq.items[idx + 1])
+
+  const ref = neighbors.find(n =>
+    YAML.isScalar(n) &&
+    typeof n.value === 'string' &&
+    (n.type != null || n.format != null)
+  )
+  if (!ref) return
+
+  copyIfPresent(node, ref, 'type')
+  copyIfPresent(node, ref, 'format')
+}
+
 function setChild(parent, key, newNode, { replace }) {
   if (parent == null) throw new Error('Internal error: cannot setChild on null parent (root handled separately)')
 
@@ -394,6 +425,7 @@ function setChild(parent, key, newNode, { replace }) {
       }
     } else {
       parent.items.splice(idx, 0, newNode)
+      adoptScalarStyleFromNeighbors(parent, idx, newNode)
     }
     return
   }
@@ -729,7 +761,12 @@ function copyIfPresent(dst, src, key) {
 
 function getDocSourceText(doc) {
   const original = doc.__rt_originalToString || doc.toString.bind(doc)
-  return original()
+  const s = original()
+
+  // yaml renders an empty document as "null\n"; for editor updates treat that as empty
+  if (doc && doc.contents == null && s === 'null\n') return ''
+
+  return s
 }
 
 function parseForRanges(text) {
@@ -741,19 +778,47 @@ function parseForRanges(text) {
   })
 }
 
-function nodeSpan(node) {
+function nodeSpan(node, text) {
   const r = node?.cstNode?.range || node?.range
   if (!Array.isArray(r) || r.length < 2) return null
-  const start = r[0]
-  const end = r[1]
+  let start = r[0]
+  let end = r[1]
   if (!Number.isFinite(start) || !Number.isFinite(end)) return null
+
+  // Only extend to include trailing newline when the span starts at a line start
+  if (typeof text === 'string' && text[end] === '\n') {
+    const atLineStart = start === 0 || text[start - 1] === '\n'
+    if (atLineStart) end += 1
+  }
+
   return { start, end }
 }
 
-function pairSpan(pair) {
-  const r = pair?.cstNode?.range || pair?.value?.cstNode?.range || pair?.value?.range
-  if (!Array.isArray(r) || r.length < 2) return null
-  return { start: r[0], end: r[1] }
+function pairSpan(pair, text) {
+  // YAML.Pair often doesn't have a useful cstNode range; compute from key/value.
+  const ranges = []
+
+  const pr = pair?.cstNode?.range
+  if (Array.isArray(pr) && pr.length >= 2) ranges.push(pr)
+
+  const kr = pair?.key?.cstNode?.range || pair?.key?.range
+  if (Array.isArray(kr) && kr.length >= 2) ranges.push(kr)
+
+  const vr = pair?.value?.cstNode?.range || pair?.value?.range
+  if (Array.isArray(vr) && vr.length >= 2) ranges.push(vr)
+
+  if (!ranges.length) return null
+
+  let start = Math.min(...ranges.map(r => r[0]))
+  let end = Math.max(...ranges.map(r => r[1]))
+
+  // Only extend to include trailing newline when the span starts at a line start
+  if (typeof text === 'string' && text[end] === '\n') {
+    const atLineStart = start === 0 || text[start - 1] === '\n'
+    if (atLineStart) end += 1
+  }
+
+  return { start, end }
 }
 
 function getPairAtPath(doc, path) {
@@ -775,7 +840,7 @@ function getItemAtPath(doc, path) {
   return parent.items[idx] ?? null
 }
 
-function getEditTargetSpan(doc, path) {
+function getEditTargetSpan(doc, path, text) {
   if (path.length === 0) {
     // root: best effort is whole document
     return { start: 0, end: (doc?.toString?.() || '').length }
@@ -786,25 +851,77 @@ function getEditTargetSpan(doc, path) {
 
   if (YAML.isMap(parent)) {
     const pair = getPairAtPath(doc, path)
-    const sp = pair ? pairSpan(pair) : null
+    const sp = pair ? pairSpan(pair, text) : null
     return sp
   }
 
   if (YAML.isSeq(parent)) {
     const item = getItemAtPath(doc, path)
-    const sp = item ? nodeSpan(item) : null
+    const sp = item ? nodeSpan(item, text) : null
     return sp
   }
 
   return null
 }
 
-function inferInsertionPoint(beforeDoc, path) {
+function valueSpanAtPath(doc, path, text) {
+  if (path.length === 0) return null
+  const parentPath = path.slice(0, -1)
+  const key = String(path[path.length - 1])
+  const parent = getNodeAtPath(doc.contents, parentPath)
+  if (!YAML.isNode(parent) || !YAML.isMap(parent)) return null
+  const pair = findPair(parent, key)
+  if (!pair || !pair.value) return null
+  return nodeSpan(pair.value, text)
+}
+
+function firstMissingPrefixPath(beforeDoc, fullPath) {
+  // shortest missing prefix: ['x'] for ['x','y','z'] if x didn't exist
+  for (let i = 0; i < fullPath.length; i++) {
+    const p = fullPath.slice(0, i + 1)
+    const n = getNodeAtPath(beforeDoc.contents, p)
+    if (n === undefined) return p
+  }
+  return fullPath
+}
+
+function mapSpan(doc, path, text) {
+  const node = getNodeAtPath(doc.contents, path)
+  if (!YAML.isNode(node) || !YAML.isMap(node)) return null
+  return nodeSpan(node, text)
+}
+
+function looksLikeFlowMapSpan(span, text) {
+  if (!span || typeof text !== 'string') return false
+  const s = text.slice(span.start, span.end)
+  return s.includes('{') && s.includes('}')
+}
+
+function lineEndIndex(text, at) {
+  const i = text.indexOf('\n', at)
+  return i === -1 ? text.length : i
+}
+
+function hasInlineCommentAfterValue(beforeText, valueSpan) {
+  if (!beforeText || !valueSpan) return false
+  const le = lineEndIndex(beforeText, valueSpan.end)
+  const tail = beforeText.slice(valueSpan.end, le)
+  return tail.includes('#')
+}
+
+// seq-only: widening inserts into maps can be too destructive; maps are handled via pairSpan
+function seqSpan(doc, path, text) {
+  const node = getNodeAtPath(doc.contents, path)
+  if (!YAML.isNode(node) || !YAML.isSeq(node)) return null
+  return nodeSpan(node, text)
+}
+
+function inferInsertionPoint(beforeDoc, path, beforeText) {
   // For adds where there was no span in beforeDoc: insert relative to siblings/parent
   if (path.length === 0) return 0
   const parentPath = path.slice(0, -1)
   const parent = getNodeAtPath(beforeDoc.contents, parentPath)
-  const parentSpan = nodeSpan(parent)
+  const parentSpan = nodeSpan(parent, beforeText)
   if (!parentSpan) return 0
 
   const last = path[path.length - 1]
@@ -813,12 +930,12 @@ function inferInsertionPoint(beforeDoc, path) {
     const idx = toIndex(last)
     // If inserting before an existing item, insert at that item's start
     if (idx < parent.items.length) {
-      const sp = nodeSpan(parent.items[idx])
+      const sp = nodeSpan(parent.items[idx], beforeText)
       if (sp) return sp.start
     }
     // Else append at end of last item (or parent end)
     const prev = parent.items[parent.items.length - 1]
-    const prevSp = nodeSpan(prev)
+    const prevSp = nodeSpan(prev, beforeText)
     return prevSp ? prevSp.end : parentSpan.end
   }
 
@@ -846,13 +963,91 @@ function buildYamlEditsFromTouchedPaths({ beforeText, afterText, beforeDoc, afte
     const path = t.path
 
     // Determine old span (what to replace) and new span (what to insert)
-    let oldSpan = getEditTargetSpan(beforeDoc, path)
-    let newSpan = getEditTargetSpan(afterDoc, path)
+    let oldSpan = getEditTargetSpan(beforeDoc, path, beforeText)
+    let newSpan = getEditTargetSpan(afterDoc, path, afterText)
 
-    // removals: newSpan will be null
+    // Map replace: if there's an inline comment after the value, touch only the value token.
+    // Otherwise prefer the whole pair span.
+    if (t.op === 'replace') {
+      const beforeVal = valueSpanAtPath(beforeDoc, path, beforeText)
+      const afterVal = valueSpanAtPath(afterDoc, path, afterText)
+      if (beforeVal && afterVal) {
+        if (hasInlineCommentAfterValue(beforeText, beforeVal)) {
+          oldSpan = beforeVal
+          newSpan = afterVal
+        } else {
+          const beforePair = getEditTargetSpan(beforeDoc, path, beforeText)
+          const afterPair = getEditTargetSpan(afterDoc, path, afterText)
+          if (beforePair && afterPair) {
+            oldSpan = beforePair
+            newSpan = afterPair
+          } else {
+            oldSpan = beforeVal
+            newSpan = afterVal
+          }
+        }
+      }
+    }
+
+    // Sequence edits need surrounding syntax (commas/brackets/newlines/indent),
+    // so replace the parent sequence span rather than the item's span.
+    if (path.length > 0 && (t.op === 'add' || t.op === 'copy' || t.op === 'move' || t.op === 'remove')) {
+      const parentPath = path.slice(0, -1)
+      const oldParent = seqSpan(beforeDoc, parentPath, beforeText)
+      const newParent = seqSpan(afterDoc, parentPath, afterText)
+      if (oldParent && newParent) {
+        oldSpan = oldParent
+        newSpan = newParent
+      } else if (t.op === 'remove') {
+        // If we can't localize the post-span safely, treat as pure deletion at old span
+        newSpan = null
+      }
+    }
+
+    // Flow maps need surrounding braces/commas; replace the whole map span if the parent is flow.
+    if (path.length > 0 && (t.op === 'add' || t.op === 'copy' || t.op === 'move' || t.op === 'remove')) {
+      const parentPath = path.slice(0, -1)
+      const oldParent = mapSpan(beforeDoc, parentPath, beforeText)
+      const newParent = mapSpan(afterDoc, parentPath, afterText)
+      if (
+        oldParent &&
+        newParent &&
+        looksLikeFlowMapSpan(oldParent, beforeText) &&
+        looksLikeFlowMapSpan(newParent, afterText)
+      ) {
+        oldSpan = oldParent
+        newSpan = newParent
+      }
+    }
+
+    // removals: newSpan should be null (unless widened to parent seq span above)
+    if (t.op === 'remove' && !(path.length > 0 && seqSpan(afterDoc, path.slice(0, -1), afterText))) {
+      newSpan = null
+    }
+
+    // adds/copy/move: if path didn't exist, insert the highest newly-created subtree (not the deepest leaf)
+    if (!oldSpan && (t.op === 'add' || t.op === 'copy' || t.op === 'move')) {
+      const promoted = firstMissingPrefixPath(beforeDoc, path)
+
+      // If we're inserting a seq item into a newly-created sequence (common for empty-doc seq-root),
+      // prefer the parent sequence span so we include "- " + indentation.
+      let promotedNew = getEditTargetSpan(afterDoc, promoted, afterText)
+      if (promoted.length > 0 && looksLikeIndex(promoted[promoted.length - 1])) {
+        const pParent = promoted.slice(0, -1)
+        const newParentSeq = seqSpan(afterDoc, pParent, afterText)
+        if (newParentSeq) promotedNew = newParentSeq
+      }
+
+      if (promotedNew) {
+        newSpan = promotedNew
+        const at = inferInsertionPoint(beforeDoc, promoted, beforeText)
+        oldSpan = { start: at, end: at }
+      }
+    }
+
     // adds: oldSpan will be null
     if (!oldSpan && t.op === 'add') {
-      const at = inferInsertionPoint(beforeDoc, path)
+      const at = inferInsertionPoint(beforeDoc, path, beforeText)
       oldSpan = { start: at, end: at }
     }
 
@@ -867,13 +1062,19 @@ function buildYamlEditsFromTouchedPaths({ beforeText, afterText, beforeDoc, afte
     edits.push({
       from: oldSpan.start,
       to: oldSpan.end,
-      insert,
-      path
+      insert
     })
   }
 
-  // Sort edits descending by `from` so consumers can apply without offset juggling
-  edits.sort((a, b) => b.from - a.from)
+  // CM6 expects changes sorted ascending by `from`
+  edits.sort((a, b) => a.from - b.from)
+
+  // CM6 changes must be non-overlapping; if overlaps occur, fall back to whole-doc replace
+  for (let i = 1; i < edits.length; i++) {
+    if (edits[i].from < edits[i - 1].to) {
+      return [{ from: 0, to: beforeText.length, insert: afterText }]
+    }
+  }
 
   return edits
 }
