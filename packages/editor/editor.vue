@@ -1,30 +1,15 @@
 <script setup>
   import Agent from '@knowlearning/agents'
-  import { computed, reactive, ref, watch, onMounted, onBeforeUnmount } from 'vue'
+  import { computed, reactive, ref, watch } from 'vue'
   import { compare, applyPatch } from 'fast-json-patch'
   import CodeMirror from "vue-codemirror6"
   import YAML from "yaml"
   import patchYamlAST from './patch-yaml-ast.js'
   import makeGutterDraggable from './make-gutter-draggable.js'
   import getExtensions from './get-extensions.js'
+  import useDarkMode from './use-dark-mode.js'
 
-  const isDark = ref(false)
-
-  onMounted(() => {
-    const mql = window.matchMedia('(prefers-color-scheme: dark)')
-    const sync = () => (isDark.value = mql.matches)
-    sync()
-
-    // Safari < 14 fallback
-    if (mql.addEventListener) mql.addEventListener('change', sync)
-    else mql.addListener(sync)
-
-    onBeforeUnmount(() => {
-      if (!mql) return
-      if (mql.removeEventListener) mql.removeEventListener('change', sync)
-      else mql.removeListener(sync)
-    })
-  })
+  const isDark = useDarkMode()
 
   const {
     id,

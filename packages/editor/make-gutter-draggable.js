@@ -15,7 +15,6 @@ export default function makeGutterDraggable(cm, emit) {
       teardown()
       gutterEl.removeEventListener('drag', emitGutterDrag)
     }
-    console.log(gutterEl)
   })
 
   onUnmounted(() => {
