@@ -42,11 +42,11 @@ function computeTextFromState(s) {
 
 function applyYAMLToState(value) {
   try {
-    state.__yaml = value
 
     const shallowCopy = { ...state }
     const valueShallowCopy = YAML.parse(value, { strict: true })
 
+    state.__yaml = value
     delete shallowCopy.__yaml
     delete valueShallowCopy.__yaml
 
@@ -74,6 +74,16 @@ function setEditorDoc(value, { addToHistory = false } = {}) {
   isProgrammaticChange.value = false
 }
 
+function applyStateUpdatesToDoc(updates) {
+  const view = cm.value?.view
+  console.log('applying changes?', view, updates)
+  if (view) {
+    isProgrammaticChange.value = true
+    view.dispatch(...updates)
+    isProgrammaticChange.value = false
+  }
+}
+
 // Load initial state first so CM is never created with a blank doc (undo-safe)
 const state = await Agent.state(id)
 
@@ -85,17 +95,10 @@ const syncedYAMLDoc = YAML.parseDocument(state.__yaml || '', {
 })
 
 Agent.watch(id, ({ patch }) => {
-  if (patch) {
-    const nonYAMLOps = patch.filter(({ path, from }) => ((path || from)[0] !== '__yaml'))
-    if (nonYAMLOps.length) {
-      const updates = patchYamlAST(syncedYAMLDoc, nonYAMLOps)
-      console.log('YAML patch updates', updates)
-
-      // optional editor update if needed
-      // const nextYaml = String(syncedYAMLDoc)
-      // setEditorDoc(nextYaml, { addToHistory: false })
-      // applyYAMLToState(nextYaml)
-    }
+  //  ignore null patch (first callback call w/ state) and patches that include yaml syncs
+  if (patch &&  patch[0].path[0] !== '__yaml') {
+    const { updates } = patchYamlAST(syncedYAMLDoc, patch)
+    applyStateUpdatesToDoc(updates)
   }
 })
 
