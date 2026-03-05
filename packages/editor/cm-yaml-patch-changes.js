@@ -84,7 +84,22 @@ function skipWrappers(node, docText) {
 
 function unwrapValue(node) {
   if (!node) return null
-  if (node.name === 'Value' || node.name === 'Item') return node.firstChild ?? node
+
+  if (node.name === 'Value' || node.name === 'Item') node = node.firstChild ?? node
+
+  // Anchor / alias wrappers (node names vary)
+  while (node && (
+    node.name === 'Anchor' ||
+    node.name === 'AnchoredValue' ||
+    node.name === 'Alias' ||
+    (node.name || '').includes('Anchor') ||
+    (node.name || '').includes('Alias')
+  )) {
+    const next = node.firstChild ?? node.nextSibling
+    if (!next || next === node) break
+    node = next
+  }
+
   return node
 }
 
@@ -287,6 +302,23 @@ function isInsideFlowMapping(node, docText) {
   return null
 }
 
+function isFlowSequenceNode(node, docText) {
+  if (!node) return false
+  const n = node.name || ''
+  if (n.includes('Flow') && n.includes('Sequence')) return true
+  const text = docText.slice(node.from, node.to).trim()
+  return text.startsWith('[') && text.endsWith(']')
+}
+
+function isInsideFlowSequence(node, docText) {
+  let n = node
+  while (n) {
+    if (isFlowSequenceNode(n, docText)) return n
+    n = n.parent
+  }
+  return null
+}
+
 function removeFlowPairRange(docText, pairNode) {
   let from = pairNode.from
   let to = pairNode.to
@@ -308,6 +340,31 @@ function removeFlowPairRange(docText, pairNode) {
       if (docText[to] === ' ') to++
     }
   }
+
+  return { from, to }
+}
+
+function removeFlowItemRange(docText, itemNode) {
+  let from = itemNode.from
+  let to = itemNode.to
+
+  // absorb surrounding spaces
+  while (from > 0 && /[ \t]/.test(docText[from - 1])) from--
+
+  // Prefer removing a preceding ", " if present, otherwise remove a following ", "
+  if (docText[from - 1] === ',') {
+    from--
+    while (from > 0 && /[ \t]/.test(docText[from - 1])) from--
+  } else {
+    while (to < docText.length && /[ \t]/.test(docText[to])) to++
+    if (docText[to] === ',') {
+      to++
+      if (docText[to] === ' ') to++
+    }
+  }
+
+  // Keep one space after '[' if we removed the first item and ate it
+  if (docText[from - 1] === '[' && docText[from] === ' ') from++
 
   return { from, to }
 }
@@ -335,6 +392,48 @@ function addFlowPair(docText, flowNode, key, value) {
   }
 }
 
+function addFlowItem(docText, flowSeqNode, value) {
+  const v = YAML.stringify(value).trim()
+
+  let close = docText.lastIndexOf(']', flowSeqNode.to)
+  if (close < flowSeqNode.from) close = flowSeqNode.to - 1
+
+  let open = docText.indexOf('[', flowSeqNode.from)
+  if (open < 0 || open > close) open = flowSeqNode.from
+
+  const innerRaw = docText.slice(open + 1, close)
+  const innerTrim = innerRaw.trim()
+  const hasItem = innerTrim.length > 0
+
+  // Canonicalize empty: strip all interior whitespace, no padding spaces => [x]
+  if (!hasItem) {
+    return { from: open + 1, to: close, insert: v }
+  }
+
+  // Append: trim any whitespace right before ']' so we don't create "c ]"
+  let trimFrom = close
+  while (trimFrom > open + 1 && /[ \t]/.test(docText[trimFrom - 1])) trimFrom--
+
+  return { from: trimFrom, to: close, insert: `, ${v}` }
+}
+
+function anchoredPrefix(docText, node) {
+  const raw = docText.slice(node.from, node.to)
+  const m = raw.match(/^(\s*&[A-Za-z0-9_-]+\s+)(.*)$/s)
+  return m ? m[1] : ''
+}
+
+function pairSeparatorRange(docText, pairNode, valueNode) {
+  const searchFrom = pairNode.from
+  const searchTo = Math.min(valueNode.from, pairNode.to)
+  const slice = docText.slice(searchFrom, searchTo)
+  const colonRel = slice.indexOf(':')
+  if (colonRel === -1) return null
+
+  const colonPos = searchFrom + colonRel
+  return { from: colonPos + 1, to: valueNode.from }
+}
+
 export default function cmYAMLPatchChanges(root, docText, patch) {
   const changes = []
 
@@ -346,6 +445,23 @@ export default function cmYAMLPatchChanges(root, docText, patch) {
       const valueNode = unwrapValue(findNodeAtPath(root, docText, path))
       if (!valueNode) continue
 
+      const parentNode = path.length
+        ? unwrapValue(findNodeAtPath(root, docText, path.slice(0, -1)))
+        : null
+
+      const isMapKey = path.length && typeof lastSeg !== 'number'
+      const pairNode = (isMapKey && parentNode)
+        ? findPairNode(parentNode, docText, String(lastSeg))
+        : null
+
+      const anchor = anchoredPrefix(docText, valueNode)
+
+      // NOTE: rawYaml ends with "\n" for objects and many scalars.
+      // Using the JS type is the reliable way to distinguish collections from scalars.
+      const rawYaml = YAML.stringify(op.value)
+      const scalar = rawYaml.trim()
+      const isCollection = op.value !== null && typeof op.value === 'object'
+
       if (typeof op.value === 'string' && op.value.includes('\n')) {
         const keyLineIndent = lineIndentAt(docText, valueNode.from)
         const insert = formatBlockScalarString(op.value, keyLineIndent)
@@ -353,15 +469,35 @@ export default function cmYAMLPatchChanges(root, docText, patch) {
         changes.push({
           from: valueNode.from,
           to: valueNode.to,
-          insert: insert.trimEnd()
+          insert: anchor ? `${anchor}${insert.trimEnd()}` : insert.trimEnd()
         })
         continue
+      }
+
+      if (pairNode && isCollection) {
+        const indent = getIndent(docText, pairNode)
+        const block = indentYamlBlock(rawYaml, `${indent}  `).trimEnd()
+        const sep = pairSeparatorRange(docText, pairNode, valueNode)
+        if (sep) changes.push({ from: sep.from, to: sep.to, insert: `\n` })
+        changes.push({ from: valueNode.from, to: valueNode.to, insert: block })
+        continue
+      }
+
+      if (pairNode && !isCollection) {
+        const sep = pairSeparatorRange(docText, pairNode, valueNode)
+        if (sep) {
+          const between = docText.slice(sep.from, sep.to)
+          // Don't collapse "a: # comment\n  1" into "a: 2" (would delete the comment)
+          if (between.includes('\n') && !between.includes('#')) {
+            changes.push({ from: sep.from, to: sep.to, insert: ' ' })
+          }
+        }
       }
 
       changes.push({
         from: valueNode.from,
         to: valueNode.to,
-        insert: YAML.stringify(op.value).trim()
+        insert: anchor ? `${anchor}${scalar}` : scalar
       })
       continue
     }
@@ -374,6 +510,14 @@ export default function cmYAMLPatchChanges(root, docText, patch) {
         ? findSeqItem(parentNode, lastSeg)
         : findPairNode(parentNode, docText, String(lastSeg))
       if (!target) continue
+
+      // Flow-seq item removal: remove just the item (and a comma), not the whole line
+      const flowSeq = isInsideFlowSequence(target, docText)
+      if (flowSeq) {
+        const r = removeFlowItemRange(docText, target)
+        changes.push({ from: r.from, to: r.to, insert: '' })
+        continue
+      }
 
       // Flow-map key removal: remove just the pair (and a comma), not the whole line
       const flow = isInsideFlowMapping(target, docText)
@@ -416,6 +560,13 @@ export default function cmYAMLPatchChanges(root, docText, patch) {
       // Flow-map add: insert into braces instead of new line
       if (typeof lastSeg !== 'number' && isFlowMappingNode(parentNode, docText)) {
         const flowAdd = addFlowPair(docText, parentNode, String(lastSeg), op.value)
+        changes.push(flowAdd)
+        continue
+      }
+
+      // Flow-seq add: insert into brackets instead of new line
+      if (typeof lastSeg === 'number' && isFlowSequenceNode(parentNode, docText)) {
+        const flowAdd = addFlowItem(docText, parentNode, op.value)
         changes.push(flowAdd)
         continue
       }
