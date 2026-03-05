@@ -1,5 +1,8 @@
 // DFS through the CodeMirror YAML syntax tree to locate and apply patch operations
 import YAML from 'yaml'
+import { EditorState } from '@codemirror/state'
+import { ensureSyntaxTree } from '@codemirror/language'
+import { yaml } from '@codemirror/lang-yaml'
 
 function isDocMarkerNode(node, docText) {
   if (!node) return false
@@ -255,13 +258,14 @@ function formatMapAddLine(key, value, indent) {
     return `${indent}${k}: ${block}`
   }
 
-  const valueYaml = YAML.stringify(value).trim()
-
-  if (valueYaml.includes('\n')) {
+  // Prefer block style for objects (real-world configs want this)
+  const isObj = value !== null && typeof value === 'object'
+  if (isObj) {
     const nestedYaml = YAML.stringify(value)
     return `${indent}${k}:\n${indentYamlBlock(nestedYaml, `${indent}  `)}`
   }
 
+  const valueYaml = YAML.stringify(value).trim()
   return `${indent}${k}: ${valueYaml}\n`
 }
 
@@ -323,13 +327,10 @@ function removeFlowPairRange(docText, pairNode) {
   let from = pairNode.from
   let to = pairNode.to
 
-  // absorb surrounding spaces
   while (from > 0 && /[ \t]/.test(docText[from - 1])) from--
 
-  // If we just absorbed the single space right after '{', keep one space for "{ key: v }"
   if (docText[from - 1] === '{' && docText[from] === ' ') from++
 
-  // Prefer removing a preceding ", " if present, otherwise remove a following ", "
   if (docText[from - 1] === ',') {
     from--
     while (from > 0 && /[ \t]/.test(docText[from - 1])) from--
@@ -348,10 +349,8 @@ function removeFlowItemRange(docText, itemNode) {
   let from = itemNode.from
   let to = itemNode.to
 
-  // absorb surrounding spaces
   while (from > 0 && /[ \t]/.test(docText[from - 1])) from--
 
-  // Prefer removing a preceding ", " if present, otherwise remove a following ", "
   if (docText[from - 1] === ',') {
     from--
     while (from > 0 && /[ \t]/.test(docText[from - 1])) from--
@@ -363,7 +362,6 @@ function removeFlowItemRange(docText, itemNode) {
     }
   }
 
-  // Keep one space after '[' if we removed the first item and ate it
   if (docText[from - 1] === '[' && docText[from] === ' ') from++
 
   return { from, to }
@@ -375,7 +373,6 @@ function addFlowPair(docText, flowNode, key, value) {
   const text = docText.slice(flowNode.from, flowNode.to)
   const hasPair = /\S/.test(text.replace(/[{}]/g, '').trim())
 
-  // find closing brace within node span
   let close = docText.lastIndexOf('}', flowNode.to)
   if (close < flowNode.from) close = flowNode.to - 1
 
@@ -405,12 +402,10 @@ function addFlowItem(docText, flowSeqNode, value) {
   const innerTrim = innerRaw.trim()
   const hasItem = innerTrim.length > 0
 
-  // Canonicalize empty: strip all interior whitespace, no padding spaces => [x]
   if (!hasItem) {
     return { from: open + 1, to: close, insert: v }
   }
 
-  // Append: trim any whitespace right before ']' so we don't create "c ]"
   let trimFrom = close
   while (trimFrom > open + 1 && /[ \t]/.test(docText[trimFrom - 1])) trimFrom--
 
@@ -434,7 +429,25 @@ function pairSeparatorRange(docText, pairNode, valueNode) {
   return { from: colonPos + 1, to: valueNode.from }
 }
 
-export default function cmYAMLPatchChanges(root, docText, patch) {
+function lineCommentFrom(docText, pos) {
+  const ls = lineStart(docText, pos)
+  const le = lineEnd(docText, pos)
+  const line = docText.slice(ls, le)
+  const i = line.indexOf('#')
+  return i === -1 ? '' : line.slice(i).replace(/\n$/, '')
+}
+
+function stripLineComment(docText, pos) {
+  const ls = lineStart(docText, pos)
+  const le = lineEnd(docText, pos)
+  const line = docText.slice(ls, le)
+  const i = line.indexOf('#')
+  if (i === -1) return null
+  return { from: ls + i, to: le - 1 }
+}
+
+// Single-op patching against a single (current) parse tree + doc text
+function cmYAMLPatchChangesAtomic(root, docText, patch) {
   const changes = []
 
   for (const op of patch) {
@@ -456,8 +469,6 @@ export default function cmYAMLPatchChanges(root, docText, patch) {
 
       const anchor = anchoredPrefix(docText, valueNode)
 
-      // NOTE: rawYaml ends with "\n" for objects and many scalars.
-      // Using the JS type is the reliable way to distinguish collections from scalars.
       const rawYaml = YAML.stringify(op.value)
       const scalar = rawYaml.trim()
       const isCollection = op.value !== null && typeof op.value === 'object'
@@ -475,10 +486,18 @@ export default function cmYAMLPatchChanges(root, docText, patch) {
       }
 
       if (pairNode && isCollection) {
+        const comment = lineCommentFrom(docText, pairNode.from)
+        const commentRange = stripLineComment(docText, pairNode.from)
+        if (commentRange) changes.push({ from: commentRange.from, to: commentRange.to, insert: '' })
+
         const indent = getIndent(docText, pairNode)
         const block = indentYamlBlock(rawYaml, `${indent}  `).trimEnd()
         const sep = pairSeparatorRange(docText, pairNode, valueNode)
-        if (sep) changes.push({ from: sep.from, to: sep.to, insert: `\n` })
+        if (sep) {
+          const suffix = comment ? ` ${comment}\n` : `\n`
+          changes.push({ from: sep.from, to: sep.to, insert: suffix })
+        }
+
         changes.push({ from: valueNode.from, to: valueNode.to, insert: block })
         continue
       }
@@ -487,7 +506,6 @@ export default function cmYAMLPatchChanges(root, docText, patch) {
         const sep = pairSeparatorRange(docText, pairNode, valueNode)
         if (sep) {
           const between = docText.slice(sep.from, sep.to)
-          // Don't collapse "a: # comment\n  1" into "a: 2" (would delete the comment)
           if (between.includes('\n') && !between.includes('#')) {
             changes.push({ from: sep.from, to: sep.to, insert: ' ' })
           }
@@ -511,7 +529,6 @@ export default function cmYAMLPatchChanges(root, docText, patch) {
         : findPairNode(parentNode, docText, String(lastSeg))
       if (!target) continue
 
-      // Flow-seq item removal: remove just the item (and a comma), not the whole line
       const flowSeq = isInsideFlowSequence(target, docText)
       if (flowSeq) {
         const r = removeFlowItemRange(docText, target)
@@ -519,7 +536,6 @@ export default function cmYAMLPatchChanges(root, docText, patch) {
         continue
       }
 
-      // Flow-map key removal: remove just the pair (and a comma), not the whole line
       const flow = isInsideFlowMapping(target, docText)
       if (flow && target.name === 'Pair') {
         const r = removeFlowPairRange(docText, target)
@@ -531,7 +547,6 @@ export default function cmYAMLPatchChanges(root, docText, patch) {
       const to = lineEnd(docText, target.to)
       changes.push({ from, to, insert: '' })
 
-      // Limited promotion rule for inline "- a: 1" removal
       if (target.name === 'Pair' && isInlineDashLine(docText, target.from)) {
         const nextPair = findNextPairSibling(target)
         if (nextPair) {
@@ -554,17 +569,24 @@ export default function cmYAMLPatchChanges(root, docText, patch) {
     }
 
     if (op.op === 'add') {
-      const parentNode = unwrapValue(findNodeAtPath(root, docText, path.slice(0, -1)))
+      const parentPath = path.slice(0, -1)
+      const parentNode = unwrapValue(findNodeAtPath(root, docText, parentPath))
+
+      // Empty document / no structural root: allow root-level add
+      if (!parentNode && parentPath.length === 0 && typeof lastSeg !== 'number') {
+        const newText = formatMapAddLine(String(lastSeg), op.value, '')
+        changes.push({ from: 0, to: 0, insert: newText })
+        continue
+      }
+
       if (!parentNode) continue
 
-      // Flow-map add: insert into braces instead of new line
       if (typeof lastSeg !== 'number' && isFlowMappingNode(parentNode, docText)) {
         const flowAdd = addFlowPair(docText, parentNode, String(lastSeg), op.value)
         changes.push(flowAdd)
         continue
       }
 
-      // Flow-seq add: insert into brackets instead of new line
       if (typeof lastSeg === 'number' && isFlowSequenceNode(parentNode, docText)) {
         const flowAdd = addFlowItem(docText, parentNode, op.value)
         changes.push(flowAdd)
@@ -616,4 +638,34 @@ export default function cmYAMLPatchChanges(root, docText, patch) {
 
   changes.sort((a, b) => a.from - b.from)
   return changes
+}
+
+function applyChanges(docText, changes) {
+  let out = docText
+  for (let i = changes.length - 1; i >= 0; i--) {
+    const { from, to, insert } = changes[i]
+    out = out.slice(0, from) + insert + out.slice(to)
+  }
+  return out
+}
+
+// JSON Patch semantics: ops apply sequentially to the updated document.
+// We implement that by reparsing the document for each op (so paths/indexes are evaluated
+// against the current state), then returning a single full-document replacement change.
+// This is correct for semantics; if you later want minimal diffs, we can add a diff step.
+export default function cmYAMLPatchChanges(_root, docText, patch) {
+  let current = docText
+
+  for (const op of patch) {
+    const state = EditorState.create({ doc: current, extensions: [yaml()] })
+    const tree = ensureSyntaxTree(state, current.length)
+    if (!tree) continue
+
+    const stepChanges = cmYAMLPatchChangesAtomic(tree.topNode, current, [op])
+    if (!stepChanges.length) continue
+    current = applyChanges(current, stepChanges)
+  }
+
+  if (current === docText) return []
+  return [{ from: 0, to: docText.length, insert: current }]
 }
