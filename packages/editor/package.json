@@ -8,7 +8,9 @@
     "test": "test"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "test:perf": "node --test --test-name-pattern performance",
+    "perf:update": "PERF_UPDATE=1 node --test --test-name-pattern performance"
   },
   "repository": {
     "type": "git",

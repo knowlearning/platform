@@ -1,0 +1,10 @@
+{
+  "single replace – small flat map": 0.59525573,
+  "single replace – large flat map": 2.6035116799999996,
+  "sequential replaces – medium map": 3.6008785399999987,
+  "deeply nested path traversal": 0.39556295999999974,
+  "large block sequence – replace middle": 2.1284420899999996,
+  "sequential appends to sequence": 1.3586939599999983,
+  "mixed bulk ops on large document": 9.971952249999992,
+  "block scalar replacement": 0.13929636999999956
+}

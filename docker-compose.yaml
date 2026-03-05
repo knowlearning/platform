@@ -1,6 +1,7 @@
 services:
   claude:
     image: node:22-bookworm-slim
+    user: "${UID}:${GID}"
     working_dir: /repo
     tty: true
     stdin_open: true
@@ -11,13 +12,6 @@ services:
       - type: bind
         source: ./
         target: /repo
-
-      # Persist Claude config/auth across runs
-      - claude-config:/tmp/home/.config
-
-      # Optional: persist npm cache so installs are faster
-      - claude-npm:/tmp/home/.npm-cache
-      - claude-npm-global:/tmp/home/.npm-global
 
     command: >
       bash -lc '
