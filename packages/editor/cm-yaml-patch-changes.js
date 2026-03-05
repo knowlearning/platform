@@ -21,7 +21,6 @@ function looksLikeCommentNode(node, docText) {
   if (!node) return false
   const name = node.name || ''
   if (name === 'Comment' || name.includes('Comment')) return true
-  // fallback: treat pure comment text spans as comments
   const text = docText.slice(node.from, node.to)
   return /^\s*#/.test(text)
 }
@@ -62,7 +61,6 @@ function skipWrappers(node, docText) {
     node = node.firstChild
   }
 
-  // Skip leading noise (comments, directives, doc markers)
   while (node) {
     const name = node.name || ''
     if (
@@ -76,12 +74,8 @@ function skipWrappers(node, docText) {
     break
   }
 
-  // If we still landed on a non-structural token, walk siblings until something structural
   while (node && !isStructuralNode(node)) node = node.nextSibling
-
-  // Fallback: some trees don't expose the mapping as a nextSibling after comment blocks
   if (!node) return firstStructuralDescendant(wrapperRoot)
-
   return node
 }
 
@@ -90,14 +84,14 @@ function unwrapValue(node) {
 
   if (node.name === 'Value' || node.name === 'Item') node = node.firstChild ?? node
 
-  // Anchor / alias wrappers (node names vary)
-  while (node && (
-    node.name === 'Anchor' ||
-    node.name === 'AnchoredValue' ||
-    node.name === 'Alias' ||
-    (node.name || '').includes('Anchor') ||
-    (node.name || '').includes('Alias')
-  )) {
+  while (
+    node &&
+    (node.name === 'Anchor' ||
+      node.name === 'AnchoredValue' ||
+      node.name === 'Alias' ||
+      (node.name || '').includes('Anchor') ||
+      (node.name || '').includes('Alias'))
+  ) {
     const next = node.firstChild ?? node.nextSibling
     if (!next || next === node) break
     node = next
@@ -203,8 +197,6 @@ function skipTrailingCommentAndBlankLines(docText, pos) {
 }
 
 function insertPosAfterPrelude(docText) {
-  // For "no structural root" docs, keep any leading prelude:
-  // directives, doc markers, comment-only lines, and blank lines.
   let pos = 0
 
   while (pos <= docText.length) {
@@ -235,8 +227,6 @@ function formatKey(key) {
   return /^[A-Za-z0-9_-]+$/.test(key) ? key : JSON.stringify(key)
 }
 
-// Ensure keys in YAML blocks are quoted consistently with formatKey().
-// This is intentionally conservative: it only rewrites simple `key:` forms.
 function quoteUnsafeKeysInBlock(yamlText) {
   const lines = yamlText.replace(/\n$/, '').split('\n')
   const out = []
@@ -322,7 +312,6 @@ function formatMapAddLine(key, value, indent) {
     return `${indent}${k}: ${block}`
   }
 
-  // Prefer block style for objects (real-world configs want this)
   const isObj = value !== null && typeof value === 'object'
   if (isObj) {
     const nestedYaml = YAML.stringify(value)
@@ -508,12 +497,119 @@ function stripLineComment(docText, pos) {
   const i = line.indexOf('#')
   if (i === -1) return null
 
-  // also remove any spaces immediately before the '#'
   let from = ls + i
   while (from > ls && /[ \t]/.test(docText[from - 1])) from--
 
   return { from, to: le - 1 }
 }
+
+// ---- NEW HELPERS (for failing tests) ----
+
+function detectEOL(docText) {
+  return docText.includes('\r\n') ? '\r\n' : '\n'
+}
+
+function normalizeEOL(text, eol) {
+  return text.replace(/\r?\n/g, eol)
+}
+
+function deepEqual(a, b) {
+  if (a === b) return true
+  if (Number.isNaN(a) && Number.isNaN(b)) return true
+  if (!a || !b) return false
+  if (typeof a !== typeof b) return false
+
+  if (Array.isArray(a)) {
+    if (!Array.isArray(b) || a.length !== b.length) return false
+    for (let i = 0; i < a.length; i++) if (!deepEqual(a[i], b[i])) return false
+    return true
+  }
+
+  if (typeof a === 'object') {
+    const ak = Object.keys(a)
+    const bk = Object.keys(b)
+    if (ak.length !== bk.length) return false
+    for (const k of ak) {
+      if (!Object.prototype.hasOwnProperty.call(b, k)) return false
+      if (!deepEqual(a[k], b[k])) return false
+    }
+    return true
+  }
+
+  return false
+}
+
+function getValueAtPathFromYaml(docText, path) {
+  try {
+    const doc = YAML.parse(docText)
+    let cur = doc
+    for (const seg of path) {
+      if (cur == null) return undefined
+      cur = cur[seg]
+    }
+    return cur
+  } catch {
+    return undefined
+  }
+}
+
+function isMappingNode(node) {
+  return (
+    !!node &&
+    (node.name === 'BlockMapping' ||
+      node.name === 'FlowMapping' ||
+      (node.name || '').includes('Mapping'))
+  )
+}
+
+function isSequenceNode(node) {
+  return (
+    !!node &&
+    (node.name === 'BlockSequence' ||
+      node.name === 'FlowSequence' ||
+      (node.name || '').includes('Sequence'))
+  )
+}
+
+function isPlusChompBlockScalarAtNode(docText, valueNode) {
+  if (!valueNode) return false
+  const head = docText.slice(valueNode.from, Math.min(docText.length, valueNode.from + 32))
+  return /^\s*[>|]\+/.test(head)
+}
+
+function stripTrailingNewlines(s) {
+  return s.replace(/\n+$/g, '')
+}
+
+// NEW: create a block sequence under `key:\n` when CodeMirror doesn't expose a Value node
+function materializeEmptySeqUnderPairIfNeeded(root, docText, parentPath, valueForFirstItem) {
+  if (!parentPath.length) return null
+  const key = parentPath[parentPath.length - 1]
+  if (typeof key === 'number') return null
+
+  const grandPath = parentPath.slice(0, -1)
+  const grand = unwrapValue(findNodeAtPath(root, docText, grandPath))
+  if (!grand || !isMappingNode(grand)) return null
+
+  const pair = findPairNode(grand, docText, String(key))
+  if (!pair) return null
+
+  // "empty sequence field" shape: `key:\n` typically has no Value child at all
+  const valueChild = pair.getChild('Value')
+  if (valueChild) return null
+
+  const indent = `${getIndent(docText, pair)}  `
+  const newText = formatSeqAddLines(valueForFirstItem, indent)
+  const insertAt = lineEnd(docText, pair.from)
+
+  return {
+    from: insertAt,
+    to: insertAt,
+    insert: ensureLeadingNewline(docText, insertAt, newText)
+  }
+}
+
+// ---- END NEW HELPERS ----
 
 // Single-op patching against a single (current) parse tree + doc text
 function cmYAMLPatchChangesAtomic(root, docText, patch) {
@@ -527,14 +623,26 @@ function cmYAMLPatchChangesAtomic(root, docText, patch) {
       const valueNode = unwrapValue(findNodeAtPath(root, docText, path))
       if (!valueNode) continue
 
+      const existing = getValueAtPathFromYaml(docText, path)
+      if (existing !== undefined) {
+        if (deepEqual(existing, op.value)) continue
+
+        if (
+          typeof existing === 'string' &&
+          typeof op.value === 'string' &&
+          isPlusChompBlockScalarAtNode(docText, valueNode) &&
+          stripTrailingNewlines(existing) === stripTrailingNewlines(op.value)
+        ) {
+          continue
+        }
+      }
+
       const parentNode = path.length
         ? unwrapValue(findNodeAtPath(root, docText, path.slice(0, -1)))
         : null
 
       const isMapKey = path.length && typeof lastSeg !== 'number'
-      const pairNode = (isMapKey && parentNode)
-        ? findPairNode(parentNode, docText, String(lastSeg))
-        : null
+      const pairNode = isMapKey && parentNode ? findPairNode(parentNode, docText, String(lastSeg)) : null
 
       const anchor = anchoredPrefix(docText, valueNode)
 
@@ -593,9 +701,10 @@ function cmYAMLPatchChangesAtomic(root, docText, patch) {
       const parentNode = unwrapValue(findNodeAtPath(root, docText, path.slice(0, -1)))
       if (!parentNode) continue
 
-      const target = typeof lastSeg === 'number'
-        ? findSeqItem(parentNode, lastSeg)
-        : findPairNode(parentNode, docText, String(lastSeg))
+      const target =
+        typeof lastSeg === 'number'
+          ? findSeqItem(parentNode, lastSeg)
+          : findPairNode(parentNode, docText, String(lastSeg))
       if (!target) continue
 
       const flowSeq = isInsideFlowSequence(target, docText)
@@ -641,8 +750,6 @@ function cmYAMLPatchChangesAtomic(root, docText, patch) {
       const parentPath = path.slice(0, -1)
       const parentNode = unwrapValue(findNodeAtPath(root, docText, parentPath))
 
-      // Empty document / no structural root: allow root-level add,
-      // but preserve leading prelude (directives / doc markers / comments / blanks).
       if (!parentNode && parentPath.length === 0 && typeof lastSeg !== 'number') {
         const newText = formatMapAddLine(String(lastSeg), op.value, '')
         const insertAt = insertPosAfterPrelude(docText)
@@ -655,6 +762,22 @@ function cmYAMLPatchChangesAtomic(root, docText, patch) {
       }
 
       if (!parentNode) continue
+
+      // NEW: handle `key:\n` where CM doesn't expose Value node
+      if (typeof lastSeg === 'number' && (!isSequenceNode(parentNode) && !isFlowSequenceNode(parentNode, docText))) {
+        const m = materializeEmptySeqUnderPairIfNeeded(root, docText, parentPath, op.value)
+        if (m) {
+          changes.push(m)
+          continue
+        }
+      }
+
+      // JSON Patch semantics: add under non-container should fail; we choose no-op
+      if (typeof lastSeg === 'number') {
+        if (!isSequenceNode(parentNode) && !isFlowSequenceNode(parentNode, docText)) continue
+      } else {
+        if (!isMappingNode(parentNode) && !isFlowMappingNode(parentNode, docText)) continue
+      }
 
       if (typeof lastSeg !== 'number' && isFlowMappingNode(parentNode, docText)) {
         const flowAdd = addFlowPair(docText, parentNode, String(lastSeg), op.value)
@@ -679,9 +802,12 @@ function cmYAMLPatchChangesAtomic(root, docText, patch) {
         const indent = valueIndentForSeqItems(docText, parentNode)
         const newText = formatSeqAddLines(op.value, indent)
 
-        let insertAt = lastSeg >= items.length
-          ? (items.length ? afterNodeLine(docText, items[items.length - 1]) : afterNodeLine(docText, parentNode))
-          : lineStart(docText, items[lastSeg].from)
+        let insertAt =
+          lastSeg >= items.length
+            ? items.length
+              ? afterNodeLine(docText, items[items.length - 1])
+              : afterNodeLine(docText, parentNode)
+            : lineStart(docText, items[lastSeg].from)
 
         insertAt = skipTrailingCommentAndBlankLines(docText, insertAt)
 
@@ -724,10 +850,8 @@ function applyChanges(docText, changes) {
   return out
 }
 
-// JSON Patch semantics: ops apply sequentially to the updated document.
-// We implement that by reparsing the document for each op, then returning a single
-// full-document replacement change.
 export default function cmYAMLPatchChanges(_root, docText, patch) {
+  const eol = detectEOL(docText)
   let current = docText
 
   for (const op of patch) {
@@ -738,6 +862,8 @@ export default function cmYAMLPatchChanges(_root, docText, patch) {
     const stepChanges = cmYAMLPatchChangesAtomic(tree.topNode, current, [op])
     if (!stepChanges.length) continue
     current = applyChanges(current, stepChanges)
+
+    current = normalizeEOL(current, eol)
   }
 
   if (current === docText) return []
