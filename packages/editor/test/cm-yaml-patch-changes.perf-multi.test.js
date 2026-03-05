@@ -45,7 +45,7 @@ function checkOrRecord(label, avgMs) {
 
 function applyPatches(yamlText, patch) {
   const state = EditorState.create({ doc: yamlText, extensions: [yaml()] })
-  const tree = ensureSyntaxTree(state, yamlText.length)
+  const tree = ensureSyntaxTree(state, yamlText.length, Infinity)
   if (!tree) throw new Error('Failed to parse YAML syntax tree')
   const changes = cmYAMLPatchChanges(tree.topNode, yamlText, patch)
 

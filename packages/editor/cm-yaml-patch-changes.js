@@ -689,6 +689,21 @@ function cmYAMLPatchChangesAtomic(root, docText, patch) {
         }
       }
 
+      // Replace a sequence item's scalar with a collection value
+      if (isCollection && typeof lastSeg === 'number') {
+        let itemNode = valueNode
+        while (itemNode && itemNode.name !== 'Item') itemNode = itemNode.parent
+
+        if (itemNode) {
+          const itemIndent = getIndent(docText, itemNode)
+          const lines = rawYaml.replace(/\n$/, '').split('\n')
+          let insert = lines[0]
+          for (let i = 1; i < lines.length; i++) insert += `\n${itemIndent}  ${lines[i]}`
+          changes.push({ from: valueNode.from, to: valueNode.to, insert })
+          continue
+        }
+      }
+
       changes.push({
         from: valueNode.from,
         to: valueNode.to,
@@ -856,7 +871,7 @@ export default function cmYAMLPatchChanges(_root, docText, patch) {
   let changed = false
 
   let state = EditorState.create({ doc: current, extensions: [yaml()] })
-  let tree = ensureSyntaxTree(state, current.length)
+  let tree = ensureSyntaxTree(state, current.length, Infinity)
   if (!tree) return []
 
   for (const op of patch) {
