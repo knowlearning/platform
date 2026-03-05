@@ -10,5 +10,18 @@
   "many replaces – large map (30 ops, 200 keys)": 101.80349705,
   "many appends – large sequence (30 ops, 100-item base)": 21.09698209999999,
   "tail replaces – very large map (20 ops at end, 500 keys)": 136.3117802,
-  "mixed bulk ops – very large document (50 ops, 300 keys)": 75.78282420000005
+  "mixed bulk ops – very large document (50 ops, 300 keys)": 75.78282420000005,
+  "50 replaces – 500-key flat map": 330.1172415,
+  "50 replaces – 500-key flat map, tail only": 313.83427919999997,
+  "50 replaces – 500-key flat map, head only": 291.1405004,
+  "60 mixed ops (add+remove+replace) – 400-key flat map": 127.17518089999994,
+  "40 replaces – nested config (20 sections × 10 settings)": 116.37494169999991,
+  "60 mixed ops – nested config (30 sections × 8 settings)": 126.20101429999995,
+  "50 mixed ops – complex mixed document (scalars, sequence, nested map)": 94.25645509999995,
+  "20 block scalar replacements – 40-entry doc": 57.105071599999974,
+  "30 mixed ops – block scalar doc with tag/title/body edits": 41.634853499999736,
+  "50 appends to large sequence (200-item base)": 69.70645600000026,
+  "40 replace+remove on large sequence (150-item)": 51.964782899999776,
+  "30 short→long value replacements – 300-key flat map": 132.0467647999998,
+  "30 long→short value replacements – 300-key flat map": 127.42365189999983
 }
