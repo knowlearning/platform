@@ -202,6 +202,35 @@ function skipTrailingCommentAndBlankLines(docText, pos) {
   return pos
 }
 
+function insertPosAfterPrelude(docText) {
+  // For "no structural root" docs, keep any leading prelude:
+  // directives, doc markers, comment-only lines, and blank lines.
+  let pos = 0
+
+  while (pos <= docText.length) {
+    const ls = lineStart(docText, pos)
+    const le = lineEnd(docText, pos)
+    const line = docText.slice(ls, le).replace(/\r?\n$/, '')
+
+    if (ls >= docText.length) return docText.length
+
+    if (
+      /^\s*$/.test(line) ||
+      /^\s*#/.test(line) ||
+      /^\s*%/.test(line) ||
+      /^\s*---\s*$/.test(line) ||
+      /^\s*\.\.\.\s*$/.test(line)
+    ) {
+      pos = le
+      continue
+    }
+
+    return ls
+  }
+
+  return docText.length
+}
+
 function formatKey(key) {
   return /^[A-Za-z0-9_-]+$/.test(key) ? key : JSON.stringify(key)
 }
@@ -612,10 +641,16 @@ function cmYAMLPatchChangesAtomic(root, docText, patch) {
       const parentPath = path.slice(0, -1)
       const parentNode = unwrapValue(findNodeAtPath(root, docText, parentPath))
 
-      // Empty document / no structural root: allow root-level add
+      // Empty document / no structural root: allow root-level add,
+      // but preserve leading prelude (directives / doc markers / comments / blanks).
       if (!parentNode && parentPath.length === 0 && typeof lastSeg !== 'number') {
         const newText = formatMapAddLine(String(lastSeg), op.value, '')
-        changes.push({ from: 0, to: 0, insert: newText })
+        const insertAt = insertPosAfterPrelude(docText)
+        changes.push({
+          from: insertAt,
+          to: insertAt,
+          insert: ensureLeadingNewline(docText, insertAt, newText)
+        })
         continue
       }
 
