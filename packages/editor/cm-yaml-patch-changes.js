@@ -38,7 +38,23 @@ function isStructuralNode(node) {
   )
 }
 
+function firstStructuralDescendant(node) {
+  let found = null
+  function walk(n) {
+    if (!n || found) return
+    if (isStructuralNode(n)) {
+      found = n
+      return
+    }
+    for (let c = n.firstChild; c; c = c.nextSibling) walk(c)
+  }
+  walk(node)
+  return found
+}
+
 function skipWrappers(node, docText) {
+  const wrapperRoot = node
+
   while (node && ['yaml', 'Stream', 'Document'].includes(node.name)) {
     node = node.firstChild
   }
@@ -59,6 +75,9 @@ function skipWrappers(node, docText) {
 
   // If we still landed on a non-structural token, walk siblings until something structural
   while (node && !isStructuralNode(node)) node = node.nextSibling
+
+  // Fallback: some trees don't expose the mapping as a nextSibling after comment blocks
+  if (!node) return firstStructuralDescendant(wrapperRoot)
 
   return node
 }
@@ -274,6 +293,9 @@ function removeFlowPairRange(docText, pairNode) {
 
   // absorb surrounding spaces
   while (from > 0 && /[ \t]/.test(docText[from - 1])) from--
+
+  // If we just absorbed the single space right after '{', keep one space for "{ key: v }"
+  if (docText[from - 1] === '{' && docText[from] === ' ') from++
 
   // Prefer removing a preceding ", " if present, otherwise remove a following ", "
   if (docText[from - 1] === ',') {
