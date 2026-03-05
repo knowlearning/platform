@@ -55,6 +55,7 @@ Agent.watch(id, ({ patch }) => {
     const docText = view.state.doc.toString()
     const changes = cmYAMLPatchChanges(tree.topNode, docText, patch)
     if (changes.length) view.dispatch({ changes })
+    state.__yaml = view.state.doc.toString()
     isProgrammaticChange.value = false
   }
 })
