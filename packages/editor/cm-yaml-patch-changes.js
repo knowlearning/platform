@@ -206,8 +206,43 @@ function formatKey(key) {
   return /^[A-Za-z0-9_-]+$/.test(key) ? key : JSON.stringify(key)
 }
 
-function indentYamlBlock(yamlText, indent) {
+// Ensure keys in YAML blocks are quoted consistently with formatKey().
+// This is intentionally conservative: it only rewrites simple `key:` forms.
+function quoteUnsafeKeysInBlock(yamlText) {
   const lines = yamlText.replace(/\n$/, '').split('\n')
+  const out = []
+
+  for (const line of lines) {
+    const trimmed = line.trimStart()
+    if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('-') || trimmed.startsWith('?')) {
+      out.push(line)
+      continue
+    }
+
+    const m = line.match(/^(\s*)([^"'\s][^:]*?):(.*)$/)
+    if (!m) {
+      out.push(line)
+      continue
+    }
+
+    const indent = m[1]
+    const key = m[2]
+    const rest = m[3]
+
+    if (/^[A-Za-z0-9_-]+$/.test(key)) {
+      out.push(line)
+      continue
+    }
+
+    out.push(`${indent}${JSON.stringify(key)}:${rest}`)
+  }
+
+  return out.join('\n') + '\n'
+}
+
+function indentYamlBlock(yamlText, indent) {
+  const normalized = quoteUnsafeKeysInBlock(yamlText)
+  const lines = normalized.replace(/\n$/, '').split('\n')
   return lines.map(line => `${indent}${line}`).join('\n') + '\n'
 }
 
@@ -443,7 +478,12 @@ function stripLineComment(docText, pos) {
   const line = docText.slice(ls, le)
   const i = line.indexOf('#')
   if (i === -1) return null
-  return { from: ls + i, to: le - 1 }
+
+  // also remove any spaces immediately before the '#'
+  let from = ls + i
+  while (from > ls && /[ \t]/.test(docText[from - 1])) from--
+
+  return { from, to: le - 1 }
 }
 
 // Single-op patching against a single (current) parse tree + doc text
@@ -650,9 +690,8 @@ function applyChanges(docText, changes) {
 }
 
 // JSON Patch semantics: ops apply sequentially to the updated document.
-// We implement that by reparsing the document for each op (so paths/indexes are evaluated
-// against the current state), then returning a single full-document replacement change.
-// This is correct for semantics; if you later want minimal diffs, we can add a diff step.
+// We implement that by reparsing the document for each op, then returning a single
+// full-document replacement change.
 export default function cmYAMLPatchChanges(_root, docText, patch) {
   let current = docText
 
