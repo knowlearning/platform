@@ -148,6 +148,63 @@ describe('performance', () => {
     checkOrRecord('mixed bulk ops on large document', avgMs)
   })
 
+  test('many replaces – large map (30 ops, 200 keys)', () => {
+    const lines = []
+    for (let i = 0; i < 200; i++) lines.push(`key${i}: value${i}`)
+    const yamlText = lines.join('\n') + '\n'
+    const patch = Array.from({ length: 30 }, (_, i) => ({
+      op: 'replace',
+      path: [`key${i * 6}`],
+      value: `updated${i}`,
+    }))
+
+    const avgMs = bench(() => applyPatches(yamlText, patch), 20)
+    checkOrRecord('many replaces – large map (30 ops, 200 keys)', avgMs)
+  })
+
+  test('many appends – large sequence (30 ops, 100-item base)', () => {
+    const lines = ['items:']
+    for (let i = 0; i < 100; i++) lines.push(`  - item${i}`)
+    const yamlText = lines.join('\n') + '\n'
+    const patch = Array.from({ length: 30 }, (_, i) => ({
+      op: 'add',
+      path: ['items', 99],
+      value: `appended${i}`,
+    }))
+
+    const avgMs = bench(() => applyPatches(yamlText, patch), 20)
+    checkOrRecord('many appends – large sequence (30 ops, 100-item base)', avgMs)
+  })
+
+  test('tail replaces – very large map (20 ops at end, 500 keys)', () => {
+    const lines = []
+    for (let i = 0; i < 500; i++) lines.push(`key${i}: value${i}`)
+    const yamlText = lines.join('\n') + '\n'
+    // All ops at the tail — maximum preceding context for the parser to reuse
+    const patch = Array.from({ length: 20 }, (_, i) => ({
+      op: 'replace',
+      path: [`key${480 + i}`],
+      value: `updated${i}`,
+    }))
+
+    const avgMs = bench(() => applyPatches(yamlText, patch), 10)
+    checkOrRecord('tail replaces – very large map (20 ops at end, 500 keys)', avgMs)
+  })
+
+  test('mixed bulk ops – very large document (50 ops, 300 keys)', () => {
+    const lines = []
+    for (let i = 0; i < 300; i++) lines.push(`key${i}: value${i}`)
+    const yamlText = lines.join('\n') + '\n'
+    const patch = [
+      ...Array.from({ length: 17 }, (_, i) => ({ op: 'add', path: [`newkey${i}`], value: `new${i}` })),
+      ...Array.from({ length: 17 }, (_, i) => ({ op: 'remove', path: [`key${i}`] })),
+      ...Array.from({ length: 16 }, (_, i) => ({ op: 'replace', path: [`key${i + 17}`], value: `replaced${i}` })),
+    ]
+
+    const avgMs = bench(() => applyPatches(yamlText, patch), 10)
+    checkOrRecord('mixed bulk ops – very large document (50 ops, 300 keys)', avgMs)
+  })
+
   test('block scalar replacement', () => {
     const yamlText = [
       'title: hello',

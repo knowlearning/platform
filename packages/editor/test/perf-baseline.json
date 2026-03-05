@@ -1,10 +1,14 @@
 {
-  "single replace – small flat map": 0.59525573,
-  "single replace – large flat map": 2.6035116799999996,
-  "sequential replaces – medium map": 3.6008785399999987,
-  "deeply nested path traversal": 0.39556295999999974,
-  "large block sequence – replace middle": 2.1284420899999996,
-  "sequential appends to sequence": 1.3586939599999983,
-  "mixed bulk ops on large document": 9.971952249999992,
-  "block scalar replacement": 0.13929636999999956
+  "single replace – small flat map": 0.8962785600000001,
+  "single replace – large flat map": 3.2784218499999995,
+  "sequential replaces – medium map": 3.7956251599999997,
+  "deeply nested path traversal": 0.4719940099999997,
+  "large block sequence – replace middle": 2.5930556300000003,
+  "sequential appends to sequence": 1.2550422799999978,
+  "mixed bulk ops on large document": 10.570032349999996,
+  "block scalar replacement": 0.22031410999999934,
+  "many replaces – large map (30 ops, 200 keys)": 101.80349705,
+  "many appends – large sequence (30 ops, 100-item base)": 21.09698209999999,
+  "tail replaces – very large map (20 ops at end, 500 keys)": 136.3117802,
+  "mixed bulk ops – very large document (50 ops, 300 keys)": 75.78282420000005
 }

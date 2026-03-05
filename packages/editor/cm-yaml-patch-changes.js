@@ -853,19 +853,37 @@ function applyChanges(docText, changes) {
 export default function cmYAMLPatchChanges(_root, docText, patch) {
   const eol = detectEOL(docText)
   let current = docText
+  let changed = false
+
+  let state = EditorState.create({ doc: current, extensions: [yaml()] })
+  let tree = ensureSyntaxTree(state, current.length)
+  if (!tree) return []
 
   for (const op of patch) {
-    const state = EditorState.create({ doc: current, extensions: [yaml()] })
-    const tree = ensureSyntaxTree(state, current.length)
-    if (!tree) continue
-
     const stepChanges = cmYAMLPatchChangesAtomic(tree.topNode, current, [op])
     if (!stepChanges.length) continue
+
+    changed = true
     current = applyChanges(current, stepChanges)
 
-    current = normalizeEOL(current, eol)
+    // Use incremental re-parse: CM reuses unchanged subtrees, much cheaper than EditorState.create
+    if (eol !== '\n') {
+      const normalized = normalizeEOL(current, eol)
+      if (normalized !== current) {
+        current = normalized
+        // EOL normalization may change positions beyond stepChanges — do a full replace
+        state = state.update({ changes: { from: 0, to: state.doc.length, insert: current } }).state
+      } else {
+        state = state.update({ changes: stepChanges }).state
+      }
+    } else {
+      state = state.update({ changes: stepChanges }).state
+    }
+
+    tree = ensureSyntaxTree(state, state.doc.length)
+    if (!tree) break
   }
 
-  if (current === docText) return []
+  if (!changed) return []
   return [{ from: 0, to: docText.length, insert: current }]
 }
