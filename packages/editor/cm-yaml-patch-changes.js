@@ -1,6 +1,6 @@
 // DFS through the CodeMirror YAML syntax tree to locate and apply patch operations
 import YAML from 'yaml'
-import { EditorState } from '@codemirror/state'
+import { EditorState, ChangeSet } from '@codemirror/state'
 import { ensureSyntaxTree } from '@codemirror/language'
 import { yaml } from '@codemirror/lang-yaml'
 
@@ -869,6 +869,10 @@ export default function cmYAMLPatchChanges(_root, docText, patch) {
   const eol = detectEOL(docText)
   let current = docText
   let changed = false
+  // For LF-only docs, track a composed ChangeSet to return minimal granular changes.
+  // For CRLF docs we skip this: CM's Text class normalizes \r\n to \n, so insert.toString()
+  // would strip \r and corrupt the output. Fall back to a full-doc replacement in that case.
+  let composedChanges = null
 
   let state = EditorState.create({ doc: current, extensions: [yaml()] })
   let tree = ensureSyntaxTree(state, current.length, Infinity)
@@ -879,6 +883,14 @@ export default function cmYAMLPatchChanges(_root, docText, patch) {
     if (!stepChanges.length) continue
 
     changed = true
+
+    if (eol === '\n') {
+      // Build a ChangeSet for this step (relative to current doc length, before applying)
+      const stepCS = ChangeSet.of(stepChanges, current.length)
+      // Compose into the running total (keeps everything relative to original docText)
+      composedChanges = composedChanges ? composedChanges.compose(stepCS) : stepCS
+    }
+
     current = applyChanges(current, stepChanges)
 
     // Use incremental re-parse: CM reuses unchanged subtrees, much cheaper than EditorState.create
@@ -900,5 +912,15 @@ export default function cmYAMLPatchChanges(_root, docText, patch) {
   }
 
   if (!changed) return []
-  return [{ from: 0, to: docText.length, insert: current }]
+
+  // For CRLF docs, return a single full-doc replacement (CM's Text strips \r so we can't
+  // use iterChanges safely).
+  if (eol !== '\n') return [{ from: 0, to: docText.length, insert: current }]
+
+  // For LF docs, return the minimal granular changes relative to the original docText
+  const result = []
+  composedChanges.iterChanges((fromA, toA, _fromB, _toB, insert) => {
+    result.push({ from: fromA, to: toA, insert: insert.toString() })
+  })
+  return result
 }
