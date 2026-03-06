@@ -28,21 +28,17 @@ HARDEN_ARGS="
 HOST_HOME="${HOST_HOME:-$REPO_DIR/.claude-home}"
 mkdir -p "$HOST_HOME"
 
-CLAUDE_MD="$REPO_DIR/CLAUDE.md"
-MARKER="Added by claude.sh"
+# Runtime Claude instructions (stored outside repo)
+PROMPT_DIR="$HOST_HOME/.claude"
+PROMPT_FILE="$PROMPT_DIR/runtime-instructions.md"
 
-# Append behavioral instruction only if not already present
-if ! grep -q "$MARKER" "$CLAUDE_MD" 2>/dev/null; then
-  cat >> "$CLAUDE_MD" <<'EOF'
+mkdir -p "$PROMPT_DIR"
 
----
-(Added by claude.sh)
-
+cat > "$PROMPT_FILE" <<'EOF'
 Before taking actions that materially change approach, architecture, data shape, or irreversible state, ask briefly for confirmation.
 
 Do not ask for permission for routine read, write, or bash operations inside this container.
 EOF
-fi
 
 docker build -t "$IMAGE" - <<'DOCKERFILE'
 FROM node:22-bookworm-slim
@@ -69,4 +65,7 @@ exec docker run --rm -it \
   -u "$(id -u):$(id -g)" \
   $HARDEN_ARGS \
   "$IMAGE" \
-  claude --dangerously-skip-permissions "$@"
+  claude \
+  --dangerously-skip-permissions \
+  --append-system-prompt-file /home/dev/.claude/runtime-instructions.md \
+  "$@"
