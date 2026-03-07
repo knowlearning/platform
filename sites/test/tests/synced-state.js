@@ -81,6 +81,68 @@ export default function () {
       expect(state3.local).to.equal('mutation')
     })
 
+    it('Synced callback receives a faithful server-state snapshot, not the live proxy', async function () {
+      const id = uuid()
+      const snapshots = []
+
+      const state = await Agent.state(id).synced(s => snapshots.push(s))
+
+      state.x = 'first'
+      await Agent.synced()  // 'first' ACK'd; echo in flight (macrotask)
+
+      state.x = 'second'   // synchronous — runs before echo arrives
+      await Agent.synced()
+      await pause(200)      // both echoes arrive and callbacks fire
+
+      // Bug:  s IS resolvedProxy. Both snapshots point to the same live proxy.
+      //       After echoes settle, proxy.x === 'second'. snapshots[0].x === 'second'.
+      //       expect('second').to.equal('first') → FAILS.
+      // Fix:  s is a structuredClone of server state at time of echo.
+      //       snapshots[0] = { x: 'first' }, snapshots[1] = { x: 'second' }.
+      expect(snapshots[0].x).to.equal('first')
+      expect(snapshots[1].x).to.equal('second')
+    })
+
+    it('Synced proxy is not modified by own-mutation echoes (proxy value stable in callbacks)', async function () {
+      const id = uuid()
+      const proxyValuesAtCallback = []
+
+      const state = await Agent.state(id).synced(() => {
+        proxyValuesAtCallback.push(state.x)  // read proxy, not callback arg
+      })
+
+      state.x = 'first'
+      await Agent.synced()  // echo in flight; 'second' set synchronously before it arrives
+
+      state.x = 'second'
+      await Agent.synced()
+      await pause(200)
+
+      expect(proxyValuesAtCallback).to.deep.equal(['first', 'second'])
+    })
+
+    it('Array is not corrupted and callback receives faithful state when own push is echoed', async function () {
+      const id = uuid()
+      let callbackArg
+
+      const state = await Agent.state(id).synced(s => { callbackArg = s.items.slice() })
+
+      state.items = []
+      await Agent.synced()
+      await pause(100)  // let echo for items=[] settle (idempotent for arrays)
+
+      state.items.push('a')  // generates: { op: 'add', path: ['items', 0], value: 'a' }
+      await Agent.synced()
+      await pause(200)        // echo arrives; re-applies add at index 0 — inserts again
+
+      // Bug:  items proxy becomes ['a', 'a']. Callback receives proxy so sees ['a', 'a'].
+      //       Both assertions fail.
+      // Fix:  proxy unchanged (['a']). Callback receives server snapshot (['a']).
+      //       Both pass.
+      expect(state.items).to.deep.equal(['a'])
+      expect(callbackArg).to.deep.equal(['a'])
+    })
+
     it('Nested object set externally remains mutable and persistent', async function () {
       const id = uuid()
       const { auth: { user: agentUser }, domain: agentDomain } = await Agent.environment()
@@ -88,9 +150,9 @@ export default function () {
       let resolveSynced
       const syncedOnce = new Promise(r => resolveSynced = r)
 
-      // Use Agent's own scope. The server echo of the local write arrives back
-      // through the sync watcher as an "external" update, wrapping nested in a
-      // child proxy. This verifies that child proxy remains mutable and connected.
+      // Use Agent's own scope. PatchProxy wraps nested objects in child proxies
+      // when they are first set (set trap). This verifies that the child proxy
+      // created at write time remains mutable and connected after the echo fires.
       const state = await Agent.state(id).synced(updated => {
         if (updated.nested) resolveSynced()
       })

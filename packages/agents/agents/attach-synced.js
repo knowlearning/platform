@@ -28,12 +28,21 @@ export default function attachSynced(watchers, init) {
     if (syncRegistered) return
     syncRegistered = true
     if (!watchers[resolvedKey]) watchers[resolvedKey] = []
-    watchers[resolvedKey].push(({ patch }) => {
+    watchers[resolvedKey].push(({ patch, state, ii }) => {
       if (!patch) return
-      ctx.applyingExternalUpdate = true
-      applyPatch(resolvedProxy, standardJSONPatch(patch))
-      ctx.applyingExternalUpdate = false
-      syncCallbacks.forEach(cb => cb(resolvedProxy, patch))
+      const pending = ctx.pendingInteractions?.size
+        ? Promise.all(ctx.pendingInteractions)
+        : Promise.resolve()
+      pending.then(() => {
+        if (ctx.ownInteractions?.has(ii)) {
+          ctx.ownInteractions.delete(ii)
+        } else {
+          ctx.applyingExternalUpdate = true
+          applyPatch(resolvedProxy, standardJSONPatch(patch))
+          ctx.applyingExternalUpdate = false
+        }
+        syncCallbacks.forEach(cb => cb(state, patch))
+      })
     })
   }
 

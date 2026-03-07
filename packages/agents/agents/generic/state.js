@@ -36,11 +36,17 @@ export default function(scope='[]', user, domain, { keyToSubscriptionId, watcher
       const active = data.active
       delete data.active
       resolveMetadataPromise(data)
+      if (!ctx.ownInteractions) ctx.ownInteractions = new Set()
+      if (!ctx.pendingInteractions) ctx.pendingInteractions = new Set()
       const proxy = new PatchProxy(active || {}, patch => {
         if (ctx.applyingExternalUpdate) return
         const activePatch = structuredClone(patch)
         activePatch.forEach(entry => entry.path.unshift('active'))
-        interact(scope, activePatch)
+        const p = interact(scope, activePatch).then(
+          r => { ctx.ownInteractions.add(r.ii); ctx.pendingInteractions.delete(p) },
+          () => { ctx.pendingInteractions.delete(p) }
+        )
+        ctx.pendingInteractions.add(p)
       })
       resolveSync(proxy, qualifiedScope)
       resolveState(proxy)
