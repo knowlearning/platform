@@ -17,6 +17,7 @@ import stateTest from './tests/state.js'
 import environmentTest from './tests/environment.js'
 import namespacedEmbeddings from './tests/namespaced-embeddings.js'
 import latestBugfixes from './tests/latest-bugfixes.js'
+import syncedState from './tests/synced-state.js'
 import Agent from '@knowlearning/agents/browser.js'
 import browserAgent from '@knowlearning/agents/browser/initialize.js'
 import { vuePersistentStore } from '@knowlearning/agents/vue.js'
@@ -116,6 +117,21 @@ else if (mode === 'EMBEDDED_ENVIRONMENT_TEST_MODE') {
   const id = uuid()
   Agent.close(await Agent.environment(id))
 }
+else if (mode === 'SYNCED_PARENT_TO_EMBED') {
+  // Embedded agent subscribes with .synced(); parent sends updates; embedded closes with received value
+  const scopeId = id.split('/')[1]
+  await Agent.state(scopeId).synced(updated => {
+    if (updated.done) Agent.close(updated.x)
+  })
+}
+else if (mode === 'SYNCED_EMBED_TO_PARENT') {
+  // Embedded agent modifies scope; parent's .synced() proxy reflects the change
+  const scopeId = id.split('/')[1]
+  const state = await Agent.state(scopeId)
+  state.x = 42
+  await Agent.synced()
+  Agent.close(null)
+}
 else {
   //  set up some globals for ease of use in test files
   window.expect = chai.expect
@@ -157,6 +173,7 @@ else {
     if (mode.length === 4) reconnect()
     uploads()
     multiAgent()
+    syncedState()
   })
 
   if (mode === 'test') {

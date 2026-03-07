@@ -27,11 +27,16 @@ export interface AgentUploadInfo {
   accept?: string;
 }
 
+export interface SyncedStatePromise extends Promise<object> {
+  synced(callback?: (state: object, patch: object[]) => void): SyncedStatePromise;
+  metadata: Promise<object>;
+}
+
 export interface Agent {
   login(provider: string): void;
   logout(): void;
   uuid(): string;
-  state(id: string, user?: string, domain?: string): Promise<object>;
+  state(id: string, user?: string, domain?: string): SyncedStatePromise;
   metadata(id: string, user?: string, domain?: string): Promise<object>;
   watch(id: string, callback: (update: { state: object }) => void, user?: string, domain?: string): void;
   upload(info?: AgentUploadInfo): Promise<string>;

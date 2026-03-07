@@ -1,5 +1,6 @@
 import { validate as isUUID, v1 as uuid } from 'uuid'
 import PatchProxy from '@knowlearning/patch-proxy'
+import attachSynced from './attach-synced.js'
 import watchImplementation from './watch.js'
 import sync from './sync.js'
 
@@ -96,18 +97,27 @@ export default function EmbeddedAgent(postMessage) {
     return send({ type: 'patch', root, scopes })
   }
 
-  async function state(scope, user, domain) {
-    if (scope === undefined) {
-      const { context } = await environment()
-      scope = JSON.stringify(context)
-    }
-    const startState = await send({ type: 'state', scope, user, domain })
-    return new PatchProxy(startState, patch => {
-      //  TODO: reject updates if user is not owner
-      const activePatch = structuredClone(patch)
-      activePatch.forEach(entry => entry.path.unshift('active'))
-      interact(scope, activePatch)
-    })
+  function state(scope, user, domain) {
+    return attachSynced(watchers, (ctx, resolveSync) => (async () => {
+      if (scope === undefined) {
+        const { context } = await environment()
+        scope = JSON.stringify(context)
+      }
+      const startState = await send({ type: 'state', scope, user, domain })
+      const { auth, domain: rootDomain } = await environment()
+      const d = !domain || domain === rootDomain ? '' : domain
+      const u = !user || auth.user === user ? '' : user
+      const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
+      const proxy = new PatchProxy(startState, patch => {
+        //  TODO: reject updates if user is not owner
+        if (ctx.applyingExternalUpdate) return
+        const activePatch = structuredClone(patch)
+        activePatch.forEach(entry => entry.path.unshift('active'))
+        interact(scope, activePatch)
+      })
+      resolveSync(proxy, key)
+      return proxy
+    })())
   }
 
   function reset(scope) {

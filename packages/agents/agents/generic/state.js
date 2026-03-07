@@ -1,11 +1,12 @@
 import { v4 as uuid, validate as isUUID } from 'uuid'
 import PatchProxy from '@knowlearning/patch-proxy'
+import attachSynced from '../attach-synced.js'
 
 export default function(scope='[]', user, domain, { keyToSubscriptionId, watchers, states, create, environment, lastMessageResponse, lastInteractionResponse, interact, log }) {
   let resolveMetadataPromise
   let metadataPromise = new Promise(resolve => resolveMetadataPromise = resolve)
 
-  const statePromise = new Promise(async (resolveState, rejectState) => {
+  const statePromise = attachSynced(watchers, (ctx, resolveSync) => new Promise(async (resolveState, rejectState) => {
     const { auth: { user: u }, domain: d, session } = await environment()
 
     const qualifiedScope = isUUID(scope) ? scope : `${!domain || domain === d ? '' : domain}/${!user || user === u ? '' : user}/${scope}`
@@ -35,16 +36,19 @@ export default function(scope='[]', user, domain, { keyToSubscriptionId, watcher
       const active = data.active
       delete data.active
       resolveMetadataPromise(data)
-      resolveState(new PatchProxy(active || {}, patch => {
+      const proxy = new PatchProxy(active || {}, patch => {
+        if (ctx.applyingExternalUpdate) return
         const activePatch = structuredClone(patch)
         activePatch.forEach(entry => entry.path.unshift('active'))
         interact(scope, activePatch)
-      }))
+      })
+      resolveSync(proxy, qualifiedScope)
+      resolveState(proxy)
     }
     catch (error) {
       rejectState(error)
     }
-  })
+  }))
 
   statePromise.metadata = metadataPromise
   return statePromise
