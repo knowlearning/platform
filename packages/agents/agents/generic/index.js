@@ -17,6 +17,7 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
   const watchers = {}
   const keyToSubscriptionId = {}
   const lastInteractionResponse = {}
+  const pendingEchoCallbacks = new Set()
 
   log('INITIALIZING AGENT CONNECTION')
   const [
@@ -47,6 +48,7 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     interact,
     fetch,
     synced,
+    pendingEchoCallbacks,
     metadata,
     log
   }
@@ -204,6 +206,12 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     }
   }
 
+  async function syncedWithEchoCallbacks() {
+    const echoSnapshot = [...pendingEchoCallbacks]
+    await synced()
+    if (echoSnapshot.length) await Promise.all(echoSnapshot)
+  }
+
   function response() {
     return lastMessageResponse()
   }
@@ -224,7 +232,7 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
     reset,
     metadata,
     query,
-    synced,
+    synced: syncedWithEchoCallbacks,
     disconnect,
     reconnect,
     debug,

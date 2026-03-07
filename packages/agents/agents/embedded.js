@@ -11,6 +11,7 @@ export default function EmbeddedAgent(postMessage) {
   const responses = {}
   const watchers = {}
   const sentUpdates = {}
+  const pendingEchoCallbacks = new Set()
 
   const [ watch, removeWatcher ] = watchImplementation({ metadata, state, watchers, synced, sentUpdates, environment })
 
@@ -108,12 +109,28 @@ export default function EmbeddedAgent(postMessage) {
       const d = !domain || domain === rootDomain ? '' : domain
       const u = !user || auth.user === user ? '' : user
       const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
+      if (!ctx.ownInteractions) ctx.ownInteractions = new Set()
+      if (!ctx.pendingInteractions) ctx.pendingInteractions = new Set()
+      if (!ctx.echoResolvers) ctx.echoResolvers = []
+      let lastInteractPromise = null
       const proxy = new PatchProxy(startState, patch => {
         //  TODO: reject updates if user is not owner
         if (ctx.applyingExternalUpdate) return
         const activePatch = structuredClone(patch)
         activePatch.forEach(entry => entry.path.unshift('active'))
-        interact(scope, activePatch)
+        const p = interact(scope, activePatch).then(
+          r => { ctx.ownInteractions.add(r.ii); ctx.pendingInteractions.delete(p) },
+          () => { ctx.pendingInteractions.delete(p) }
+        )
+        ctx.pendingInteractions.add(p)
+        if (ctx.syncActive && p !== lastInteractPromise) {
+          lastInteractPromise = p
+          let resolveEcho
+          const echoPromise = new Promise(r => resolveEcho = r)
+          ctx.echoResolvers.push(resolveEcho)
+          pendingEchoCallbacks.add(echoPromise)
+          echoPromise.then(() => pendingEchoCallbacks.delete(echoPromise))
+        }
       })
       resolveSync(proxy, key)
       return proxy
@@ -213,7 +230,11 @@ export default function EmbeddedAgent(postMessage) {
   function logout() { return send({ type: 'logout' }) }
   function disconnect() { return send({ type: 'disconnect' }) }
   function reconnect() { return send({ type: 'reconnect' }) }
-  function synced() { return send({ type: 'synced' }) }
+  async function synced() {
+    const echoSnapshot = [...pendingEchoCallbacks]
+    await send({ type: 'synced' })
+    if (echoSnapshot.length) await Promise.all(echoSnapshot)
+  }
   function close(info) { return send({ type: 'close', info }) }
   function guarantee(script, namespaces, context) { return send({ type: 'guarantee', script, namespaces, context }) }
   function response(id=lastRequestId) { return send({ type: 'response', id }) }

@@ -34,7 +34,8 @@ export default function attachSynced(watchers, init) {
         ? Promise.all(ctx.pendingInteractions)
         : Promise.resolve()
       pending.then(() => {
-        if (ctx.ownInteractions?.has(ii)) {
+        const isOwn = ctx.ownInteractions?.has(ii)
+        if (isOwn) {
           ctx.ownInteractions.delete(ii)
         } else {
           ctx.applyingExternalUpdate = true
@@ -42,6 +43,9 @@ export default function attachSynced(watchers, init) {
           ctx.applyingExternalUpdate = false
         }
         syncCallbacks.forEach(cb => cb(state, patch))
+        if (isOwn && ctx.echoResolvers?.length) {
+          ctx.echoResolvers.shift()()
+        }
       })
     })
   }
@@ -56,6 +60,8 @@ export default function attachSynced(watchers, init) {
 
   promise.synced = function(callback) {
     shouldSync = true
+    ctx.syncActive = true
+    if (!ctx.echoResolvers) ctx.echoResolvers = []
     if (callback) syncCallbacks.push(callback)
     if (resolvedProxy) registerSyncWatcher()
     return promise
