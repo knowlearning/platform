@@ -112,24 +112,33 @@ export default function EmbeddedAgent(postMessage) {
       if (!ctx.ownInteractions) ctx.ownInteractions = new Set()
       if (!ctx.pendingInteractions) ctx.pendingInteractions = new Set()
       if (!ctx.echoResolvers) ctx.echoResolvers = []
-      let lastInteractPromise = null
+      let echoResolverScheduled = false
       const proxy = new PatchProxy(startState, patch => {
         //  TODO: reject updates if user is not owner
         if (ctx.applyingExternalUpdate) return
         const activePatch = structuredClone(patch)
         activePatch.forEach(entry => entry.path.unshift('active'))
-        const p = interact(scope, activePatch).then(
+        const interactPromise = interact(scope, activePatch)
+        const p = interactPromise.then(
           r => { ctx.ownInteractions.add(r.ii); ctx.pendingInteractions.delete(p) },
           () => { ctx.pendingInteractions.delete(p) }
         )
         ctx.pendingInteractions.add(p)
-        if (ctx.syncActive && p !== lastInteractPromise) {
-          lastInteractPromise = p
+        if (ctx.syncActive && !echoResolverScheduled) {
+          echoResolverScheduled = true
+          Promise.resolve().then(() => { echoResolverScheduled = false })
           let resolveEcho
           const echoPromise = new Promise(r => resolveEcho = r)
           ctx.echoResolvers.push(resolveEcho)
           pendingEchoCallbacks.add(echoPromise)
           echoPromise.then(() => pendingEchoCallbacks.delete(echoPromise))
+          interactPromise.catch(() => {
+            if (pendingEchoCallbacks.has(echoPromise)) {
+              resolveEcho()
+              const idx = ctx.echoResolvers.indexOf(resolveEcho)
+              if (idx !== -1) ctx.echoResolvers.splice(idx, 1)
+            }
+          })
         }
       })
       resolveSync(proxy, key)
