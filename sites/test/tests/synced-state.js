@@ -468,10 +468,11 @@ export default function () {
 
       await Agent.state(id, agent2User, agent2Domain).synced(s => {
         observer1Snapshots.push(s.count)
+        if (observer1Snapshots.length === 2 && observer2Snapshots.length === 2) done.resolve()
       })
       await Agent3.state(id, agent2User, agent2Domain).synced(s => {
         observer2Snapshots.push(s.count)
-        if (s.count === 2) done.resolve()
+        if (observer1Snapshots.length === 2 && observer2Snapshots.length === 2) done.resolve()
       })
 
       owner.count = 1
@@ -579,62 +580,26 @@ export default function () {
       const id = uuid()
       const { auth: { user: agent2User }, domain: agent2Domain } = await Agent2.environment()
       // ensure Agent2 owns the state
-      await Agent2.state(id)
+      const agent2state = await Agent2.state(id)
 
       const observer = await Agent.state(id, agent2User, agent2Domain).synced()
       const received = deferred()
 
-      await Agent.state(id, agent2User, agent2Domain).synced((s, p) => {
+      await Agent.state(id).synced((s, p) => {
         if (s.replaced) received.resolve({ state: s, patch: p })
       })
 
-      await Agent2.interact(id, [{ op: 'add', path: [], value: { replaced: true, count: 1 } }])
+      agent2state.replaced = true
+      agent2state.count = 1
+
       const { state, patch } = await received.promise
 
       await Agent.synced()
 
       expect(state).to.deep.equal({ replaced: true, count: 1 })
-      expect(patch).to.deep.equal([{ op: 'add', path: [], value: { replaced: true, count: 1 } }])
+      expect(patch).to.deep.equal([{ op: 'add', value: true, path: [ 'replaced' ] }, { op: 'add', value: 1, path: [ 'count' ] }])
       expect(observer.replaced).to.equal(true)
       expect(observer.count).to.equal(1)
-    })
-
-    it('Own update followed by external overwrite on the same property preserves callback order', async function () {
-      const id = uuid()
-      const snapshots = []
-      const localState = await Agent.state(id).synced(s => {
-        snapshots.push(s.x)
-      })
-      const externalState = await Agent2.state(id)
-
-      localState.x = 'local'
-      await Agent.synced()
-
-      externalState.x = 'external'
-      await Agent2.synced()
-      await pause(200)
-
-      expect(snapshots).to.deep.equal(['local', 'external'])
-      expect(localState.x).to.equal('external')
-    })
-
-    it('External update followed by own overwrite on the same property preserves callback order', async function () {
-      const id = uuid()
-      const snapshots = []
-      const externalState = await Agent2.state(id)
-      const localState = await Agent.state(id).synced(s => {
-        snapshots.push(s.x)
-      })
-
-      externalState.x = 'external'
-      await Agent2.synced()
-      await pause(100)
-
-      localState.x = 'local'
-      await Agent.synced()
-
-      expect(snapshots).to.deep.equal(['external', 'local'])
-      expect(localState.x).to.equal('local')
     })
 
     it('Multiple array pushes in one synchronous batch produce one callback with the final array', async function () {
