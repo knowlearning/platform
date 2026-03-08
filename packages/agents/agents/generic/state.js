@@ -37,35 +37,42 @@ export default function(scope='[]', user, domain, { keyToSubscriptionId, watcher
       delete data.active
       resolveMetadataPromise(data)
       if (!ctx.ownInteractions) ctx.ownInteractions = new Set()
+      if (!ctx.ownInteractionBatches) ctx.ownInteractionBatches = new Map()
       if (!ctx.pendingInteractions) ctx.pendingInteractions = new Set()
       if (!ctx.echoResolvers) ctx.echoResolvers = []
-      let echoResolverScheduled = false
+      let currentEchoBatch = null
       const proxy = new PatchProxy(active || {}, patch => {
         if (ctx.applyingExternalUpdate) return
         const activePatch = structuredClone(patch)
         activePatch.forEach(entry => entry.path.unshift('active'))
+        let echoBatch
+        if (ctx.syncActive && pendingEchoCallbacks) {
+          if (!currentEchoBatch) {
+            let resolveEcho
+            const echoPromise = new Promise(r => resolveEcho = r)
+            echoBatch = currentEchoBatch = { resolve: resolveEcho, resolved: false }
+            pendingEchoCallbacks.add(echoPromise)
+            echoPromise.then(() => pendingEchoCallbacks.delete(echoPromise))
+            Promise.resolve().then(() => { currentEchoBatch = null })
+          }
+          else echoBatch = currentEchoBatch
+        }
         const interactPromise = interact(scope, activePatch)
         const p = interactPromise.then(
-          r => { ctx.ownInteractions.add(r.ii); ctx.pendingInteractions.delete(p) },
-          () => { ctx.pendingInteractions.delete(p) }
+          r => {
+            ctx.ownInteractions.add(r.ii)
+            if (echoBatch) ctx.ownInteractionBatches.set(r.ii, echoBatch)
+            ctx.pendingInteractions.delete(p)
+          },
+          () => {
+            if (echoBatch && !echoBatch.resolved) {
+              echoBatch.resolved = true
+              echoBatch.resolve()
+            }
+            ctx.pendingInteractions.delete(p)
+          }
         )
         ctx.pendingInteractions.add(p)
-        if (ctx.syncActive && pendingEchoCallbacks && !echoResolverScheduled) {
-          echoResolverScheduled = true
-          Promise.resolve().then(() => { echoResolverScheduled = false })
-          let resolveEcho
-          const echoPromise = new Promise(r => resolveEcho = r)
-          ctx.echoResolvers.push(resolveEcho)
-          pendingEchoCallbacks.add(echoPromise)
-          echoPromise.then(() => pendingEchoCallbacks.delete(echoPromise))
-          interactPromise.catch(() => {
-            if (pendingEchoCallbacks.has(echoPromise)) {
-              resolveEcho()
-              const idx = ctx.echoResolvers.indexOf(resolveEcho)
-              if (idx !== -1) ctx.echoResolvers.splice(idx, 1)
-            }
-          })
-        }
       })
       resolveSync(proxy, qualifiedScope)
       resolveState(proxy)

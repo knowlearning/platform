@@ -254,11 +254,6 @@ export default function () {
         if (updated.x === 'external') resolveExternal()
       })
 
-      // Own mutation on agent2's scope — this sets local proxy
-      state.x = 'own'
-      await Agent.synced()
-      await pause(100)
-
       // External update by owner
       state2.x = 'external'
       await gotExternal

@@ -35,12 +35,24 @@ export default function attachSynced(watchers, init) {
         : Promise.resolve()
       pending.then(() => {
         const isOwn = ctx.ownInteractions?.has(ii)
+        const echoBatch = isOwn ? ctx.ownInteractionBatches?.get(ii) : null
         if (isOwn) {
           ctx.ownInteractions.delete(ii)
+          if (echoBatch) ctx.ownInteractionBatches.delete(ii)
         } else {
           ctx.applyingExternalUpdate = true
           applyPatch(resolvedProxy, standardJSONPatch(patch))
           ctx.applyingExternalUpdate = false
+        }
+        if (echoBatch) {
+          echoBatch.state = state
+          if (echoBatch.remaining !== undefined) echoBatch.remaining -= 1
+          if ((echoBatch.remaining === undefined || echoBatch.remaining === 0) && !echoBatch.resolved) {
+            echoBatch.resolved = true
+            syncCallbacks.forEach(cb => cb(echoBatch.state, patch))
+            echoBatch.resolve()
+          }
+          return
         }
         syncCallbacks.forEach(cb => cb(state, patch))
         if (isOwn && ctx.echoResolvers?.length) {
