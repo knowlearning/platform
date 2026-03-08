@@ -124,6 +124,12 @@ else if (mode === 'SYNCED_PARENT_TO_EMBED') {
     if (updated.done) Agent.close(updated.x)
   })
 }
+else if (mode === 'SYNCED_PARENT_TO_EMBED_PATCH') {
+  const scopeId = id.split('/')[1]
+  await Agent.state(scopeId).synced((updated, patch) => {
+    if (updated.done) Agent.close({ x: updated.x, patch })
+  })
+}
 else if (mode === 'SYNCED_EMBED_TO_PARENT') {
   // Embedded agent modifies scope; parent's .synced() proxy reflects the change
   const scopeId = id.split('/')[1]
@@ -131,6 +137,57 @@ else if (mode === 'SYNCED_EMBED_TO_PARENT') {
   state.x = 42
   await Agent.synced()
   Agent.close(null)
+}
+else if (mode === 'SYNCED_EMBED_BATCHED_LOCAL') {
+  const scopeId = id.split('/')[1]
+  const snapshots = []
+  const state = await Agent.state(scopeId).synced(s => snapshots.push(JSON.parse(JSON.stringify(s))))
+
+  state.a = 1
+  state.b = 2
+  state.c = 3
+  await Agent.synced()
+
+  Agent.close({
+    callbackCount: snapshots.length,
+    snapshot: snapshots[0],
+    proxy: JSON.parse(JSON.stringify(state))
+  })
+}
+else if (mode === 'SYNCED_EMBED_ASYNC_LOCAL') {
+  const scopeId = id.split('/')[1]
+  const snapshots = []
+  const state = await Agent.state(scopeId).synced(s => snapshots.push(s.x))
+
+  state.x = 'one'
+  await Agent.synced()
+  await new Promise(r => setTimeout(r, 200))
+
+  state.x = 'two'
+  await Agent.synced()
+  await new Promise(r => setTimeout(r, 200))
+
+  Agent.close({ snapshots, proxy: state.x })
+}
+else if (mode === 'SYNCED_EMBED_ARRAY_LOCAL') {
+  const scopeId = id.split('/')[1]
+  let callbackArg
+  const state = await Agent.state(scopeId).synced(s => {
+    callbackArg = s.items ? s.items.slice() : s.items
+  })
+
+  state.items = []
+  await Agent.synced()
+  await new Promise(r => setTimeout(r, 100))
+
+  state.items.push('a')
+  await Agent.synced()
+  await new Promise(r => setTimeout(r, 200))
+
+  Agent.close({
+    proxy: state.items.slice(),
+    callbackArg
+  })
 }
 else {
   //  set up some globals for ease of use in test files

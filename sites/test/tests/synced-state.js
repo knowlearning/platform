@@ -1,3 +1,20 @@
+function deferred() {
+  let resolve
+  let reject
+  const promise = new Promise((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
+function createHiddenIframe() {
+  const iframe = document.createElement('iframe')
+  iframe.style = 'border: none; width: 0; height: 0;'
+  document.body.appendChild(iframe)
+  return iframe
+}
+
 export default function () {
   describe('Synced State', function () {
 
@@ -423,6 +440,249 @@ export default function () {
       expect(snapshots[1].count).to.equal(2)
     })
 
+    it('Callback can be added after synced() activates the watcher', async function () {
+      const id = uuid()
+      const { auth: { user: agent2User }, domain: agent2Domain } = await Agent2.environment()
+      const state2 = await Agent2.state(id)
+      const statePromise = Agent.state(id, agent2User, agent2Domain)
+
+      await statePromise.synced()
+
+      const gotCallback = deferred()
+      statePromise.synced((s, p) => gotCallback.resolve({ state: s, patch: p }))
+
+      state2.late = true
+      const { state, patch } = await gotCallback.promise
+
+      expect(state.late).to.equal(true)
+      expect(patch).to.deep.equal([{ op: 'add', path: ['late'], value: true }])
+    })
+
+    it('Independent synced proxies for the same scope both receive external updates', async function () {
+      const id = uuid()
+      const { auth: { user: agent2User }, domain: agent2Domain } = await Agent2.environment()
+      const owner = await Agent2.state(id)
+      const observer1Snapshots = []
+      const observer2Snapshots = []
+      const done = deferred()
+
+      await Agent.state(id, agent2User, agent2Domain).synced(s => {
+        observer1Snapshots.push(s.count)
+      })
+      await Agent3.state(id, agent2User, agent2Domain).synced(s => {
+        observer2Snapshots.push(s.count)
+        if (s.count === 2) done.resolve()
+      })
+
+      owner.count = 1
+      await Agent2.synced()
+      await pause(100)
+
+      owner.count = 2
+      await done.promise
+
+      expect(observer1Snapshots).to.deep.equal([1, 2])
+      expect(observer2Snapshots).to.deep.equal([1, 2])
+    })
+
+    it('Callback patch paths are active-stripped for nested add, remove, and array updates', async function () {
+      const id = uuid()
+      const { auth: { user: agent2User }, domain: agent2Domain } = await Agent2.environment()
+      const state2 = await Agent2.state(id)
+      const patches = []
+      const done = deferred()
+
+      await Agent.state(id, agent2User, agent2Domain).synced((_, patch) => {
+        patches.push(patch)
+        if (patches.length === 4) done.resolve()
+      })
+
+      state2.obj = {}
+      await Agent2.synced()
+      state2.obj.deep = 1
+      await Agent2.synced()
+      delete state2.obj.deep
+      await Agent2.synced()
+      state2.items = ['a']
+      await done.promise
+
+      expect(patches[0]).to.deep.equal([{ op: 'add', path: ['obj'], value: {} }])
+      expect(patches[1]).to.deep.equal([{ op: 'add', path: ['obj', 'deep'], value: 1 }])
+      expect(patches[2]).to.deep.equal([{ op: 'remove', path: ['obj', 'deep'] }])
+      expect(patches[3]).to.deep.equal([{ op: 'add', path: ['items'], value: ['a'] }])
+      patches.flat().forEach(({ path }) => expect(path[0]).to.not.equal('active'))
+    })
+
+    it('Deep snapshot mutation does not affect the proxy or later snapshots', async function () {
+      const id = uuid()
+      const snapshots = []
+
+      const state = await Agent.state(id).synced(s => {
+        snapshots.push(JSON.parse(JSON.stringify(s)))
+      })
+
+      state.tree = { branch: { leaf: 1 }, items: ['a'] }
+      await Agent.synced()
+      await pause(200)
+
+      snapshots[0].tree.branch.leaf = 999
+      snapshots[0].tree.items.push('b')
+      snapshots[0].tree.injected = true
+
+      state.tree.branch.leaf = 2
+      await Agent.synced()
+      await pause(200)
+
+      expect(state.tree.branch.leaf).to.equal(2)
+      expect(state.tree.items).to.deep.equal(['a'])
+      expect(state.tree.injected).to.equal(undefined)
+      expect(snapshots[1].tree.branch.leaf).to.equal(2)
+      expect(snapshots[1].tree.items).to.deep.equal(['a'])
+      expect(snapshots[1].tree.injected).to.equal(undefined)
+    })
+
+    it('Microtask-separated mutations produce separate echo callbacks', async function () {
+      const id = uuid()
+      const snapshots = []
+
+      const state = await Agent.state(id).synced(s => {
+        snapshots.push(s.x)
+      })
+
+      state.x = 'one'
+      await Promise.resolve()
+      state.x = 'two'
+      await Agent.synced()
+      await pause(200)
+
+      expect(snapshots).to.deep.equal(['one', 'two'])
+    })
+
+    it('Agent.synced() waits for pending own echoes across multiple synced scopes', async function () {
+      const id1 = uuid()
+      const id2 = uuid()
+      const snapshots1 = []
+      const snapshots2 = []
+
+      const state1 = await Agent.state(id1).synced(s => snapshots1.push({ ...s }))
+      const state2 = await Agent.state(id2).synced(s => snapshots2.push({ ...s }))
+
+      state1.a = 1
+      state2.b = 2
+      await Agent.synced()
+
+      expect(snapshots1).to.deep.equal([{ a: 1 }])
+      expect(snapshots2).to.deep.equal([{ b: 2 }])
+    })
+
+    it('External replacement of the active state updates callback snapshot and proxy', async function () {
+      const id = uuid()
+      const { auth: { user: agent2User }, domain: agent2Domain } = await Agent2.environment()
+      // ensure Agent2 owns the state
+      await Agent2.state(id)
+
+      const observer = await Agent.state(id, agent2User, agent2Domain).synced()
+      const received = deferred()
+
+      await Agent.state(id, agent2User, agent2Domain).synced((s, p) => {
+        if (s.replaced) received.resolve({ state: s, patch: p })
+      })
+
+      await Agent2.interact(id, [{ op: 'add', path: [], value: { replaced: true, count: 1 } }])
+      const { state, patch } = await received.promise
+
+      await Agent.synced()
+
+      expect(state).to.deep.equal({ replaced: true, count: 1 })
+      expect(patch).to.deep.equal([{ op: 'add', path: [], value: { replaced: true, count: 1 } }])
+      expect(observer.replaced).to.equal(true)
+      expect(observer.count).to.equal(1)
+    })
+
+    it('Own update followed by external overwrite on the same property preserves callback order', async function () {
+      const id = uuid()
+      const snapshots = []
+      const localState = await Agent.state(id).synced(s => {
+        snapshots.push(s.x)
+      })
+      const externalState = await Agent2.state(id)
+
+      localState.x = 'local'
+      await Agent.synced()
+
+      externalState.x = 'external'
+      await Agent2.synced()
+      await pause(200)
+
+      expect(snapshots).to.deep.equal(['local', 'external'])
+      expect(localState.x).to.equal('external')
+    })
+
+    it('External update followed by own overwrite on the same property preserves callback order', async function () {
+      const id = uuid()
+      const snapshots = []
+      const externalState = await Agent2.state(id)
+      const localState = await Agent.state(id).synced(s => {
+        snapshots.push(s.x)
+      })
+
+      externalState.x = 'external'
+      await Agent2.synced()
+      await pause(100)
+
+      localState.x = 'local'
+      await Agent.synced()
+
+      expect(snapshots).to.deep.equal(['external', 'local'])
+      expect(localState.x).to.equal('local')
+    })
+
+    it('Multiple array pushes in one synchronous batch produce one callback with the final array', async function () {
+      const id = uuid()
+      const snapshots = []
+      const state = await Agent.state(id).synced(s => {
+        snapshots.push(s.items ? s.items.slice() : s.items)
+      })
+
+      state.items = []
+      await Agent.synced()
+      await pause(100)
+
+      state.items.push('a')
+      state.items.push('b')
+      await Agent.synced()
+
+      expect(snapshots[snapshots.length - 1]).to.deep.equal(['a', 'b'])
+      expect(state.items).to.deep.equal(['a', 'b'])
+    })
+
+    it('Replacing values across primitive, object, and array shapes remains stable', async function () {
+      const id = uuid()
+      const snapshots = []
+      const state = await Agent.state(id).synced(s => {
+        snapshots.push(JSON.parse(JSON.stringify(s.value)))
+      })
+
+      state.value = 'alpha'
+      await Agent.synced()
+      await pause(100)
+
+      state.value = { nested: 1 }
+      await Agent.synced()
+      await pause(100)
+
+      state.value = [1, 2, 3]
+      await Agent.synced()
+      await pause(100)
+
+      expect(snapshots).to.deep.equal([
+        'alpha',
+        { nested: 1 },
+        [1, 2, 3]
+      ])
+      expect(state.value).to.deep.equal([1, 2, 3])
+    })
+
   })
 
   describe('Synced State - Embedded Agents', function () {
@@ -459,33 +719,126 @@ export default function () {
       expect(closeValue).to.equal(99)
     })
 
+    it('Embedded agent callback receives parent patch and snapshot', async function () {
+      this.timeout(5000)
+      const scopeId = uuid()
+      const parentState = await Agent.state(scopeId)
+      const iframe = createHiddenIframe()
+      const closed = deferred()
+      let closeValue
+
+      const { on } = Agent.embed({ id: `synced-embed-test/${scopeId}`, mode: 'SYNCED_PARENT_TO_EMBED_PATCH' }, iframe)
+
+      on('close', value => {
+        closeValue = value
+        document.body.removeChild(iframe)
+        closed.resolve()
+      })
+
+      on('open', async () => {
+        await Agent.synced()
+        await pause(50)
+        parentState.x = 101
+        parentState.done = true
+      })
+
+      await closed.promise
+      expect(closeValue.x).to.equal(101)
+      expect(closeValue.patch).to.deep.equal([
+        { op: 'add', path: ['x'], value: 101 },
+        { op: 'add', path: ['done'], value: true }
+      ])
+    })
+
     it('Parent syncs to embedded agent updates', async function () {
       this.timeout(5000)
       const scopeId = uuid()
 
-      let resolveSync
-      const synced = new Promise(r => resolveSync = r)
+      let callbackPatch
+      const synced = deferred()
 
-      const parentState = await Agent.state(scopeId).synced(updated => {
-        if (updated.x === 42) resolveSync()
+      const parentState = await Agent.state(scopeId).synced((updated, patch) => {
+        if (updated.x === 42) {
+          callbackPatch = patch
+          synced.resolve()
+        }
       })
 
-      const iframe = document.createElement('iframe')
-      iframe.style = 'border: none; width: 0; height: 0;'
-      document.body.appendChild(iframe)
+      const iframe = createHiddenIframe()
 
-      let resolveClose
-      const closed = new Promise(r => resolveClose = r)
+      const closed = deferred()
 
       const { on } = Agent.embed({ id: `synced-embed-test/${scopeId}`, mode: 'SYNCED_EMBED_TO_PARENT' }, iframe)
 
       on('close', () => {
         document.body.removeChild(iframe)
-        resolveClose()
+        closed.resolve()
       })
 
-      await Promise.all([closed, synced])
+      await Promise.all([closed.promise, synced.promise])
       expect(parentState.x).to.equal(42)
+      expect(callbackPatch).to.deep.equal([{ op: 'add', path: ['x'], value: 42 }])
+    })
+
+    it('Embedded batched synchronous local writes produce one callback', async function () {
+      this.timeout(5000)
+      const scopeId = uuid()
+      const iframe = createHiddenIframe()
+      const closed = deferred()
+      let closeValue
+
+      const { on } = Agent.embed({ id: `synced-embed-test/${scopeId}`, mode: 'SYNCED_EMBED_BATCHED_LOCAL' }, iframe)
+
+      on('close', value => {
+        closeValue = value
+        document.body.removeChild(iframe)
+        closed.resolve()
+      })
+
+      await closed.promise
+      expect(closeValue.callbackCount).to.equal(1)
+      expect(closeValue.snapshot).to.deep.equal({ a: 1, b: 2, c: 3 })
+      expect(closeValue.proxy).to.deep.equal({ a: 1, b: 2, c: 3 })
+    })
+
+    it('Embedded async-separated local writes produce separate callbacks', async function () {
+      this.timeout(5000)
+      const scopeId = uuid()
+      const iframe = createHiddenIframe()
+      const closed = deferred()
+      let closeValue
+
+      const { on } = Agent.embed({ id: `synced-embed-test/${scopeId}`, mode: 'SYNCED_EMBED_ASYNC_LOCAL' }, iframe)
+
+      on('close', value => {
+        closeValue = value
+        document.body.removeChild(iframe)
+        closed.resolve()
+      })
+
+      await closed.promise
+      expect(closeValue.snapshots).to.deep.equal(['one', 'two'])
+      expect(closeValue.proxy).to.equal('two')
+    })
+
+    it('Embedded own echo does not corrupt arrays and callback receives faithful state', async function () {
+      this.timeout(5000)
+      const scopeId = uuid()
+      const iframe = createHiddenIframe()
+      const closed = deferred()
+      let closeValue
+
+      const { on } = Agent.embed({ id: `synced-embed-test/${scopeId}`, mode: 'SYNCED_EMBED_ARRAY_LOCAL' }, iframe)
+
+      on('close', value => {
+        closeValue = value
+        document.body.removeChild(iframe)
+        closed.resolve()
+      })
+
+      await closed.promise
+      expect(closeValue.proxy).to.deep.equal(['a'])
+      expect(closeValue.callbackArg).to.deep.equal(['a'])
     })
 
   })
