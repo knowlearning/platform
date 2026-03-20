@@ -6,7 +6,10 @@ const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 const endOfReport = id => new Promise(r => Agent.watch(id, u => u.state.end && r()))
 
 export default function () {
+  const CURRENT_DOMAIN = window.location.host
+  const FOREIGN_QUERY_DOMAIN = `foreign-query-config.${CURRENT_DOMAIN}`
   const TEST_TABLE_TYPE = `application/json;type=test-type`
+  const sortRowsById = rows => [...rows].sort((a, b) => a.id.localeCompare(b.id))
 
   const TEST_ENTRY_0_ID = uuid()
   const TEST_ENTRY_0 = {
@@ -151,8 +154,82 @@ postgres:
       SELECT * FROM test_table_2 WHERE id = '${TEST_ENTRY_3_ID}'
     jsonb-test-query: |
       SELECT * FROM test_table_2 WHERE id = '${TEST_ENTRY_4_ID}'
+    selected-test-table-ids: |
+      SELECT id
+      FROM test_table_2
+      WHERE boolean_test_column = $1
+        AND integer_test_column = $2
+        AND $3 = $DOMAIN
+      ORDER BY id
+    foreign-query-selected-entries: |
+      SELECT *
+      FROM test_table_2
+      WHERE id = ANY($query($DOMAIN, selected-test-table-ids, $1, 84, $DOMAIN)::TEXT[])
+      ORDER BY id
+    self-referential-foreign-query: |
+      SELECT unnest($query($DOMAIN, self-referential-foreign-query)::TEXT[]) AS value
+    cross-domain-foreign-query-requesting-domain-values: |
+      SELECT unnest($query(${FOREIGN_QUERY_DOMAIN}, foreign-requesting-domain-values)::TEXT[]) AS value
+    cross-domain-foreign-query-context-values: |
+      SELECT unnest($query(${FOREIGN_QUERY_DOMAIN}, foreign-context-values)::TEXT[]) AS value
+      ORDER BY value
+    cross-domain-circular-foreign-query: |
+      SELECT unnest($query(${FOREIGN_QUERY_DOMAIN}, foreign-cross-domain-circular-values)::TEXT[]) AS value
     my-old-test-table: |
       SELECT * FROM test_table
+  functions:
+    same_domain_authorization:
+      returns: BOOLEAN
+      language: PLpgSQL
+      body: |
+        BEGIN
+          RETURN TRUE;
+        END;
+      arguments:
+      - name: requestingUser
+        type: TEXT
+      - name: requestedScope
+        type: TEXT
+    cross_domain_authorization:
+      returns: BOOLEAN
+      language: PLpgSQL
+      body: |
+        BEGIN
+          RETURN TRUE;
+        END;
+      arguments:
+      - name: requestingDomain
+        type: TEXT
+      - name: requestingUser
+        type: TEXT
+      - name: requestedScope
+        type: TEXT
+`
+
+const FOREIGN_QUERY_CONFIGURATION = `
+authorize:
+  sameDomain:
+    postgres: same_domain_authorization
+  crossDomain:
+    postgres: cross_domain_authorization
+postgres:
+  tables: {}
+  queries:
+    foreign-requesting-domain-values:
+      domains:
+      - ${CURRENT_DOMAIN}
+      body: |
+        SELECT $REQUESTING_DOMAIN AS value
+    foreign-context-values:
+      domains:
+      - ${CURRENT_DOMAIN}
+      body: |
+        SELECT unnest($CONTEXT::TEXT[]) AS value
+    foreign-cross-domain-circular-values:
+      domains:
+      - ${CURRENT_DOMAIN}
+      body: |
+        SELECT unnest($query(${CURRENT_DOMAIN}, cross-domain-circular-foreign-query)::TEXT[]) AS value
   functions:
     same_domain_authorization:
       returns: BOOLEAN
@@ -375,6 +452,24 @@ postgres:
       )
     })
 
+    it('Can configure a foreign query domain', async function () {
+      this.timeout(5000)
+
+      const config = await Agent.upload({
+        name: 'foreign query domain config',
+        type: 'application/yaml',
+        data: FOREIGN_QUERY_CONFIGURATION
+      })
+      const report = uuid()
+
+      await Agent.create({
+        active_type: DOMAIN_CONFIG_TYPE,
+        active: { config, report, domain: FOREIGN_QUERY_DOMAIN }
+      })
+
+      await endOfReport(report)
+    })
+
     it('Can query metadata for scopes created after re-configuration', async function () {
       const metadata = await Agent.metadata(TEST_ENTRY_2_ID)
       metadata.active_type = TEST_TABLE_TYPE
@@ -409,6 +504,53 @@ postgres:
 
       expect( await Agent.query('jsonb-test-query') )
         .to.deep.equal([ { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 } ])
+    })
+
+    it('Can compose same-domain foreign queries with positional, named, and JSON args', async function () {
+      expect(await Agent.query('foreign-query-selected-entries', [false]))
+        .to.deep.equal(sortRowsById([
+          { id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 },
+          { id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 },
+          { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 }
+        ]))
+    })
+
+    it('Preserves requesting domain through cross-domain foreign queries', async function () {
+      const { domain } = await Agent.environment()
+
+      expect(await Agent.query('cross-domain-foreign-query-requesting-domain-values'))
+        .to.deep.equal([{ value: domain }])
+    })
+
+    it('Preserves context through cross-domain foreign queries', async function () {
+      expect(
+        await Agent.query(
+          'cross-domain-foreign-query-context-values',
+          [],
+          undefined,
+          ['ctx-b', 'ctx-a']
+        )
+      )
+        .to.deep.equal([
+          { value: 'ctx-a' },
+          { value: 'ctx-b' }
+        ])
+    })
+
+    it('Rejects direct circular foreign query references', async function () {
+      let error
+
+      await Agent.query('self-referential-foreign-query').catch(e => error = e)
+
+      expect(error).to.equal('CIRCULAR FOREIGN QUERY')
+    })
+
+    it('Rejects cross-domain circular foreign query references', async function () {
+      let error
+
+      await Agent.query('cross-domain-circular-foreign-query').catch(e => error = e)
+
+      expect(error).to.equal('CIRCULAR FOREIGN QUERY')
     })
 
     it('Cannot query old tables', async function () {
