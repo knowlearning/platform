@@ -184,6 +184,12 @@ postgres:
       SELECT '${TEST_ENTRY_1_ID}' AS value
     passthrough-test-table-ids: |
       SELECT unnest($1::TEXT[]) AS id
+    run-specific-test-table-ids: |
+      SELECT unnest('{${TEST_ENTRY_2_ID},${TEST_ENTRY_3_ID},${TEST_ENTRY_4_ID}}'::TEXT[]) AS id
+    multi-column-test-table-values: |
+      SELECT id, text_test_column
+      FROM test_table_2
+      WHERE id = '${TEST_ENTRY_2_ID}'
     external-query-selected-entries:
       external:
         selected_ids:
@@ -193,6 +199,32 @@ postgres:
           - $1
           - 84
           - $DOMAIN
+      body: |
+        SELECT *
+        FROM test_table_2
+        WHERE id = ANY($selected_ids::TEXT[])
+        ORDER BY id
+    mixed-query-selected-entries:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: selected-test-table-ids
+          params:
+          - $1
+          - 84
+          - $DOMAIN
+      body: |
+        SELECT *
+        FROM test_table_2
+        WHERE boolean_test_column = $1
+          AND id = ANY($selected_ids::TEXT[])
+          AND id = ANY($selected-test-table-ids-from-request::TEXT[])
+        ORDER BY id
+    zero-arg-external-query-selected-entries:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: run-specific-test-table-ids
       body: |
         SELECT *
         FROM test_table_2
@@ -250,8 +282,65 @@ postgres:
           - $a
       body: |
         SELECT unnest($a::TEXT[]) AS value
+    missing-domain-external-query:
+      external:
+        selected_ids:
+          query: run-specific-test-table-ids
+      body: |
+        SELECT unnest($selected_ids::TEXT[]) AS value
+    missing-query-external-query:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+      body: |
+        SELECT unnest($selected_ids::TEXT[]) AS value
+    invalid-positional-external-query:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: passthrough-test-table-ids
+          params:
+          - $99
+      body: |
+        SELECT unnest($selected_ids::TEXT[]) AS value
+    invalid-named-external-query:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: passthrough-test-table-ids
+          params:
+          - $NOPE
+      body: |
+        SELECT unnest($selected_ids::TEXT[]) AS value
+    non-string-domain-external-query:
+      external:
+        selected_ids:
+          domain: 42
+          query: run-specific-test-table-ids
+      body: |
+        SELECT unnest($selected_ids::TEXT[]) AS value
+    non-string-query-external-query:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: 42
+      body: |
+        SELECT unnest($selected_ids::TEXT[]) AS value
+    multi-column-external-query:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: multi-column-test-table-values
+      body: |
+        SELECT unnest($selected_ids::TEXT[]) AS value
     self-referential-query: |
       SELECT unnest($self-referential-query::TEXT[]) AS value
+    indirect-cycle-a: |
+      SELECT unnest($indirect-cycle-b::TEXT[]) AS value
+    indirect-cycle-b: |
+      SELECT unnest($indirect-cycle-a::TEXT[]) AS value
+    implicit-multi-column-query: |
+      SELECT unnest($multi-column-test-table-values::TEXT[]) AS value
     cross-domain-query-requesting-domain-values:
       external:
         requesting_domain_values:
@@ -632,6 +721,24 @@ postgres:
         ]))
     })
 
+    it('Can mix explicit external references with implicit same-domain references', async function () {
+      expect(await Agent.query('mixed-query-selected-entries', [false]))
+        .to.deep.equal(sortRowsById([
+          { id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 },
+          { id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 },
+          { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 }
+        ]))
+    })
+
+    it('Can resolve zero-arg explicit external references', async function () {
+      expect(await Agent.query('zero-arg-external-query-selected-entries'))
+        .to.deep.equal(sortRowsById([
+          { id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 },
+          { id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 },
+          { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 }
+        ]))
+    })
+
     it('Prefers explicit external references over same-domain query names', async function () {
       expect(await Agent.query('explicit-external-overrides-domain-query'))
         .to.deep.equal(sortRowsById([
@@ -656,6 +763,62 @@ postgres:
       await Agent.query('circular-external-query').catch(e => error = e)
 
       expect(error).to.equal('CIRCULAR EXTERNAL QUERY')
+    })
+
+    it('Rejects explicit external references with missing domain', async function () {
+      let error
+
+      await Agent.query('missing-domain-external-query').catch(e => error = e)
+
+      expect(error).to.equal('INVALID EXTERNAL QUERY')
+    })
+
+    it('Rejects explicit external references with missing query', async function () {
+      let error
+
+      await Agent.query('missing-query-external-query').catch(e => error = e)
+
+      expect(error).to.equal('INVALID EXTERNAL QUERY')
+    })
+
+    it('Rejects explicit external references with invalid positional parameters', async function () {
+      let error
+
+      await Agent.query('invalid-positional-external-query').catch(e => error = e)
+
+      expect(error).to.equal('INVALID EXTERNAL QUERY ARGUMENT')
+    })
+
+    it('Rejects explicit external references with invalid named bindings', async function () {
+      let error
+
+      await Agent.query('invalid-named-external-query').catch(e => error = e)
+
+      expect(error).to.equal('INVALID EXTERNAL QUERY ARGUMENT')
+    })
+
+    it('Rejects explicit external references with non-string domains', async function () {
+      let error
+
+      await Agent.query('non-string-domain-external-query').catch(e => error = e)
+
+      expect(error).to.equal('INVALID EXTERNAL QUERY')
+    })
+
+    it('Rejects explicit external references with non-string query names', async function () {
+      let error
+
+      await Agent.query('non-string-query-external-query').catch(e => error = e)
+
+      expect(error).to.equal('INVALID EXTERNAL QUERY')
+    })
+
+    it('Rejects explicit external references to multi-column queries', async function () {
+      let error
+
+      await Agent.query('multi-column-external-query').catch(e => error = e)
+
+      expect(error).to.equal('INVALID FOREIGN QUERY RESULT')
     })
 
     it('Preserves requesting domain through cross-domain external queries', async function () {
@@ -686,6 +849,22 @@ postgres:
       await Agent.query('self-referential-query').catch(e => error = e)
 
       expect(error).to.equal('CIRCULAR FOREIGN QUERY')
+    })
+
+    it('Rejects indirect same-domain circular query references', async function () {
+      let error
+
+      await Agent.query('indirect-cycle-a').catch(e => error = e)
+
+      expect(error).to.equal('CIRCULAR FOREIGN QUERY')
+    })
+
+    it('Rejects implicit same-domain references to multi-column queries', async function () {
+      let error
+
+      await Agent.query('implicit-multi-column-query').catch(e => error = e)
+
+      expect(error).to.equal('INVALID FOREIGN QUERY RESULT')
     })
 
     it('Rejects cross-domain circular query references', async function () {
