@@ -21,7 +21,6 @@ export default function () {
 
     return result
   }
-
   const TEST_ENTRY_0_ID = uuid()
   const TEST_ENTRY_0 = {
     text_test_column: 'Test Text',
@@ -64,6 +63,32 @@ export default function () {
     text_array_test_column: ['abc', 'def'],
     jsonb_column: ['abc', 123, 'def', {}]
   }
+  const buildImplicitQueryChain = (prefix, depth, terminalBody) => (
+    Array
+      .from({ length: depth }, (_, index) => {
+        const name = `${prefix}-${index}`
+        const body = index + 1 === depth
+          ? terminalBody
+          : `SELECT unnest($${prefix}-${index + 1}::TEXT[]) AS value`
+        return `    ${name}: |\n      ${body}`
+      })
+      .join('\n')
+  )
+  const DEEP_VALID_CHAIN_QUERIES = buildImplicitQueryChain(
+    'deep-valid-chain',
+    20,
+    `SELECT '${TEST_ENTRY_2_ID}' AS value`
+  )
+  const DEEP_EXCEEDED_CHAIN_QUERIES = buildImplicitQueryChain(
+    'deep-exceeded-chain',
+    26,
+    `SELECT '${TEST_ENTRY_2_ID}' AS value`
+  )
+  const expectedSelectedRows = sortRowsById([
+    { id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 },
+    { id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 },
+    { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 }
+  ])
 
   const CONFIGURATION_1 = `
 authorize:
@@ -190,6 +215,12 @@ postgres:
       SELECT id, text_test_column
       FROM test_table_2
       WHERE id = '${TEST_ENTRY_2_ID}'
+    single-run-specific-test-table-id: |
+      SELECT '${TEST_ENTRY_2_ID}' AS id
+    empty-test-table-ids: |
+      SELECT id
+      FROM test_table_2
+      WHERE id = 'missing-${TEST_ENTRY_2_ID}'
     external-query-selected-entries:
       external:
         selected_ids:
@@ -204,6 +235,35 @@ postgres:
         FROM test_table_2
         WHERE id = ANY($selected_ids::TEXT[])
         ORDER BY id
+    repeated-external-query-counts:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: selected-test-table-ids
+          params:
+          - false
+          - 84
+          - $DOMAIN
+      body: |
+        SELECT
+          cardinality($selected_ids::TEXT[]) AS first_count,
+          cardinality($selected_ids::TEXT[]) AS second_count
+    multi-external-query-counts:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: selected-test-table-ids
+          params:
+          - false
+          - 84
+          - $DOMAIN
+        first_selected_id:
+          domain: $DOMAIN
+          query: single-run-specific-test-table-id
+      body: |
+        SELECT
+          cardinality($selected_ids::TEXT[]) AS selected_count,
+          cardinality($first_selected_id::TEXT[]) AS first_count
     mixed-query-selected-entries:
       external:
         selected_ids:
@@ -220,6 +280,20 @@ postgres:
           AND id = ANY($selected_ids::TEXT[])
           AND id = ANY($selected-test-table-ids-from-request::TEXT[])
         ORDER BY id
+    compacted-param-query:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: selected-test-table-ids
+          params:
+          - $1
+          - 84
+          - $DOMAIN
+      body: |
+        SELECT
+          $1::BOOLEAN AS bool_value,
+          cardinality($selected_ids::TEXT[]) AS selected_count,
+          $DOMAIN::TEXT AS domain_value
     zero-arg-external-query-selected-entries:
       external:
         selected_ids:
@@ -235,6 +309,31 @@ postgres:
       FROM test_table_2
       WHERE id = ANY($selected-test-table-ids-from-request::TEXT[])
       ORDER BY id
+    implicit-unnest-query-values: |
+      SELECT unnest($selected-test-table-ids-from-request::TEXT[]) AS value
+      ORDER BY value
+    repeated-implicit-query-counts: |
+      SELECT
+        cardinality($selected-test-table-ids-from-request::TEXT[]) AS first_count,
+        cardinality($selected-test-table-ids-from-request::TEXT[]) AS second_count
+    missing-implicit-query: |
+      SELECT unnest($missing-implicit-query-target::TEXT[]) AS value
+    positional-only-query: |
+      SELECT
+        $1::BOOLEAN AS first_value,
+        $1::BOOLEAN AS second_value
+    positional-and-named-query: |
+      SELECT
+        $1::BOOLEAN AS bool_value,
+        $DOMAIN::TEXT AS domain_value
+    string-literal-placeholder-query: |
+      SELECT '$selected_ids' AS value
+    comment-placeholder-query: |
+      SELECT '${TEST_ENTRY_2_ID}' AS value -- $selected_ids
+    quoted-identifier-placeholder-query: |
+      SELECT 1 AS "$selected_ids"
+    dollar-quoted-placeholder-query: |
+      SELECT $$ $selected_ids $$ AS value
     explicit-external-overrides-domain-query:
       external:
         selected_ids:
@@ -333,6 +432,36 @@ postgres:
           query: multi-column-test-table-values
       body: |
         SELECT unnest($selected_ids::TEXT[]) AS value
+    same-domain-external-recursive-query:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: same-domain-external-recursive-helper
+      body: |
+        SELECT unnest($selected_ids::TEXT[]) AS value
+    same-domain-external-recursive-helper: |
+      SELECT unnest($same-domain-external-recursive-query::TEXT[]) AS value
+    literal-domain-external-query-selected-entries:
+      external:
+        selected_ids:
+          domain: '${CURRENT_DOMAIN}'
+          query: selected-test-table-ids
+          params:
+          - false
+          - 84
+          - '${CURRENT_DOMAIN}'
+      body: |
+        SELECT *
+        FROM test_table_2
+        WHERE id = ANY($selected_ids::TEXT[])
+        ORDER BY id
+    empty-external-query-count:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: empty-test-table-ids
+      body: |
+        SELECT cardinality($selected_ids::TEXT[]) AS value
     self-referential-query: |
       SELECT unnest($self-referential-query::TEXT[]) AS value
     indirect-cycle-a: |
@@ -341,6 +470,8 @@ postgres:
       SELECT unnest($indirect-cycle-a::TEXT[]) AS value
     implicit-multi-column-query: |
       SELECT unnest($multi-column-test-table-values::TEXT[]) AS value
+${DEEP_VALID_CHAIN_QUERIES}
+${DEEP_EXCEEDED_CHAIN_QUERIES}
     cross-domain-query-requesting-domain-values:
       external:
         requesting_domain_values:
@@ -356,6 +487,13 @@ postgres:
       body: |
         SELECT unnest($context_values::TEXT[]) AS value
         ORDER BY value
+    unauthorized-cross-domain-external-query:
+      external:
+        requesting_domain_values:
+          domain: '${FOREIGN_QUERY_DOMAIN}'
+          query: forbidden-requesting-domain-values
+      body: |
+        SELECT unnest($requesting_domain_values::TEXT[]) AS value
     cross-domain-circular-query:
       external:
         circular_values:
@@ -415,6 +553,11 @@ postgres:
       - ${CURRENT_DOMAIN}
       body: |
         SELECT unnest($CONTEXT::TEXT[]) AS value
+    forbidden-requesting-domain-values:
+      domains:
+      - example.com
+      body: |
+        SELECT $REQUESTING_DOMAIN AS value
     foreign-cross-domain-circular-values:
       domains:
       - ${CURRENT_DOMAIN}
@@ -705,56 +848,52 @@ postgres:
 
     it('Can compose same-domain external queries with positional and named args', async function () {
       expect(await Agent.query('external-query-selected-entries', [false]))
-        .to.deep.equal(sortRowsById([
-          { id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 },
-          { id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 },
-          { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 }
-        ]))
+        .to.deep.equal(expectedSelectedRows)
     })
 
     it('Can implicitly resolve same-domain query references with current params', async function () {
       expect(await Agent.query('implicit-query-selected-entries', [false]))
-        .to.deep.equal(sortRowsById([
-          { id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 },
-          { id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 },
-          { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 }
-        ]))
+        .to.deep.equal(expectedSelectedRows)
     })
 
     it('Can mix explicit external references with implicit same-domain references', async function () {
       expect(await Agent.query('mixed-query-selected-entries', [false]))
-        .to.deep.equal(sortRowsById([
-          { id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 },
-          { id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 },
-          { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 }
-        ]))
+        .to.deep.equal(expectedSelectedRows)
     })
 
     it('Can resolve zero-arg explicit external references', async function () {
       expect(await Agent.query('zero-arg-external-query-selected-entries'))
-        .to.deep.equal(sortRowsById([
-          { id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 },
-          { id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 },
-          { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 }
-        ]))
+        .to.deep.equal(expectedSelectedRows)
+    })
+
+    it('Can resolve multiple explicit external references in one body', async function () {
+      expect(await Agent.query('multi-external-query-counts'))
+        .to.deep.equal([{ selected_count: 3, first_count: 1 }])
+    })
+
+    it('Can reuse the same explicit external reference in one body', async function () {
+      expect(await Agent.query('repeated-external-query-counts'))
+        .to.deep.equal([{ first_count: 3, second_count: 3 }])
+    })
+
+    it('Can use a literal domain in explicit external references', async function () {
+      expect(await Agent.query('literal-domain-external-query-selected-entries'))
+        .to.deep.equal(expectedSelectedRows)
+    })
+
+    it('Can handle explicit external references with empty result sets', async function () {
+      expect(await Agent.query('empty-external-query-count'))
+        .to.deep.equal([{ value: 0 }])
     })
 
     it('Prefers explicit external references over same-domain query names', async function () {
       expect(await Agent.query('explicit-external-overrides-domain-query'))
-        .to.deep.equal(sortRowsById([
-          { id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 },
-          { id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 },
-          { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 }
-        ]))
+        .to.deep.equal(expectedSelectedRows)
     })
 
     it('Can chain explicit external references', async function () {
       expect(await Agent.query('chained-external-query-selected-entries', [false]))
-        .to.deep.equal(sortRowsById([
-          { id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 },
-          { id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 },
-          { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 }
-        ]))
+        .to.deep.equal(expectedSelectedRows)
     })
 
     it('Rejects circular explicit external references', async function () {
@@ -821,6 +960,14 @@ postgres:
       expect(error).to.equal('INVALID FOREIGN QUERY RESULT')
     })
 
+    it('Rejects same-domain recursive external query paths', async function () {
+      let error
+
+      await Agent.query('same-domain-external-recursive-query').catch(e => error = e)
+
+      expect(error).to.equal('CIRCULAR FOREIGN QUERY')
+    })
+
     it('Preserves requesting domain through cross-domain external queries', async function () {
       const { domain } = await Agent.environment()
 
@@ -843,12 +990,48 @@ postgres:
         ])
     })
 
+    it('Rejects unauthorized cross-domain external queries', async function () {
+      let error
+
+      await Agent.query('unauthorized-cross-domain-external-query').catch(e => error = e)
+
+      expect(error).to.equal(`INVALID QUERY 'forbidden-requesting-domain-values' FOR '${FOREIGN_QUERY_DOMAIN}'`)
+    })
+
     it('Rejects direct circular query references', async function () {
       let error
 
       await Agent.query('self-referential-query').catch(e => error = e)
 
       expect(error).to.equal('CIRCULAR FOREIGN QUERY')
+    })
+
+    it('Can consume implicit same-domain references via unnest', async function () {
+      expect(await Agent.query('implicit-unnest-query-values', [false]))
+        .to.deep.equal(sortRowsById([
+          { value: TEST_ENTRY_2_ID },
+          { value: TEST_ENTRY_3_ID },
+          { value: TEST_ENTRY_4_ID }
+        ]))
+    })
+
+    it('Can reuse the same implicit same-domain reference in one body', async function () {
+      expect(await Agent.query('repeated-implicit-query-counts', [false]))
+        .to.deep.equal([{ first_count: 3, second_count: 3 }])
+    })
+
+    it('Rejects missing implicit same-domain references', async function () {
+      let error
+      const { domain } = await Agent.environment()
+
+      await Agent.query('missing-implicit-query').catch(e => error = e)
+
+      expect(error).to.equal(`INVALID QUERY 'missing-implicit-query-target' FOR '${domain}'`)
+    })
+
+    it('Supports hyphenated implicit same-domain query names', async function () {
+      expect(await Agent.query('implicit-query-selected-entries', [false]))
+        .to.deep.equal(expectedSelectedRows)
     })
 
     it('Rejects indirect same-domain circular query references', async function () {
@@ -867,12 +1050,64 @@ postgres:
       expect(error).to.equal('INVALID FOREIGN QUERY RESULT')
     })
 
+    it('Supports queries with only positional placeholders', async function () {
+      expect(await Agent.query('positional-only-query', [false]))
+        .to.deep.equal([{ first_value: false, second_value: false }])
+    })
+
+    it('Supports queries mixing positional placeholders and named bindings', async function () {
+      const { domain } = await Agent.environment()
+
+      expect(await Agent.query('positional-and-named-query', [false]))
+        .to.deep.equal([{ bool_value: false, domain_value: domain }])
+    })
+
+    it('Preserves positional placeholder order when explicit externals are also present', async function () {
+      const { domain } = await Agent.environment()
+
+      expect(await Agent.query('compacted-param-query', [false]))
+        .to.deep.equal([{ bool_value: false, selected_count: 3, domain_value: domain }])
+    })
+
+    it('Does not rewrite placeholders inside SQL string literals', async function () {
+      expect(await Agent.query('string-literal-placeholder-query'))
+        .to.deep.equal([{ value: '$selected_ids' }])
+    })
+
+    it('Does not rewrite placeholders inside SQL comments', async function () {
+      expect(await Agent.query('comment-placeholder-query'))
+        .to.deep.equal([{ value: TEST_ENTRY_2_ID }])
+    })
+
+    it('Does not rewrite placeholders inside quoted identifiers', async function () {
+      expect(await Agent.query('quoted-identifier-placeholder-query'))
+        .to.deep.equal([{ '$selected_ids': 1 }])
+    })
+
+    it('Does not rewrite placeholders inside dollar-quoted strings', async function () {
+      expect(await Agent.query('dollar-quoted-placeholder-query'))
+        .to.deep.equal([{ value: ' $selected_ids ' }])
+    })
+
     it('Rejects cross-domain circular query references', async function () {
       let error
 
       await Agent.query('cross-domain-circular-query').catch(e => error = e)
 
       expect(error).to.equal('CIRCULAR FOREIGN QUERY')
+    })
+
+    it('Supports valid implicit query chains below the depth limit', async function () {
+      expect(await Agent.query('deep-valid-chain-0'))
+        .to.deep.equal([{ value: TEST_ENTRY_2_ID }])
+    })
+
+    it('Rejects implicit query chains that exceed the depth limit', async function () {
+      let error
+
+      await Agent.query('deep-exceeded-chain-0').catch(e => error = e)
+
+      expect(error).to.equal('FOREIGN QUERY DEPTH EXCEEDED')
     })
 
     it('Rejects legacy embedded query syntax with a query error', async function () {
@@ -882,6 +1117,19 @@ postgres:
       await Agent.query('legacy-query-syntax').catch(e => error = e)
 
       expect(error).to.equal(`INVALID QUERY 'query' FOR '${domain}'`)
+    })
+
+    it('Can resolve many parallel queries at once', async function () {
+      this.timeout(5000)
+      const numParallelQueries = 100
+      const queries = []
+      const expectedValues = []
+      for (let i=0; i<numParallelQueries; i++) {
+        queries.push(Agent.query('my-test-table-entries'))
+        expectedValues.push([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
+      }
+      const results = await Promise.all(queries)
+      expect(expectedValues).to.deep.equal(results)
     })
 
     it('Cannot query old tables', async function () {

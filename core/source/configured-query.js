@@ -399,6 +399,7 @@ function collectParameterTokens(queryBody) {
   const tokens = []
   let inSingleQuote = false
   let inDoubleQuote = false
+  let inDollarQuote = null
   let inLineComment = false
   let inBlockComment = false
   let escaped = false
@@ -415,6 +416,14 @@ function collectParameterTokens(queryBody) {
       if (char === '*' && queryBody[index + 1] === '/') {
         inBlockComment = false
         index += 1
+      }
+      continue
+    }
+
+    if (inDollarQuote) {
+      if (queryBody.startsWith(inDollarQuote, index)) {
+        index += inDollarQuote.length - 1
+        inDollarQuote = null
       }
       continue
     }
@@ -456,6 +465,17 @@ function collectParameterTokens(queryBody) {
       inBlockComment = true
       index += 1
       continue
+    }
+
+    if (char === '$') {
+      const dollarQuote = queryBody
+        .slice(index)
+        .match(/^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/)?.[0]
+      if (dollarQuote) {
+        inDollarQuote = dollarQuote
+        index += dollarQuote.length - 1
+        continue
+      }
     }
 
     if (char !== '$') continue
