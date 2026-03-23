@@ -1,28 +1,13 @@
 import { environment } from './utils.js'
 import * as postgres from './postgres.js'
 import configuration, { domainAdmin } from './configuration.js'
-import { schemaCache } from './stateful.js'
 
 const {
   MODE,
   ADMIN_DOMAIN
 } = environment
 
-const CLIENT_CLEANUP_THRESHOLD = 30_000
 const MAX_FOREIGN_QUERY_DEPTH = 25
-
-setInterval(() => {
-  Object.entries(schemaCache).map(async ([schema, p]) => {
-    const { used, username, domain, client } = await p
-    if (used + CLIENT_CLEANUP_THRESHOLD < Date.now()) {
-      await client.end()
-      await postgres.query(domain, `DROP OWNED BY ${username} CASCADE`);
-      await postgres.query(domain, `DROP ROLE IF EXISTS ${username}`)
-      delete schemaCache[schema]
-    }
-  })
-
-}, 1_000)
 
 export default async function configuredQuery(requestingDomain, targetDomain, queryName, params=[], user, context=[], queryStack=[]) {
   if (

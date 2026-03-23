@@ -2,7 +2,6 @@ export const DomainAgents = {}
 export const configuredDomains = {}
 export const agents = {}
 export const configCache = {}
-export const schemaCache = {}
 export const outstandingCoreStateInteractions = new Set()
 export const domainWorkers = {}
 export const domainWorkerResponses = {}
