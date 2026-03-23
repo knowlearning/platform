@@ -10,6 +10,7 @@ export default function () {
   const FOREIGN_QUERY_DOMAIN = `foreign-query-config.${CURRENT_DOMAIN}`
   const TEST_TABLE_TYPE = `application/json;type=test-type`
   const sortRowsById = rows => [...rows].sort((a, b) => a.id.localeCompare(b.id))
+  const sortRowsByValue = rows => [...rows].sort((a, b) => a.value.localeCompare(b.value))
   const waitForQueryResult = async (queryName, expected, params=[], tries=20, delay=25) => {
     let result
 
@@ -1008,7 +1009,7 @@ postgres:
 
     it('Can consume implicit same-domain references via unnest', async function () {
       expect(await Agent.query('implicit-unnest-query-values', [false]))
-        .to.deep.equal(sortRowsById([
+        .to.deep.equal(sortRowsByValue([
           { value: TEST_ENTRY_2_ID },
           { value: TEST_ENTRY_3_ID },
           { value: TEST_ENTRY_4_ID }
@@ -1125,7 +1126,7 @@ postgres:
       const queries = []
       const expectedValues = []
       for (let i=0; i<numParallelQueries; i++) {
-        queries.push(Agent.query('my-test-table-entries'))
+        queries.push(Agent.query('my-reconfigured-test-table-entries'))
         expectedValues.push([{ id: TEST_ENTRY_1_ID, ...TEST_ENTRY_1 }])
       }
       const results = await Promise.all(queries)
