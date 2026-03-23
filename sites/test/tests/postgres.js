@@ -161,20 +161,108 @@ postgres:
         AND integer_test_column = $2
         AND $3 = $DOMAIN
       ORDER BY id
-    foreign-query-selected-entries: |
+    selected-test-table-ids-from-request: |
+      SELECT id
+      FROM test_table_2
+      WHERE boolean_test_column = $1
+        AND integer_test_column = 84
+      ORDER BY id
+    selected_ids: |
+      SELECT '${TEST_ENTRY_1_ID}' AS value
+    passthrough-test-table-ids: |
+      SELECT unnest($1::TEXT[]) AS id
+    external-query-selected-entries:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: selected-test-table-ids
+          params:
+          - $1
+          - 84
+          - $DOMAIN
+      body: |
+        SELECT *
+        FROM test_table_2
+        WHERE id = ANY($selected_ids::TEXT[])
+        ORDER BY id
+    implicit-query-selected-entries: |
       SELECT *
       FROM test_table_2
-      WHERE id = ANY($query($DOMAIN, selected-test-table-ids, $1, 84, $DOMAIN)::TEXT[])
+      WHERE id = ANY($selected-test-table-ids-from-request::TEXT[])
       ORDER BY id
-    self-referential-foreign-query: |
-      SELECT unnest($query($DOMAIN, self-referential-foreign-query)::TEXT[]) AS value
-    cross-domain-foreign-query-requesting-domain-values: |
-      SELECT unnest($query(${FOREIGN_QUERY_DOMAIN}, foreign-requesting-domain-values)::TEXT[]) AS value
-    cross-domain-foreign-query-context-values: |
-      SELECT unnest($query(${FOREIGN_QUERY_DOMAIN}, foreign-context-values)::TEXT[]) AS value
-      ORDER BY value
-    cross-domain-circular-foreign-query: |
-      SELECT unnest($query(${FOREIGN_QUERY_DOMAIN}, foreign-cross-domain-circular-values)::TEXT[]) AS value
+    explicit-external-overrides-domain-query:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: selected-test-table-ids
+          params:
+          - false
+          - 84
+          - $DOMAIN
+      body: |
+        SELECT *
+        FROM test_table_2
+        WHERE id = ANY($selected_ids::TEXT[])
+        ORDER BY id
+    chained-external-query-selected-entries:
+      external:
+        initial_ids:
+          domain: $DOMAIN
+          query: selected-test-table-ids
+          params:
+          - $1
+          - 84
+          - $DOMAIN
+        chained_ids:
+          domain: $DOMAIN
+          query: passthrough-test-table-ids
+          params:
+          - $initial_ids
+      body: |
+        SELECT *
+        FROM test_table_2
+        WHERE id = ANY($chained_ids::TEXT[])
+        ORDER BY id
+    circular-external-query:
+      external:
+        a:
+          domain: $DOMAIN
+          query: passthrough-test-table-ids
+          params:
+          - $b
+        b:
+          domain: $DOMAIN
+          query: passthrough-test-table-ids
+          params:
+          - $a
+      body: |
+        SELECT unnest($a::TEXT[]) AS value
+    self-referential-query: |
+      SELECT unnest($self-referential-query::TEXT[]) AS value
+    cross-domain-query-requesting-domain-values:
+      external:
+        requesting_domain_values:
+          domain: '${FOREIGN_QUERY_DOMAIN}'
+          query: foreign-requesting-domain-values
+      body: |
+        SELECT unnest($requesting_domain_values::TEXT[]) AS value
+    cross-domain-query-context-values:
+      external:
+        context_values:
+          domain: '${FOREIGN_QUERY_DOMAIN}'
+          query: foreign-context-values
+      body: |
+        SELECT unnest($context_values::TEXT[]) AS value
+        ORDER BY value
+    cross-domain-circular-query:
+      external:
+        circular_values:
+          domain: '${FOREIGN_QUERY_DOMAIN}'
+          query: foreign-cross-domain-circular-values
+      body: |
+        SELECT unnest($circular_values::TEXT[]) AS value
+    legacy-query-syntax: |
+      SELECT unnest($query($DOMAIN, selected-test-table-ids)::TEXT[]) AS value
     my-old-test-table: |
       SELECT * FROM test_table
   functions:
@@ -228,8 +316,12 @@ postgres:
     foreign-cross-domain-circular-values:
       domains:
       - ${CURRENT_DOMAIN}
+      external:
+        circular_values:
+          domain: '${CURRENT_DOMAIN}'
+          query: cross-domain-circular-query
       body: |
-        SELECT unnest($query(${CURRENT_DOMAIN}, cross-domain-circular-foreign-query)::TEXT[]) AS value
+        SELECT unnest($circular_values::TEXT[]) AS value
   functions:
     same_domain_authorization:
       returns: BOOLEAN
@@ -506,8 +598,8 @@ postgres:
         .to.deep.equal([ { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 } ])
     })
 
-    it('Can compose same-domain foreign queries with positional, named, and JSON args', async function () {
-      expect(await Agent.query('foreign-query-selected-entries', [false]))
+    it('Can compose same-domain external queries with positional and named args', async function () {
+      expect(await Agent.query('external-query-selected-entries', [false]))
         .to.deep.equal(sortRowsById([
           { id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 },
           { id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 },
@@ -515,17 +607,52 @@ postgres:
         ]))
     })
 
-    it('Preserves requesting domain through cross-domain foreign queries', async function () {
+    it('Can implicitly resolve same-domain query references with current params', async function () {
+      expect(await Agent.query('implicit-query-selected-entries', [false]))
+        .to.deep.equal(sortRowsById([
+          { id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 },
+          { id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 },
+          { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 }
+        ]))
+    })
+
+    it('Prefers explicit external references over same-domain query names', async function () {
+      expect(await Agent.query('explicit-external-overrides-domain-query'))
+        .to.deep.equal(sortRowsById([
+          { id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 },
+          { id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 },
+          { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 }
+        ]))
+    })
+
+    it('Can chain explicit external references', async function () {
+      expect(await Agent.query('chained-external-query-selected-entries', [false]))
+        .to.deep.equal(sortRowsById([
+          { id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 },
+          { id: TEST_ENTRY_3_ID, ...TEST_ENTRY_3 },
+          { id: TEST_ENTRY_4_ID, ...TEST_ENTRY_4 }
+        ]))
+    })
+
+    it('Rejects circular explicit external references', async function () {
+      let error
+
+      await Agent.query('circular-external-query').catch(e => error = e)
+
+      expect(error).to.equal('CIRCULAR EXTERNAL QUERY')
+    })
+
+    it('Preserves requesting domain through cross-domain external queries', async function () {
       const { domain } = await Agent.environment()
 
-      expect(await Agent.query('cross-domain-foreign-query-requesting-domain-values'))
+      expect(await Agent.query('cross-domain-query-requesting-domain-values'))
         .to.deep.equal([{ value: domain }])
     })
 
-    it('Preserves context through cross-domain foreign queries', async function () {
+    it('Preserves context through cross-domain external queries', async function () {
       expect(
         await Agent.query(
-          'cross-domain-foreign-query-context-values',
+          'cross-domain-query-context-values',
           [],
           undefined,
           ['ctx-b', 'ctx-a']
@@ -537,20 +664,29 @@ postgres:
         ])
     })
 
-    it('Rejects direct circular foreign query references', async function () {
+    it('Rejects direct circular query references', async function () {
       let error
 
-      await Agent.query('self-referential-foreign-query').catch(e => error = e)
+      await Agent.query('self-referential-query').catch(e => error = e)
 
       expect(error).to.equal('CIRCULAR FOREIGN QUERY')
     })
 
-    it('Rejects cross-domain circular foreign query references', async function () {
+    it('Rejects cross-domain circular query references', async function () {
       let error
 
-      await Agent.query('cross-domain-circular-foreign-query').catch(e => error = e)
+      await Agent.query('cross-domain-circular-query').catch(e => error = e)
 
       expect(error).to.equal('CIRCULAR FOREIGN QUERY')
+    })
+
+    it('Rejects legacy embedded query syntax with a query error', async function () {
+      let error
+      const { domain } = await Agent.environment()
+
+      await Agent.query('legacy-query-syntax').catch(e => error = e)
+
+      expect(error).to.equal(`INVALID QUERY 'query' FOR '${domain}'`)
     })
 
     it('Cannot query old tables', async function () {

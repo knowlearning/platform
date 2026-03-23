@@ -24,7 +24,7 @@ setInterval(() => {
 
 }, 1_000)
 
-export default async function configuredQuery(requestingDomain, targetDomain, queryName, params, user, context=[], queryStack=[]) {
+export default async function configuredQuery(requestingDomain, targetDomain, queryName, params=[], user, context=[], queryStack=[]) {
   if (
     requestingDomain === ADMIN_DOMAIN
     && queryName !== 'current-config'
@@ -59,14 +59,13 @@ export default async function configuredQuery(requestingDomain, targetDomain, qu
     queryDefinition = queryDefinitions[queryName]
   }
 
-  let queryBody
-
-  if (typeof queryDefinition === 'string') queryBody = queryDefinition
-  else if (queryDefinition?.body) queryBody = queryDefinition.body
+  const queryBody = typeof queryDefinition === 'string'
+    ? queryDefinition
+    : queryDefinition?.body
 
   if (queryBody) {
     const [q, p] = await prepareQuery(
-      queryBody,
+      queryDefinition,
       requestingDomain,
       targetDomain,
       user,
@@ -90,11 +89,15 @@ export default async function configuredQuery(requestingDomain, targetDomain, qu
   }
 }
 
-async function prepareQuery(queryBody, requestingDomain, targetDomain, user, context, params, queryStack) {
+async function prepareQuery(queryDefinition, requestingDomain, targetDomain, user, context, params=[], queryStack) {
+  const queryBody = typeof queryDefinition === 'string'
+    ? queryDefinition
+    : queryDefinition?.body
   const namedParams = getNamedParams(targetDomain, requestingDomain, user, context)
-  const [withForeignQueries, queryParams] = await injectForeignQueries(
-    queryBody,
+  const externalValues = await resolveExternalBindings(
+    queryDefinition?.external,
     requestingDomain,
+    targetDomain,
     user,
     context,
     params,
@@ -102,7 +105,17 @@ async function prepareQuery(queryBody, requestingDomain, targetDomain, user, con
     queryStack
   )
 
-  return injectNamedParams(withForeignQueries, queryParams, namedParams)
+  return injectQueryReferences(
+    queryBody,
+    requestingDomain,
+    targetDomain,
+    user,
+    context,
+    params,
+    namedParams,
+    externalValues,
+    queryStack
+  )
 }
 
 function getNamedParams(targetDomain, requestingDomain, user, context) {
@@ -117,182 +130,283 @@ function getNamedParams(targetDomain, requestingDomain, user, context) {
   return namedParams
 }
 
-async function injectForeignQueries(
-  queryBody,
+async function resolveExternalBindings(
+  externalDefinitions={},
   requestingDomain,
+  targetDomain,
   user,
   context,
   params,
   namedParams,
   queryStack
 ) {
-  const queryParams = [...params]
-  let nextForeignQuery = findForeignQuery(queryBody)
-
-  while (nextForeignQuery) {
-    const [foreignTargetDomain, foreignQueryName, ...foreignParams] = parseForeignQueryCall(
-      nextForeignQuery.body,
+  const resolvedExternalValues = {}
+  for (const name of Object.keys(externalDefinitions)) {
+    await resolveExternalBinding(
+      name,
+      externalDefinitions,
+      resolvedExternalValues,
+      [],
+      requestingDomain,
+      targetDomain,
+      user,
+      context,
+      params,
       namedParams,
-      params
+      queryStack
     )
+  }
+
+  return resolvedExternalValues
+}
+
+async function resolveExternalBinding(
+  name,
+  externalDefinitions,
+  resolvedExternalValues,
+  resolvingExternalNames,
+  requestingDomain,
+  targetDomain,
+  user,
+  context,
+  params,
+  namedParams,
+  queryStack
+) {
+  if (name in resolvedExternalValues) return resolvedExternalValues[name]
+  if (!(name in externalDefinitions)) {
+    const error = new Error(`No external query named "${name}"`)
+    error.code = 'INVALID EXTERNAL QUERY'
+    throw error
+  }
+  if (resolvingExternalNames.includes(name)) {
+    const error = new Error(`Circular external query reference: ${[...resolvingExternalNames, name].join(' -> ')}`)
+    error.code = 'CIRCULAR EXTERNAL QUERY'
+    throw error
+  }
+
+  resolvingExternalNames.push(name)
+  try {
+    const definition = externalDefinitions[name]
+    const externalTargetDomain = await resolveExternalValue(
+      definition?.domain,
+      externalDefinitions,
+      resolvedExternalValues,
+      resolvingExternalNames,
+      requestingDomain,
+      targetDomain,
+      user,
+      context,
+      params,
+      namedParams,
+      queryStack
+    )
+    const externalQueryName = await resolveExternalValue(
+      definition?.query,
+      externalDefinitions,
+      resolvedExternalValues,
+      resolvingExternalNames,
+      requestingDomain,
+      targetDomain,
+      user,
+      context,
+      params,
+      namedParams,
+      queryStack
+    )
+    const externalParams = await resolveExternalParams(
+      definition?.params || [],
+      externalDefinitions,
+      resolvedExternalValues,
+      resolvingExternalNames,
+      requestingDomain,
+      targetDomain,
+      user,
+      context,
+      params,
+      namedParams,
+      queryStack
+    )
+
+    if (typeof externalTargetDomain !== 'string' || typeof externalQueryName !== 'string') {
+      const error = new Error(`External query "${name}" must resolve string "domain" and "query" values`)
+      error.code = 'INVALID EXTERNAL QUERY'
+      throw error
+    }
 
     const { rows } = await configuredQuery(
       requestingDomain,
-      foreignTargetDomain,
-      foreignQueryName,
-      foreignParams,
+      externalTargetDomain,
+      externalQueryName,
+      externalParams,
       user,
       context,
       queryStack
     )
 
-    queryParams.push(extractForeignQueryValues(rows, foreignTargetDomain, foreignQueryName))
-    queryBody = (
-      queryBody.slice(0, nextForeignQuery.start)
-      + `$${queryParams.length}`
-      + queryBody.slice(nextForeignQuery.end)
-    )
-    nextForeignQuery = findForeignQuery(queryBody)
+    const resolvedValue = extractForeignQueryValues(rows, externalTargetDomain, externalQueryName)
+    resolvedExternalValues[name] = resolvedValue
+    return resolvedValue
   }
-
-  return [queryBody, queryParams]
+  finally {
+    resolvingExternalNames.pop()
+  }
 }
 
-function parseForeignQueryCall(body, namedParams, params) {
-  const args = splitForeignQueryArgs(body)
-
-  if (args.length < 2) {
-    const error = new Error('Foreign query calls require a domain and query name')
-    error.code = 'INVALID FOREIGN QUERY'
-    throw error
-  }
-
-  const [foreignTargetDomain, foreignQueryName, ...foreignArgExpressions] = args
-  const targetDomain = resolveForeignQueryArgument(foreignTargetDomain, namedParams, params)
-  const queryName = resolveForeignQueryArgument(foreignQueryName, namedParams, params)
-
-  if (typeof targetDomain !== 'string' || typeof queryName !== 'string') {
-    const error = new Error('Foreign query domain and query name must resolve to strings')
-    error.code = 'INVALID FOREIGN QUERY'
-    throw error
-  }
-
-  return [
+async function resolveExternalParams(
+  values,
+  externalDefinitions,
+  resolvedExternalValues,
+  resolvingExternalNames,
+  requestingDomain,
+  targetDomain,
+  user,
+  context,
+  params,
+  namedParams,
+  queryStack
+) {
+  return Promise.all(values.map(value => resolveExternalValue(
+    value,
+    externalDefinitions,
+    resolvedExternalValues,
+    resolvingExternalNames,
+    requestingDomain,
     targetDomain,
-    queryName,
-    ...foreignArgExpressions.map(expression => resolveForeignQueryArgument(expression, namedParams, params))
-  ]
+    user,
+    context,
+    params,
+    namedParams,
+    queryStack
+  )))
 }
 
-function splitForeignQueryArgs(body) {
-  const args = []
-  let start = 0
-  let parenDepth = 0
-  let braceDepth = 0
-  let bracketDepth = 0
-  let inSingleQuote = false
-  let inDoubleQuote = false
-  let escaped = false
+async function resolveExternalValue(
+  value,
+  externalDefinitions,
+  resolvedExternalValues,
+  resolvingExternalNames,
+  requestingDomain,
+  targetDomain,
+  user,
+  context,
+  params,
+  namedParams,
+  queryStack
+) {
+  const referenceName = getReferenceName(value)
+  if (!referenceName) return value
 
-  for (let index = 0; index < body.length; index++) {
-    const char = body[index]
-
-    if (escaped) {
-      escaped = false
-      continue
-    }
-
-    if (inDoubleQuote) {
-      if (char === '\\') escaped = true
-      else if (char === '"') inDoubleQuote = false
-      continue
-    }
-
-    if (inSingleQuote) {
-      if (char === "'" && body[index + 1] === "'") index += 1
-      else if (char === "'") inSingleQuote = false
-      continue
-    }
-
-    if (char === '"') {
-      inDoubleQuote = true
-      continue
-    }
-
-    if (char === "'") {
-      inSingleQuote = true
-      continue
-    }
-
-    if (char === '(') parenDepth += 1
-    else if (char === ')') parenDepth -= 1
-    else if (char === '{') braceDepth += 1
-    else if (char === '}') braceDepth -= 1
-    else if (char === '[') bracketDepth += 1
-    else if (char === ']') bracketDepth -= 1
-    else if (char === ',' && !parenDepth && !braceDepth && !bracketDepth) {
-      args.push(body.slice(start, index).trim())
-      start = index + 1
-    }
-  }
-
-  const lastArg = body.slice(start).trim()
-  if (lastArg.length) args.push(lastArg)
-
-  return args
-}
-
-function resolveForeignQueryArgument(expression, namedParams, params) {
-  const trimmed = expression.trim()
-
-  if (!trimmed.length) {
-    const error = new Error('Foreign query arguments cannot be empty')
-    error.code = 'INVALID FOREIGN QUERY ARGUMENT'
-    throw error
-  }
-
-  if (/^\$\d+$/.test(trimmed)) {
-    const index = parseInt(trimmed.slice(1))
+  if (/^\d+$/.test(referenceName)) {
+    const index = parseInt(referenceName)
     if (index < 1 || index > params.length) {
-      const error = new Error(`No positional parameter ${trimmed}`)
-      error.code = 'INVALID FOREIGN QUERY ARGUMENT'
+      const error = new Error(`No positional parameter $${referenceName}`)
+      error.code = 'INVALID EXTERNAL QUERY ARGUMENT'
       throw error
     }
 
     return params[index - 1]
   }
 
-  if (/^\$[A-Z_][A-Z0-9_]*$/.test(trimmed)) {
-    const paramName = trimmed.slice(1)
-    if (!(paramName in namedParams)) {
-      const error = new Error(`No named parameter ${trimmed}`)
-      error.code = 'INVALID FOREIGN QUERY ARGUMENT'
-      throw error
-    }
-
-    return namedParams[paramName]
+  if (referenceName in namedParams) return namedParams[referenceName]
+  if (referenceName in externalDefinitions) {
+    return resolveExternalBinding(
+      referenceName,
+      externalDefinitions,
+      resolvedExternalValues,
+      resolvingExternalNames,
+      requestingDomain,
+      targetDomain,
+      user,
+      context,
+      params,
+      namedParams,
+      queryStack
+    )
   }
 
-  try {
-    return JSON.parse(trimmed)
-  }
-  catch (_) {
-    return trimmed
-  }
+  const error = new Error(`No external binding ${value}`)
+  error.code = 'INVALID EXTERNAL QUERY ARGUMENT'
+  throw error
 }
 
-function findForeignQuery(queryBody) {
-  const start = queryBody.indexOf('$query(')
+async function injectQueryReferences(
+  queryBody,
+  requestingDomain,
+  targetDomain,
+  user,
+  context,
+  params,
+  namedParams,
+  externalValues,
+  queryStack
+) {
+  const queryParams = [...params]
+  const tokens = collectQueryReferenceTokens(queryBody)
+  const tokenParams = {}
 
-  if (start === -1) return null
+  for (const { name } of tokens) {
+    if (name in tokenParams) continue
 
-  let depth = 1
+    if (name in externalValues) {
+      queryParams.push(externalValues[name])
+    }
+    else if (name in namedParams) {
+      queryParams.push(namedParams[name])
+    }
+    else if (/^[A-Z_][A-Z0-9_]*$/.test(name)) {
+      const error = new Error(`No named parameter $${name}`)
+      error.code = 'INVALID QUERY REFERENCE'
+      throw error
+    }
+    else {
+      const { rows } = await configuredQuery(
+        requestingDomain,
+        targetDomain,
+        name,
+        params,
+        user,
+        context,
+        queryStack
+      )
+      queryParams.push(extractForeignQueryValues(rows, targetDomain, name))
+    }
+
+    tokenParams[name] = queryParams.length
+  }
+
+  return [replaceQueryReferenceTokens(queryBody, tokens, tokenParams), queryParams]
+}
+
+function getReferenceName(value) {
+  if (typeof value !== 'string') return null
+  const match = value.match(/^\$([A-Za-z_][A-Za-z0-9_-]*|\d+)$/)
+  return match?.[1] || null
+}
+
+function collectQueryReferenceTokens(queryBody) {
+  const tokens = []
   let inSingleQuote = false
   let inDoubleQuote = false
+  let inLineComment = false
+  let inBlockComment = false
   let escaped = false
 
-  for (let index = start + '$query('.length; index < queryBody.length; index++) {
+  for (let index = 0; index < queryBody.length; index++) {
     const char = queryBody[index]
+
+    if (inLineComment) {
+      if (char === '\n') inLineComment = false
+      continue
+    }
+
+    if (inBlockComment) {
+      if (char === '*' && queryBody[index + 1] === '/') {
+        inBlockComment = false
+        index += 1
+      }
+      continue
+    }
 
     if (escaped) {
       escaped = false
@@ -321,22 +435,47 @@ function findForeignQuery(queryBody) {
       continue
     }
 
-    if (char === '(') depth += 1
-    else if (char === ')') {
-      depth -= 1
-      if (!depth) {
-        return {
-          start,
-          end: index + 1,
-          body: queryBody.slice(start + '$query('.length, index)
-        }
-      }
+    if (char === '-' && queryBody[index + 1] === '-') {
+      inLineComment = true
+      index += 1
+      continue
     }
+
+    if (char === '/' && queryBody[index + 1] === '*') {
+      inBlockComment = true
+      index += 1
+      continue
+    }
+
+    if (char !== '$') continue
+    if (/\d/.test(queryBody[index + 1])) continue
+    if (!/[A-Za-z_]/.test(queryBody[index + 1])) continue
+
+    let end = index + 2
+    while (/[A-Za-z0-9_-]/.test(queryBody[end])) end += 1
+
+    tokens.push({
+      start: index,
+      end,
+      name: queryBody.slice(index + 1, end)
+    })
+    index = end - 1
   }
 
-  const error = new Error('Foreign query call is missing a closing ")"')
-  error.code = 'INVALID FOREIGN QUERY'
-  throw error
+  return tokens
+}
+
+function replaceQueryReferenceTokens(queryBody, tokens, tokenParams) {
+  let nextStart = 0
+  let nextBody = ''
+
+  tokens.forEach(({ start, end, name }) => {
+    nextBody += queryBody.slice(nextStart, start)
+    nextBody += `$${tokenParams[name]}`
+    nextStart = end
+  })
+
+  return nextBody + queryBody.slice(nextStart)
 }
 
 function extractForeignQueryValues(rows, targetDomain, queryName) {
@@ -373,18 +512,4 @@ function formatForeignQueryPath(queryStack) {
   return queryStack
     .map(queryReference => JSON.parse(queryReference).join('/'))
     .join(' -> ')
-}
-
-function injectNamedParams(queryBody, params, namedParams) {
-  //  TODO: better replacement technique
-  const queryParams = [...params]
-  Object
-    .entries(namedParams)
-    .forEach(([param, value]) => {
-      if (queryBody.includes(`$${param}`)) {
-        queryParams.push(value)
-        queryBody = queryBody.replaceAll(`$${param}`, `$${queryParams.length}`)
-      }
-    })
-  return [queryBody, queryParams]
 }
