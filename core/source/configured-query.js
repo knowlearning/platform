@@ -341,21 +341,32 @@ async function injectQueryReferences(
   externalValues,
   queryStack
 ) {
-  const queryParams = [...params]
-  const tokens = collectQueryReferenceTokens(queryBody)
+  const queryParams = []
+  const tokens = collectParameterTokens(queryBody)
   const tokenParams = {}
 
-  for (const { name } of tokens) {
-    if (name in tokenParams) continue
+  for (const token of tokens) {
+    const tokenKey = token.value
+    if (tokenKey in tokenParams) continue
 
-    if (name in externalValues) {
-      queryParams.push(externalValues[name])
+    if (token.type === 'positional') {
+      const index = parseInt(token.value)
+      if (index < 1 || index > params.length) {
+        const error = new Error(`No positional parameter $${token.value}`)
+        error.code = 'INVALID QUERY REFERENCE'
+        throw error
+      }
+
+      queryParams.push(params[index - 1])
     }
-    else if (name in namedParams) {
-      queryParams.push(namedParams[name])
+    else if (token.value in externalValues) {
+      queryParams.push(externalValues[token.value])
     }
-    else if (/^[A-Z_][A-Z0-9_]*$/.test(name)) {
-      const error = new Error(`No named parameter $${name}`)
+    else if (token.value in namedParams) {
+      queryParams.push(namedParams[token.value])
+    }
+    else if (/^[A-Z_][A-Z0-9_]*$/.test(token.value)) {
+      const error = new Error(`No named parameter $${token.value}`)
       error.code = 'INVALID QUERY REFERENCE'
       throw error
     }
@@ -363,16 +374,16 @@ async function injectQueryReferences(
       const { rows } = await configuredQuery(
         requestingDomain,
         targetDomain,
-        name,
+        token.value,
         params,
         user,
         context,
         queryStack
       )
-      queryParams.push(extractForeignQueryValues(rows, targetDomain, name))
+      queryParams.push(extractForeignQueryValues(rows, targetDomain, token.value))
     }
 
-    tokenParams[name] = queryParams.length
+    tokenParams[tokenKey] = queryParams.length
   }
 
   return [replaceQueryReferenceTokens(queryBody, tokens, tokenParams), queryParams]
@@ -384,7 +395,7 @@ function getReferenceName(value) {
   return match?.[1] || null
 }
 
-function collectQueryReferenceTokens(queryBody) {
+function collectParameterTokens(queryBody) {
   const tokens = []
   let inSingleQuote = false
   let inDoubleQuote = false
@@ -448,16 +459,18 @@ function collectQueryReferenceTokens(queryBody) {
     }
 
     if (char !== '$') continue
-    if (/\d/.test(queryBody[index + 1])) continue
-    if (!/[A-Za-z_]/.test(queryBody[index + 1])) continue
+    if (!/[\dA-Za-z_]/.test(queryBody[index + 1])) continue
 
+    const type = /\d/.test(queryBody[index + 1]) ? 'positional' : 'reference'
     let end = index + 2
-    while (/[A-Za-z0-9_-]/.test(queryBody[end])) end += 1
+    const pattern = type === 'positional' ? /\d/ : /[A-Za-z0-9_-]/
+    while (pattern.test(queryBody[end])) end += 1
 
     tokens.push({
       start: index,
       end,
-      name: queryBody.slice(index + 1, end)
+      type,
+      value: queryBody.slice(index + 1, end)
     })
     index = end - 1
   }
@@ -469,9 +482,9 @@ function replaceQueryReferenceTokens(queryBody, tokens, tokenParams) {
   let nextStart = 0
   let nextBody = ''
 
-  tokens.forEach(({ start, end, name }) => {
+  tokens.forEach(({ start, end, value }) => {
     nextBody += queryBody.slice(nextStart, start)
-    nextBody += `$${tokenParams[name]}`
+    nextBody += `$${tokenParams[value]}`
     nextStart = end
   })
 

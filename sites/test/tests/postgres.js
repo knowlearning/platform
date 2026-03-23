@@ -10,6 +10,17 @@ export default function () {
   const FOREIGN_QUERY_DOMAIN = `foreign-query-config.${CURRENT_DOMAIN}`
   const TEST_TABLE_TYPE = `application/json;type=test-type`
   const sortRowsById = rows => [...rows].sort((a, b) => a.id.localeCompare(b.id))
+  const waitForQueryResult = async (queryName, expected, params=[], tries=20, delay=25) => {
+    let result
+
+    for (let attempt = 0; attempt < tries; attempt += 1) {
+      result = await Agent.query(queryName, params)
+      if (JSON.stringify(result) === JSON.stringify(expected)) return result
+      await pause(delay)
+    }
+
+    return result
+  }
 
   const TEST_ENTRY_0_ID = uuid()
   const TEST_ENTRY_0 = {
@@ -159,13 +170,15 @@ postgres:
       FROM test_table_2
       WHERE boolean_test_column = $1
         AND integer_test_column = $2
-        AND $3 = $DOMAIN
+        AND $3::TEXT = $DOMAIN::TEXT
+        AND id = ANY('{${TEST_ENTRY_2_ID},${TEST_ENTRY_3_ID},${TEST_ENTRY_4_ID}}'::TEXT[])
       ORDER BY id
     selected-test-table-ids-from-request: |
       SELECT id
       FROM test_table_2
       WHERE boolean_test_column = $1
         AND integer_test_column = 84
+        AND id = ANY('{${TEST_ENTRY_2_ID},${TEST_ENTRY_3_ID},${TEST_ENTRY_4_ID}}'::TEXT[])
       ORDER BY id
     selected_ids: |
       SELECT '${TEST_ENTRY_1_ID}' AS value
@@ -568,10 +581,13 @@ postgres:
       const state = await Agent.state(TEST_ENTRY_2_ID)
       Object.assign(state, TEST_ENTRY_2)
       await Agent.synced()
-      await pause(10)
-
-      expect( await Agent.query('my-test-table-entry-after-reconfig') )
-        .to.deep.equal( [{ id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 }] )
+      expect(
+        await waitForQueryResult(
+          'my-test-table-entry-after-reconfig',
+          [{ id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 }]
+        )
+      )
+        .to.deep.equal([{ id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 }])
     })
 
     it('Can create and query text array columns', async function () {
