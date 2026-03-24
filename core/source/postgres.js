@@ -3,7 +3,7 @@ import { postgresClientPools as clientPools } from './stateful.js'
 
 // necessary to ensure that
 function purifiedName(name) {
-  if (/^[a-zA-z_][a-zA-Z0-9_]*$/.test(name)) return name
+  if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) return name
   else throw new Error('INVALID NAME ' + name)
 }
 
