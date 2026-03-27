@@ -75,10 +75,12 @@ export default async function configuredQuery(requestingDomain, targetDomain, qu
 }
 
 async function prepareQuery(queryDefinition, requestingDomain, targetDomain, user, context, params=[], queryStack) {
+  const config = await configuration(targetDomain)
   const queryBody = typeof queryDefinition === 'string'
     ? queryDefinition
     : queryDefinition?.body
   const namedParams = getNamedParams(targetDomain, requestingDomain, user, context)
+  const variables = config?.variables || {}
   const externalValues = await resolveExternalBindings(
     queryDefinition?.external,
     requestingDomain,
@@ -87,6 +89,7 @@ async function prepareQuery(queryDefinition, requestingDomain, targetDomain, use
     context,
     params,
     namedParams,
+    variables,
     queryStack
   )
 
@@ -123,6 +126,7 @@ async function resolveExternalBindings(
   context,
   params,
   namedParams,
+  variables,
   queryStack
 ) {
   const resolvedExternalValues = {}
@@ -138,6 +142,7 @@ async function resolveExternalBindings(
       context,
       params,
       namedParams,
+      variables,
       queryStack
     )
   }
@@ -156,6 +161,7 @@ async function resolveExternalBinding(
   context,
   params,
   namedParams,
+  variables,
   queryStack
 ) {
   if (name in resolvedExternalValues) return resolvedExternalValues[name]
@@ -184,6 +190,7 @@ async function resolveExternalBinding(
       context,
       params,
       namedParams,
+      variables,
       queryStack
     )
     const externalQueryName = await resolveExternalValue(
@@ -197,6 +204,7 @@ async function resolveExternalBinding(
       context,
       params,
       namedParams,
+      variables,
       queryStack
     )
     const externalParams = await resolveExternalParams(
@@ -210,6 +218,7 @@ async function resolveExternalBinding(
       context,
       params,
       namedParams,
+      variables,
       queryStack
     )
 
@@ -249,6 +258,7 @@ async function resolveExternalParams(
   context,
   params,
   namedParams,
+  variables,
   queryStack
 ) {
   return Promise.all(values.map(value => resolveExternalValue(
@@ -262,6 +272,7 @@ async function resolveExternalParams(
     context,
     params,
     namedParams,
+    variables,
     queryStack
   )))
 }
@@ -277,6 +288,7 @@ async function resolveExternalValue(
   context,
   params,
   namedParams,
+  variables,
   queryStack
 ) {
   const referenceName = getReferenceName(value)
@@ -306,9 +318,11 @@ async function resolveExternalValue(
       context,
       params,
       namedParams,
+      variables,
       queryStack
     )
   }
+  if (referenceName in variables) return variables[referenceName]
 
   const error = new Error(`No external binding ${value}`)
   error.code = 'INVALID EXTERNAL QUERY ARGUMENT'

@@ -165,6 +165,14 @@ authorize:
     postgres: same_domain_authorization
   crossDomain:
     postgres: cross_domain_authorization
+variables:
+  DOMAIN: wrong-domain.example.com
+  FOREIGN_QUERY_DOMAIN: ${FOREIGN_QUERY_DOMAIN}
+  SELECTED_TEST_TABLE_IDS_QUERY: selected-test-table-ids
+  RUN_SPECIFIC_QUERY: run-specific-test-table-ids
+  VARIABLE_BOOLEAN: false
+  VARIABLE_INTEGER: 84
+  selected_ids: run-specific-test-table-ids
 postgres:
   tables:
     test_table_2:
@@ -230,6 +238,40 @@ postgres:
           params:
           - $1
           - 84
+          - $DOMAIN
+      body: |
+        SELECT *
+        FROM test_table_2
+        WHERE id = ANY($selected_ids::TEXT[])
+        ORDER BY id
+    variable-domain-and-query-external-query-selected-entries:
+      external:
+        selected_ids:
+          domain: $FOREIGN_QUERY_DOMAIN
+          query: foreign-run-specific-test-table-ids
+      body: |
+        SELECT *
+        FROM test_table_2
+        WHERE id = ANY($selected_ids::TEXT[])
+        ORDER BY id
+    variable-query-name-external-query-selected-entries:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: $RUN_SPECIFIC_QUERY
+      body: |
+        SELECT *
+        FROM test_table_2
+        WHERE id = ANY($selected_ids::TEXT[])
+        ORDER BY id
+    variable-param-external-query-selected-entries:
+      external:
+        selected_ids:
+          domain: $DOMAIN
+          query: $SELECTED_TEST_TABLE_IDS_QUERY
+          params:
+          - $VARIABLE_BOOLEAN
+          - $VARIABLE_INTEGER
           - $DOMAIN
       body: |
         SELECT *
@@ -349,6 +391,8 @@ postgres:
         FROM test_table_2
         WHERE id = ANY($selected_ids::TEXT[])
         ORDER BY id
+    body-variable-reference-query: |
+      SELECT unnest($RUN_SPECIFIC_QUERY::TEXT[]) AS value
     chained-external-query-selected-entries:
       external:
         initial_ids:
@@ -410,6 +454,13 @@ postgres:
           query: passthrough-test-table-ids
           params:
           - $NOPE
+      body: |
+        SELECT unnest($selected_ids::TEXT[]) AS value
+    invalid-variable-external-query:
+      external:
+        selected_ids:
+          domain: $MISSING_VARIABLE
+          query: passthrough-test-table-ids
       body: |
         SELECT unnest($selected_ids::TEXT[]) AS value
     non-string-domain-external-query:
@@ -549,6 +600,11 @@ postgres:
       - ${CURRENT_DOMAIN}
       body: |
         SELECT $REQUESTING_DOMAIN AS value
+    foreign-run-specific-test-table-ids:
+      domains:
+      - ${CURRENT_DOMAIN}
+      body: |
+        SELECT '${TEST_ENTRY_2_ID}' AS id
     foreign-context-values:
       domains:
       - ${CURRENT_DOMAIN}
@@ -852,6 +908,21 @@ postgres:
         .to.deep.equal(expectedSelectedRows)
     })
 
+    it('Can resolve top-level variables in external query domains', async function () {
+      expect(await Agent.query('variable-domain-and-query-external-query-selected-entries'))
+        .to.deep.equal([{ id: TEST_ENTRY_2_ID, ...TEST_ENTRY_2 }])
+    })
+
+    it('Can resolve top-level variables in external query names', async function () {
+      expect(await Agent.query('variable-query-name-external-query-selected-entries'))
+        .to.deep.equal(expectedSelectedRows)
+    })
+
+    it('Can resolve top-level variables in external query params', async function () {
+      expect(await Agent.query('variable-param-external-query-selected-entries'))
+        .to.deep.equal(expectedSelectedRows)
+    })
+
     it('Can implicitly resolve same-domain query references with current params', async function () {
       expect(await Agent.query('implicit-query-selected-entries', [false]))
         .to.deep.equal(expectedSelectedRows)
@@ -890,6 +961,14 @@ postgres:
     it('Prefers explicit external references over same-domain query names', async function () {
       expect(await Agent.query('explicit-external-overrides-domain-query'))
         .to.deep.equal(expectedSelectedRows)
+    })
+
+    it('Does not resolve top-level variables in SQL query bodies', async function () {
+      let error
+
+      await Agent.query('body-variable-reference-query').catch(e => error = e)
+
+      expect(error).to.equal('INVALID QUERY REFERENCE')
     })
 
     it('Can chain explicit external references', async function () {
@@ -933,6 +1012,14 @@ postgres:
       let error
 
       await Agent.query('invalid-named-external-query').catch(e => error = e)
+
+      expect(error).to.equal('INVALID EXTERNAL QUERY ARGUMENT')
+    })
+
+    it('Rejects explicit external references with missing variable bindings', async function () {
+      let error
+
+      await Agent.query('invalid-variable-external-query').catch(e => error = e)
 
       expect(error).to.equal('INVALID EXTERNAL QUERY ARGUMENT')
     })

@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-CODEX_VERSION="${CODEX_VERSION:-0.111.0}"
+CODEX_VERSION="${CODEX_VERSION:-0.113.0}"
 IMAGE="${IMAGE:-codex:local}"
 NAME="${NAME:-codex}"
 REPO_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
