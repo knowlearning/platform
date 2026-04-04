@@ -9,9 +9,19 @@ WORKDIR="${WORKDIR:-/workspace}"
 ALLOW_NET="${ALLOW_NET:-1}"
 MODEL="${MODEL:-gpt-5.4}"
 
-NET_ARGS="--network none"
-if [ "$ALLOW_NET" = "1" ]; then
-  NET_ARGS="--network bridge"
+if ! command -v docker >/dev/null 2>&1; then
+  echo "docker is required but was not found in PATH" >&2
+  exit 1
+fi
+
+if ! docker info >/dev/null 2>&1; then
+  echo "docker is installed but the daemon is not reachable" >&2
+  exit 1
+fi
+
+NET_ARGS=
+if [ "$ALLOW_NET" != "1" ]; then
+  NET_ARGS="--network none"
 fi
 
 # Ensure we do NOT pass an API key; prefer interactive/device auth
