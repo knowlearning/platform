@@ -1,5 +1,63 @@
 #!/bin/bash
 
+login_to_gcloud() {
+  echo "Logging in as a different user..."
+  gcloud auth login
+}
+
+select_project() {
+  local current_project
+  current_project=$(gcloud config get-value project 2>/dev/null)
+
+  echo "Fetching projects available to this account..."
+
+  local projects=()
+  while IFS= read -r project_id; do
+    projects+=("$project_id")
+  done < <(gcloud projects list --format="value(projectId)" --sort-by="projectId")
+
+  if [ ${#projects[@]} -eq 0 ]; then
+    echo "No projects were found for this account."
+    read -p "Enter a project ID manually: " PROJECT
+  else
+    echo "Select a GCP project:"
+    local i=1
+    for project_id in "${projects[@]}"; do
+      if [ "$project_id" = "$current_project" ]; then
+        echo "$i) $project_id (current)"
+      else
+        echo "$i) $project_id"
+      fi
+      i=$((i + 1))
+    done
+
+    read -p "Enter choice number or project ID: " project_choice
+
+    if [[ "$project_choice" =~ ^[0-9]+$ ]] && [ "$project_choice" -ge 1 ] && [ "$project_choice" -le ${#projects[@]} ]; then
+      PROJECT="${projects[$((project_choice - 1))]}"
+    else
+      PROJECT="$project_choice"
+    fi
+  fi
+
+  if [ -z "$PROJECT" ]; then
+    echo "Project is required."
+    exit 1
+  fi
+
+  export PROJECT
+  gcloud config set project "$PROJECT"
+}
+
+configure_adc() {
+  echo "Configuring application default credentials for project: $PROJECT"
+  gcloud auth application-default login
+
+  if ! gcloud auth application-default set-quota-project "$PROJECT"; then
+    echo "Could not set $PROJECT as the ADC quota project. Continuing anyway."
+  fi
+}
+
 if [ "$1" = "production" ]; then
   while true; do
     # Check if gcloud is already logged in
@@ -11,8 +69,8 @@ if [ "$1" = "production" ]; then
       RESPONSE=$(echo "$RESPONSE" | tr '[:upper:]' '[:lower:]')  # Convert to lowercase
 
       if [ -z "$RESPONSE" ] || [ "$RESPONSE" = "n" ] || [ "$RESPONSE" = "no" ]; then
-        echo "Logging in as a different user..."
-        gcloud auth application-default login
+        login_to_gcloud
+        break
       elif [ "$RESPONSE" = "y" ] || [ "$RESPONSE" = "yes" ]; then
         break
       else
@@ -20,7 +78,8 @@ if [ "$1" = "production" ]; then
       fi
     else
       echo "Gcloud is not logged in. Logging in now..."
-      gcloud auth application-default login
+      login_to_gcloud
+      break
     fi
   done
 
@@ -29,7 +88,8 @@ if [ "$1" = "production" ]; then
 
   # Deploy infrastructure
 
-  export PROJECT="opensourcelearningplatform"
+  select_project
+  configure_adc
 
   echo "Select an environment:"
   echo "1) us-a"

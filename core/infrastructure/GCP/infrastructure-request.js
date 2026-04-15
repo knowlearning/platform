@@ -1,6 +1,6 @@
 import getAccessToken from './get-access-token.js'
 
-const project = 'opensourcelearningplatform'
+const project = Deno.env.get("PROJECT") || 'opensourcelearningplatform'
 
 export default async function infrastructureRequest(provider, method, url, data) {
   if (provider === 'GCP') {
