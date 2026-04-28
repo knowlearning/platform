@@ -1,6 +1,7 @@
 import { environment } from './utils.js'
 import * as postgres from './postgres.js'
 import configuration, { domainAdmin } from './configuration.js'
+import { domainListAllowsDomain } from './domain-patterns.js'
 
 const {
   MODE,
@@ -40,7 +41,7 @@ export default async function configuredQuery(requestingDomain, targetDomain, qu
   if (requestingDomain === targetDomain) {
     queryDefinition = queryDefinitions?.[queryName]
   }
-  else if (queryDefinitions?.[queryName]?.domains?.includes(requestingDomain)) {
+  else if (domainListAllowsDomain(queryDefinitions?.[queryName]?.domains, requestingDomain)) {
     queryDefinition = queryDefinitions[queryName]
   }
 

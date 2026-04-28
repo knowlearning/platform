@@ -49,6 +49,9 @@ configuration behavior.
 - [x] Chained explicit `external` bindings resolve in dependency order.
 - [x] Circular explicit `external` dependencies fail with `CIRCULAR EXTERNAL QUERY`.
 - [x] Cross-domain explicit `external` preserves `$REQUESTING_DOMAIN`.
+- [x] Cross-domain explicit `external` allows configured requester domain patterns.
+- [x] Browser `Agent.query` requests allow configured requester domain patterns.
+- [x] Embedded browser `Agent.query` requests allow configured requester domain patterns.
 - [x] Cross-domain explicit `external` preserves `$CONTEXT`.
 - [x] Explicit `external` with `params` omitted behaves as a zero-argument query call.
 - [x] Multiple distinct explicit `external` bindings in one SQL body resolve correctly.
@@ -96,6 +99,7 @@ configuration behavior.
 
 - [x] Object-style query definitions with `external` parse as valid YAML.
 - [x] Cross-domain `external.domain` values containing `:` are quoted correctly.
+- [x] Domain allow-pattern matching escapes regex metacharacters and keeps wildcards label-scoped.
 - [x] Multi-line SQL `body: |` blocks remain correctly indented after config edits.
 - [ ] Invalid `external` definitions fail configuration or query execution with stable errors:
 - [x] Missing `external.<name>.domain`

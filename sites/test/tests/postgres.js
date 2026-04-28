@@ -1,6 +1,9 @@
+import { domainListAllowsDomain, domainPatternMatchesDomain } from '../../../core/source/domain-patterns.js'
+
 const EMBEDED_QUERY_TEST_MODE = 'EMBEDED_QUERY_TEST_MODE'
 const EMBEDED_PARALLEL_QUERY_TEST_MODE = 'EMBEDED_PARALLEL_QUERY_TEST_MODE'
 const EMBEDED_QUERY_ERROR_TEST_MODE = 'EMBEDED_QUERY_ERROR_TEST_MODE'
+const EMBEDED_CROSS_DOMAIN_QUERY_TEST_MODE = 'EMBEDED_CROSS_DOMAIN_QUERY_TEST_MODE'
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
 const endOfReport = id => new Promise(r => Agent.watch(id, u => u.state.end && r()))
@@ -8,6 +11,9 @@ const endOfReport = id => new Promise(r => Agent.watch(id, u => u.state.end && r
 export default function () {
   const CURRENT_DOMAIN = window.location.host
   const FOREIGN_QUERY_DOMAIN = `foreign-query-config.${CURRENT_DOMAIN}`
+  const CURRENT_DOMAIN_WILDCARD_PATTERN = CURRENT_DOMAIN.split('.').length > 2
+    ? `*.${CURRENT_DOMAIN.split('.').slice(1).join('.')}`
+    : `${CURRENT_DOMAIN.slice(0, -1)}*`
   const TEST_TABLE_TYPE = `application/json;type=test-type`
   const sortRowsById = rows => [...rows].sort((a, b) => a.id.localeCompare(b.id))
   const sortRowsByValue = rows => [...rows].sort((a, b) => a.value.localeCompare(b.value))
@@ -531,6 +537,13 @@ ${DEEP_EXCEEDED_CHAIN_QUERIES}
           query: foreign-requesting-domain-values
       body: |
         SELECT unnest($requesting_domain_values::TEXT[]) AS value
+    cross-domain-pattern-query-requesting-domain-values:
+      external:
+        requesting_domain_values:
+          domain: '${FOREIGN_QUERY_DOMAIN}'
+          query: wildcard-requesting-domain-values
+      body: |
+        SELECT unnest($requesting_domain_values::TEXT[]) AS value
     cross-domain-query-context-values:
       external:
         context_values:
@@ -605,6 +618,11 @@ postgres:
       - ${CURRENT_DOMAIN}
       body: |
         SELECT '${TEST_ENTRY_2_ID}' AS id
+    wildcard-requesting-domain-values:
+      domains:
+      - '${CURRENT_DOMAIN_WILDCARD_PATTERN}'
+      body: |
+        SELECT $REQUESTING_DOMAIN AS value
     foreign-context-values:
       domains:
       - ${CURRENT_DOMAIN}
@@ -682,6 +700,29 @@ postgres:
 
       await endOfReport(report)
       //  TODO: some way to certify that our user has been set as domain admin
+    })
+
+    it('Matches domain authorization patterns safely', function () {
+      const regexMetacharacters = '.+?^${}()|[]\\'
+
+      expect(domainListAllowsDomain(['app.pilaproject.org'], 'app.pilaproject.org')).to.equal(true)
+      expect(domainListAllowsDomain(['*.pilaproject.org'], 'app.pilaproject.org')).to.equal(true)
+      expect(domainListAllowsDomain(['*.pilaproject.org'], 'pilaproject.org')).to.equal(false)
+      expect(domainListAllowsDomain(['*.pilaproject.org'], 'deep.app.pilaproject.org')).to.equal(false)
+      expect(domainListAllowsDomain(['*.pilaproject.org'], '.pilaproject.org')).to.equal(false)
+      expect(domainPatternMatchesDomain('*.pilaproject.org', 'app.pilaproject.org.evil.com')).to.equal(false)
+      expect(domainPatternMatchesDomain('*.pilaproject.org', 'appXpilaproject.org')).to.equal(false)
+      expect(domainPatternMatchesDomain('*.(pilaproject|evil).org', 'app.evil.org')).to.equal(false)
+      expect(domainPatternMatchesDomain('api+*.pilaproject.org', 'apidev.pilaproject.org')).to.equal(false)
+      expect(domainPatternMatchesDomain('api+*.pilaproject.org', 'api+dev.pilaproject.org')).to.equal(true)
+      expect(domainPatternMatchesDomain(
+        `prefix${regexMetacharacters}*.pilaproject.org`,
+        `prefix${regexMetacharacters}dev.pilaproject.org`
+      )).to.equal(true)
+      expect(domainPatternMatchesDomain(
+        `prefix${regexMetacharacters}*.pilaproject.org`,
+        'prefixXYZdev.pilaproject.org'
+      )).to.equal(false)
     })
 
     it('Can write a new record of configured table type', async function () {
@@ -1061,6 +1102,44 @@ postgres:
 
       expect(await Agent.query('cross-domain-query-requesting-domain-values'))
         .to.deep.equal([{ value: domain }])
+    })
+
+    it('Allows cross-domain external queries from matching requester domain patterns', async function () {
+      const { domain } = await Agent.environment()
+
+      expect(await Agent.query('cross-domain-pattern-query-requesting-domain-values'))
+        .to.deep.equal([{ value: domain }])
+    })
+
+    it('Allows browser Agent.query requests to matching cross-domain patterns', async function () {
+      const { domain } = await Agent.environment()
+
+      expect(await Agent.query('wildcard-requesting-domain-values', [], FOREIGN_QUERY_DOMAIN))
+        .to.deep.equal([{ value: domain }])
+    })
+
+    it('Allows embedded browser Agent.query requests to matching cross-domain patterns', async function () {
+      this.timeout(5000)
+
+      let resolve
+      const done = new Promise(r => resolve = r)
+      const iframe = document.createElement('iframe')
+      iframe.style = "border: none; width: 0; height: 0;"
+      document.body.appendChild(iframe)
+
+      const { on } = Agent.embed({ id: TEST_ENTRY_1_ID, mode: EMBEDED_CROSS_DOMAIN_QUERY_TEST_MODE }, iframe)
+
+      let closeInfo
+      on('close', info => {
+        closeInfo = info
+        document.body.removeChild(iframe)
+        resolve()
+      })
+
+      const { domain } = await Agent.environment()
+
+      await done
+      expect(closeInfo).to.deep.equal([{ value: domain }])
     })
 
     it('Preserves context through cross-domain external queries', async function () {
