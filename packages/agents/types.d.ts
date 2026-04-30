@@ -9,13 +9,18 @@ export interface AgentAuth {
   info?: AgentAuthInfo;
 }
 
+export interface AgentEnvironmentVariables {
+  LANGUAGES?: string[];
+  [key: string]: unknown;
+}
+
 export interface AgentEnvironment {
   auth: AgentAuth;
   domain: string;
   server: string;
   session: string;
   context: string[];
-  variables: object;
+  variables: AgentEnvironmentVariables;
 }
 
 export interface AgentUploadInfo {
