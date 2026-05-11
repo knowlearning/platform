@@ -1,5 +1,3 @@
-// Persistence backend
-
 import { randomBytes, pg, environment, escapePostgresLiteral } from './utils.js'
 import { postgresClientPools as clientPools } from './stateful.js'
 

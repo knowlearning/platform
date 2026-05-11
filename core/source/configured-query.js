@@ -1,5 +1,3 @@
-// Persistence backend
-
 import { environment } from './utils.js'
 import * as postgres from './postgres.js'
 import configuration, { domainAdmin } from './configuration.js'

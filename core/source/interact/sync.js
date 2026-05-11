@@ -1,7 +1,5 @@
-// Persistence backend
-
 import * as postgres from '../postgres.js'
-import * as redis from '../redis.js'
+import { getState } from '../persistence.js'
 import configuration from '../configuration.js'
 import scopeToId from '../scope-to-id.js'
 
@@ -19,7 +17,7 @@ export default async function sync(domain, user, active_type, scope) {
 
   if (tableNames.length === 0) return syncMetadata(id)
 
-  const state = await redis.client.json.get(id)
+  const state = await getState(id)
 
   if (!state) throw new Error(`TRYING TO ADD ROW FOR NON-EXISTENT SCOPE ${domain} ${table} ${id}`)
 
@@ -40,7 +38,7 @@ async function syncMetadata(id) {
   const pathified = name => `$.${name}`
   const columns = ['active_type', 'domain', 'name', 'updated', 'created', 'owner', 'ii', 'active_size', 'storage_size']
 
-  const values = await redis.client.json.get(id, { path: columns.map(pathified) })
+  const values = await getState(id, { path: columns.map(pathified) })
 
   const orderedValues = (
     columns

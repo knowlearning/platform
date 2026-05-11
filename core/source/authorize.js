@@ -1,12 +1,10 @@
-// Persistence backend
-
-import * as redis from './redis.js'
+import { getState } from './persistence.js'
 import configuration from './configuration.js'
 import * as postgres from './postgres.js'
 
 export default async function authorize(requestingUser, requestingDomain, requestedScope) {
   return true
-  const { owner: targetUser, domain: targetDomain } = await redis.client.json.get(requestedScope)
+  const { owner: targetUser, domain: targetDomain } = await getState(requestedScope)
 
   const sameDomain = requestingDomain === targetDomain
   const sameUser = requestingUser === targetUser

@@ -1,6 +1,4 @@
-// Persistence backend
-
-import { environment, isUUID, uuid } from './utils.js';
+import { environment, isUUID, uuid } from './utils.js'
 import scopeToId from './scope-to-id.js'
 import configuredQuery from './configured-query.js'
 import { applyConfiguration } from './side-effects/configure.js'
@@ -8,7 +6,7 @@ import sideEffects from './side-effects/index.js'
 import subscribe from './subscribe.js'
 import authorize from './authorize.js'
 import interact from './interact/index.js'
-import * as redis from './redis.js'
+import { getState } from './persistence.js'
 import coreState, { coreStateSynced } from './core-state.js'
 import { domainAdmin } from './configuration.js'
 import SESSION from './session.js'
@@ -46,7 +44,7 @@ export default async function coreSideEffects({
               const ss = subscriptions[session]
               if (!ss[subscribeId]) ss[subscribeId] = subscribe(subscribeId, send, subscribedScope)
 
-              const state = await redis.client.json.get(subscribeId)
+              const state = await getState(subscribeId)
               send({ ...state, id: subscribeId, si })
             }
             else {
@@ -103,7 +101,7 @@ export default async function coreSideEffects({
       reportState.start = Date.now()
 
       try {
-        const configuration = await redis.client.json.get(id)
+        const configuration = await getState(id)
         Object.assign(coreConfigCopy, configuration.active)
         await coreStateSynced()
         await applyConfiguration(configureDomain, configuration.active, reportState)
