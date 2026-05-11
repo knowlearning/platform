@@ -1,3 +1,5 @@
+// Persistence backend
+
 import { uuid, isUUID, environment as ENV, decryptString } from './utils.js'
 import SESSION from './session.js'
 import configuration from './configuration.js'

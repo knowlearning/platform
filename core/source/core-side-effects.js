@@ -1,3 +1,5 @@
+// Persistence backend
+
 import { environment, isUUID, uuid } from './utils.js';
 import scopeToId from './scope-to-id.js'
 import configuredQuery from './configured-query.js'

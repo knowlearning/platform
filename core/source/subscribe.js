@@ -1,3 +1,5 @@
+// Persistence backend
+
 import { subscriptions, connected } from './redis.js'
 import { subscriptionResponses } from './stateful.js'
 

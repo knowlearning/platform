@@ -1,3 +1,5 @@
+// Persistence backend
+
 import { isUUID, uuid, environment } from './utils.js'
 import initializationState from './initialization-state.js'
 import * as redis from './redis.js'

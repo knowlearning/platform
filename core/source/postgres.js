@@ -1,3 +1,5 @@
+// Persistence backend
+
 import { randomBytes, pg, environment, escapePostgresLiteral } from './utils.js'
 import { postgresClientPools as clientPools } from './stateful.js'
 
@@ -48,6 +50,7 @@ const config = {
   password: POSTGRES_PASSWORD
 }
 
+//  this is the only place we need to change to pull the right client
 async function client(domain) {
   if (clientPools[domain]) return clientPools[domain]
   return clientPools[domain] = new Promise(async resolve => {

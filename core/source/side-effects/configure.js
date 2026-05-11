@@ -1,3 +1,5 @@
+// Persistence backend
+
 import { uuid, parseYAML, environment, PatchProxy } from '../utils.js'
 import coreState from '../core-state.js'
 import { domainAdmin } from '../configuration.js'

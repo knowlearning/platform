@@ -1,3 +1,5 @@
+// Persistence backend
+
 import * as redis from './redis.js'
 import configuration from './configuration.js'
 import * as postgres from './postgres.js'
