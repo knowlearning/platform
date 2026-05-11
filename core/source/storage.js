@@ -1,4 +1,4 @@
-//  Persistence backend
+// Persistence backend
 
 import { createGCSClient, uuid, environment } from './utils.js'
 import * as redis from './redis.js'
