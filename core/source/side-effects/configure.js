@@ -1,10 +1,8 @@
-// Persistence backend
-
 import { uuid, parseYAML, environment, PatchProxy } from '../utils.js'
 import coreState from '../core-state.js'
 import { domainAdmin } from '../configuration.js'
 import domainAgent from '../domain-agent/index.js'
-import * as redis from '../redis.js'
+import { domainIds, batchGetState } from '../persistence.js'
 import * as postgres from '../postgres.js'
 import { download } from '../storage.js'
 import interact from '../interact/index.js'
@@ -167,7 +165,7 @@ async function syncTables(domain, tables, report) {
   Object.values(tables).forEach(({type}) => typeGroups[type] = [])
 
   //  TODO: do in chunks...
-  const allIds = await redis.client.sendCommand(['smembers', domain])
+  const allIds = await domainIds(domain)
 
   const typeBatchSize = 10_000
 
@@ -182,9 +180,8 @@ async function syncTables(domain, tables, report) {
     const start = batchNum * typeBatchSize
     const end = start + typeBatchSize
     const batchIds = allIds.slice(start, end)
-    const transaction = redis.client.multi()
-    batchIds.forEach(id => transaction.json.get(id, { path: [`$.active_type`] }))
-    const batchTypes = await transaction.exec()
+
+    const batchTypes = await batchGetState(batchIds, { path: [`$.active_type`] })
 
     for (let idNum = 0; idNum < batchIds.length; idNum += 1) {
       const id = batchIds[idNum]
@@ -222,14 +219,13 @@ async function syncTables(domain, tables, report) {
       const batchSize = 100_000
       //  too many transactions queued up will trigger a "RangeError: Too many elements passed to Promise.all"
       for (let batchNum=0; batchNum * batchSize < rows.length; batchNum += 1) {
-        const transaction = redis.client.multi()
-        //  TODO: limit fetched data to data in table columns
         const start = batchNum * batchSize
         const end = start + batchSize
         const batch = rows.slice(start, end)
-        batch.forEach( id => transaction.json.get(id) )
         tableTasks.push(`Fetching ${batch.length} states to sync`)
-        const states = await transaction.exec()
+
+        //  TODO: limit fetched data to data in table columns (can do with get options)
+        const states = await batchGetState(batch)
 
         tableTasks.push(`Assembling sync query for ${states.length} states`)
         const rowsToInsert = []

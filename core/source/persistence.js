@@ -5,6 +5,13 @@ export async function getState(id, options) {
   return redis.client.json.get(id, options)
 }
 
+export async function batchGetState(ids, options) {
+  await redis.connected
+  const transaction = redis.client.multi()
+  ids.forEach(id => transaction.json.get(id, options))
+  return await transaction.exec()
+}
+
 export async function setState(id, path, value, options) {
   await redis.connected
   return redis.client.json.set(id, path, value, options)
@@ -13,4 +20,9 @@ export async function setState(id, path, value, options) {
 export async function stateExists(id) {
   await redis.connected
   return redis.client.exists(id)
+}
+
+export async function domainIds(domain) {
+  await redis.connected
+  return redis.client.sendCommand(['smembers', domain])
 }
