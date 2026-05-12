@@ -26,3 +26,8 @@ export async function domainIds(domain) {
   await redis.connected
   return redis.client.sendCommand(['smembers', domain])
 }
+
+export async function subscribe(id, callback) {
+  await redis.connected
+  return redis.subscriptions.subscribe(id, callback)
+}

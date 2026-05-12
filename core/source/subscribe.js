@@ -1,10 +1,8 @@
-// Persistence backend
-
-import { subscriptions, connected } from './redis.js'
 import { subscriptionResponses } from './stateful.js'
+import { subscribe } from './persistence.js'
 
 //  TODO: clean up subscriptions when no more subscribers
-export default function subscribe(id, callback, scope) {
+export default function (id, callback, scope) {
   if (id === undefined) {
     console.log('UNDEFINED ID SUBSCRIBED TO', scope)
     return
@@ -12,15 +10,11 @@ export default function subscribe(id, callback, scope) {
 
   if (!subscriptionResponses[id]) {
     subscriptionResponses[id] = []
-    connected
-      .then(() => {
-        subscriptions
-          .subscribe(id, message => {
-            if (!subscriptionResponses[id]) subscriptionResponses[id] = []
-            const update = JSON.parse(message)
-            subscriptionResponses[id].forEach(cb => cb(update))
-          })
-      })
+    subscribe(id, message => {
+      if (!subscriptionResponses[id]) subscriptionResponses[id] = []
+      const update = JSON.parse(message)
+      subscriptionResponses[id].forEach(cb => cb(update))
+    })
   }
 
   const sendUpdate = update => {
