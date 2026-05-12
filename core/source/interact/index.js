@@ -1,7 +1,7 @@
 // Persistence Backend
 
 import { bigQueryBatchInserter } from '../gcp-api.js'
-import { getState } from '../persistence.js'
+import { getState, publish } from '../persistence.js'
 import * as redis from '../redis.js'
 import scopeToId from '../scope-to-id.js'
 import sync from './sync.js'
@@ -118,10 +118,7 @@ export default async function interact( domain, user, scope, patch, context=[], 
     //  TODO: cache active_types so as not to require fetch on each interaction
     const active_type = response[response.length-1][0]
 
-    redis
-      .client
-      .publish(id, JSON.stringify({ domain, user, scope: id, patch, ii })) //  TODO: fix this odd scope/id situation...
-      .catch(error => console.log('ERROR PUBLISHING!!!!!!!!', domain, user, scope, id, error))
+    publish(id, { domain, user, scope: id, patch, ii }) //  TODO: fix this odd scope -> id situation...
 
     await sync(domain, user, active_type, scope)
 

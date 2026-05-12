@@ -31,3 +31,12 @@ export async function subscribe(id, callback) {
   await redis.connected
   return redis.subscriptions.subscribe(id, callback)
 }
+
+export async function publish(id, message) {
+  await (
+    redis
+      .client
+      .publish(id, JSON.stringify(message))
+      .catch(error => console.log('ERROR PUBLISHING!!!!!!!!', id, message))
+  )
+}
