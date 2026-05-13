@@ -50,22 +50,8 @@ export default async function configuration(domain, notifyIfNew) {
 
     if (domainConfig) {
       const { admin, config } = domainConfig
-      if (config) {
-        const stateConfig = (await getState(config))?.active
-        if (stateConfig?.deployment) cache[domain] = stateConfig
-        else {
-          //  TODO: deprecate this fallback
-          const url = await download(config, 3, true)
-          const response = await fetch(url)
 
-          if (response.status !== 200) {
-            const text = await response.text()
-            throw new Error(text)
-          }
-
-          cache[domain] = parseYAML(await response.text())
-        }
-      }
+      if (config) cache[domain] = (await getState(config))?.active
       else cache[domain] = {}
 
       cache[domain].admin = admin
@@ -74,6 +60,7 @@ export default async function configuration(domain, notifyIfNew) {
       //  ensure domain has default postgres tables configured
       if (!cache[domain].postgres) cache[domain].postgres = {}
       if (!cache[domain].postgres.tables) cache[domain].postgres.tables = {}
+
       Object
         .assign(
           cache[domain].postgres.tables,

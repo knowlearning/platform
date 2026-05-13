@@ -1,4 +1,4 @@
-import YAML from 'yaml'
+import configureDomain from '../utils/configure-domain.js'
 
 const MIRROR_FIELD_DOMAIN = 'mirror-field.localhost:5112'
 
@@ -47,23 +47,6 @@ const toMirrorFieldConfig = `
       })
 `
 
-async function configure(domain, configuration, awaitInitialized) {
-  const config = YAML.parse(configuration)
-  const report = Agent.uuid()
-
-  const configState = await Agent.state(`configuration/${domain}`)
-
-  Object.assign(configState, config)
-  await Agent.response() //  TODO: investigate why awaiting synced here results in 'Throws error on permission violation' test timeout
-  configState.deployment = report
-
-  return new Promise(resolve => {
-    Agent.watch(report, ({ state }) => {
-      if (state.end) resolve()
-    }, 'localhost:5111', 'localhost:5111')
-  })
-}
-
 export default function () {
 
   const getSimpleResponseConfig = response => `
@@ -77,7 +60,7 @@ export default function () {
   describe('New Domain Agent', function () {
     it('Is resilient against broken side effect scripts (syntax)', async function () {
       const { domain } = await Agent.environment()
-      await configure(domain, BROKEN_SYNTAX_CONFIG)
+      await configureDomain(domain, BROKEN_SYNTAX_CONFIG)
       const x = await Agent.state(Agent.uuid())
       x.a = 100
       const response = await Agent.response()
@@ -86,7 +69,7 @@ export default function () {
 
     it('Is resilient against broken side effect scripts (runtime)', async function () {
       const { domain } = await Agent.environment()
-      await configure(domain, BROKEN_RUNTIME_CONFIG)
+      await configureDomain(domain, BROKEN_RUNTIME_CONFIG)
       const x = await Agent.state(Agent.uuid())
       x.a = 100
       const response = await Agent.response()
@@ -98,7 +81,7 @@ export default function () {
         this.timeout(5000)
         const response = Agent.uuid()
         const { domain } = await Agent.environment()
-        await configure(domain, getSimpleResponseConfig(response))
+        await configureDomain(domain, getSimpleResponseConfig(response))
         const x = await Agent.state(Agent.uuid())
         x.a = 100
         const r = await Agent.response()
@@ -116,7 +99,7 @@ export default function () {
             state.myOwnId = id
       `
       const { domain } = await Agent.environment()
-      await configure(domain, stateSettingConfig)
+      await configureDomain(domain, stateSettingConfig)
       await Agent.state()
       const x = await Agent.state(stateId)
       expect(x.myOwnId).to.equal(stateId)
@@ -130,7 +113,7 @@ export default function () {
             return Agent.environment().then(e => e.domain)
       `
       const { domain } = await Agent.environment()
-      await configure(domain, stateSettingConfig)
+      await configureDomain(domain, stateSettingConfig)
       const x = await Agent.state('x')
       x.asdf = 1
       const { response } = await Agent.response()
@@ -153,7 +136,7 @@ export default function () {
             return Agent.metadata('${stateId}')
       `
       const { domain } = await Agent.environment()
-      await configure(domain, stateSettingConfig)
+      await configureDomain(domain, stateSettingConfig)
       const x = await Agent.state('x')
       x.asdf = 1
       const { response: { ii } } = await Agent.response()
@@ -162,8 +145,8 @@ export default function () {
 
     it('Allows domain agents (configured) to connect to each other', async function () {
       this.timeout(3000)
-      await configure('localhost:5112', toMirrorFieldConfig)
-      await configure(MIRROR_FIELD_DOMAIN, mirrorFieldConfig)
+      await configureDomain('localhost:5112', toMirrorFieldConfig)
+      await configureDomain(MIRROR_FIELD_DOMAIN, mirrorFieldConfig)
       const scope = `x-${Agent.uuid()}`
       const state = await Agent.state(scope)
       const dataToMirror = Agent.uuid()
@@ -185,8 +168,8 @@ export default function () {
 
     it('Allows domain agents (reconfigured) to connect to each other', async function () {
       this.timeout(3000)
-      await configure('localhost:5112', toMirrorFieldConfig)
-      await configure(MIRROR_FIELD_DOMAIN, mirrorFieldConfig2)
+      await configureDomain('localhost:5112', toMirrorFieldConfig)
+      await configureDomain(MIRROR_FIELD_DOMAIN, mirrorFieldConfig2)
       await pause(1000)
       const scope = `x-${Agent.uuid()}`
       const state = await Agent.state(scope)
@@ -215,7 +198,7 @@ export default function () {
             await import('../index.js')
             return 'success'
       `
-      await configure('localhost:5112', config)
+      await configureDomain('localhost:5112', config)
       const state = await Agent.state(Agent.uuid())
       state.x = 100
       const { response, log } = await Agent.response()
@@ -233,7 +216,7 @@ export default function () {
             const { secrets } = await Agent.environment()
             return secrets.improperly_encoded_secret
       `
-      await configure('localhost:5112', config)
+      await configureDomain('localhost:5112', config)
       const state = await Agent.state(Agent.uuid())
       state.x = 100
       const { response, log } = await Agent.response()
@@ -250,7 +233,7 @@ export default function () {
             const { secrets } = await Agent.environment()
             return secrets.properly_encoded_secret
       `
-      await configure('localhost:5112', config)
+      await configureDomain('localhost:5112', config)
       const state = await Agent.state(Agent.uuid())
       state.x = 100
       const { response, log } = await Agent.response()

@@ -1,3 +1,4 @@
+import configureDomain from '../utils/configure-domain.js'
 import { domainListAllowsDomain, domainPatternMatchesDomain } from '../../../core/source/domain-patterns.js'
 
 const EMBEDED_QUERY_TEST_MODE = 'EMBEDED_QUERY_TEST_MODE'
@@ -686,19 +687,7 @@ postgres:
 
       await Agent.claim(domain)
 
-      const config = await Agent.upload({
-        name: 'test domain config',
-        type: 'application/yaml',
-        data: CONFIGURATION_1
-      })
-
-      const report = uuid()
-      await Agent.create({
-        active_type: DOMAIN_CONFIG_TYPE,
-        active: { config, report, domain }
-      })
-
-      await endOfReport(report)
+      await configureDomain(domain, CONFIGURATION_1)
       //  TODO: some way to certify that our user has been set as domain admin
     })
 
@@ -862,19 +851,8 @@ postgres:
 
       const { domain } = await Agent.environment()
 
-      const config = await Agent.upload({
-        name: 'test domain config 2',
-        type: 'application/yaml',
-        data: CONFIGURATION_2
-      })
-      const report = uuid()
 
-      await Agent.create({
-        active_type: DOMAIN_CONFIG_TYPE,
-        active: { config, report, domain }
-      })
-
-      await endOfReport(report)
+      await configureDomain(domain, CONFIGURATION_2)
     })
 
     it('Can get expected result from re-configured table', async function () {
@@ -889,20 +867,7 @@ postgres:
 
     it('Can configure a foreign query domain', async function () {
       this.timeout(5000)
-
-      const config = await Agent.upload({
-        name: 'foreign query domain config',
-        type: 'application/yaml',
-        data: FOREIGN_QUERY_CONFIGURATION
-      })
-      const report = uuid()
-
-      await Agent.create({
-        active_type: DOMAIN_CONFIG_TYPE,
-        active: { config, report, domain: FOREIGN_QUERY_DOMAIN }
-      })
-
-      await endOfReport(report)
+      await configureDomain(FOREIGN_QUERY_DOMAIN, FOREIGN_QUERY_CONFIGURATION)
     })
 
     it('Can query metadata for scopes created after re-configuration', async function () {
