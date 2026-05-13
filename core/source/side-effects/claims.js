@@ -1,6 +1,6 @@
 import { environment, uuid, randomBytes, PatchProxy } from '../utils.js'
 import coreState from '../core-state.js'
-import interact from '../interact/index.js'
+import interact from '../interact.js'
 import { setState } from '../persistence.js'
 import initializationState from '../initialization-state.js'
 

@@ -1,6 +1,6 @@
 import { jwt, environment } from './utils.js'
 import authenticate from './authenticate/index.js'
-import interact from './interact/index.js'
+import interact from './interact.js'
 import scopeToId from './scope-to-id.js'
 import SESSION from './session.js'
 import coreSideEffects from './core-side-effects.js'

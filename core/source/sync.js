@@ -1,7 +1,7 @@
-import * as postgres from '../postgres.js'
-import { getState } from '../persistence.js'
-import configuration from '../configuration.js'
-import scopeToId from '../scope-to-id.js'
+import * as postgres from './postgres.js'
+import { getState } from './persistence.js'
+import configuration from './configuration.js'
+import scopeToId from './scope-to-id.js'
 
 export default async function sync(domain, user, active_type, scope) {
   const config = await configuration(domain)

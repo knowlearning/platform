@@ -1,5 +1,5 @@
 import { upload } from '../storage.js'
-import interact from '../interact/index.js'
+import interact from '../interact.js'
 
 export default async function ({ domain, user, session, patch, si, ii, send }) {
   for (let index = 0; index < patch.length; index++) {

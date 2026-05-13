@@ -3,7 +3,7 @@ import initializationState from './initialization-state.js'
 import { setState, stateExists } from './persistence.js'
 import * as postgres from './postgres.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
-import sync from './interact/sync.js'
+import sync from './sync.js'
 import { scopeToIdCache as cache } from './stateful.js'
 
 const { ADMIN_DOMAIN } = environment

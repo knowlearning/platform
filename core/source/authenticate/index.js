@@ -1,7 +1,7 @@
 import { jwt, jwkToPem, uuid, isUUID, environment, decryptSymmetric } from '../utils.js'
 import saveSession from './save-session.js'
 import * as hash from './hash.js'
-import interact from '../interact/index.js'
+import interact from '../interact.js'
 import { query } from '../postgres.js'
 import { REATTACHING_SESSION_QUERY, NEW_SESSION_QUERY } from './queries.js'
 import authenticateToken from './authenticate-token.js'

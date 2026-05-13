@@ -5,7 +5,7 @@ import scopeToId from './scope-to-id.js'
 import handleSideEffects from './handle-side-effects.js'
 import coreSideEffects from './core-side-effects.js'
 import { getState } from './persistence.js'
-import interact from './interact/index.js'
+import interact from './interact.js'
 import isolatedWorker from './isolated-worker.js'
 import { domainWorkers, domainWorkerResponses } from './stateful.js'
 
