@@ -1,4 +1,4 @@
-import { getState, publish, patchState } from './persistence.js'
+import { getState, patchState } from './persistence.js'
 import scopeToId from './scope-to-id.js'
 
 export default async function interact( domain, user, scope, patch, context=[], timestamp=Date.now() ) {
