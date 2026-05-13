@@ -51,7 +51,7 @@ function encodePathReference(ref) {
   return /^[0-9]+$/.test(ref) ? ref : `'${applyReplacements(ref)}'`
 }
 
-function arrayPathRepresentationToJSONPath(arrayPath) {
+function standardJSONPath(arrayPath) {
   return arrayPath.length ? `$[${arrayPath.map(encodePathReference).join('][')}]` : '$'
 }
 
@@ -72,27 +72,25 @@ export default async function interact( domain, user, scope, patch, context=[], 
 
   for (let i=0; i<patch.length; i++) {
     const { op, path, from, value } = patch[i]
-    const JSONPath = arrayPathRepresentationToJSONPath(path)
+    const lastPathSegment = path[path.length-1]
+    const JSONPath = standardJSONPath(path)
     if (op === 'add') {
-      if (JSONPath.match(/\[\-1\]$/)) { // if is to end of array then append
-        transaction.json.arrAppend(id, JSONPath.slice(0,-2), value)
+      if (lastPathSegment === -1) { // if is to end of array then append
+        transaction.json.arrAppend(id, standardJSONPath(path.slice(0, -1)), value)
       }
-      else if (JSONPath.match(/\[\d+\]$/)) {
-        const index = JSONPath.match(/\[(\d+)\]$/)[1]
-        transaction.json.arrInsert(id, JSONPath.slice(0, -index.length-2), index, value)
+      else if (Number.isInteger(lastPathSegment)) {
+        transaction.json.arrInsert(id, standardJSONPath(path.slice(0, -1)), lastPathSegment, value)
       }
-      else transaction.json.set(id, JSONPath, value)
+      else transaction.json.set(id, standardJSONPath(path), value)
     }
     else if (op === 'remove') {
-      if (JSONPath.match(/\[\d+\]$/)) {
-        const index = JSONPath.match(/\[(\d+)\]$/)[1]
-        transaction.json.arrPop(id, JSONPath.slice(0, -index.length-2), index)
+      if (Number.isInteger(lastPathSegment)) {
+        transaction.json.arrPop(id, standardJSONPath(path.slice(0, -1)), lastPathSegment)
       }
-      else transaction.json.del(id, JSONPath)
+      else transaction.json.del(id, standardJSONPath(path))
     }
     else if (op === 'replace') {
-      // simple set should do for array and object
-      transaction.json.set(id, JSONPath, value)
+      transaction.json.set(id, standardJSONPath(path), value)
     }
     else if (op === 'move') {
       //  right now the only working moves are those that come out
@@ -102,7 +100,7 @@ export default async function interact( domain, user, scope, patch, context=[], 
       //  TODO: remove above limitation
       const fromIndex = from[from.length - 1]
       const toIndex = path[path.length - 1]
-      const arrayPath = arrayPathRepresentationToJSONPath(path.slice(0, -1))
+      const arrayPath = standardJSONPath(path.slice(0, -1))
       const params = { keys: [id], arguments: [arrayPath, ''+fromIndex, ''+toIndex] }
       transaction.eval(MOVE_SCRIPT, params)
     }

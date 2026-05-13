@@ -33,6 +33,7 @@ export async function subscribe(id, callback) {
 }
 
 export async function publish(id, message) {
+  await redis.connected
   await (
     redis
       .client
