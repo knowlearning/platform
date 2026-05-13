@@ -1,3 +1,5 @@
+// Global State
+
 import { environment, uuid, randomBytes, PatchProxy } from '../utils.js'
 import coreState from '../core-state.js'
 import interact from '../interact.js'

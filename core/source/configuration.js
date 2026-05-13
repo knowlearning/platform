@@ -1,4 +1,6 @@
-import { parseYAML, environment } from './utils.js';
+// Global State
+
+import { parseYAML, environment } from './utils.js'
 import { getState } from './persistence.js'
 import { download } from './storage.js'
 import subscribe from './subscribe.js'
