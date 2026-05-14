@@ -37,7 +37,7 @@ async function handleMessages() {
 async function onmessage(e) {
   if (e.data.type === "script") {
     const { script, variables, id } = e.data
-    runSafely(script, variables)
+    runSafely(script, variables, id)
       .then((response) => {
         postMessage({
           type: "respond",
@@ -60,7 +60,8 @@ async function onmessage(e) {
 postMessage({ type: "initialize" })
 handleMessages()
 
-async function runSafely(script, variables) {
+async function runSafely(script, variables, runId) {
+  //  TODO:  scope passed Agent global to include runId with all messages
   const blockedGlobals = [
     "Deno",
     "require",

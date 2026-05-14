@@ -17,34 +17,36 @@ const BROKEN_RUNTIME_CONFIG = `
 const mirrorFieldConfig = `
   sideEffects:
     script: |
-      patch.forEach(async op => {
+      for (const op of patch) {
         if (op.path.length === 1 && op.path[0] === 'mirror') {
           const state = await Agent.state(scope)
           state.mirror = op.value
+          await Agent.synced()
         }
-      })
+      }
 `
 const mirrorFieldConfig2 = `
   sideEffects:
     script: |
-      patch.forEach(async op => {
+      for (const op of patch) {
         if (op.path.length === 1 && op.path[0] === 'mirror') {
           const state = await Agent.state(scope)
           state.mirror = op.value + '2'
+          await Agent.synced()
         }
-      })
+      }
 `
 const toMirrorFieldConfig = `
   sideEffects:
     script: |
-      patch.forEach(async op => {
+      for (const op of patch) {
         if (op.path.length === 1 && op.path[0] === 'mirror') {
           const MirrorAgent = getAgent('${MIRROR_FIELD_DOMAIN}')
           const state = await MirrorAgent.state(scope)
           state.mirror = op.value
-          const { auth: { user } } = await Agent.environment()
+          await MirrorAgent.synced()
         }
-      })
+      }
 `
 
 export default function () {

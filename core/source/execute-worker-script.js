@@ -115,6 +115,13 @@ function startWorker(environment, namespaces) {
       delete response.history
       worker.postMessage({ requestId, response, session })
     }
+    else if (e.data.type === 'synced') {
+      //  TODO: actually do accounting for responses outstanding per script run
+      //        right now runId is not passed, but it should be bassed back with all messages from thte embedded agent
+      //        there should be a new run id with every script
+      let { requestId, runId } = e.data
+      worker.postMessage({ requestId, session })
+    }
     else {
       console.log("TODO: implement unhandled agent message type", environment.domain, e.data)
     }
