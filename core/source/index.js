@@ -36,6 +36,7 @@ const SOCKET_IO_HOSTS = [
   'socket-io.knowlearning.systems',
   'socket-io.dev.knowlearning.systems'
 ]
+const LOCAL_SOCKET_IO_ALIAS = /^socket-io-\d+\.localhost:\d+$/
 
 const {
   MODE,
@@ -55,8 +56,9 @@ async function handler(request, info) {
   const domain = requestDomain(request)
   ensureDomainConfigured(domain)
   const url = new URL(request.url)
+  const isLocalSocketIOAlias = MODE === 'local' && LOCAL_SOCKET_IO_ALIAS.test(url.host)
   if (request.url.endsWith('/_sid-check')) return handleHttpRequest(request)
-  else if (SOCKET_IO_HOSTS.includes(url.host)) return socketIOHandler(request, info)
+  else if (SOCKET_IO_HOSTS.includes(url.host) || isLocalSocketIOAlias) return socketIOHandler(request, info)
   else return handleHttpRequest(request, metricsPromise)
 }
 

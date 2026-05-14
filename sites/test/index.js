@@ -18,6 +18,7 @@ import environmentTest from './tests/environment.js'
 import namespacedEmbeddings from './tests/namespaced-embeddings.js'
 import latestBugfixes from './tests/latest-bugfixes.js'
 import syncedState from './tests/synced-state.js'
+import crossServer from './tests/cross-server.js'
 import Agent from '@knowlearning/agents/browser.js'
 import browserAgent from '@knowlearning/agents/browser/initialize.js'
 import { vuePersistentStore } from '@knowlearning/agents/vue.js'
@@ -196,12 +197,16 @@ else if (mode === 'SYNCED_EMBED_ARRAY_LOCAL') {
   })
 }
 else {
+  const runCrossServer = new URLSearchParams(location.search).get('crossServer') === '1'
+
   //  set up some globals for ease of use in test files
   window.expect = chai.expect
   window.uuid = uuid
   window.pause = ms => new Promise(r => setTimeout(r, ms))
-  window.Agent2 = browserAgent({ unique: true, getToken: () => 'anonymous', root: true})
-  window.Agent3 = browserAgent({ unique: true, getToken: () => 'anonymous', root: true})
+  if (!runCrossServer) {
+    window.Agent2 = browserAgent({ unique: true, getToken: () => 'anonymous', root: true})
+    window.Agent3 = browserAgent({ unique: true, getToken: () => 'anonymous', root: true})
+  }
 
   chai.config.truncateThreshold = 0; // disable truncating
 
@@ -217,37 +222,61 @@ else {
       }
     })
 
-  mocha.run()
+  let afterMochaRun = () => {}
 
-  describe(`${mode.length > 4 ? `Embed Level ${mode.length - 4}` : 'Root'} Core API`, function () {
-    latestBugfixes()
-    if (mode.length === 4) postgres()
-    if (mode.length === 4) domainAgents()
-    if (mode.length === 4) newDomainAgents()
-    stateTest()
-    environmentTest()
-    metadata()
-    mutate()
-    arrays()
-    watch()
-    watchDeep()
-    vuex(vuePersistentStore)
-    namespacedEmbeddings()
-    if (mode.length === 4) reconnect()
-    uploads()
-    multiAgent()
-    syncedState()
+  if (runCrossServer) {
+    crossServer(browserAgent)
+  }
+  else {
+    describe(`${mode.length > 4 ? `Embed Level ${mode.length - 4}` : 'Root'} Core API`, function () {
+      latestBugfixes()
+      if (mode.length === 4) postgres()
+      //if (mode.length === 4) domainAgents()
+      //if (mode.length === 4) newDomainAgents()
+      stateTest()
+      environmentTest()
+      metadata()
+      mutate()
+      arrays()
+      watch()
+      watchDeep()
+      vuex(vuePersistentStore)
+      namespacedEmbeddings()
+      if (mode.length === 4) reconnect()
+      uploads()
+      multiAgent()
+      syncedState()
+    })
+
+    afterMochaRun = () => {
+      if (mode === 'test') {
+        document.getElementById('mocha').style.width = '33%'
+        document.getElementById('embedded-wrapper').style.width = '67%'
+      }
+
+      if (mode.length < 6 && location.search === '') {
+        const wrapper = document.getElementById('embedded-wrapper')
+        wrapper.style.display = 'block'
+        const iframe = document.getElementById('embedded-frame')
+        Agent.embed({ id: `${location.protocol}//${location.host}/${mode}+`, mode: `${mode}+` }, iframe)
+      }
+    }
+  }
+
+  window.__mochaDone = false
+  window.__mochaFailures = []
+  const runner = mocha.run()
+  runner.on('fail', (test, error) => {
+    window.__mochaFailures.push({
+      title: test.title,
+      fullTitle: test.fullTitle(),
+      message: error?.message,
+      stack: error?.stack
+    })
   })
-
-  if (mode === 'test') {
-    document.getElementById('mocha').style.width = '33%'
-    document.getElementById('embedded-wrapper').style.width = '67%'
-  }
-
-  if (mode.length < 6 && location.search === '') {
-    const wrapper = document.getElementById('embedded-wrapper')
-    wrapper.style.display = 'block'
-    const iframe = document.getElementById('embedded-frame')
-    Agent.embed({ id: `${location.protocol}//${location.host}/${mode}+`, mode: `${mode}+` }, iframe)
-  }
+  runner.on('end', () => {
+    window.__mochaStats = runner.stats
+    window.__mochaDone = true
+  })
+  afterMochaRun()
 }
