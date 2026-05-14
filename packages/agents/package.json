@@ -11,7 +11,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "corepack pnpm install --frozen-lockfile --ignore-scripts && node test/run-embedded-integration.js"
   },
   "repository": {
     "type": "git",
@@ -30,6 +30,8 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "chai": "^5.1.2",
+    "mocha": "^10.8.2",
     "vite": "^6.2.1"
   }
 }

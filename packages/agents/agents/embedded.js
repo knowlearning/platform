@@ -13,13 +13,9 @@ export default function EmbeddedAgent(postMessage) {
   const sentUpdates = {}
   const pendingEchoCallbacks = new Set()
 
-  const [ watch, removeWatcher ] = watchImplementation({ metadata, state, watchers, synced, sentUpdates, environment })
-
-  let lastRequestId
-
-  async function send(message) {
-    const requestId = lastRequestId = message.requestId || uuid()
-
+  async function send(message, setLastRequestId) {
+    const requestId = message.requestId || uuid()
+    setLastRequestId(requestId)
     messageIndex += 1
     try {
       postMessage({
@@ -51,7 +47,7 @@ export default function EmbeddedAgent(postMessage) {
     }
     else if (data.ii !== undefined) {
       const { scope, user, domain } = data
-      const { auth, domain:rootDomain } = await environment()
+      const { auth, domain:rootDomain } = await agent.environment()
       const d = !domain || domain === rootDomain ? '' : domain
       const u = !user || auth.user === user ? '' : user
       const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
@@ -77,209 +73,227 @@ export default function EmbeddedAgent(postMessage) {
 
   let variables
 
-  async function environment(user) {
-    const response = await send({ type: 'environment', user })
-    //  keep copy on initialize symantics for environment variables
-    if (!variables && !user) variables = response.variables
-    return { ...response, variables }
-  }
+  const agent = createAgent()
 
-  function create({ id=uuid(), active_type, active }) {
-    if (!active_type) active_type = 'application/json'
-    interact(id, [
-      { op: 'add', path: ['active_type'], value: active_type },
-      { op: 'add', path: ['active'], value: active }
-    ])
-    return id
-  }
+  function createAgent(runId) {
+    let lastRequestId
 
-  async function patch(root, scopes) {
-    //  TODO: consider watch function added to return to receive progress
-    return send({ type: 'patch', root, scopes })
-  }
-
-  function state(scope, user, domain) {
-    return attachSynced(watchers, (ctx, resolveSync) => (async () => {
-      if (scope === undefined) {
-        const { context } = await environment()
-        scope = JSON.stringify(context)
-      }
-      const startState = await send({ type: 'state', scope, user, domain })
-      const { auth, domain: rootDomain } = await environment()
-      const d = !domain || domain === rootDomain ? '' : domain
-      const u = !user || auth.user === user ? '' : user
-      const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
-      if (!ctx.ownInteractions) ctx.ownInteractions = new Set()
-      if (!ctx.ownInteractionBatches) ctx.ownInteractionBatches = new Map()
-      if (!ctx.pendingInteractions) ctx.pendingInteractions = new Set()
-      if (!ctx.echoResolvers) ctx.echoResolvers = []
-      let currentEchoBatch = null
-      const proxy = new PatchProxy(startState, patch => {
-        //  TODO: reject updates if user is not owner
-        if (ctx.applyingExternalUpdate) return
-        const activePatch = structuredClone(patch)
-        activePatch.forEach(entry => entry.path.unshift('active'))
-        let echoBatch
-        if (ctx.syncActive) {
-          if (!currentEchoBatch) {
-            let resolveEcho
-            const echoPromise = new Promise(r => resolveEcho = r)
-            echoBatch = currentEchoBatch = { remaining: 0, resolve: resolveEcho, resolved: false }
-            pendingEchoCallbacks.add(echoPromise)
-            echoPromise.then(() => pendingEchoCallbacks.delete(echoPromise))
-            Promise.resolve().then(() => { currentEchoBatch = null })
-          }
-          else echoBatch = currentEchoBatch
-          echoBatch.remaining += 1
-        }
-        const interactPromise = interact(scope, activePatch)
-        const p = interactPromise.then(
-          r => {
-            ctx.ownInteractions.add(r.ii)
-            if (echoBatch) ctx.ownInteractionBatches.set(r.ii, echoBatch)
-            ctx.pendingInteractions.delete(p)
-          },
-          () => {
-            if (echoBatch) {
-              echoBatch.remaining -= 1
-              if (echoBatch.remaining === 0 && !echoBatch.resolved) {
-                echoBatch.resolved = true
-                echoBatch.resolve()
-              }
-            }
-            ctx.pendingInteractions.delete(p)
-          }
-        )
-        ctx.pendingInteractions.add(p)
+    function scopedSend(message) {
+      return send(runId === undefined ? message : { ...message, runId }, requestId => {
+        lastRequestId = requestId
       })
-      resolveSync(proxy, key)
-      return proxy
-    })())
-  }
-
-  function reset(scope) {
-    return interact(scope, [{ op: 'add', path:['active'], value: null }])
-  }
-
-  function interact(scope, patch, _, context) {
-    return send({ type: 'interact', scope, patch, context })
-  }
-
-  async function upload(info) {
-    let { name, type, data, id=uuid() } = info || {}
-
-    const url = await send({ type: 'upload', info: { name, type, id } })
-
-    if (data === undefined) return url
-    else {
-      const headers = { 'Content-Type': type }
-      const response = await fetch(url, {method: 'PUT', headers, body: data})
-      const { ok, statusText } = response
-
-      if (ok) return id
-      else throw new Error(statusText)
     }
-  }
 
-  function download(id) {
-    let mode = 'fetch'
-    const promise = new Promise(async (resolve, reject) => {
-      const url = await send({ type: 'download', id })
+    async function environment(user) {
+      const response = await scopedSend({ type: 'environment', user })
+      //  keep copy on initialize symantics for environment variables
+      if (!variables && !user) variables = response.variables
+      return { ...response, variables }
+    }
 
-      await new Promise(r => setTimeout(r))
-      if (mode === 'url') resolve(url)
-      else if (mode === 'fetch') {
-        const response = await fetch(url)
+    function create({ id=uuid(), active_type, active }) {
+      if (!active_type) active_type = 'application/json'
+      interact(id, [
+        { op: 'add', path: ['active_type'], value: active_type },
+        { op: 'add', path: ['active'], value: active }
+      ])
+      return id
+    }
+
+    async function patch(root, scopes) {
+      //  TODO: consider watch function added to return to receive progress
+      return scopedSend({ type: 'patch', root, scopes })
+    }
+
+    function state(scope, user, domain) {
+      return attachSynced(watchers, (ctx, resolveSync) => (async () => {
+        if (scope === undefined) {
+          const { context } = await environment()
+          scope = JSON.stringify(context)
+        }
+        const startState = await scopedSend({ type: 'state', scope, user, domain })
+        const { auth, domain: rootDomain } = await environment()
+        const d = !domain || domain === rootDomain ? '' : domain
+        const u = !user || auth.user === user ? '' : user
+        const key = isUUID(scope) ? scope : `${d}/${u}/${scope}`
+        if (!ctx.ownInteractions) ctx.ownInteractions = new Set()
+        if (!ctx.ownInteractionBatches) ctx.ownInteractionBatches = new Map()
+        if (!ctx.pendingInteractions) ctx.pendingInteractions = new Set()
+        if (!ctx.echoResolvers) ctx.echoResolvers = []
+        let currentEchoBatch = null
+        const proxy = new PatchProxy(startState, patch => {
+          //  TODO: reject updates if user is not owner
+          if (ctx.applyingExternalUpdate) return
+          const activePatch = structuredClone(patch)
+          activePatch.forEach(entry => entry.path.unshift('active'))
+          let echoBatch
+          if (ctx.syncActive) {
+            if (!currentEchoBatch) {
+              let resolveEcho
+              const echoPromise = new Promise(r => resolveEcho = r)
+              echoBatch = currentEchoBatch = { remaining: 0, resolve: resolveEcho, resolved: false }
+              pendingEchoCallbacks.add(echoPromise)
+              echoPromise.then(() => pendingEchoCallbacks.delete(echoPromise))
+              Promise.resolve().then(() => { currentEchoBatch = null })
+            }
+            else echoBatch = currentEchoBatch
+            echoBatch.remaining += 1
+          }
+          const interactPromise = interact(scope, activePatch)
+          const p = interactPromise.then(
+            r => {
+              ctx.ownInteractions.add(r.ii)
+              if (echoBatch) ctx.ownInteractionBatches.set(r.ii, echoBatch)
+              ctx.pendingInteractions.delete(p)
+            },
+            () => {
+              if (echoBatch) {
+                echoBatch.remaining -= 1
+                if (echoBatch.remaining === 0 && !echoBatch.resolved) {
+                  echoBatch.resolved = true
+                  echoBatch.resolve()
+                }
+              }
+              ctx.pendingInteractions.delete(p)
+            }
+          )
+          ctx.pendingInteractions.add(p)
+        })
+        resolveSync(proxy, key)
+        return proxy
+      })())
+    }
+
+    function reset(scope) {
+      return interact(scope, [{ op: 'add', path:['active'], value: null }])
+    }
+
+    function interact(scope, patch, _, context) {
+      return scopedSend({ type: 'interact', scope, patch, context })
+    }
+
+    async function upload(info) {
+      let { name, type, data, id=uuid() } = info || {}
+
+      const url = await scopedSend({ type: 'upload', info: { name, type, id } })
+
+      if (data === undefined) return url
+      else {
+        const headers = { 'Content-Type': type }
+        const response = await fetch(url, {method: 'PUT', headers, body: data})
         const { ok, statusText } = response
 
-        if (ok) resolve(response)
-        else reject(statusText)
+        if (ok) return id
+        else throw new Error(statusText)
       }
-      else if (mode === 'direct') {
-        //  TODO: use browser progress UX instead of downloading all into memory first
-        const res = await download(id)
-        const { name } = await metadata(id)
-        const type = res.headers.get('Content-Type')
-        const blob = new Blob([ await res.blob() ], { type })
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.style.display = 'none'
-        a.href = url
-        a.download = name
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        resolve()
-      }
-    })
-    promise.direct = () => {
-      mode = 'direct'
-      return promise
     }
-    promise.url = () => {
-      mode = 'url'
-      return promise
-    }
-    return promise
-  }
 
-  function isValidMetadataMutation({ path, op, value }) {
-    return (
-      ['active_type', 'name'].includes(path[0])
-      && path.length === 1
-      && typeof value === 'string' || op === 'remove'
-    )
-  }
+    function download(id) {
+      let mode = 'fetch'
+      const promise = new Promise(async (resolve, reject) => {
+        const url = await scopedSend({ type: 'download', id })
 
-  async function metadata(scope, user, domain) {
-    const md = await send({ type: 'metadata', scope, user, domain })
-    return new PatchProxy(md, patch => {
-      const activePatch = structuredClone(patch)
-      activePatch.forEach(entry => {
-        if (!isValidMetadataMutation(entry)) throw new Error('You may only modify the type or name for a scope\'s metadata')
+        await new Promise(r => setTimeout(r))
+        if (mode === 'url') resolve(url)
+        else if (mode === 'fetch') {
+          const response = await fetch(url)
+          const { ok, statusText } = response
+
+          if (ok) resolve(response)
+          else reject(statusText)
+        }
+        else if (mode === 'direct') {
+          //  TODO: use browser progress UX instead of downloading all into memory first
+          const res = await download(id)
+          const { name } = await metadata(id)
+          const type = res.headers.get('Content-Type')
+          const blob = new Blob([ await res.blob() ], { type })
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.style.display = 'none'
+          a.href = url
+          a.download = name
+          document.body.appendChild(a)
+          a.click()
+          window.URL.revokeObjectURL(url)
+          resolve()
+        }
       })
-      interact(scope, activePatch)
-    })
+      promise.direct = () => {
+        mode = 'direct'
+        return promise
+      }
+      promise.url = () => {
+        mode = 'url'
+        return promise
+      }
+      return promise
+    }
+
+    function isValidMetadataMutation({ path, op, value }) {
+      return (
+        ['active_type', 'name'].includes(path[0])
+        && path.length === 1
+        && typeof value === 'string' || op === 'remove'
+      )
+    }
+
+    async function metadata(scope, user, domain) {
+      const md = await scopedSend({ type: 'metadata', scope, user, domain })
+      return new PatchProxy(md, patch => {
+        const activePatch = structuredClone(patch)
+        activePatch.forEach(entry => {
+          if (!isValidMetadataMutation(entry)) throw new Error('You may only modify the type or name for a scope\'s metadata')
+        })
+        interact(scope, activePatch)
+      })
+    }
+
+    function login(provider, username, password) {
+      return scopedSend({ type: 'login', provider, username, password })
+    }
+
+    function query(query, params, domain, context=[]) { return scopedSend({ type: 'query', query, params, domain, context }) }
+    function logout() { return scopedSend({ type: 'logout' }) }
+    function disconnect() { return scopedSend({ type: 'disconnect' }) }
+    function reconnect() { return scopedSend({ type: 'reconnect' }) }
+    async function synced() {
+      const echoSnapshot = [...pendingEchoCallbacks]
+      await scopedSend({ type: 'synced' })
+      if (echoSnapshot.length) await Promise.all(echoSnapshot)
+    }
+    function close(info) { return scopedSend({ type: 'close', info }) }
+    function guarantee(script, namespaces, context) { return scopedSend({ type: 'guarantee', script, namespaces, context }) }
+    function response(id=lastRequestId) { return scopedSend({ type: 'response', id }) }
+    function withRunId(nextRunId) { return createAgent(nextRunId) }
+
+    const [ watch ] = watchImplementation({ metadata, state, watchers, synced, sentUpdates, environment })
+
+    return {
+      embedded: true,
+      uuid,
+      environment,
+      login,
+      logout,
+      create,
+      state,
+      watch,
+      upload,
+      download,
+      interact,
+      patch,
+      reset,
+      metadata,
+      disconnect,
+      reconnect,
+      synced,
+      close,
+      response,
+      sync,
+      query,
+      withRunId
+    }
   }
 
-  function login(provider, username, password) {
-    return send({ type: 'login', provider, username, password })
-  }
-
-  function query(query, params, domain, context=[]) { return send({ type: 'query', query, params, domain, context }) }
-  function logout() { return send({ type: 'logout' }) }
-  function disconnect() { return send({ type: 'disconnect' }) }
-  function reconnect() { return send({ type: 'reconnect' }) }
-  async function synced() {
-    const echoSnapshot = [...pendingEchoCallbacks]
-    await send({ type: 'synced' })
-    if (echoSnapshot.length) await Promise.all(echoSnapshot)
-  }
-  function close(info) { return send({ type: 'close', info }) }
-  function guarantee(script, namespaces, context) { return send({ type: 'guarantee', script, namespaces, context }) }
-  function response(id=lastRequestId) { return send({ type: 'response', id }) }
-
-  return {
-    embedded: true,
-    uuid,
-    environment,
-    login,
-    logout,
-    create,
-    state,
-    watch,
-    upload,
-    download,
-    interact,
-    patch,
-    reset,
-    metadata,
-    disconnect,
-    reconnect,
-    synced,
-    close,
-    response,
-    sync,
-    query
-  }
+  return agent
 }
