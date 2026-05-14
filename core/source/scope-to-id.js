@@ -1,3 +1,5 @@
+// Global State - key file for ensuring ids land in the right place and are pulled from the right place
+
 import { isUUID, uuid, environment } from './utils.js'
 import initializationState from './initialization-state.js'
 import { setState, stateExists } from './persistence.js'

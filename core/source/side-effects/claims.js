@@ -1,4 +1,4 @@
-// Global State
+// Global State - okay, as long as 'domain-config' scope handled at peristence.js layer
 
 import { environment, uuid, randomBytes, PatchProxy } from '../utils.js'
 import coreState from '../core-state.js'

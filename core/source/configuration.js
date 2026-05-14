@@ -1,4 +1,4 @@
-// Global State
+// Global State - okay, as long as 'domain-config' scope handled at peristence.js layer
 
 import { parseYAML, environment } from './utils.js'
 import { getState } from './persistence.js'

@@ -1,4 +1,4 @@
-// Global state
+// Global state - okay, as long as 'domain-config' scope handled at peristence.js layer
 
 import { environment, isUUID, uuid } from './utils.js'
 import scopeToId from './scope-to-id.js'
