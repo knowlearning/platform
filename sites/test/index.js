@@ -231,8 +231,8 @@ else {
     describe(`${mode.length > 4 ? `Embed Level ${mode.length - 4}` : 'Root'} Core API`, function () {
       latestBugfixes()
       if (mode.length === 4) postgres()
-      //if (mode.length === 4) domainAgents()
-      //if (mode.length === 4) newDomainAgents()
+      if (mode.length === 4) domainAgents()
+      if (mode.length === 4) newDomainAgents()
       stateTest()
       environmentTest()
       metadata()

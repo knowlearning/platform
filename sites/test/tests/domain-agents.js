@@ -211,11 +211,18 @@ agent: |
   const myState = await TestAgent.state(scopeNameToMirror)
   myState.x = 100
 
-  await new Promise(r => setTimeout(r, 100))
+  const start = Date.now()
+  const timeout = 10000
+  let agentState
 
-  const agentState = await TestAgent.state(scopeNameToMirror, agentDomain, agentDomain)
+  while (Date.now() - start < timeout) {
+    agentState = await TestAgent.state(scopeNameToMirror, agentDomain, agentDomain)
+    if (agentState.x === 100) break
+    await new Promise(r => setTimeout(r, 100))
+  }
 
-  myState.success = agentState.x === 100
+  myState.success = agentState?.x === 100
+  if (!myState.success) myState.error = 'Timed out waiting for mirrored state'
 
   // set up ping to ensure connections to TestAgent connect
   const ping = await TestAgent.state('ping')
@@ -265,6 +272,8 @@ agent: |
     })
 
     it('Can establish cross domain agent connections', async function () {
+      this.timeout(15000)
+
       const { domain, auth: { user } } = await Agent.environment()
 
       const remoteDomain = 'domain-agent-test.localhost:5112'
@@ -272,8 +281,10 @@ agent: |
       await configureDomain(remoteDomain, CONFIGURATION_3 + ' ')
 
       let state = {}
+      const start = Date.now()
+      const timeout = 12000
 
-      while (state.success === undefined) {
+      while (state.success === undefined && Date.now() - start < timeout) {
         await pause(100)
         state = await Agent.state(specialCrossDomainScopeName, remoteDomain, domain)
       }
