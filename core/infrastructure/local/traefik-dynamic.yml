@@ -1,0 +1,5 @@
+# traefik-dynamic.yml
+tls:
+  certificates:
+    - certFile: /certs/SSL_CERT
+      keyFile: /certs/SSL_KEY

@@ -24,14 +24,11 @@ io.on("connection", (socket) => {
   socket.on("disconnect", (reason) => {
     console.log(`socket ${socket.id} disconnected due to ${reason}`)
   })
+
+  handleSocketIOConnection(socket, metricsPromise)
 })
 
 const socketIOHandler = io.handler()
-
-io.on("connection", (socket) => {
-  console.log(`socket ${socket.id} connected`)
-  handleSocketIOConnection(socket, metricsPromise)
-})
 
 const METRICS_POLL_INTERVAL = 5000
 const SOCKET_IO_HOSTS = [

@@ -1,4 +1,22 @@
 services:
+  lb:
+    image: traefik:v3.6
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --entrypoints.api.address=:8765
+      - --serversTransport.insecureSkipVerify=true
+    ports:
+      - 8765:8765
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ../../../../.credentials/SSL_CERT:/certs/SSL_CERT:ro
+      - ../../../../.credentials/SSL_KEY:/certs/SSL_KEY:ro
+      - ./traefik-dynamic.yml:/etc/traefik/dynamic.yml:ro
+    depends_on:
+      - api
+
   gcs-emulator:
     image: fsouza/fake-gcs-server:1.49.3
     container_name: gcs-emulator
@@ -25,12 +43,13 @@ services:
       - POSTGRES_PASSWORD=insecure-development-password
 
   api:
-    build: 
+    build:
       context: ../../
       dockerfile: deno.Dockerfile
-    ports:
-      - 8765:8765
-    container_name: api
+
+    expose:
+      - 8765
+
     environment:
       - TLS_PORT=8765
       - AUTH_SERVICE_SECRET_KEY=${AUTH_SERVICE_SECRET_KEY}
@@ -42,7 +61,6 @@ services:
       - SERVE_HOST=serve:8765
       - SERVICE_ACCOUNT_TOKEN=/var/run/secrets/kubernetes.io/serviceaccount/token
       - REDIS_PASSWORD=
-      - POSTGRES_PASSWORD=insecure-dev-password
       - PUBLIC_ENCRYPTION_KEY=${PUBLIC_ENCRYPTION_KEY}
       - SECRET_ENCRYPTION_KEY=${SECRET_ENCRYPTION_KEY}
       - ADMIN_DOMAIN=localhost:5111
@@ -56,12 +74,27 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_PASSWORD=insecure-development-password
       - GCS_SERVICE_ACCOUNT_CREDENTIALS=${GCS_SERVICE_ACCOUNT_CREDENTIALS}
+
     volumes:
       - ../../../packages/agents:/agents
+
     depends_on:
       - postgres
       - gcs-emulator
       - redis
+
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api.rule=PathPrefix(`/`)
+      - traefik.http.routers.api.entrypoints=api
+      - traefik.http.routers.api.tls=true
+      - traefik.http.services.api.loadbalancer.server.port=8765
+      - traefik.http.services.api.loadbalancer.server.scheme=https
+      - traefik.http.services.api.loadbalancer.sticky.cookie=true
+      - traefik.http.services.api.loadbalancer.sticky.cookie.name=api_sticky
+      - traefik.http.services.api.loadbalancer.sticky.cookie.secure=true
+      - traefik.http.services.api.loadbalancer.sticky.cookie.httpOnly=true
+      - traefik.http.services.api.loadbalancer.sticky.cookie.sameSite=none
 
   redis:
     image: redis:8.4.0
