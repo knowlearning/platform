@@ -14,6 +14,8 @@ const {
   PUBLIC_ENCRYPTION_KEY
 } = ENV
 
+const runIdToRequests = new Map()
+
 function startWorker(environment, namespaces) {
   const session = uuid()
   let initialized = false
@@ -21,6 +23,10 @@ function startWorker(environment, namespaces) {
   const worker = isolatedWorker(
     new URL("./domain-worker/index.js", import.meta.url).pathname
   )
+
+  function respond(requestId, response) {
+    worker.postMessage({ requestId, response, session })
+  }
 
   worker.onerror = (e) => {
     console.error("Worker crashed:", e.message)
@@ -39,88 +45,33 @@ function startWorker(environment, namespaces) {
       else domainWorkerResponses[id].resolve(response)
       delete domainWorkerResponses[id]
     }
-    else if (e.data.type === 'environment') {
-      const { secrets } = await configuration(environment.domain)
+    else if (messageHandlers[e.data.type]) {
+      const { runId, requestId, type } = e.data
+      let resolve
+      const promise = new Promise(r => resolve = r)
 
-      const { requestId } = e.data
-      worker
-        .postMessage({
+      if (runIdToRequests.has(runId)) runIdToRequests.get(runId).add(promise)
+      else runIdToRequests.set(runId, new Set([promise]))
+
+      try {
+        respond(
           requestId,
-          response: {
-            ...environment,
-            secrets: await decodeSecrets(secrets || {}),
-          },
-          session
-        })
-    }
-    else if (e.data.type === 'state') {
-      let { scope, user, domain: stateRequestDomain, requestId } = e.data
-
-      if (!user) user = environment.auth.user
-
-      const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
-
-      const id = await scopeToId(stateRequestDomain || environment.domain, user, namespacedScope)
-      const { active={} } = await getState(id)
-      worker.postMessage({ requestId, response: active, session })
-    }
-    else if (e.data.type === 'interact') {
-      let { scope, domain: stateRequestDomain, requestId, patch } = e.data
-
-      const { auth: { user } , context, domain } = environment
-      const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
-
-      const id = await scopeToId(domain, user, scope)
-      const log = []
-      let response
-      const domainSideEffectResponse = handleSideEffects({
-        domain: stateRequestDomain || domain,
-        user, scope, patch, id, context, session
-      })
-        .then(r => response = r)
-        .catch(error => log.push(error))
-      const { ii } = await interact(stateRequestDomain || domain, user, namespacedScope, patch, context)
-
-      const si = null
-      //  TODO: unify. the following block is repeated in handle-connection
-      await coreSideEffects({
-        id, session, domain, user, scope, active_type: null, patch, si, ii,
-        send: async message => (
-          domainSideEffectResponse
-            .finally(() => {
-              worker
-                .postMessage({
-                  session,
-                  requestId,
-                  response: {
-                    ...message,
-                    log,
-                    response
-                  }
-                })
-            })
+          await messageHandlers[type](session, environment, namespaces, e.data)
         )
-      })
-    }
-    else if (e.data.type === 'metadata') {
-      let { scope, user, domain: requestDomain, requestId } = e.data
-
-      if (!user) user = environment.auth.user
-
-      const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
-
-      const id = await scopeToId(requestDomain || environment.domain, user, namespacedScope)
-      const response = await getState(id)
-      delete response.active
-      delete response.history
-      worker.postMessage({ requestId, response, session })
+      }
+      catch (error) {
+        console.warn('ERROR executing domain worker script', error)
+      }
+      finally {
+        resolve()
+        runIdToRequests.get(runId).delete(promise)
+        if (runIdToRequests.get(runId).size === 0) runIdToRequests.delete(runId)
+      }
     }
     else if (e.data.type === 'synced') {
-      //  TODO: actually do accounting for responses outstanding per script run
-      //        right now runId is not passed, but it should be bassed back with all messages from thte embedded agent
-      //        there should be a new run id with every script
-      let { requestId, runId } = e.data
-      worker.postMessage({ requestId, session })
+      const { requestId, runId } = e.data
+      await Promise.all(runIdToRequests.get(runId) || [])
+      respond(requestId)
     }
     else {
       console.log("TODO: implement unhandled agent message type", environment.domain, e.data)
@@ -181,4 +132,60 @@ function getNamespacedScope(namespace, scope) {
   const allow = namespace?.allow || []
   const prefix = typeof namespace === 'string' ? namespace : namespace?.prefix
   return prefix && !isUUID(scope) && !allow.some(allowPrefix => scope.startsWith(allowPrefix)) ? `${prefix}/${scope}` : scope
+}
+
+const messageHandlers = {
+  environment: async (session, environment, namespaces) => {
+    const { secrets } = await configuration(environment.domain)
+    return { ...environment, secrets: await decodeSecrets(secrets || {}) }
+  },
+  state: async (session, environment, namespaces, { scope, user, domain: stateRequestDomain }) => {
+    if (!user) user = environment.auth.user
+
+    const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
+
+    const id = await scopeToId(stateRequestDomain || environment.domain, user, namespacedScope)
+    const { active={} } = await getState(id)
+    return active
+  },
+  interact: async (session, environment, namespaces, { scope, domain: stateRequestDomain, patch }) => {
+
+    const { auth: { user }, context, domain } = environment
+    const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
+
+    const id = await scopeToId(domain, user, scope)
+    const log = []
+    let response
+    const domainSideEffectResponse = handleSideEffects({
+      domain: stateRequestDomain || domain,
+      user, scope, patch, id, context, session
+    })
+      .then(r => response = r)
+      .catch(error => log.push(error))
+    const { ii } = await interact(stateRequestDomain || domain, user, namespacedScope, patch, context)
+
+    const si = null
+    return new Promise (resolve => {
+    //  TODO: unify. the following block is repeated in handle-connection
+      coreSideEffects({
+        id, session, domain, user, scope, active_type: null, patch, si, ii,
+        send: async message => (
+          domainSideEffectResponse
+            .finally(() => resolve({...message, log, response}))
+        )
+      })
+    })
+  },
+  metadata: async (session, environment, namespaces, { scope, user, domain: requestDomain, requestId, runId }) => {
+
+    if (!user) user = environment.auth.user
+
+    const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
+
+    const id = await scopeToId(requestDomain || environment.domain, user, namespacedScope)
+    const response = await getState(id)
+    delete response.active
+    delete response.history
+    return response
+  }
 }

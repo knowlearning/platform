@@ -12,9 +12,13 @@ function postMessage(message) {
 const Agent = EmbeddedAgent(postMessage)
 
 // TODO: move "getAgent" into Agent.connect(domain) structure
-const getAgent = (domain) => {
-  postMessage({ type: "initialize" })
-  return EmbeddedAgent((message) => postMessage({ ...message, domain }))
+const domainAgents = {}
+const getAgent = (domain, runId) => {
+  if (!domainAgents[domain]) {
+    postMessage({ type: "initialize" })
+    domainAgents[domain] = EmbeddedAgent(m => postMessage({ ...m, domain }))
+  }
+  return domainAgents[domain].withRunId(runId)
 }
 
 // Handle messages coming in from parent via stdin
@@ -76,8 +80,8 @@ async function runSafely(script, variables, runId) {
   ]
 
   const extraGlobals = {
-    Agent,
-    getAgent,
+    Agent: Agent.withRunId(runId),
+    getAgent: domain => getAgent(domain, runId)
   }
 
   const sandbox = new Function(
