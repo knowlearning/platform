@@ -1,6 +1,15 @@
 export default function isolatedWorker(modulePath) {
+  const configPath = new URL("../deno.json", import.meta.url).pathname
   const cmd = new Deno.Command(Deno.execPath(), {
-    args: ['run', '--allow-net', modulePath],
+    args: [
+      'run',
+      '--config',
+      configPath,
+      '--frozen',
+      '--cached-only',
+      '--allow-net',
+      modulePath
+    ],
     stdin: 'piped',
     stdout: 'piped',
     stderr: 'piped'

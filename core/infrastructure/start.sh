@@ -24,8 +24,14 @@ git checkout trunk
 SERVICE_NAME="my-deno-app"
 USER_NAME="$(whoami)"
 DENO_BIN="$HOME/.deno/bin/deno"
-APP_PATH="$HOME/platform/core/source/index.js"
+CORE_PATH="$HOME/platform/core"
+APP_PATH="$CORE_PATH/source/index.js"
+DOMAIN_WORKER_PATH="$CORE_PATH/source/domain-worker/index.js"
+CONFIG_PATH="$CORE_PATH/deno.json"
 CERT_PATH="/etc/ssl/certs/ca-certificates.crt"
+
+cd "$CORE_PATH"
+"$DENO_BIN" install --frozen --entrypoint "$APP_PATH" "$DOMAIN_WORKER_PATH"
 
 # 1. Write the systemd service file
 sudo tee "/etc/systemd/system/${SERVICE_NAME}.service" > /dev/null <<EOF
@@ -36,6 +42,9 @@ After=network.target
 [Service]
 ExecStart=${DENO_BIN} run \\
   --inspect=127.0.0.1:9229 \\
+  --config=${CONFIG_PATH} \\
+  --frozen \\
+  --cached-only \\
   --allow-sys \\
   --allow-net \\
   --allow-write \\
@@ -44,7 +53,7 @@ ExecStart=${DENO_BIN} run \\
   --cert=${CERT_PATH} \\
   --allow-env \\
   ${APP_PATH}
-WorkingDirectory=${HOME}
+WorkingDirectory=${CORE_PATH}
 Restart=always
 RestartSec=1
 User=${USER_NAME}
