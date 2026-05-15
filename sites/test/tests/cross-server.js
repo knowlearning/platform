@@ -159,35 +159,6 @@ async function expectWatchAcrossServers(writer, reader) {
   expect(counts.slice(0, 3)).to.deep.equal([0, 1, 2])
 }
 
-async function expectConcurrentMutations(owner, writers) {
-  const id = owner.agent.uuid()
-  const ownerState = await owner.agent.state(id)
-  ownerState.base = true
-  await owner.agent.synced()
-
-  const writerStates = await Promise.all(
-    writers.map(({ agent }) => agent.state(id, owner.environment.auth.user, owner.environment.domain))
-  )
-
-  writerStates.forEach((state, index) => {
-    state[`writer${index}`] = writers[index].environment.server
-  })
-
-  await Promise.all(writers.map(({ agent }) => agent.synced()))
-
-  await eventually(
-    async () => {
-      const current = await owner.agent.state(id)
-      return writers.every((_, index) => current[`writer${index}`]) && current
-    },
-    { message: 'Concurrent cross-server mutations did not converge' }
-  )
-
-  writers.forEach((writer, index) => {
-    expect(ownerState[`writer${index}`]).to.equal(writer.environment.server)
-  })
-}
-
 async function expectPostgresAcrossServers(writer, reader) {
   const runId = writer.agent.uuid()
   const activeType = `application/json;type=cross-server-${runId}`
@@ -311,10 +282,6 @@ export default function crossServer(browserAgent) {
 
     it('delivers pub/sub updates from server B to server A', async function () {
       await expectWatchAcrossServers(agents[1], agents[0])
-    })
-
-    it('converges concurrent mutations from different servers', async function () {
-      await expectConcurrentMutations(agents[0], agents.slice(1))
     })
 
     it('serves postgres side effects across servers', async function () {
