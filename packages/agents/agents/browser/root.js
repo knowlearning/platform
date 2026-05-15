@@ -1,5 +1,5 @@
 import { v1 as uuid } from 'uuid'
-import { applyPatch } from 'fast-json-patch'
+import { applyPatch } from 'fast-json-patch/index.mjs'
 import { getToken, login, logout } from './auth.js'
 import GenericAgent from '../generic/index.js'
 import { io } from 'socket.io-client'

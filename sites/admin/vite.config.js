@@ -30,7 +30,7 @@ export default defineConfig({
       },
       {
         find: 'fast-json-patch',
-        replacement: __dirname + '/node_modules/fast-json-patch/index.mjs'
+        replacement: __dirname + '/node_modules/fast-json-patch'
       },
       {
         find: 'uuid',

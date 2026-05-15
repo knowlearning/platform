@@ -24,6 +24,9 @@ importers:
       chai:
         specifier: ^5.1.2
         version: 5.3.3
+      deno-bin:
+        specifier: 2.2.7
+        version: 2.2.7
       mocha:
         specifier: ^10.8.2
         version: 10.8.2
@@ -297,6 +300,10 @@ packages:
   '@types/estree@1.0.6':
     resolution: {integrity: sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw==}
 
+  adm-zip@0.5.17:
+    resolution: {integrity: sha512-+Ut8d9LLqwEvHHJl1+PIHqoyDxFgVN847JTVM3Izi3xHDWPE4UtzzXysMZQs64DMcrJfBeS/uoEP4AD3HQHnQQ==}
+    engines: {node: '>=12.0'}
+
   ansi-colors@4.1.3:
     resolution: {integrity: sha512-/6w/C21Pm1A7aZitlI5Ni/2J6FFQN8i1Cvz3kHABAAbw93v/NlvKdVOqz7CCWz/3iv/JplRSEEZ83XION15ovw==}
     engines: {node: '>=6'}
@@ -383,6 +390,10 @@ packages:
   deep-eql@5.0.2:
     resolution: {integrity: sha512-h5k/5U50IJJFpzfL6nO9jaaumfjO/f2NjK/oYB2Djzm4p9L+3T9qWpZqZ2hAbLPuuYq9wrU08WQyBTL5GbPk5Q==}
     engines: {node: '>=6'}
+
+  deno-bin@2.2.7:
+    resolution: {integrity: sha512-ANCqji3OqD0Voji5OtUElCFRhcp1Wt6d2LUMR+jlOXkIN/MqL8BgzHFMi3a5e8YnB7IEpxsR/O3Yd+wkQXcc9g==}
+    hasBin: true
 
   diff@5.2.2:
     resolution: {integrity: sha512-vtcDfH3TOjP8UekytvnHH1o1P4FcUdt4eQ1Y+Abap1tk/OB2MWQvcwS2ClCd1zuIhc3JKOx6p3kod8Vfys3E+A==}
@@ -844,6 +855,8 @@ snapshots:
 
   '@types/estree@1.0.6': {}
 
+  adm-zip@0.5.17: {}
+
   ansi-colors@4.1.3: {}
 
   ansi-regex@5.0.1: {}
@@ -925,6 +938,10 @@ snapshots:
   decamelize@4.0.0: {}
 
   deep-eql@5.0.2: {}
+
+  deno-bin@2.2.7:
+    dependencies:
+      adm-zip: 0.5.17
 
   diff@5.2.2: {}
 

@@ -13,7 +13,7 @@ if [ -z "$1" ]; then
   export SECRET_ENCRYPTION_KEY=$(cat ../../.credentials/SECRET_ENCRYPTION_KEY)
 
   docker compose -f ./infrastructure/local/docker-compose.yaml down
-  docker compose -f ./infrastructure/local/docker-compose.yaml up --build  --scale api=3
+  docker compose -f ./infrastructure/local/docker-compose.yaml up --build --scale api=3
   wait
 else
   echo Unrecognized argument $1
