@@ -1,21 +1,54 @@
+x-api: &api
+  build:
+    context: ../../
+    dockerfile: deno.Dockerfile
+
+  expose:
+    - 8765
+
+  environment:
+    TLS_PORT: "8765"
+    AUTH_SERVICE_SECRET_KEY: ${AUTH_SERVICE_SECRET_KEY}
+    OAUTH_CREDENTIALS: ${OAUTH_CREDENTIALS}
+    SSL_CERT: ${SSL_CERT}
+    SSL_KEY: ${SSL_KEY}
+    MODE: local
+    PORT: "8000"
+    SERVE_HOST: serve:8765
+    SERVICE_ACCOUNT_TOKEN: /var/run/secrets/kubernetes.io/serviceaccount/token
+    REDIS_SERVERS: '{"redis-1":{"host":"redis-1","port":6379,"password":""},"redis-2":{"host":"redis-2","port":6379,"password":""}}'
+    REDIS_DOMAINS: '{"default":"redis-1","localhost:5111":"redis-1"}'
+    PUBLIC_ENCRYPTION_KEY: ${PUBLIC_ENCRYPTION_KEY}
+    SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY}
+    ADMIN_DOMAIN: localhost:5111
+    GC_PROJECT_ID: opensourcelearningplatform
+    INTERNAL_GCS_API_ENDPOINT: http://gcs-emulator:8000
+    EXTERNAL_GCS_API_ENDPOINT: https://localhost:4443
+    GCS_BUCKET_NAME: local-gcs-bucket
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: "5432"
+    POSTGRES_PASSWORD: insecure-development-password
+    GCS_SERVICE_ACCOUNT_CREDENTIALS: ${GCS_SERVICE_ACCOUNT_CREDENTIALS}
+
+  volumes:
+    - ../../../packages/agents:/agents
+
+  depends_on:
+    postgres:
+      condition: service_started
+    gcs-emulator:
+      condition: service_started
+    redis-1:
+      condition: service_started
+    redis-2:
+      condition: service_started
+
+x-redis: &redis
+  image: redis:8.4.0
+  environment:
+    REDIS_PASSWORD: ""
+
 services:
-  lb:
-    image: traefik:v3.6
-    command:
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --providers.file.filename=/etc/traefik/dynamic.yml
-      - --entrypoints.api.address=:8765
-      - --serversTransport.insecureSkipVerify=true
-    ports:
-      - 8765:8765
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ../../../../.credentials/SSL_CERT:/certs/SSL_CERT:ro
-      - ../../../../.credentials/SSL_KEY:/certs/SSL_KEY:ro
-      - ./traefik-dynamic.yml:/etc/traefik/dynamic.yml:ro
-    depends_on:
-      - api
 
   gcs-emulator:
     image: fsouza/fake-gcs-server:1.49.3
@@ -46,64 +79,29 @@ services:
       - -c
       - max_connections=300
 
-  api:
-    build:
-      context: ../../
-      dockerfile: deno.Dockerfile
+  api-1:
+    <<: *api
+    ports:
+      - 8765:8765
 
-    expose:
-      - 8765
+  api-2:
+    <<: *api
+    ports:
+      - 8766:8765
 
-    environment:
-      - TLS_PORT=8765
-      - AUTH_SERVICE_SECRET_KEY=${AUTH_SERVICE_SECRET_KEY}
-      - OAUTH_CREDENTIALS=${OAUTH_CREDENTIALS}
-      - SSL_CERT=${SSL_CERT}
-      - SSL_KEY=${SSL_KEY}
-      - MODE=local
-      - PORT=8000
-      - SERVE_HOST=serve:8765
-      - SERVICE_ACCOUNT_TOKEN=/var/run/secrets/kubernetes.io/serviceaccount/token
-      - REDIS_PASSWORD=
-      - PUBLIC_ENCRYPTION_KEY=${PUBLIC_ENCRYPTION_KEY}
-      - SECRET_ENCRYPTION_KEY=${SECRET_ENCRYPTION_KEY}
-      - ADMIN_DOMAIN=localhost:5111
-      - GC_PROJECT_ID=opensourcelearningplatform
-      - INTERNAL_GCS_API_ENDPOINT=http://gcs-emulator:8000
-      - EXTERNAL_GCS_API_ENDPOINT=https://localhost:4443
-      - GCS_BUCKET_NAME=local-gcs-bucket
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_PASSWORD=insecure-development-password
-      - GCS_SERVICE_ACCOUNT_CREDENTIALS=${GCS_SERVICE_ACCOUNT_CREDENTIALS}
+  api-3:
+    <<: *api
+    ports:
+      - 8767:8765
 
-    volumes:
-      - ../../../packages/agents:/agents
-
-    depends_on:
-      - postgres
-      - gcs-emulator
-      - redis
-
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.api.rule=PathPrefix(`/`)
-      - traefik.http.routers.api.entrypoints=api
-      - traefik.http.routers.api.tls=true
-      - traefik.http.services.api.loadbalancer.server.port=8765
-      - traefik.http.services.api.loadbalancer.server.scheme=https
-      - traefik.http.services.api.loadbalancer.sticky.cookie=true
-      - traefik.http.services.api.loadbalancer.sticky.cookie.name=api_sticky
-      - traefik.http.services.api.loadbalancer.sticky.cookie.secure=true
-      - traefik.http.services.api.loadbalancer.sticky.cookie.httpOnly=true
-      - traefik.http.services.api.loadbalancer.sticky.cookie.sameSite=none
-
-  redis:
-    image: redis:8.4.0
-    container_name: redis
+  redis-1:
+    <<: *redis
+    container_name: redis-1
     ports:
       - 6379:6379
-    environment:
-      - REDIS_PASSWORD=
+
+  redis-2:
+    <<: *redis
+    container_name: redis-2
+    ports:
+      - 6380:6379

@@ -1,3 +1,5 @@
+//  TODO: bring redis into here, but add getClientFor(id or domain) 
+
 import * as redis from './redis.js'
 import sync from './sync.js'
 import { bigQueryBatchInserter } from './gcp-api.js'

@@ -63,7 +63,8 @@ Environment=AUTH_SERVICE_SECRET_KEY
 Environment=GCS_SERVICE_ACCOUNT_CREDENTIALS
 Environment=OAUTH_CREDENTIALS
 Environment=POSTGRES_PASSWORD
-Environment=REDIS_PASSWORD
+Environment=REDIS_SERVERS
+Environment=REDIS_DOMAINS
 Environment=PUBLIC_ENCRYPTION_KEY
 Environment=SECRET_ENCRYPTION_KEY
 Environment=GCS_BUCKET_NAME
@@ -73,9 +74,6 @@ Environment=GC_PROJECT_ID
 Environment=POSTGRES_HOST
 Environment=POSTGRES_PORT
 Environment=POSTGRES_USER
-Environment=REDIS_USER
-Environment=REDIS_HOST
-Environment=REDIS_PORT
 Environment=PORT
 Environment=TLS_PORT
 Environment=SSL_CERT
@@ -87,12 +85,17 @@ EOF
 
 sudo systemctl daemon-reload
 sudo systemctl enable "${SERVICE_NAME}"
+
+REDIS_PASSWORD_JSON=${REDIS_PASSWORD//\\/\\\\}
+REDIS_PASSWORD_JSON=${REDIS_PASSWORD_JSON//\"/\\\"}
+
 sudo systemctl set-environment \
   AUTH_SERVICE_SECRET_KEY="$AUTH_SERVICE_SECRET_KEY" \
   GCS_SERVICE_ACCOUNT_CREDENTIALS="$GCS_SERVICE_ACCOUNT_CREDENTIALS" \
   OAUTH_CREDENTIALS="$OAUTH_CREDENTIALS" \
   POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-  REDIS_PASSWORD="$REDIS_PASSWORD" \
+  REDIS_SERVERS="{\"redis-1\":{\"host\":\"redis-15018.fcrce259.eu-central-1-3.ec2.cloud.redislabs.com\",\"port\":15018,\"username\":\"default\",\"password\":\"$REDIS_PASSWORD_JSON\"}}" \
+  REDIS_DOMAINS='{"default":"redis-1"}' \
   PUBLIC_ENCRYPTION_KEY="$PUBLIC_ENCRYPTION_KEY" \
   SECRET_ENCRYPTION_KEY="$SECRET_ENCRYPTION_KEY" \
   SSL_CERT="$SSL_CERT"\
@@ -104,9 +107,6 @@ sudo systemctl set-environment \
   POSTGRES_HOST=10.50.0.2 \
   POSTGRES_PORT=5432 \
   POSTGRES_USER=postgres \
-  REDIS_USER=default \
-  REDIS_HOST=redis-15018.fcrce259.eu-central-1-3.ec2.cloud.redislabs.com \
-  REDIS_PORT=15018 \
   PORT=80 \
   TLS_PORT=443
 

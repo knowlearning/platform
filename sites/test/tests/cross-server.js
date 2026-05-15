@@ -10,8 +10,8 @@ function queryInt(params, name, fallback) {
 
 function hostAliases({ apiPort, aliasPrefix, serverCount, aliasCount }) {
   return Array
-    .from({ length: aliasCount || Math.max(serverCount * 4, serverCount + 3) }, (_, i) => {
-      return `${aliasPrefix}${i + 1}.localhost:${apiPort}`
+    .from({ length: aliasCount || serverCount }, (_, i) => {
+      return `${aliasPrefix}${i + 1}.localhost:${apiPort + i}`
     })
 }
 
