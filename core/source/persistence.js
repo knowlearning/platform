@@ -1,9 +1,7 @@
-//  TODO: bring redis into here, but add getClientFor(id or domain) 
-
 import * as redis from './redis.js'
 import sync from './sync.js'
 import { bigQueryBatchInserter } from './gcp-api.js'
-import { environment } from './utils.js'
+import { environment, isUUID } from './utils.js'
 
 const { GC_PROJECT_ID, GCS_SERVICE_ACCOUNT_CREDENTIALS } = environment
 
@@ -14,31 +12,187 @@ const { insert: bqInsertPatch } = bigQueryBatchInserter({
   table: 'patches'
 })
 
-export async function getState(id, options) {
-  await redis.connected
-  return redis.client.json.get(id, options)
+const UUID_OWNER_HASH_KEY = '__knowlearning:uuid-owner-domain'
+const DOMAIN_UUID_SET_PREFIX = '__knowlearning:domain-uuids:'
+const uuidOwnerCache = new Map()
+
+const CLAIM_UUID_OWNER_SCRIPT = `
+  local current_owner = redis.call('HGET', KEYS[1], ARGV[1])
+
+  if current_owner then
+    if current_owner == ARGV[2] then
+      redis.call('SADD', KEYS[2], ARGV[1])
+    end
+    return { current_owner, 0 }
+  end
+
+  redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
+  redis.call('SADD', KEYS[2], ARGV[1])
+  return { ARGV[2], 1 }
+`
+
+function domainUUIDSetKey(domain) {
+  return `${DOMAIN_UUID_SET_PREFIX}${domain}`
 }
 
-export async function batchGetState(ids, options) {
-  await redis.connected
-  const transaction = redis.client.multi()
-  ids.forEach(id => transaction.json.get(id, options))
-  return await transaction.exec()
+function normalizeDomainPathResponse(response) {
+  if (!response) return null
+  if (Array.isArray(response)) return response[0] || null
+  if (Array.isArray(response['$.domain'])) return response['$.domain'][0] || null
+  if (typeof response === 'string') return response
+  return null
 }
 
-export async function setState(id, path, value, options) {
+async function indexedOwnerDomain(id) {
+  if (!isUUID(id)) return null
+  if (uuidOwnerCache.has(id)) return uuidOwnerCache.get(id)
+
   await redis.connected
-  return redis.client.json.set(id, path, value, options)
+  const domain = await redis.client.hGet(UUID_OWNER_HASH_KEY, id)
+
+  if (domain) uuidOwnerCache.set(id, domain)
+  return domain || null
 }
 
-export async function stateExists(id) {
+async function claimUUIDOwner(domain, id) {
   await redis.connected
-  return redis.client.exists(id)
+
+  const [ownerDomain, claimed] = await redis.client.eval(
+    CLAIM_UUID_OWNER_SCRIPT,
+    {
+      keys: [UUID_OWNER_HASH_KEY, domainUUIDSetKey(domain)],
+      arguments: [id, domain]
+    }
+  )
+
+  if (ownerDomain) uuidOwnerCache.set(id, ownerDomain)
+  return { ownerDomain, claimed: claimed === 1 || claimed === '1' }
+}
+
+async function stateDomainOnClient(client, id) {
+  try {
+    return normalizeDomainPathResponse(
+      await client.json.get(id, { path: ['$.domain'] })
+    )
+  }
+  catch (error) {
+    console.warn('ERROR CHECKING UUID OWNER FALLBACK', id, error)
+    return null
+  }
+}
+
+async function findExistingOwnerDomain(id) {
+  const found = []
+
+  await Promise.all(
+    redis
+      .commandClients()
+      .map(async ({ serverName, client }) => {
+        const domain = await stateDomainOnClient(client, id)
+        if (domain) found.push({ serverName, domain })
+      })
+  )
+
+  if (found.length > 1) {
+    throw new Error(`UUID ${id} exists on multiple Redis servers: ${JSON.stringify(found)}`)
+  }
+
+  return found[0]?.domain || null
+}
+
+async function ownerDomainForState(domain, id, { create=false }={}) {
+  if (!isUUID(id)) return domain
+
+  const indexedDomain = await indexedOwnerDomain(id)
+  if (indexedDomain) return indexedDomain
+
+  const existingDomain = await findExistingOwnerDomain(id)
+  if (existingDomain) {
+    const { ownerDomain } = await claimUUIDOwner(existingDomain, id)
+    if (ownerDomain !== existingDomain) {
+      throw new Error(`UUID ${id} exists in ${existingDomain} but owner index says ${ownerDomain}`)
+    }
+    return ownerDomain
+  }
+
+  if (!create) return null
+
+  return (await claimUUIDOwner(domain, id)).ownerDomain
+}
+
+async function clientForState(domain, id, options) {
+  const ownerDomain = await ownerDomainForState(domain, id, options)
+  return redis.clientForDomain(ownerDomain || domain)
+}
+
+export async function claimStateOwner(domain, id) {
+  return ownerDomainForState(domain, id, { create: true })
+}
+
+export async function getState(domain, id, options) {
+  await redis.connected
+  return (await clientForState(domain, id)).json.get(id, options)
+}
+
+export async function batchGetState(domain, ids, options) {
+  await redis.connected
+  const results = new Array(ids.length)
+  const groups = new Map()
+
+  await Promise.all(
+    ids.map(async (id, index) => {
+      const client = await clientForState(domain, id)
+      if (!groups.has(client)) groups.set(client, [])
+      groups.get(client).push({ id, index })
+    })
+  )
+
+  await Promise.all(
+    [...groups.entries()].map(async ([client, entries]) => {
+      const transaction = client.multi()
+      entries.forEach(({ id }) => transaction.json.get(id, options))
+      const response = await transaction.exec()
+      response.forEach((value, index) => {
+        results[entries[index].index] = value
+      })
+    })
+  )
+
+  return results
+}
+
+export async function setState(domain, id, path, value, options) {
+  await redis.connected
+  const ownerDomain = await ownerDomainForState(domain, id, { create: isUUID(id) })
+
+  if (isUUID(id) && path === '$' && value?.domain && value.domain !== ownerDomain) {
+    throw new Error(`UUID ${id} is owned by ${ownerDomain}; refusing to initialize for ${value.domain}`)
+  }
+
+  return redis.clientForDomain(ownerDomain || domain).json.set(id, path, value, options)
+}
+
+export async function stateExists(domain, id) {
+  await redis.connected
+  const ownerDomain = await ownerDomainForState(domain, id)
+  if (isUUID(id) && !ownerDomain) return false
+  return redis.clientForDomain(ownerDomain || domain).exists(id)
 }
 
 export async function domainIds(domain) {
   await redis.connected
-  return redis.client.sendCommand(['smembers', domain])
+  const indexedIds = await redis.client.sendCommand(['smembers', domainUUIDSetKey(domain)])
+  const legacyIds = await legacyDomainIds(domain)
+  const ids = new Set(indexedIds)
+
+  await Promise.all(
+    legacyIds.map(async id => {
+      const ownerDomain = await ownerDomainForState(domain, id)
+      if (ownerDomain === domain) ids.add(id)
+    })
+  )
+
+  return [...ids]
 }
 
 export async function subscribe(id, callback) {
@@ -48,12 +202,24 @@ export async function subscribe(id, callback) {
 
 export async function publish(id, message) {
   await redis.connected
-  await (
+  await redis.publishAll(id, JSON.stringify(message))
+}
+
+async function legacyDomainIds(domain) {
+  const ids = []
+
+  await Promise.all(
     redis
-      .client
-      .publish(id, JSON.stringify(message))
-      .catch(error => console.log('ERROR PUBLISHING!!!!!!!!', id, message))
+      .commandClients()
+      .map(async ({ client }) => {
+        try {
+          ids.push(...await client.sendCommand(['smembers', domain]))
+        }
+        catch (_) {}
+      })
   )
+
+  return [...new Set(ids.filter(isUUID))]
 }
 
 // BEGIN patchState implementation
@@ -61,7 +227,6 @@ export async function publish(id, message) {
 const MAINTENANCE_SCRIPT = `
   local active_size = redis.call('JSON.DEBUG', 'MEMORY', KEYS[1])
   redis.call('JSON.SET', KEYS[1], '$.active_size', tonumber(active_size))
-  redis.call('SADD', KEYS[2], KEYS[1])
 `
 
 const MOVE_SCRIPT = `
@@ -92,7 +257,8 @@ function standardJSONPath(arrayPath) {
 }
 
 export async function patchState(domain, user, context, id, patch, timestamp, name) {
-  const transaction = redis.client.multi()
+  const client = await clientForState(domain, id, { create: isUUID(id) })
+  const transaction = client.multi()
   transaction.json.set(id, '$.active', {}, { NX: true }) // initialize state to empty object if does not exist
   transaction.json.numIncrBy(id, '$.ii', 1)
 
@@ -106,7 +272,7 @@ export async function patchState(domain, user, context, id, patch, timestamp, na
     else if (op === 'move') move(transaction, id, path, from)
   }
 
-  transaction.eval(MAINTENANCE_SCRIPT, { keys: [id, domain] })
+  transaction.eval(MAINTENANCE_SCRIPT, { keys: [id] })
   transaction.json.set(id, '$.updated', timestamp)
   transaction.json.get(id, { path: '$.active_type' })
 

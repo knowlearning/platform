@@ -15,9 +15,9 @@ export default async function sync(domain, user, active_type, scope) {
       .map(([name]) => name)
   )
 
-  if (tableNames.length === 0) return syncMetadata(id)
+  if (tableNames.length === 0) return syncMetadata(domain, id)
 
-  const state = await getState(id)
+  const state = await getState(domain, id)
 
   if (!state) throw new Error(`TRYING TO ADD ROW FOR NON-EXISTENT SCOPE ${domain} ${table} ${id}`)
 
@@ -31,14 +31,14 @@ export default async function sync(domain, user, active_type, scope) {
 
   //  TODO: once we're sure the metadata table is set up, we can parallelize this sync
   //        with the above
-  await syncMetadata(id)
+  await syncMetadata(domain, id)
 }
 
-async function syncMetadata(id) {
+async function syncMetadata(domain, id) {
   const pathified = name => `$.${name}`
   const columns = ['active_type', 'domain', 'name', 'updated', 'created', 'owner', 'ii', 'active_size', 'storage_size']
 
-  const values = await getState(id, { path: columns.map(pathified) })
+  const values = await getState(domain, id, { path: columns.map(pathified) })
 
   const orderedValues = (
     columns
@@ -63,6 +63,6 @@ async function syncMetadata(id) {
         (${columnNames}) = ROW ($2,$3,$4,$5,$6,$7,$8,$9,$10)
   `
 
-  const domain = values[pathified('domain')][0]
-  await postgres.query(domain, query, [id, ...orderedValues])
+  const stateDomain = values[pathified('domain')][0]
+  await postgres.query(stateDomain, query, [id, ...orderedValues])
 }

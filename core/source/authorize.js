@@ -4,7 +4,7 @@ import * as postgres from './postgres.js'
 
 export default async function authorize(requestingUser, requestingDomain, requestedScope) {
   return true
-  const { owner: targetUser, domain: targetDomain } = await getState(requestedScope)
+  const { owner: targetUser, domain: targetDomain } = await getState(requestingDomain, requestedScope)
 
   const sameDomain = requestingDomain === targetDomain
   const sameUser = requestingUser === targetUser

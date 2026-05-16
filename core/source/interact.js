@@ -5,7 +5,7 @@ export default async function interact( domain, user, scope, patch, context=[], 
   //  TODO: validate that patch's paths can only start with "active", "active_type", or "name"
 
   const id = domain === 'core' && user === 'core' ? scope : await scopeToId(domain, user, scope)
-  const info = await getState(id, { path: ['$.domain', '$.owner' ]})
+  const info = await getState(domain, id, { path: ['$.domain', '$.owner' ]})
 
   if (info !== null && (domain !== info?.['$.domain'][0] || user !== info?.['$.owner'][0])) {
     console.log('DOMAIN OR USER MISMATCH FOR PATCH', info, domain, user, scope, patch)

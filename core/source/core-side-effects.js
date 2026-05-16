@@ -46,7 +46,7 @@ export default async function coreSideEffects({
               const ss = subscriptions[session]
               if (!ss[subscribeId]) ss[subscribeId] = subscribe(subscribeId, send, subscribedScope)
 
-              const state = await getState(subscribeId)
+              const state = await getState(scopeDomain, subscribeId)
               send({ ...state, id: subscribeId, si })
             }
             else {
@@ -103,7 +103,7 @@ export default async function coreSideEffects({
       reportState.start = Date.now()
 
       try {
-        const configuration = await getState(id)
+        const configuration = await getState(domain, id)
         Object.assign(coreConfigCopy, configuration.active)
         await coreStateSynced()
         await applyConfiguration(configureDomain, configuration.active, reportState)

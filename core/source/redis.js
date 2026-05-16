@@ -1,5 +1,3 @@
-// Prep all other "Persistence backend" marked files so the only edits we'll need for multi-redis instance support can be made in this file
-
 import { createRedisClient, environment } from './utils.js'
 
 const {
@@ -32,6 +30,11 @@ if (!defaultRedisServer) throw new Error('REDIS_DOMAINS.default is required')
 if (!redisServers[defaultRedisServer]) {
   throw new Error(`REDIS_DOMAINS.default references unknown Redis server "${defaultRedisServer}"`)
 }
+Object.entries(redisDomains).forEach(([domain, serverName]) => {
+  if (!redisServers[serverName]) {
+    throw new Error(`REDIS_DOMAINS.${domain} references unknown Redis server "${serverName}"`)
+  }
+})
 
 function clientConnectionInfo(serverName) {
   const server = redisServers[serverName]
@@ -65,16 +68,75 @@ function clientConnectionInfo(serverName) {
   return info
 }
 
-const connectionInfo = clientConnectionInfo(defaultRedisServer)
-const client = createRedisClient(connectionInfo)
-const subscriptions = createRedisClient(connectionInfo)
+const clients = Object.fromEntries(
+  Object
+    .keys(redisServers)
+    .map(serverName => [
+      serverName,
+      createRedisClient(clientConnectionInfo(serverName))
+    ])
+)
 
-client.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
-subscriptions.on('error', e => console.warn('ERROR CONNECTING TO REDIS', e.toString()))
+const client = clients[defaultRedisServer]
+const subscriptions = createRedisClient(clientConnectionInfo(defaultRedisServer))
+
+Object
+  .entries(clients)
+  .forEach(([serverName, client]) => {
+    client.on('error', e => console.warn(`ERROR CONNECTING TO REDIS ${serverName}`, e.toString()))
+  })
+subscriptions.on('error', e => console.warn(`ERROR CONNECTING TO REDIS SUBSCRIPTIONS ${defaultRedisServer}`, e.toString()))
 
 const connected = Promise.all([
-  client.connect(),
+  ...Object.values(clients).map(client => client.connect()),
   subscriptions.connect()
-]).then(() => console.log(`CONNECTED TO REDIS ${defaultRedisServer}!`))
+]).then(() => console.log(`CONNECTED TO REDIS ${Object.keys(clients).join(', ')}!`))
 
-export { client, subscriptions, connected }
+function serverNameForDomain(domain) {
+  return redisDomains[domain] || defaultRedisServer
+}
+
+function clientForServer(serverName) {
+  const client = clients[serverName]
+  if (!client) throw new Error(`Unknown Redis server "${serverName}"`)
+  return client
+}
+
+function clientForDomain(domain) {
+  return clientForServer(serverNameForDomain(domain))
+}
+
+function commandClients() {
+  return Object
+    .entries(clients)
+    .map(([serverName, client]) => ({ serverName, client }))
+}
+
+async function publishAll(channel, message) {
+  await connected
+
+  const results = await Promise.allSettled(
+    commandClients().map(async ({ serverName, client }) => {
+      await client.publish(channel, message)
+      return serverName
+    })
+  )
+
+  results.forEach(result => {
+    if (result.status === 'rejected') {
+      console.log('ERROR PUBLISHING TO REDIS', channel, result.reason)
+    }
+  })
+}
+
+export {
+  client,
+  subscriptions,
+  connected,
+  defaultRedisServer,
+  serverNameForDomain,
+  clientForDomain,
+  clientForServer,
+  commandClients,
+  publishAll
+}

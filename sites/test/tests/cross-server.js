@@ -84,7 +84,9 @@ async function allocateDistinctServerAgents(browserAgent, config) {
       .map(({ apiHost, server, error }) => `${apiHost} -> ${server || error}`)
       .join('\n')
 
-    throw new Error(`Expected ${config.serverCount} distinct API servers, saw ${byServer.size}.\n${summary}`)
+    const error = new Error(`Expected ${config.serverCount} distinct API servers, saw ${byServer.size}.\n${summary}`)
+    error.attempts = attempts
+    throw error
   }
 
   return {
@@ -246,7 +248,7 @@ async function expectUploadAcrossServers(uploader, downloader) {
   expect(downloaded).to.equal(data)
 }
 
-export default function crossServer(browserAgent) {
+export default function crossServer(browserAgent, { skipIfUnavailable=false }={}) {
   const params = new URLSearchParams(window.location.search)
   const config = {
     serverCount: queryInt(params, 'serverCount', 3),
@@ -262,9 +264,16 @@ export default function crossServer(browserAgent) {
     let agents
 
     before(async function () {
-      allocated = await allocateDistinctServerAgents(browserAgent, config)
-      agents = allocated.agents
-      window.__crossServerAttempts = allocated.attempts
+      try {
+        allocated = await allocateDistinctServerAgents(browserAgent, config)
+        agents = allocated.agents
+        window.__crossServerAttempts = allocated.attempts
+      }
+      catch (error) {
+        window.__crossServerAttempts = error.attempts || []
+        if (skipIfUnavailable) this.skip()
+        throw error
+      }
     })
 
     it('connects clients to distinct API servers', function () {

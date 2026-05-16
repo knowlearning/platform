@@ -77,7 +77,7 @@ export default async function configure({ domain, user, session, scope, patch, s
       reportState.start = Date.now()
 
       try {
-        const url = await download(config, 3, true)
+        const url = await download(domain, config, 3, true)
         const response = await fetch(url)
 
         if (response.status !== 200) throw new Error('Error getting config')
@@ -183,7 +183,7 @@ async function syncTables(domain, tables, report) {
     const end = start + typeBatchSize
     const batchIds = allIds.slice(start, end)
 
-    const batchTypes = await batchGetState(batchIds, { path: [`$.active_type`] })
+    const batchTypes = await batchGetState(domain, batchIds, { path: [`$.active_type`] })
 
     for (let idNum = 0; idNum < batchIds.length; idNum += 1) {
       const id = batchIds[idNum]
@@ -227,7 +227,7 @@ async function syncTables(domain, tables, report) {
         tableTasks.push(`Fetching ${batch.length} states to sync`)
 
         //  TODO: limit fetched data to data in table columns (can do with get options)
-        const states = await batchGetState(batch)
+        const states = await batchGetState(domain, batch)
 
         tableTasks.push(`Assembling sync query for ${states.length} states`)
         const rowsToInsert = []

@@ -145,7 +145,7 @@ const messageHandlers = {
     const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
 
     const id = await scopeToId(stateRequestDomain || environment.domain, user, namespacedScope)
-    const { active={} } = await getState(id)
+    const { active={} } = await getState(stateRequestDomain || environment.domain, id)
     return active
   },
   interact: async (session, environment, namespaces, { scope, domain: stateRequestDomain, patch }) => {
@@ -153,7 +153,7 @@ const messageHandlers = {
     const { auth: { user }, context, domain } = environment
     const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
 
-    const id = await scopeToId(domain, user, scope)
+    const id = await scopeToId(stateRequestDomain || domain, user, namespacedScope)
     const log = []
     let response
     const domainSideEffectResponse = handleSideEffects({
@@ -183,7 +183,7 @@ const messageHandlers = {
     const namespacedScope = namespaces.reduceRight((nsScope, ns) => getNamespacedScope(ns, nsScope), scope)
 
     const id = await scopeToId(requestDomain || environment.domain, user, namespacedScope)
-    const response = await getState(id)
+    const response = await getState(requestDomain || environment.domain, id)
     delete response.active
     delete response.history
     return response

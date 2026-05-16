@@ -34,7 +34,7 @@ export async function domainAdmin(domain) {
   }
 
   const path = [`$.active["${domain}"]`]
-  const res = await getState(DOMAIN_CONFIG_SCOPE, { path })
+  const res = await getState('core', DOMAIN_CONFIG_SCOPE, { path })
   if (res && res[0]) return res[0].admin
   else return null
 }
@@ -46,12 +46,12 @@ export default async function configuration(domain, notifyIfNew) {
 
   try {
     const path = [`$.active["${domain}"]`]
-    const [domainConfig] = await getState(DOMAIN_CONFIG_SCOPE, { path })
+    const [domainConfig] = await getState('core', DOMAIN_CONFIG_SCOPE, { path })
 
     if (domainConfig) {
       const { admin, config } = domainConfig
 
-      if (config) cache[domain] = (await getState(config))?.active
+      if (config) cache[domain] = (await getState('core', config))?.active
       else cache[domain] = {}
 
       cache[domain].admin = admin

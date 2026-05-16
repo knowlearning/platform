@@ -230,6 +230,7 @@ else {
   else {
     describe(`${mode.length > 4 ? `Embed Level ${mode.length - 4}` : 'Root'} Core API`, function () {
       latestBugfixes()
+      if (mode.length === 4) crossServer(browserAgent, { skipIfUnavailable: true })
       if (mode.length === 4) postgres()
       if (mode.length === 4) domainAgents()
       stateTest()
