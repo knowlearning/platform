@@ -24,6 +24,8 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
   let lastSynchronousScopePatchPromise = null
   let restarting = false
   let disconnected = false
+  let reconnectFloorSI = null
+  let highestReceivedResponseSI = -1
   const outstandingSyncPromises = []
   const responses = {}
 
@@ -132,8 +134,6 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
       if (!message) return // heartbeat
 
       try {
-        if (message.error) console.warn('ERROR RESPONSE', message)
-
         if (!authed) {
           //  TODO: credential refresh flow instead of forcing login
           if (message.error) alert('Authentication Error. Please try again.')
@@ -155,7 +155,11 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
             reboot()
           }
           else {
-            lastSentSI = message.ack
+            const ack = message.ack ?? -1
+            lastSentSI = reconnectFloorSI === null
+              ? ack
+              : Math.max(reconnectFloorSI, ack)
+            reconnectFloorSI = null
           }
           flushMessageQueue()
         }
@@ -170,17 +174,24 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
           }
           else if (message.si !== undefined) {
             if (responses[message.si]) {
+              if (message.error) console.warn('ERROR RESPONSE', message)
+
               //  TODO: remove "acknowledged" messages from queue and do accounting with si
               responses[message.si]
                 .forEach(([res, rej]) => message.error ? rej(message) : res(message))
 
               delete responses[message.si]
+              highestReceivedResponseSI = Math.max(highestReceivedResponseSI, message.si)
               connection.send({ack: message.si}) //  acknowledgement that we have received the response for this message
               resolveSyncPromises()
             }
             else {
-              //  TODO: consider what to do here... probably want to throw error if in dev env
-              console.warn('received MULTIPLE responses for message with si', message.si, message)
+              if (message.si > highestReceivedResponseSI) {
+                if (message.error) console.warn('ERROR RESPONSE', message)
+                console.warn('received response with no pending message for si', message.si, message)
+              }
+              highestReceivedResponseSI = Math.max(highestReceivedResponseSI, message.si)
+              connection.send({ack: message.si})
             }
           }
           else {
@@ -245,6 +256,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
   function disconnect() {
     log('DISCONNECTED AGENT!!!!!!!!!!!!!!!')
     disconnected = true
+    reconnectFloorSI = lastSentSI
     connection.close({ keepalive: true })
   }
 

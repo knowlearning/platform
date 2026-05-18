@@ -4,10 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test": "node run-embedded-tests.js",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "test:install-browsers": "playwright install chromium",
+    "test:embedded": "node run-embedded-tests.js",
     "test:local": "node run-browser-tests.js",
     "test:cross-server": "CROSS_SERVER=1 node run-browser-tests.js"
   },

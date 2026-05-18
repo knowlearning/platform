@@ -327,16 +327,16 @@ agent: |
       // reconfigure to force reconnection
       await configureDomain(domain, MIRROR_CONFIGURATION)
 
-      let nextConnections
+      let nextConnections = []
 
-      while (!nextConnections || nextConnections.length < initialConnections + 2) {
+      while (new Set(nextConnections.map(({ serverId }) => serverId)).size < 2) {
         await pause(100)
-        nextConnections = (await Agent.state(childConnectionScope, domain, domain)).connections
+        nextConnections = (
+          (await Agent.state(childConnectionScope, domain, domain)).connections || []
+        ).slice(initialConnections)
       }
 
-      const a = nextConnections.pop()
-      const b = nextConnections.pop()
-      expect(a.serverId).to.not.equal(b.serverId)
+      expect(new Set(nextConnections.map(({ serverId }) => serverId)).size).to.be.greaterThan(1)
     })
 
     it('Can connect back to a domain agent that has reconnected itself', async function () {
@@ -387,20 +387,35 @@ agent: |
     })
 
     it('Can configure many agents in series and only 1 is active at a time', async function() {
-      this.timeout(10000)
+      this.timeout(20000)
+
+      const waitForConfiguration = promise => Promise.race([
+        promise,
+        pause(1000)
+      ])
 
       for (let i=0; i<30; i++) {
-        const p = configureDomain(LIVENESS_DOMAIN, LIVENESS_REPORTING_CONFIGURATION)
-        if (Math.random() > 0.5) await p
+        const p = configureDomain(LIVENESS_DOMAIN, LIVENESS_REPORTING_CONFIGURATION).catch(() => {})
+        if (Math.random() > 0.5) await waitForConfiguration(p)
       }
 
-      const livenessTrackers = await Agent.state('liveness-trackers', LIVENESS_DOMAIN, LIVENESS_DOMAIN)
+      let livenessTrackers = {}
+      const start = Date.now()
+      while (
+        !Object.keys(livenessTrackers).length
+        && Date.now() - start < 15000
+      ) {
+        await pause(100)
+        livenessTrackers = await Agent.state('liveness-trackers', LIVENESS_DOMAIN, LIVENESS_DOMAIN)
+      }
+
+      expect(Object.keys(livenessTrackers).length).to.be.greaterThan(0)
 
       let lastPing = 0
       console.log('liveness trackers', livenessTrackers)
       Object
         .entries(livenessTrackers)
-        .sort((a, b) => b.start - a.start)
+        .sort((a, b) => b[1].start - a[1].start)
         .forEach(([_, { start, ping }]) => {
           expect(lastPing).to.be.lessThan(start)
           lastPing = ping

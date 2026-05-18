@@ -22,17 +22,7 @@ describe('EmbeddedAgent Deno import compatibility', function () {
 })
 
 async function loadEmbeddedAgent() {
-  const originalAddEventListener = globalThis.addEventListener
+  const { default: EmbeddedAgent } = await import('../agents/embedded.js')
 
-  globalThis.addEventListener = () => {}
-
-  try {
-    const { default: EmbeddedAgent } = await import('../agents/embedded.js')
-
-    return { Agent: EmbeddedAgent(() => {}) }
-  }
-  finally {
-    if (originalAddEventListener === undefined) delete globalThis.addEventListener
-    else globalThis.addEventListener = originalAddEventListener
-  }
+  return { Agent: EmbeddedAgent(() => {}) }
 }

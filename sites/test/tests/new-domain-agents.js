@@ -212,7 +212,7 @@ export default function () {
     it('Sends back improperly encoded secrets as null', async () => {
       const config = `
         secrets:
-          improperly_encoded_secret: Y6OvsoSoSQlkbEe7TwlmIAIaDJMOFtFo52Xy/ioJNT1tPrlvszdDF2OMJ57N5+pAgmLh2WOadvLBNHqQnM3QHnN47p4cnoRwWQCsGn6cawmkhd4=
+          improperly_encoded_secret: GPAXy5QiOSuZ41cTZaEbkFhZgvF/H1tIJ0xYxOCiQwKQFtlQer1x40RhsQAcTGwdNgOft4SgDhDOEOqjaP0pnKauKS3YCev9W72461CI+ebtjqV4FFIuSHTQUKDK44TZ
         sideEffects:
           script: |
             const { secrets } = await Agent.environment()
@@ -229,7 +229,7 @@ export default function () {
     it('makes properly encoded secrets available to worker scripts', async () => {
       const config = `
         secrets:
-          properly_encoded_secret: GPAXy5QiOSuZ41cTZaEbkFhZgvF/H1tIJ0xYxOCiQwKQFtlQer1x40RhsQAcTGwdNgOft4SgDhDOEOqjaP0pnKauKS3YCev9W72461CI+ebtjqV4FFIuSHTQUKDK44TZ
+          properly_encoded_secret: Y6OvsoSoSQlkbEe7TwlmIAIaDJMOFtFo52Xy/ioJNT1tPrlvszdDF2OMJ57N5+pAgmLh2WOadvLBNHqQnM3QHnN47p4cnoRwWQCsGn6cawmkhd4=
         sideEffects:
           script: |
             const { secrets } = await Agent.environment()
@@ -240,7 +240,7 @@ export default function () {
       state.x = 100
       const { response, log } = await Agent.response()
       console.log('RESPONSE', response, log)
-      expect(response).to.equal('not-very-secret-actually')
+      expect(response).to.equal('notsosecret')
     })
   })
 

@@ -63,11 +63,7 @@ function createHarness(options={}) {
     responses={}
   } = options
 
-  const originalAddEventListener = globalThis.addEventListener
   const originalConsoleLog = console.log
-  const originalFetch = globalThis.fetch
-  const originalWindow = globalThis.window
-  const originalDocument = globalThis.document
   const listeners = []
   const sent = []
   const fetchCalls = []
@@ -77,7 +73,7 @@ function createHarness(options={}) {
   const responseMap = { ...defaultResponses, ...responses }
 
   function emit(data) {
-    for (const listener of listeners) listener({ data })
+    for (const listener of listeners) listener(data)
   }
 
   function responseFor(message, context) {
@@ -98,85 +94,67 @@ function createHarness(options={}) {
     sent
   }
 
-  globalThis.addEventListener = (type, fn) => {
-    if (type === 'message') listeners.push(fn)
-  }
-
   if (captureConsole) {
     console.log = (...args) => consoleLogs.push(args)
   }
 
-  globalThis.fetch = async (url, init={}) => {
+  const fetchRuntime = async (url, init={}) => {
     fetchCalls.push({ init, url })
     if (fetchImplementation) return fetchImplementation(url, init, context)
     return createFetchResponse({ ok: fetchOk, statusText: fetchOk ? 'OK' : fetchStatusText })
   }
 
-  globalThis.window = {
-    URL: {
-      createObjectURL: blob => {
-        objectUrls.push(blob)
-        return 'blob:download'
-      },
-      revokeObjectURL: url => objectUrls.push({ revoked: url })
+  const saveDownload = async (response, name) => {
+    const type = response.headers.get('Content-Type')
+    const blob = new Blob([ await response.blob() ], { type })
+    objectUrls.push(blob)
+    const url = 'blob:download'
+    const anchor = {
+      appended: true,
+      clicked: false,
+      download: name,
+      href: url,
+      style: {},
+      tagName: 'a',
+      click() {
+        anchor.clicked = true
+      }
     }
+    anchors.push(anchor)
+    anchor.click()
+    objectUrls.push({ revoked: url })
   }
 
-  globalThis.document = {
-    body: {
-      appendChild: element => {
-        element.appended = true
-      }
-    },
-    createElement: tagName => {
-      const element = {
-        clicked: false,
-        style: {},
-        tagName,
-        click() {
-          element.clicked = true
-        }
-      }
-      anchors.push(element)
-      return element
-    }
-  }
+  const Agent = EmbeddedAgent(
+    message => {
+      if (postMessageThrows) throw new Error('postMessage failed')
 
-  const Agent = EmbeddedAgent(message => {
-    if (postMessageThrows) throw new Error('postMessage failed')
+      sent.push(message)
+      if (!autoRespond) return
 
-    sent.push(message)
-    if (!autoRespond) return
+      queueMicrotask(async () => {
+        const result = host
+          ? await host(message, context)
+          : defaultReply(message, context)
 
-    queueMicrotask(async () => {
-      const result = host
-        ? await host(message, context)
-        : defaultReply(message, context)
-
-      if (!result) return
-      emit({
-        session: 'session-1',
-        requestId: message.requestId,
-        ...result
+        if (!result) return
+        emit({
+          session: 'session-1',
+          requestId: message.requestId,
+          ...result
+        })
       })
-    })
-  })
+    },
+    {
+      addMessageListener: listener => listeners.push(listener),
+      fetch: fetchRuntime,
+      saveDownload
+    }
+  )
 
   if (autoSetup) emit({ type: 'setup', session: 'session-1' })
 
   function restore() {
-    if (originalAddEventListener === undefined) delete globalThis.addEventListener
-    else globalThis.addEventListener = originalAddEventListener
-
-    if (originalFetch === undefined) delete globalThis.fetch
-    else globalThis.fetch = originalFetch
-
-    if (originalWindow === undefined) delete globalThis.window
-    else globalThis.window = originalWindow
-
-    if (originalDocument === undefined) delete globalThis.document
-    else globalThis.document = originalDocument
-
     console.log = originalConsoleLog
   }
 
@@ -272,7 +250,7 @@ describe('EmbeddedAgent integration', function () {
       const environment = await environmentPromise
 
       expect(environment.domain).to.equal(defaultEnvironment.domain)
-      expect(sent.map(message => message.type)).to.deep.equal(['environment'])
+      expect(sent.map(message => message.type)).to.deep.equal(['embedded-ready', 'environment'])
     })
 
     it('ignores responses from the wrong session', async function () {
@@ -515,6 +493,57 @@ describe('EmbeddedAgent integration', function () {
       expect(callbacks[0].state).to.deep.equal({ local: 'pending' })
     })
 
+    it('batches synchronous synced state writes into one echo callback', async function () {
+      harness = createHarness()
+      const { Agent, emit, sent } = harness
+      const callbacks = []
+      const state = await Agent
+        .state('echo-batch-scope')
+        .synced((syncedState, patch) => callbacks.push({ patch, state: syncedState }))
+
+      state.a = 1
+      state.b = 2
+      state.c = 3
+      await nextTick()
+
+      const interactions = sent.filter(message => message.type === 'interact')
+      expect(interactions).to.have.length(1)
+      expect(interactions[0].patch).to.deep.equal([
+        { op: 'add', path: ['active', 'a'], value: 1 },
+        { op: 'add', path: ['active', 'b'], value: 2 },
+        { op: 'add', path: ['active', 'c'], value: 3 }
+      ])
+
+      let resolved = false
+      const syncedPromise = Agent.synced().then(() => {
+        resolved = true
+      })
+      await nextTick()
+      expect(resolved).to.equal(false)
+
+      emit({
+        session: 'session-1',
+        scope: 'echo-batch-scope',
+        ii: 7,
+        patch: [
+          { op: 'add', path: ['a'], value: 1 },
+          { op: 'add', path: ['b'], value: 2 },
+          { op: 'add', path: ['c'], value: 3 }
+        ],
+        state: { a: 1, b: 2, c: 3 }
+      })
+      await syncedPromise
+
+      expect(resolved).to.equal(true)
+      expect(callbacks).to.have.length(1)
+      expect(callbacks[0].state).to.deep.equal({ a: 1, b: 2, c: 3 })
+      expect(callbacks[0].patch).to.deep.equal([
+        { op: 'add', path: ['a'], value: 1 },
+        { op: 'add', path: ['b'], value: 2 },
+        { op: 'add', path: ['c'], value: 3 }
+      ])
+    })
+
     it('cleans up pending synced interactions when interact rejects', async function () {
       harness = createHarness({
         host: (message, context) => message.type === 'interact'
@@ -684,7 +713,9 @@ describe('EmbeddedAgent integration', function () {
       await nextTick()
 
       const interactions = sent.filter(message => message.type === 'interact')
-      expect(interactions.map(message => message.patch[0])).to.deep.include.members([
+      expect(interactions).to.have.length(1)
+      expect(interactions[0]).to.deep.include({ scope: 'metadata-scope' })
+      expect(interactions[0].patch).to.deep.equal([
         { op: 'replace', path: ['name'], value: 'New Name' },
         { op: 'replace', path: ['active_type'], value: 'text/plain' },
         { op: 'remove', path: ['name'] }
@@ -819,6 +850,68 @@ describe('EmbeddedAgent integration', function () {
         runId: 'run-a'
       })
       expect(query.params).to.deep.equal(['param-a'])
+    })
+
+    it('batches synchronous same-scope interact calls', async function () {
+      harness = createHarness()
+      const { Agent, sent } = harness
+      const first = { op: 'add', path: ['active', 'a'], value: 1 }
+      const second = { op: 'add', path: ['active', 'b'], value: 2 }
+
+      const firstResponse = Agent.interact('batch-scope', [first])
+      const secondResponse = Agent.interact('batch-scope', [second])
+      await nextTick()
+
+      const interactions = sent.filter(message => message.type === 'interact')
+      expect(interactions).to.have.length(1)
+      expect(interactions[0]).to.deep.include({ scope: 'batch-scope' })
+      expect(interactions[0].patch).to.deep.equal([first, second])
+      expect(await firstResponse).to.deep.equal(defaultResponses.interact)
+      expect(await secondResponse).to.deep.equal(defaultResponses.interact)
+    })
+
+    it('flushes queued interactions before default response requests', async function () {
+      harness = createHarness()
+      const { Agent, sent } = harness
+      const state = await Agent.state('response-scope')
+
+      state.ready = true
+      const responsePromise = Agent.response()
+      await nextTick()
+
+      const interactIndex = sent.findIndex(message => message.type === 'interact')
+      const responseIndex = sent.findIndex(message => message.type === 'response')
+      const interact = sent[interactIndex]
+      const response = sent[responseIndex]
+
+      expect(interactIndex).to.be.lessThan(responseIndex)
+      expect(response.id).to.equal(interact.requestId)
+      await responsePromise
+    })
+
+    it('does not batch different scopes or run-scoped facades together', async function () {
+      harness = createHarness()
+      const { Agent, sent } = harness
+      const RunA = Agent.withRunId('run-a')
+
+      const baseResponse = Agent.interact('shared-scope', [{ op: 'add', path: ['active', 'base'], value: true }])
+      const runResponse = RunA.interact('shared-scope', [{ op: 'add', path: ['active', 'run'], value: true }])
+      const otherResponse = Agent.interact('other-scope', [{ op: 'add', path: ['active', 'other'], value: true }])
+      await nextTick()
+
+      const interactions = sent.filter(message => message.type === 'interact')
+      const baseShared = interactions.find(message => message.scope === 'shared-scope' && !message.runId)
+      const runShared = interactions.find(message => message.scope === 'shared-scope' && message.runId === 'run-a')
+      const baseOther = interactions.find(message => message.scope === 'other-scope' && !message.runId)
+
+      expect(interactions).to.have.length(3)
+      expect(baseShared).to.deep.include({ scope: 'shared-scope' })
+      expect(baseShared.patch).to.deep.equal([{ op: 'add', path: ['active', 'base'], value: true }])
+      expect(runShared).to.deep.include({ scope: 'shared-scope', runId: 'run-a' })
+      expect(runShared.patch).to.deep.equal([{ op: 'add', path: ['active', 'run'], value: true }])
+      expect(baseOther).to.deep.include({ scope: 'other-scope' })
+      expect(baseOther.patch).to.deep.equal([{ op: 'add', path: ['active', 'other'], value: true }])
+      await Promise.all([baseResponse, runResponse, otherResponse])
     })
 
     it('sends create and reset patches with the expected shapes', async function () {
