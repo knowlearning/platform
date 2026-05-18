@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite'
 
+const testRoot = __dirname.replace(/\\/g, '/')
+
 function embeddedGlobalBindings() {
   const prefix = [
     'const Agent = new Proxy({}, {',
@@ -31,8 +33,8 @@ function embeddedGlobalBindings() {
     transform(code, id) {
       const normalized = id.replace(/\\/g, '/')
       if (
-        normalized.includes('/sites/test/tests/')
-        || normalized.includes('/sites/test/utils/')
+        normalized.startsWith(`${testRoot}/tests/`)
+        || normalized.startsWith(`${testRoot}/utils/`)
       ) {
         return `${prefix}${code}`
       }
@@ -54,11 +56,11 @@ export default defineConfig({
       },
       {
         find: '@knowlearning/agents/browser.js',
-        replacement: `${__dirname}/../../packages/agents/node.js`
+        replacement: `${__dirname}/../packages/agents/node.js`
       },
       {
         find: '@knowlearning/agents/browser/initialize.js',
-        replacement: `${__dirname}/../../packages/agents/agents/node/initialize.js`
+        replacement: `${__dirname}/../packages/agents/agents/node/initialize.js`
       },
       {
         find: '@knowlearning/patch-proxy',

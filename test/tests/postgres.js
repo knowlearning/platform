@@ -1,5 +1,5 @@
 import configureDomain from '../utils/configure-domain.js'
-import { domainListAllowsDomain, domainPatternMatchesDomain } from '../../../core/source/domain-patterns.js'
+import { domainListAllowsDomain, domainPatternMatchesDomain } from '../../core/source/domain-patterns.js'
 
 const EMBEDED_QUERY_TEST_MODE = 'EMBEDED_QUERY_TEST_MODE'
 const EMBEDED_PARALLEL_QUERY_TEST_MODE = 'EMBEDED_PARALLEL_QUERY_TEST_MODE'

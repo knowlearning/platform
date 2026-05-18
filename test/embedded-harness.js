@@ -1,5 +1,5 @@
-import EmbeddedAgent from '../../packages/agents/agents/embedded.js'
-import createEmbed from '../../packages/agents/agents/embed.js'
+import EmbeddedAgent from '../packages/agents/agents/embedded.js'
+import createEmbed from '../packages/agents/agents/embed.js'
 import runEmbeddedMode from './embedded-modes.js'
 
 const DEFAULT_URL = 'https://localhost:5112/'
