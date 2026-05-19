@@ -748,34 +748,63 @@ postgres:
       let storageDomain
       let activeType
       let entryId
+      const storageAgents = []
 
-      const expectStorageRow = async value => {
+      const expectStorageRowFor = async (agent, id, value) => {
         const rows = await eventually(async () => {
-          const result = await storageAgent.query('storage-move-row', [entryId])
+          const result = await agent.query('storage-move-row', [id])
           return result.length === 1 && result[0].storage_value === value && result
         })
 
-        expect(rows).to.deep.equal([{ id: entryId, storage_value: value }])
+        expect(rows).to.deep.equal([{ id, storage_value: value }])
       }
+
+      const createStorageContext = async prefix => {
+        const domain = `${prefix}-${uuid()}.localhost:5112`
+        const type = `application/json;type=${prefix}-${uuid()}`
+        const agent = browserAgent({
+          unique: true,
+          domain,
+          apiHost: process.env.API_HOST || 'socket-io.localhost:8765',
+          getToken: () => 'anonymous'
+        })
+
+        storageAgents.push(agent)
+        await agent.environment()
+        return { agent, domain, activeType: type }
+      }
+
+      const configureStorage = (context, postgresServer, redisServer) => (
+        configureDomain(context.domain, storageRoutingConfiguration({
+          activeType: context.activeType,
+          postgresServer,
+          redisServer
+        }))
+      )
+
+      const writeStorageState = async (context, id, value) => {
+        const state = await context.agent.state(id)
+        const metadata = await context.agent.metadata(id)
+        metadata.active_type = context.activeType
+        state.storage_value = value
+        await context.agent.synced()
+        return state
+      }
+
+      const expectStorageRow = value => expectStorageRowFor(storageAgent, entryId, value)
 
       before(async function () {
         if (!isNodeRuntime()) this.skip()
 
         redis = await loadRedisDiagnostics()
-        storageDomain = `storage-move-${uuid()}.localhost:5112`
-        activeType = `application/json;type=storage-move-${uuid()}`
-        storageAgent = browserAgent({
-          unique: true,
-          domain: storageDomain,
-          apiHost: process.env.API_HOST || 'socket-io.localhost:8765',
-          getToken: () => 'anonymous'
-        })
-
-        await storageAgent.environment()
+        const context = await createStorageContext('storage-move')
+        storageAgent = context.agent
+        storageDomain = context.domain
+        activeType = context.activeType
       })
 
       after(function () {
-        storageAgent?.disconnect?.()
+        storageAgents.forEach(agent => agent?.disconnect?.())
       })
 
       it('Moves Redis by copying and promotes Postgres mirrors from domain config', async function () {
@@ -838,6 +867,105 @@ postgres:
         expect(await storageAgent.query('storage-move-cluster-name'))
           .to.deep.equal([{ cluster_name: 'postgres-1' }])
         await expectStorageRow(afterOldCopyDeletedValue)
+      })
+
+      it('Redis-only remaps keep Postgres on default and put new UUIDs on the remapped Redis server', async function () {
+        const context = await createStorageContext('storage-redis-only')
+        const initialId = context.agent.uuid()
+        const newId = context.agent.uuid()
+        const initialValue = `initial-${uuid()}`
+        const movedValue = `redis-only-moved-${uuid()}`
+        const newValue = `redis-only-new-${uuid()}`
+
+        const existingState = await writeStorageState(context, initialId, initialValue)
+
+        await configureStorage(context, 'default', 'redis-2')
+
+        expect(await context.agent.query('storage-move-cluster-name'))
+          .to.deep.equal([{ cluster_name: 'postgres-1' }])
+        await expectStorageRowFor(context.agent, initialId, initialValue)
+
+        existingState.storage_value = movedValue
+        await context.agent.synced()
+        await expectStorageRowFor(context.agent, initialId, movedValue)
+
+        await writeStorageState(context, newId, newValue)
+        await expectStorageRowFor(context.agent, newId, newValue)
+
+        expect((await redis.jsonGet('redis-2', initialId)).active.storage_value)
+          .to.equal(movedValue)
+        expect((await redis.jsonGet('default', initialId)).active.storage_value)
+          .to.equal(initialValue)
+        expect((await redis.jsonGet('redis-2', newId)).active.storage_value)
+          .to.equal(newValue)
+        expect(await redis.jsonGet('default', newId)).to.equal(null)
+      })
+
+      it('Postgres-only remaps rebuild tables from Redis without moving Redis storage', async function () {
+        const context = await createStorageContext('storage-postgres-only')
+        const entryId = context.agent.uuid()
+        const newId = context.agent.uuid()
+        const initialValue = `initial-${uuid()}`
+        const movedValue = `postgres-only-moved-${uuid()}`
+        const newValue = `postgres-only-new-${uuid()}`
+
+        const state = await writeStorageState(context, entryId, initialValue)
+        await configureStorage(context, 'default', 'default')
+        await expectStorageRowFor(context.agent, entryId, initialValue)
+        expect(await context.agent.query('storage-move-cluster-name'))
+          .to.deep.equal([{ cluster_name: 'postgres-1' }])
+
+        await configureStorage(context, 'postgres-2', 'default')
+        expect(await context.agent.query('storage-move-cluster-name'))
+          .to.deep.equal([{ cluster_name: 'postgres-2' }])
+        await expectStorageRowFor(context.agent, entryId, initialValue)
+
+        state.storage_value = movedValue
+        await context.agent.synced()
+        await expectStorageRowFor(context.agent, entryId, movedValue)
+
+        await writeStorageState(context, newId, newValue)
+        await expectStorageRowFor(context.agent, newId, newValue)
+
+        expect((await redis.jsonGet('default', entryId)).active.storage_value)
+          .to.equal(movedValue)
+        expect(await redis.jsonGet('redis-2', entryId)).to.equal(null)
+        expect((await redis.jsonGet('default', newId)).active.storage_value)
+          .to.equal(newValue)
+        expect(await redis.jsonGet('redis-2', newId)).to.equal(null)
+      })
+
+      it('Can move both stores back to default without writing through stale Redis or Postgres routes', async function () {
+        const context = await createStorageContext('storage-round-trip')
+        const entryId = context.agent.uuid()
+        const initialValue = `initial-${uuid()}`
+        const movedValue = `round-trip-moved-${uuid()}`
+        const returnedValue = `round-trip-returned-${uuid()}`
+
+        const state = await writeStorageState(context, entryId, initialValue)
+        await configureStorage(context, 'postgres-2', 'redis-2')
+        expect(await context.agent.query('storage-move-cluster-name'))
+          .to.deep.equal([{ cluster_name: 'postgres-2' }])
+
+        state.storage_value = movedValue
+        await context.agent.synced()
+        await expectStorageRowFor(context.agent, entryId, movedValue)
+        expect((await redis.jsonGet('redis-2', entryId)).active.storage_value)
+          .to.equal(movedValue)
+
+        await configureStorage(context, 'default', 'default')
+        expect(await context.agent.query('storage-move-cluster-name'))
+          .to.deep.equal([{ cluster_name: 'postgres-1' }])
+        await expectStorageRowFor(context.agent, entryId, movedValue)
+
+        state.storage_value = returnedValue
+        await context.agent.synced()
+        await expectStorageRowFor(context.agent, entryId, returnedValue)
+
+        expect((await redis.jsonGet('default', entryId)).active.storage_value)
+          .to.equal(returnedValue)
+        expect((await redis.jsonGet('redis-2', entryId)).active.storage_value)
+          .to.equal(movedValue)
       })
     })
 

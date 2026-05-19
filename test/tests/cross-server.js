@@ -249,6 +249,95 @@ async function expectSubscriptionOnConfiguredRedis(writer, reader, subscriptionS
   unwatch()
 }
 
+async function expectStorageRoutingAcrossServers(browserAgent, configurer, readerInfo) {
+  const redis = await loadRedisDiagnostics()
+  const runId = configurer.agent.uuid()
+  const storageDomain = `cross-storage-${runId}.localhost:5112`
+  const activeType = `application/json;type=cross-storage-${runId}`
+  const writerId = configurer.agent.uuid()
+  const readerId = configurer.agent.uuid()
+  const writerValue = `cross-storage-writer-${runId}`
+  const readerValue = `cross-storage-reader-${runId}`
+
+  await configureDomain(storageDomain, `
+redis:
+  server: redis-2
+postgres:
+  server: postgres-2
+  tables:
+    cross_storage_table:
+      type: ${activeType}
+      columns:
+        text_value: TEXT
+  queries:
+    cross-storage-cluster-name: |
+      SHOW cluster_name
+    cross-storage-row: |
+      SELECT id, text_value FROM cross_storage_table WHERE id = $1
+`, configurer.agent)
+
+  const writer = browserAgent({
+    unique: true,
+    domain: storageDomain,
+    apiHost: configurer.apiHost,
+    getToken: () => 'anonymous-ephemeral'
+  })
+  const reader = browserAgent({
+    unique: true,
+    domain: storageDomain,
+    apiHost: readerInfo.apiHost,
+    getToken: () => 'anonymous-ephemeral'
+  })
+
+  try {
+    await Promise.all([writer.environment(), reader.environment()])
+
+    const writerState = await writer.state(writerId)
+    const writerMetadata = await writer.metadata(writerId)
+    writerMetadata.active_type = activeType
+    writerState.text_value = writerValue
+    await writer.synced()
+
+    expect(await reader.query('cross-storage-cluster-name'))
+      .to.deep.equal([{ cluster_name: 'postgres-2' }])
+
+    const writerRows = await eventually(
+      async () => {
+        const result = await reader.query('cross-storage-row', [writerId])
+        return result.length === 1 && result[0].text_value === writerValue && result
+      },
+      { timeout: 7000, interval: 100, message: 'Cross-server routed Postgres query did not observe writer API write' }
+    )
+    expect(writerRows).to.deep.equal([{ id: writerId, text_value: writerValue }])
+
+    expect((await redis.jsonGet('redis-2', writerId)).active.text_value)
+      .to.equal(writerValue)
+    expect(await redis.jsonGet('default', writerId)).to.equal(null)
+
+    const readerState = await reader.state(readerId)
+    const readerMetadata = await reader.metadata(readerId)
+    readerMetadata.active_type = activeType
+    readerState.text_value = readerValue
+    await reader.synced()
+
+    const readerRows = await eventually(
+      async () => {
+        const result = await writer.query('cross-storage-row', [readerId])
+        return result.length === 1 && result[0].text_value === readerValue && result
+      },
+      { timeout: 7000, interval: 100, message: 'Cross-server routed Postgres query did not observe reader API write' }
+    )
+    expect(readerRows).to.deep.equal([{ id: readerId, text_value: readerValue }])
+    expect((await redis.jsonGet('redis-2', readerId)).active.text_value)
+      .to.equal(readerValue)
+    expect(await redis.jsonGet('default', readerId)).to.equal(null)
+  }
+  finally {
+    writer.disconnect?.()
+    reader.disconnect?.()
+  }
+}
+
 async function expectPostgresAcrossServers(writer, reader) {
   const runId = writer.agent.uuid()
   const activeType = `application/json;type=cross-server-${runId}`
@@ -397,6 +486,12 @@ export default function crossServer(browserAgent, { skipIfUnavailable=false }={}
 
       const writer = statuses.find(agent => agent !== configured) || statuses[0]
       await expectSubscriptionOnConfiguredRedis(writer, configured, configured.status.redisSubscriptionServer)
+    })
+
+    it('applies Redis and Postgres route configuration across distinct API servers', async function () {
+      if (!isNodeRuntime()) this.skip()
+
+      await expectStorageRoutingAcrossServers(browserAgent, agents[0], agents[1])
     })
 
     it('serves postgres side effects across servers', async function () {
