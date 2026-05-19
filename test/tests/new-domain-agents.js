@@ -206,7 +206,7 @@ export default function () {
       const { response, log } = await Agent.response()
       expect(response).to.not.equal('success')
       expect(log.length).to.equal(1)
-      expect(log[0]).to.equal('TypeError: Requires read access to "/source/index.js", run again with the --allow-read flag')
+      expect(log[0]).to.equal('TypeError: Requires read access to "/workspace/core/source/index.js", run again with the --allow-read flag')
     })
 
     it('Sends back improperly encoded secrets as null', async () => {
