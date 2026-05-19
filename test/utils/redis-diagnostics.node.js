@@ -159,9 +159,15 @@ async function exists(serverName, key) {
   return command(serverName, ['EXISTS', key])
 }
 
+async function pubsubNumSub(serverName, channel) {
+  const response = await command(serverName, ['PUBSUB', 'NUMSUB', channel])
+  return Number(response?.[1] || 0)
+}
+
 export {
   command,
   jsonGet,
   del,
-  exists
+  exists,
+  pubsubNumSub
 }

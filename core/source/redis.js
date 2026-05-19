@@ -1,7 +1,7 @@
 import { createRedisClient, environment } from './utils.js'
 import { DEFAULT_STORAGE_SERVER, storageServerForDomain } from './storage-routing.js'
 
-const { REDIS_SERVERS } = environment
+const { REDIS_SERVERS, REDIS_SUBSCRIPTION_SERVER } = environment
 
 function parseJSONEnvironment(name, value) {
   if (!value) throw new Error(`${name} is required`)
@@ -22,9 +22,14 @@ function parseJSONEnvironment(name, value) {
 
 const redisServers = parseJSONEnvironment('REDIS_SERVERS', REDIS_SERVERS)
 const defaultRedisServer = DEFAULT_STORAGE_SERVER
+const subscriptionRedisServer = REDIS_SUBSCRIPTION_SERVER || defaultRedisServer
 
 if (!redisServers[defaultRedisServer]) {
   throw new Error(`REDIS_SERVERS.${defaultRedisServer} is required`)
+}
+
+if (!redisServers[subscriptionRedisServer]) {
+  throw new Error(`REDIS_SUBSCRIPTION_SERVER "${subscriptionRedisServer}" is not defined in REDIS_SERVERS`)
 }
 
 function clientConnectionInfo(serverName) {
@@ -69,19 +74,21 @@ const clients = Object.fromEntries(
 )
 
 const client = clients[defaultRedisServer]
-const subscriptions = createRedisClient(clientConnectionInfo(defaultRedisServer))
+const subscriptions = createRedisClient(clientConnectionInfo(subscriptionRedisServer))
 
 Object
   .entries(clients)
   .forEach(([serverName, client]) => {
     client.on('error', e => console.warn(`ERROR CONNECTING TO REDIS ${serverName}`, e.toString()))
   })
-subscriptions.on('error', e => console.warn(`ERROR CONNECTING TO REDIS SUBSCRIPTIONS ${defaultRedisServer}`, e.toString()))
+subscriptions.on('error', e => console.warn(`ERROR CONNECTING TO REDIS SUBSCRIPTIONS ${subscriptionRedisServer}`, e.toString()))
 
 const connected = Promise.all([
   ...Object.values(clients).map(client => client.connect()),
   subscriptions.connect()
-]).then(() => console.log(`CONNECTED TO REDIS ${Object.keys(clients).join(', ')}!`))
+]).then(() => console.log(
+  `CONNECTED TO REDIS ${Object.keys(clients).join(', ')}! SUBSCRIPTIONS ${subscriptionRedisServer}`
+))
 
 function serverNameForDomain(domain) {
   return storageServerForDomain(domain, 'redis')
@@ -125,6 +132,7 @@ export {
   subscriptions,
   connected,
   defaultRedisServer,
+  subscriptionRedisServer,
   serverNameForDomain,
   clientForDomain,
   clientForServer,

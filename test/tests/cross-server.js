@@ -2,6 +2,13 @@ import configureDomain from '../utils/configure-domain.js'
 
 const DEFAULT_API_PORT = 8765
 const DEFAULT_ALIAS_PREFIX = 'socket-io-'
+const DEFAULT_TEST_URL = 'https://localhost:5112/'
+const DEFAULT_DEV_CONTROL_TOKEN = 'development-control-token'
+const isNodeRuntime = () => typeof process !== 'undefined' && process.versions?.node
+const loadRedisDiagnostics = async () => {
+  const dynamicImport = Function('specifier', 'return import(specifier)')
+  return dynamicImport(`file://${process.cwd()}/utils/redis-diagnostics.node.js`)
+}
 
 function queryInt(params, name, fallback) {
   const value = Number.parseInt(params.get(name), 10)
@@ -49,6 +56,23 @@ async function eventually(fn, { timeout=5000, interval=25, message='Timed out wa
 
   if (lastError) throw lastError
   throw new Error(message)
+}
+
+async function apiStatus(apiHost) {
+  const testUrl = new URL(process.env.TEST_URL || DEFAULT_TEST_URL)
+  const response = await fetch(`https://${apiHost}/_dev/status`, {
+    headers: {
+      accept: 'application/json',
+      origin: testUrl.origin,
+      'x-dev-control-token': process.env.DEV_CONTROL_TOKEN || DEFAULT_DEV_CONTROL_TOKEN
+    }
+  })
+
+  if (response.status !== 200) {
+    throw new Error(`GET /_dev/status from ${apiHost} returned ${response.status}: ${await response.text()}`)
+  }
+
+  return response.json()
 }
 
 async function allocateDistinctServerAgents(browserAgent, config) {
@@ -166,6 +190,63 @@ async function expectWatchAcrossServers(writer, reader) {
 
   unwatch()
   expect(counts.slice(0, 3)).to.deep.equal([0, 1, 2])
+}
+
+async function expectSubscriptionOnConfiguredRedis(writer, reader, subscriptionServer) {
+  const redis = await loadRedisDiagnostics()
+  const id = writer.agent.uuid()
+  const serverNames = ['default', 'redis-2']
+
+  writer.agent.create({
+    id,
+    active_type: 'application/json',
+    active: { count: 0 }
+  })
+  await writer.agent.synced()
+
+  const before = Object.fromEntries(
+    await Promise.all(
+      serverNames.map(async serverName => [serverName, await redis.pubsubNumSub(serverName, id)])
+    )
+  )
+
+  const counts = []
+  const unwatch = reader.agent.watch(
+    id,
+    ({ state }) => {
+      if (state.count !== undefined) counts.push(state.count)
+    },
+    writer.environment.auth.user,
+    writer.environment.domain
+  )
+
+  await eventually(
+    async () => {
+      if (!counts.includes(0)) return false
+      return (await redis.pubsubNumSub(subscriptionServer, id)) > before[subscriptionServer]
+    },
+    { message: `Subscription did not appear on Redis server ${subscriptionServer}` }
+  )
+
+  for (const serverName of serverNames) {
+    const numSubscriptions = await redis.pubsubNumSub(serverName, id)
+    if (serverName === subscriptionServer) {
+      expect(numSubscriptions).to.be.greaterThan(before[serverName])
+    }
+    else {
+      expect(numSubscriptions).to.equal(before[serverName])
+    }
+  }
+
+  await writer.agent.interact(id, [
+    { op: 'replace', path: ['active', 'count'], value: 1 }
+  ])
+  await eventually(
+    () => counts.includes(1),
+    { message: `Watcher on ${subscriptionServer} did not receive publishAll update` }
+  )
+
+  unwatch()
 }
 
 async function expectPostgresAcrossServers(writer, reader) {
@@ -299,6 +380,23 @@ export default function crossServer(browserAgent, { skipIfUnavailable=false }={}
 
     it('delivers pub/sub updates from server B to server A', async function () {
       await expectWatchAcrossServers(agents[1], agents[0])
+    })
+
+    it('opens subscriptions on the API server configured Redis server', async function () {
+      if (!isNodeRuntime()) this.skip()
+
+      const statuses = await Promise.all(
+        agents.map(async agent => ({
+          ...agent,
+          status: await apiStatus(agent.apiHost)
+        }))
+      )
+      const configured = statuses.find(({ status }) => status.redisSubscriptionServer === 'redis-2')
+
+      if (!configured) this.skip()
+
+      const writer = statuses.find(agent => agent !== configured) || statuses[0]
+      await expectSubscriptionOnConfiguredRedis(writer, configured, configured.status.redisSubscriptionServer)
     })
 
     it('serves postgres side effects across servers', async function () {

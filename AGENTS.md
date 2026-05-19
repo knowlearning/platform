@@ -51,6 +51,7 @@ DEV_CONTROL_TOKEN=development-control-token
 DEV_CONTROL_TIMEOUT=30000
 POSTGRES_SERVERS='{"default":{"host":"postgres-1","port":5432,"user":"postgres","password":"insecure-development-password"},"postgres-2":{"host":"postgres-2","port":5432,"user":"postgres","password":"insecure-development-password"}}'
 REDIS_SERVERS='{"default":{"host":"redis-1","port":6379,"password":""},"redis-2":{"host":"redis-2","port":6379,"password":""}}'
+REDIS_SUBSCRIPTION_SERVER=default
 BROWSER_LOGS=1
 HEADED=1
 ```
@@ -86,7 +87,9 @@ optional `postgres.server` value. Redis routing is controlled by
 server map must include a `default` entry. On first use after a Postgres remap,
 the target database is created and configured tables are repopulated from
 Redis. Redis remaps copy data to the new server and leave the old copy intact
-for admin-managed cleanup.
+for admin-managed cleanup. API pub/sub subscriptions use
+`REDIS_SUBSCRIPTION_SERVER`, defaulting to `default`, while state storage uses
+each domain's configured Redis route.
 
 Codex does not have Docker access from inside this container. To restart local
 development API servers after the host has bootstrapped the stack, use the dev

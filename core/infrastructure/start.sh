@@ -64,6 +64,7 @@ Environment=GCS_SERVICE_ACCOUNT_CREDENTIALS
 Environment=OAUTH_CREDENTIALS
 Environment=POSTGRES_SERVERS
 Environment=REDIS_SERVERS
+Environment=REDIS_SUBSCRIPTION_SERVER
 Environment=PUBLIC_ENCRYPTION_KEY
 Environment=SECRET_ENCRYPTION_KEY
 Environment=GCS_BUCKET_NAME
@@ -95,6 +96,7 @@ sudo systemctl set-environment \
   OAUTH_CREDENTIALS="$OAUTH_CREDENTIALS" \
   POSTGRES_SERVERS="{\"default\":{\"host\":\"10.50.0.2\",\"port\":5432,\"user\":\"postgres\",\"password\":\"$POSTGRES_PASSWORD_JSON\"}}" \
   REDIS_SERVERS="{\"default\":{\"host\":\"redis-15018.fcrce259.eu-central-1-3.ec2.cloud.redislabs.com\",\"port\":15018,\"username\":\"default\",\"password\":\"$REDIS_PASSWORD_JSON\"}}" \
+  REDIS_SUBSCRIPTION_SERVER="${REDIS_SUBSCRIPTION_SERVER:-default}" \
   PUBLIC_ENCRYPTION_KEY="$PUBLIC_ENCRYPTION_KEY" \
   SECRET_ENCRYPTION_KEY="$SECRET_ENCRYPTION_KEY" \
   SSL_CERT="$SSL_CERT"\

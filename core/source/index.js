@@ -4,6 +4,7 @@ import handleSocketIOConnection from './handle-socketio-connection.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
 import Agent from './agent.js'
 import SESSION from './session.js'
+import { subscriptionRedisServer } from './redis.js'
 import { CPUData, processData, networkData, getInstanceInfo } from './metrics.js'
 
 const io = new SocketIOServer({
@@ -124,6 +125,7 @@ async function handleDevControlRequest(request) {
       host: url.host,
       ready: true,
       uptime: Date.now() - STARTED_AT,
+      redisSubscriptionServer: subscriptionRedisServer,
       inspector: inspectStatus(url)
     })
   }

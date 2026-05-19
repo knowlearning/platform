@@ -123,7 +123,10 @@ async function status(hosts) {
     const inspectorText = inspector
       ? ` inspector=${inspector.mode} endpoint=${inspector.endpoint || 'none'}`
       : ''
-    console.log(`${host} server=${body.server} mode=${body.mode} ready=${body.ready} uptime=${body.uptime}ms${inspectorText}`)
+    const redisSubscriptionText = body.redisSubscriptionServer
+      ? ` redisSubscription=${body.redisSubscriptionServer}`
+      : ''
+    console.log(`${host} server=${body.server} mode=${body.mode} ready=${body.ready} uptime=${body.uptime}ms${redisSubscriptionText}${inspectorText}`)
   }
 }
 

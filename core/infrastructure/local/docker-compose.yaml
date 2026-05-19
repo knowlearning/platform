@@ -11,7 +11,7 @@ x-api: &api
 
   working_dir: /workspace/core
 
-  environment:
+  environment: &api_environment
     TLS_PORT: "8765"
     AUTH_SERVICE_SECRET_KEY: ${AUTH_SERVICE_SECRET_KEY}
     OAUTH_CREDENTIALS: ${OAUTH_CREDENTIALS}
@@ -26,6 +26,7 @@ x-api: &api
     SERVE_HOST: serve:8765
     SERVICE_ACCOUNT_TOKEN: /var/run/secrets/kubernetes.io/serviceaccount/token
     REDIS_SERVERS: '{"default":{"host":"redis-1","port":6379,"password":""},"redis-2":{"host":"redis-2","port":6379,"password":""}}'
+    REDIS_SUBSCRIPTION_SERVER: default
     PUBLIC_ENCRYPTION_KEY: ${PUBLIC_ENCRYPTION_KEY}
     SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY}
     ADMIN_DOMAIN: localhost:5111
@@ -148,6 +149,9 @@ services:
 
   api-2:
     <<: *api
+    environment:
+      <<: *api_environment
+      REDIS_SUBSCRIPTION_SERVER: redis-2
     ports:
       - 8766:8765
 
