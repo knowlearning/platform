@@ -9,6 +9,8 @@ x-api: &api
     - 8765
     - 9229
 
+  working_dir: /workspace/core
+
   environment:
     TLS_PORT: "8765"
     AUTH_SERVICE_SECRET_KEY: ${AUTH_SERVICE_SECRET_KEY}
@@ -38,7 +40,7 @@ x-api: &api
     GCS_SERVICE_ACCOUNT_CREDENTIALS: ${GCS_SERVICE_ACCOUNT_CREDENTIALS}
 
   volumes:
-    - ../../../packages/agents:/agents
+    - ../../../:/workspace
 
   depends_on:
     postgres:

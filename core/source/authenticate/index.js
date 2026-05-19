@@ -20,25 +20,28 @@ async function decryptAndParseSessionInfo(key, encrypted) {
   }
 }
 
+async function reattachSession(domain, sid, session_credential, session) {
+  if (!session) return
+
+  const { rows } = await query(domain, REATTACHING_SESSION_QUERY, [session_credential, session])
+  if (!rows[0]) return
+
+  return {
+    user: rows[0].user_id,
+    provider: rows[0].provider,
+    session,
+    info: await decryptAndParseSessionInfo(sid, rows[0].sid_encrypted_info)
+  }
+}
+
 export default async function authenticate(message, domain, sid) {
   const session_credential = await hash.create(sid)
 
-  if (!message.token) {
-    try {
-      if (message.session) {
-        //  find session to reattach to
-        const { rows } = await query(domain, REATTACHING_SESSION_QUERY, [session_credential, message.session])
-        //  TODO: throw error if no rows
-        if (rows[0]) {
-          return {
-            user: rows[0].user_id,
-            provider: rows[0].provider,
-            session: message.session,
-            info: await decryptAndParseSessionInfo(sid, rows[0].sid_encrypted_info)
-          }
-        }
-      }
+  try {
+    const reattached = await reattachSession(domain, sid, session_credential, message.session)
+    if (reattached) return reattached
 
+    if (!message.token) {
       const { rows } = await query(domain, NEW_SESSION_QUERY, [session_credential])
       if (rows[0]) {
         const user = rows[0].user_id
@@ -49,8 +52,8 @@ export default async function authenticate(message, domain, sid) {
         return { user, provider, session, info }
       }
     }
-    catch (error) { console.warn('error reconnecting session', domain, message, error) }
   }
+  catch (error) { console.warn('error reconnecting session', domain, message, error) }
 
   let authority
 

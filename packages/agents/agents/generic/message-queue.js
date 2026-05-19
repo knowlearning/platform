@@ -24,8 +24,8 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
   let lastSynchronousScopePatchPromise = null
   let restarting = false
   let disconnected = false
-  let reconnectFloorSI = null
-  let highestReceivedResponseSI = -1
+  let lastConfirmedSI = -1
+  let sessionSID
   const outstandingSyncPromises = []
   const responses = {}
 
@@ -108,13 +108,19 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
   async function restartConnection() {
     if (restarting) return
 
+    clearTimeout(lastHeartbeat)
     authed = false
     connection.onmessage = () => {} // needs to be a no-op since a closing connection can still get messages
-    if (!disconnected) {
+    if (disconnected) return
+
+    restarting = true
+    try {
       await new Promise(r => setTimeout(r, Math.min(1000, failedConnections * 100)))
-      restarting = true
+      if (disconnected) return
       failedConnections += 1
       initConnection() // TODO: don't do this if we are purposefully unloading...
+    }
+    finally {
       restarting = false
     }
   }
@@ -126,7 +132,11 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
       if (!sessionMetrics.connected) sessionMetrics.connected = Date.now()
       log('AUTHORIZING NEWLY OPENED CONNECTION FOR SESSION:', session)
       failedConnections = 0
-      connection.send({ token: await token(), sid: await sid?.(), session, domain })
+      const currentSID = await sid?.()
+      if (!session && sessionSID === undefined) sessionSID = currentSID
+      const authMessage = { sid: sessionSID ?? currentSID, session, domain }
+      if (!session) authMessage.token = await token()
+      connection.send(authMessage)
     }
 
     connection.onmessage = async message => {
@@ -154,12 +164,14 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
             console.warn(`REBOOTING DUE TO SERVER SWITCH ${server} -> ${message.server}`, message)
             reboot()
           }
+          else if (session !== message.session) {
+            console.warn(`REBOOTING DUE TO SESSION SWITCH ${session} -> ${message.session}`, message)
+            reboot()
+          }
           else {
             const ack = message.ack ?? -1
-            lastSentSI = reconnectFloorSI === null
-              ? ack
-              : Math.max(reconnectFloorSI, ack)
-            reconnectFloorSI = null
+            lastConfirmedSI = Math.max(lastConfirmedSI, ack)
+            lastSentSI = ack
           }
           flushMessageQueue()
         }
@@ -181,16 +193,16 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
                 .forEach(([res, rej]) => message.error ? rej(message) : res(message))
 
               delete responses[message.si]
-              highestReceivedResponseSI = Math.max(highestReceivedResponseSI, message.si)
+              lastConfirmedSI = Math.max(lastConfirmedSI, message.si)
               connection.send({ack: message.si}) //  acknowledgement that we have received the response for this message
               resolveSyncPromises()
             }
             else {
-              if (message.si > highestReceivedResponseSI) {
+              if (message.si > lastConfirmedSI) {
                 if (message.error) console.warn('ERROR RESPONSE', message)
                 console.warn('received response with no pending message for si', message.si, message)
               }
-              highestReceivedResponseSI = Math.max(highestReceivedResponseSI, message.si)
+              lastConfirmedSI = Math.max(lastConfirmedSI, message.si)
               connection.send({ack: message.si})
             }
           }
@@ -234,7 +246,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
     }
 
     connection.onclose = async error => {
-      log('CONNECTION CLOSURE', error.message)
+      log('CONNECTION CLOSURE', error?.message ?? error)
       restartConnection()
     }
 
@@ -242,7 +254,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
   }
 
   async function synced() {
-    const syncPromise = new Promise(resolve => outstandingSyncPromises.push({ si: lastSentSI, resolve }))
+    const syncPromise = new Promise(resolve => outstandingSyncPromises.push({ si, resolve }))
     resolveSyncPromises()
     return syncPromise
   }
@@ -256,14 +268,24 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
   function disconnect() {
     log('DISCONNECTED AGENT!!!!!!!!!!!!!!!')
     disconnected = true
-    reconnectFloorSI = lastSentSI
+    clearTimeout(lastHeartbeat)
+    authed = false
+    connection.onmessage = () => {}
     connection.close({ keepalive: true })
   }
 
   function reconnect() {
     log('RECONNECTED AGENT!!!!!!!!!!!!!!!')
+    const wasDisconnected = disconnected
     disconnected = false
-    restartConnection()
+    if (!wasDisconnected && authed) {
+      clearTimeout(lastHeartbeat)
+      authed = false
+      connection.onmessage = () => {}
+      connection.onclose = () => {}
+      connection.close({ keepalive: true })
+    }
+    return restartConnection()
   }
 
   initConnection()

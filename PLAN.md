@@ -10,3 +10,4 @@
 [ ] launch multiple postgres instances for servers to connect to
     [ ] already uses different database per domain within one instance - investigate easiest routing location to base instance selection
 [ ] allow for configuration of domain -> postgres db instance
+[ ] make sure old agent clients pass all tests against new server

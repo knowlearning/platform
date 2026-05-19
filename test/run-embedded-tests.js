@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import Mocha from 'mocha'
 import { build } from 'vite'
 import { preflightApiHosts } from './api-preflight.js'
+import { startGCSLocalhostShim } from './gcs-localhost-shim.js'
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 
@@ -13,9 +14,11 @@ const entry = path.join(packageRoot, 'embedded.entry.js')
 const outDir = path.join(packageRoot, '.embedded-tests')
 const bundleName = 'embedded.tests.bundle.mjs'
 const bundlePath = path.join(outDir, bundleName)
+let stopGCSLocalhostShim = async () => {}
 
 try {
   await preflightApiHosts({ label: 'Embedded API preflight' })
+  stopGCSLocalhostShim = await startGCSLocalhostShim()
 }
 catch (error) {
   console.error(error.message)
@@ -59,5 +62,6 @@ try {
   if (failures) process.exitCode = 1
 }
 finally {
+  await stopGCSLocalhostShim()
   await fs.rm(outDir, { recursive: true, force: true })
 }

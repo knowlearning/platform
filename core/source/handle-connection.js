@@ -2,6 +2,9 @@ import { jwt, environment } from './utils.js'
 import authenticate from './authenticate/index.js'
 import interact from './interact.js'
 import scopeToId from './scope-to-id.js'
+import subscribe from './subscribe.js'
+import authorize from './authorize.js'
+import { getState } from './persistence.js'
 import SESSION from './session.js'
 import coreSideEffects from './core-side-effects.js'
 import handleGuarantee from './handle-guarantee.js'
@@ -28,6 +31,7 @@ function reconnection(session) {
   return new Promise((resolve, reject) => {
     const reconnectionTimeout = setTimeout(() => {
       console.log('RECONNECTION TIMEOUT')
+      delete reconnectionPromiseResolvers[session]
       reject()
     }, SESSION_RECONNECTION_INTERVAL)
 
@@ -47,50 +51,98 @@ function reconnection(session) {
 export default async function handleConnection(connection, domain, sid, metricsPromise, secrets={}) {
   let user, session, provider, heartbeatTimeout, abortConnection
 
-  function close(data=null) {
+  function ensureSessionState(targetSession) {
+    if (!responseBuffers[targetSession]) responseBuffers[targetSession] = []
+    if (!outstandingSideEffects[targetSession]) outstandingSideEffects[targetSession] = {}
+  }
+
+  async function restoreSubscriptions(targetSession) {
+    if (subscriptions[targetSession]) return
+
+    let persistedSubscriptions
+    try {
+      const sessions = await getState(domain, 'sessions')
+      persistedSubscriptions = sessions?.active?.[targetSession]?.subscriptions
+    }
+    catch (error) {
+      console.warn('ERROR RESTORING SESSION SUBSCRIPTIONS', domain, user, targetSession, error)
+      return
+    }
+
+    if (!persistedSubscriptions) return
+
+    subscriptions[targetSession] = {}
+    await Promise.all(
+      Object
+        .values(persistedSubscriptions)
+        .map(async subscription => {
+          try {
+            if (!subscription) return
+
+            const { scope: subscribedScope, user: scopeUser=user, domain: scopeDomain=domain } = subscription
+            const subscribeId = await scopeToId(scopeDomain, scopeUser, subscribedScope)
+
+            if (!subscriptions[targetSession][subscribeId] && await authorize(user, domain, subscribeId)) {
+              subscriptions[targetSession][subscribeId] = subscribe(subscribeId, send, subscribedScope)
+            }
+          }
+          catch (error) {
+            console.warn('ERROR RESTORING SESSION SUBSCRIPTION', domain, user, targetSession, subscription, error)
+          }
+        })
+    )
+
+    if (Object.keys(subscriptions[targetSession]).length === 0) delete subscriptions[targetSession]
+  }
+
+  function close(data=null, targetSession=session) {
+    if (!user || !targetSession) return
+
+    const activeConnection = activeConnections[targetSession]
+    if (activeConnection && activeConnection !== connection) return
+
     metricsPromise
-      ?.then(m => delete m.connections[session])
+      ?.then(m => delete m.connections[targetSession])
       .catch(error => {
-        console.log('ERROR removing connection data', domain, user, session, error)
+        console.log('ERROR removing connection data', domain, user, targetSession, error)
       }) // TODO: assess if missed case here on reconnect attempt
 
-    if (!user || activeConnections[session] !== connection) return
-
     //  TODO: tear down listeners
-    delete activeConnections[session]
-    delete responseBuffers[session]
-    delete outstandingSideEffects[session]
+    delete activeConnections[targetSession]
+    delete sessionMessageIndexes[targetSession]
+    delete responseBuffers[targetSession]
+    delete outstandingSideEffects[targetSession]
 
-    if (subscriptions[session]) {
+    if (subscriptions[targetSession]) {
       Promise
         .all(
           Object
-            .values(subscriptions[session])
+            .values(subscriptions[targetSession])
             .map(unsub => unsub())
          )
         .catch(e => console.log(e))
-      delete subscriptions[session]
+      delete subscriptions[targetSession]
     }
 
-    if (guarantees[session]) {
+    if (guarantees[targetSession]) {
       Promise
         .all(
           Object
-            .values(guarantees[session])
-            .map(guarantee => handleGuarantee(domain, user, session, guarantee))
+            .values(guarantees[targetSession])
+            .map(guarantee => handleGuarantee(domain, user, targetSession, guarantee))
          )
         .catch(e => console.log(e))
-      delete guarantees[session]
+      delete guarantees[targetSession]
     }
 
     interact(domain, user, 'sessions', [
-      { op: 'add', path: ['active', session, 'close'], value: data  },
-      { op: 'remove', path: ['active', session]  }
+      { op: 'add', path: ['active', targetSession, 'close'], value: data  },
+      { op: 'remove', path: ['active', targetSession]  }
     ])
 
     domainAgent(domain).catch(() => null).then(agent => {
       if (agent && user && user !== domain) {
-        agent.send({ type: 'close', session, data })
+        agent.send({ type: 'close', session: targetSession, data })
       }
     })
   }
@@ -132,12 +184,13 @@ export default async function handleConnection(connection, domain, sid, metricsP
 
   connection.onclose = async error => {
     clearTimeout(heartbeatTimeout)
-    if (user) {
-      delete activeConnections[session]
-      if (error) reconnection(session).catch(() => close('reconnection error'))
-      else close()
+    if (user && session) {
+      const closingSession = session
+      if (activeConnections[closingSession] === connection) delete activeConnections[closingSession]
+      if (error) reconnection(closingSession).catch(() => close('reconnection error', closingSession))
+      else close(null, closingSession)
     }
-    else abortConnection = true
+    else if (!user) abortConnection = true
   }
 
   let lastAgent
@@ -166,6 +219,8 @@ export default async function handleConnection(connection, domain, sid, metricsP
 
         //  TODO: consider making this cross server
         if (sessionMessageIndexes[session] !== undefined) {
+          ensureSessionState(session)
+          await restoreSubscriptions(session)
           reconnectionPromiseResolvers[session]?.()
         }
         else {
