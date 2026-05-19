@@ -31,12 +31,15 @@ io.on("connection", (socket) => {
 const socketIOHandler = io.handler()
 
 const METRICS_POLL_INTERVAL = 5000
+const STARTED_AT = Date.now()
 const SOCKET_IO_HOSTS = [
   'socket-io.localhost:8765',
   'socket-io.knowlearning.systems',
   'socket-io.dev.knowlearning.systems'
 ]
 const LOCAL_SOCKET_IO_ALIAS = /^socket-io-\d+\.localhost:\d+$/
+const LOCAL_COMPOSE_API_SERVICE = /^api-\d+:8765$/
+let shutdownApiServer = () => Deno.exit(0)
 
 const {
   MODE,
@@ -44,7 +47,8 @@ const {
   SSL_CERT: cert,
   SSL_KEY: key,
   TLS_PORT,
-  ADMIN_DOMAIN
+  ADMIN_DOMAIN,
+  DEV_CONTROL_TOKEN
 } = environment
 
 ensureDomainConfigured(ADMIN_DOMAIN)
@@ -52,13 +56,61 @@ ensureDomainConfigured('core')
 
 Deno.serve({ port: TLS_PORT, cert, key }, handler)
 
+function jsonResponse(body, init={}) {
+  const headers = new Headers(init.headers)
+  headers.set('content-type', 'application/json')
+  return new Response(JSON.stringify(body), { ...init, headers })
+}
+
+function notFound() {
+  return new Response('Not Found', { status: 404 })
+}
+
+function devControlAuthorized(request) {
+  return MODE === 'local'
+    && DEV_CONTROL_TOKEN
+    && request.headers.get('x-dev-control-token') === DEV_CONTROL_TOKEN
+}
+
+function handleDevControlRequest(request) {
+  const url = new URL(request.url)
+  if (!url.pathname.startsWith('/_dev/')) return null
+  if (!devControlAuthorized(request)) return notFound()
+
+  if (url.pathname === '/_dev/status' && request.method === 'GET') {
+    return jsonResponse({
+      server: SESSION,
+      mode: MODE,
+      host: url.host,
+      ready: true,
+      uptime: Date.now() - STARTED_AT
+    })
+  }
+
+  if (url.pathname === '/_dev/restart' && request.method === 'POST') {
+    setTimeout(() => shutdownApiServer(), 100)
+    return jsonResponse({
+      server: SESSION,
+      mode: MODE,
+      host: url.host,
+      restarting: true
+    }, { status: 202 })
+  }
+
+  return notFound()
+}
+
 async function handler(request, info) {
+  const devControlResponse = handleDevControlRequest(request)
+  if (devControlResponse) return devControlResponse
+
   const domain = requestDomain(request)
   ensureDomainConfigured(domain)
   const url = new URL(request.url)
   const isLocalSocketIOAlias = MODE === 'local' && LOCAL_SOCKET_IO_ALIAS.test(url.host)
+  const isLocalComposeApiService = MODE === 'local' && LOCAL_COMPOSE_API_SERVICE.test(url.host)
   if (request.url.endsWith('/_sid-check')) return handleHttpRequest(request)
-  else if (SOCKET_IO_HOSTS.includes(url.host) || isLocalSocketIOAlias) return socketIOHandler(request, info)
+  else if (SOCKET_IO_HOSTS.includes(url.host) || isLocalSocketIOAlias || isLocalComposeApiService) return socketIOHandler(request, info)
   else return handleHttpRequest(request, metricsPromise)
 }
 
@@ -70,6 +122,7 @@ globalThis.addEventListener("unhandledrejection", event => {
 const metricsPromise = Agent
   .state('metrics')
   .then(metrics => {
+    let shuttingDown = false
     metrics[SESSION] = {
       connections: {},
       websockets: {
@@ -104,8 +157,10 @@ const metricsPromise = Agent
 
     pollMetrics()
 
-    Deno.addSignalListener("SIGTERM", async () => {
-      console.log("Received SIGTERM. Cleaning up...")
+    async function shutdown() {
+      if (shuttingDown) return
+      shuttingDown = true
+      console.log("Shutting down API server. Cleaning up...")
       metrics[SESSION].closed = Date.now()
       delete metrics[SESSION]
       //  TODO: diagnose why Agent.synced() not sufficient
@@ -113,7 +168,10 @@ const metricsPromise = Agent
       await Agent.synced()
       console.log("Cleanup complete.")
       Deno.exit()
-    })
+    }
+
+    shutdownApiServer = shutdown
+    Deno.addSignalListener("SIGTERM", shutdown)
 
     return metrics[SESSION]
   })

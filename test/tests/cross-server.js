@@ -15,6 +15,13 @@ function hostAliases({ apiPort, aliasPrefix, serverCount, aliasCount }) {
     })
 }
 
+function explicitApiHosts(params) {
+  return (params.get('apiHosts') || '')
+    .split(',')
+    .map(host => host.trim())
+    .filter(Boolean)
+}
+
 function withTimeout(promise, ms, message) {
   let timeout
   return Promise.race([
@@ -48,7 +55,7 @@ async function allocateDistinctServerAgents(browserAgent, config) {
   const byServer = new Map()
   const attempts = []
 
-  for (const apiHost of hostAliases(config)) {
+  for (const apiHost of config.apiHosts.length ? config.apiHosts : hostAliases(config)) {
     const agent = browserAgent({
       unique: true,
       root: true,
@@ -254,7 +261,8 @@ export default function crossServer(browserAgent, { skipIfUnavailable=false }={}
     serverCount: queryInt(params, 'serverCount', 3),
     apiPort: queryInt(params, 'apiPort', DEFAULT_API_PORT),
     aliasPrefix: params.get('aliasPrefix') || DEFAULT_ALIAS_PREFIX,
-    aliasCount: queryInt(params, 'aliasCount', 0)
+    aliasCount: queryInt(params, 'aliasCount', 0),
+    apiHosts: explicitApiHosts(params)
   }
 
   describe('Cross-server client correctness', function () {

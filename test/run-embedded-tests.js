@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import Mocha from 'mocha'
 import { build } from 'vite'
+import { preflightApiHosts } from './api-preflight.js'
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 
@@ -12,6 +13,14 @@ const entry = path.join(packageRoot, 'embedded.entry.js')
 const outDir = path.join(packageRoot, '.embedded-tests')
 const bundleName = 'embedded.tests.bundle.mjs'
 const bundlePath = path.join(outDir, bundleName)
+
+try {
+  await preflightApiHosts({ label: 'Embedded API preflight' })
+}
+catch (error) {
+  console.error(error.message)
+  process.exit(1)
+}
 
 await fs.rm(outDir, { recursive: true, force: true })
 

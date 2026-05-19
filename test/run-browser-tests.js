@@ -1,6 +1,7 @@
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
+import { preflightApiHosts } from './api-preflight.js'
 
 const configFile = fileURLToPath(new URL('./vite.config.js', import.meta.url))
 const crossServer = process.env.CROSS_SERVER === '1'
@@ -8,8 +9,17 @@ const apiHost = process.env.API_HOST || 'socket-io.localhost:8765'
 const serverCount = process.env.SERVER_COUNT || '3'
 const apiPort = process.env.API_PORT || '8765'
 const aliasCount = process.env.ALIAS_COUNT
+const apiHosts = process.env.API_HOSTS
 const testTimeout = Number.parseInt(process.env.TEST_TIMEOUT || (crossServer ? '120000' : '180000'), 10)
 const headed = process.env.HEADED === '1'
+
+try {
+  await preflightApiHosts({ label: crossServer ? 'Cross-server API preflight' : 'Browser API preflight' })
+}
+catch (error) {
+  console.error(error.message)
+  process.exit(1)
+}
 
 let chromium
 try {
@@ -53,6 +63,7 @@ try {
     url.searchParams.set('serverCount', serverCount)
     url.searchParams.set('apiPort', apiPort)
     if (aliasCount) url.searchParams.set('aliasCount', aliasCount)
+    if (apiHosts) url.searchParams.set('apiHosts', apiHosts)
   }
 
   await page.goto(url.href, { waitUntil: 'domcontentloaded', timeout: 30000 })

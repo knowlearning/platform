@@ -10,10 +10,15 @@ export default async function registerEmbeddedHarness() {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
   process.env.API_HOST ||= 'socket-io.localhost:8765'
   process.env.TEST_URL ||= 'https://localhost:5112/'
+  const testUrl = new URL(process.env.TEST_URL)
+  if (process.env.API_HOSTS) testUrl.searchParams.set('apiHosts', process.env.API_HOSTS)
+  if (process.env.SERVER_COUNT) testUrl.searchParams.set('serverCount', process.env.SERVER_COUNT)
+  if (process.env.API_PORT) testUrl.searchParams.set('apiPort', process.env.API_PORT)
+  if (process.env.ALIAS_COUNT) testUrl.searchParams.set('aliasCount', process.env.ALIAS_COUNT)
   const startupTimeout = Number.parseInt(process.env.TEST_STARTUP_TIMEOUT || '15000', 10)
 
   installTestEnvironment({
-    url: process.env.TEST_URL
+    url: testUrl.href
   })
   globalThis.localStorage.setItem('API_HOST', process.env.API_HOST)
 
@@ -165,7 +170,7 @@ export default async function registerEmbeddedHarness() {
     return context
   }
 
-  const origin = new URL(process.env.TEST_URL).origin
+  const origin = testUrl.origin
 
   const createRootContext = (name, agent=createRootAgent()) => createContext(name, agent)
 
