@@ -39,6 +39,7 @@ const SOCKET_IO_HOSTS = [
 ]
 const LOCAL_SOCKET_IO_ALIAS = /^socket-io-\d+\.localhost:\d+$/
 const LOCAL_COMPOSE_API_SERVICE = /^api-\d+:8765$/
+const VALID_INSPECT_MODES = new Set(['inspect', 'inspect-wait', 'inspect-brk'])
 let shutdownApiServer = () => Deno.exit(0)
 
 const {
@@ -48,8 +49,17 @@ const {
   SSL_KEY: key,
   TLS_PORT,
   ADMIN_DOMAIN,
-  DEV_CONTROL_TOKEN
+  DEV_CONTROL_TOKEN,
+  DENO_INSPECT_MODE_ACTIVE,
+  DENO_INSPECT_MODE,
+  DENO_INSPECT_MODE_FILE,
+  DENO_INSPECT_HOST,
+  DENO_INSPECT_PORT
 } = environment
+const INSPECT_MODE_FILE = DENO_INSPECT_MODE_FILE || '/tmp/knowlearning-core-inspect-mode'
+const INSPECT_HOST = DENO_INSPECT_HOST || '0.0.0.0'
+const INSPECT_PORT = DENO_INSPECT_PORT || '9229'
+const ACTIVE_INSPECT_MODE = DENO_INSPECT_MODE_ACTIVE || DENO_INSPECT_MODE || (MODE === 'local' ? 'inspect' : 'none')
 
 ensureDomainConfigured(ADMIN_DOMAIN)
 ensureDomainConfigured('core')
@@ -72,7 +82,37 @@ function devControlAuthorized(request) {
     && request.headers.get('x-dev-control-token') === DEV_CONTROL_TOKEN
 }
 
-function handleDevControlRequest(request) {
+function inspectEndpoint(url, mode=ACTIVE_INSPECT_MODE) {
+  if (mode === 'none') return null
+  return `${url.hostname}:${INSPECT_PORT}`
+}
+
+function inspectStatus(url, mode=ACTIVE_INSPECT_MODE) {
+  return {
+    mode,
+    host: INSPECT_HOST,
+    port: Number.parseInt(INSPECT_PORT, 10),
+    endpoint: inspectEndpoint(url, mode)
+  }
+}
+
+async function restartOptions(request) {
+  const body = await request.text()
+  if (!body.trim()) return {}
+
+  try {
+    const parsed = JSON.parse(body)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('body must be a JSON object')
+    }
+    return parsed
+  }
+  catch (error) {
+    throw new Error(`Invalid JSON request body: ${error.message}`)
+  }
+}
+
+async function handleDevControlRequest(request) {
   const url = new URL(request.url)
   if (!url.pathname.startsWith('/_dev/')) return null
   if (!devControlAuthorized(request)) return notFound()
@@ -83,17 +123,43 @@ function handleDevControlRequest(request) {
       mode: MODE,
       host: url.host,
       ready: true,
-      uptime: Date.now() - STARTED_AT
+      uptime: Date.now() - STARTED_AT,
+      inspector: inspectStatus(url)
     })
   }
 
   if (url.pathname === '/_dev/restart' && request.method === 'POST') {
+    let options
+    try {
+      options = await restartOptions(request)
+    }
+    catch (error) {
+      return jsonResponse({ error: error.message }, { status: 400 })
+    }
+
+    const inspectMode = options.inspectMode || options.debugMode || options.inspector?.mode || 'inspect'
+    if (!VALID_INSPECT_MODES.has(inspectMode)) {
+      return jsonResponse({
+        error: `Invalid inspectMode '${inspectMode}'. Expected one of: ${[...VALID_INSPECT_MODES].join(', ')}`
+      }, { status: 400 })
+    }
+
+    try {
+      await Deno.writeTextFile(INSPECT_MODE_FILE, `${inspectMode}\n`)
+    }
+    catch (error) {
+      return jsonResponse({
+        error: `Failed to persist inspector mode in ${INSPECT_MODE_FILE}: ${error.message}`
+      }, { status: 500 })
+    }
+
     setTimeout(() => shutdownApiServer(), 100)
     return jsonResponse({
       server: SESSION,
       mode: MODE,
       host: url.host,
-      restarting: true
+      restarting: true,
+      inspector: inspectStatus(url, inspectMode)
     }, { status: 202 })
   }
 
@@ -101,7 +167,7 @@ function handleDevControlRequest(request) {
 }
 
 async function handler(request, info) {
-  const devControlResponse = handleDevControlRequest(request)
+  const devControlResponse = await handleDevControlRequest(request)
   if (devControlResponse) return devControlResponse
 
   const domain = requestDomain(request)

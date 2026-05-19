@@ -64,6 +64,9 @@ Useful in-container service endpoints:
 api-1:8765
 api-2:8765
 api-3:8765
+api-1:9229
+api-2:9229
+api-3:9229
 postgres:5432
 redis-1:6379
 redis-2:6379
@@ -80,7 +83,19 @@ cd /workspace/test
 node dev-api-control.js status
 node dev-api-control.js restart
 node dev-api-control.js restart api-1:8765
+node dev-api-control.js restart api-1:8765 --inspect
+node dev-api-control.js restart api-1:8765 --inspect-wait
+node dev-api-control.js restart api-1:8765 --inspect-brk
 ```
+
+Local API containers expose the standard Deno/V8 inspector on the Compose
+network at `api-1:9229`, `api-2:9229`, and `api-3:9229`. The normal local
+launch mode is `--inspect=0.0.0.0:9229`, which does not block startup. Use
+`--inspect-wait` or `--inspect-brk` only with a single API host when startup
+debugging is needed; that server will not become API-ready until an inspector
+client attaches. Query `http://api-1:9229/json/list` from the Codex container to
+discover the standard WebSocket debugger URL, then return the server to normal
+startup with `node dev-api-control.js restart api-1:8765 --inspect`.
 
 Use single-host restarts when testing reconnection, server handoff, or unstable
 server behavior. The restart helper only restarts API processes; Postgres,

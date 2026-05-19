@@ -7,6 +7,7 @@ x-api: &api
 
   expose:
     - 8765
+    - 9229
 
   environment:
     TLS_PORT: "8765"
@@ -16,6 +17,9 @@ x-api: &api
     SSL_KEY: ${SSL_KEY}
     MODE: local
     DEV_CONTROL_TOKEN: ${DEV_CONTROL_TOKEN:-development-control-token}
+    DENO_INSPECT_HOST: 0.0.0.0
+    DENO_INSPECT_PORT: "9229"
+    DENO_INSPECT_MODE_FILE: /tmp/knowlearning-core-inspect-mode
     PORT: "8000"
     SERVE_HOST: serve:8765
     SERVICE_ACCOUNT_TOKEN: /var/run/secrets/kubernetes.io/serviceaccount/token
