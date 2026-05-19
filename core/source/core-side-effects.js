@@ -3,7 +3,7 @@
 import { environment, isUUID, uuid } from './utils.js'
 import scopeToId from './scope-to-id.js'
 import configuredQuery from './configured-query.js'
-import { applyConfiguration } from './side-effects/configure.js'
+import { applyConfiguration, prepareStorageForConfiguration } from './side-effects/configure.js'
 import sideEffects from './side-effects/index.js'
 import subscribe from './subscribe.js'
 import authorize from './authorize.js'
@@ -94,10 +94,8 @@ export default async function coreSideEffects({
     ) {
       const report = value
       const reportState = await coreState(ADMIN_DOMAIN, report, ADMIN_DOMAIN)
-      const domainConfig = await coreState('core', 'domain-config', 'core')
       const coreConfigCopyId = uuid()
       const coreConfigCopy = await coreState(ADMIN_DOMAIN, coreConfigCopyId, 'core')
-      domainConfig[configureDomain] = { config: coreConfigCopyId, report, admin: user, server: SESSION }
 
       reportState.tasks = {}
       reportState.start = Date.now()
@@ -105,6 +103,10 @@ export default async function coreSideEffects({
       try {
         const configuration = await getState(domain, id)
         Object.assign(coreConfigCopy, configuration.active)
+        await coreStateSynced()
+        const storage = await prepareStorageForConfiguration(configureDomain, configuration.active, reportState)
+        const domainConfig = await coreState('core', 'domain-config', 'core')
+        domainConfig[configureDomain] = { config: coreConfigCopyId, report, admin: user, server: SESSION, storage }
         await coreStateSynced()
         await applyConfiguration(configureDomain, configuration.active, reportState)
         reportState.end = Date.now()

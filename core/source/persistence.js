@@ -93,7 +93,7 @@ async function findExistingOwnerDomain(id) {
       })
   )
 
-  if (found.length > 1) {
+  if (found.length > 1 && new Set(found.map(({ domain }) => domain)).size > 1) {
     throw new Error(`UUID ${id} exists on multiple Redis servers: ${JSON.stringify(found)}`)
   }
 
@@ -193,6 +193,53 @@ export async function domainIds(domain) {
   )
 
   return [...ids]
+}
+
+export async function copyDomainStateToRedisServer(domain, fromServerName, toServerName, report) {
+  if (fromServerName === toServerName) return { copied: 0, skipped: true }
+
+  await redis.connected
+
+  const task = report?.tasks
+  if (task) {
+    if (!task.redis) task.redis = {}
+    task.redis.move = [
+      `Copying ${domain} from ${fromServerName} to ${toServerName}`
+    ]
+  }
+
+  const fromClient = redis.clientForServer(fromServerName)
+  const toClient = redis.clientForServer(toServerName)
+  const indexedIds = await redis.client.sendCommand(['smembers', domainUUIDSetKey(domain)])
+  let legacyIds = []
+
+  try {
+    legacyIds = await fromClient.sendCommand(['smembers', domain])
+  }
+  catch (_) {}
+
+  const ids = [...new Set([...indexedIds, ...legacyIds].filter(isUUID))]
+  const progressInterval = 1000
+  let copied = 0
+
+  for (const id of ids) {
+    const state = await fromClient.json.get(id)
+    if (!state || state.domain !== domain) continue
+
+    await claimUUIDOwner(domain, id)
+    await redis.client.sendCommand(['SADD', domainUUIDSetKey(domain), id])
+    await toClient.json.set(id, '$', state)
+    copied += 1
+    if (task?.redis?.move && copied % progressInterval === 0) {
+      task.redis.move.push(`Copied ${copied}/${ids.length} states`)
+    }
+  }
+
+  if (task?.redis?.move && (copied === 0 || copied % progressInterval !== 0)) {
+    task.redis.move.push(`Copied ${copied}/${ids.length} states`)
+  }
+
+  return { copied, skipped: false }
 }
 
 export async function subscribe(id, callback) {

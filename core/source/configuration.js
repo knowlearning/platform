@@ -9,18 +9,30 @@ import ADMIN_DOMAIN_CONFIG from './admin-domain-config.js'
 import POSTGRES_DEFAULT_TABLES from './postgres-default-tables.js'
 import SESSION from './session.js'
 import { configCache as cache } from './stateful.js'
+import {
+  clearDomainStorageRoutes,
+  normalizeStorageRoutes,
+  setDomainStorageRoutes,
+  storageRoutesFromConfiguration
+} from './storage-routing.js'
 
 const { ADMIN_DOMAIN } = environment
 const DOMAIN_CONFIG_SCOPE = 'domain-config'
 
 //  invalidate cached domain config on claim change
 subscribe(DOMAIN_CONFIG_SCOPE, ({ patch: [{ path, value }] }) => {
-  if (path[0] === 'active' && cache[path[1]]) {
+  if (path[0] === 'active') {
     const domain = path[1]
-    console.log('invalidating cache...', domain)
+    const hadCache = !!cache[domain]
 
+    if (hadCache) console.log('invalidating cache...', domain)
     delete cache[domain]
-    if (value?.server !== SESSION) {
+    if (path.length === 2) {
+      if (value?.storage) setDomainStorageRoutes(domain, value.storage)
+      else clearDomainStorageRoutes(domain)
+    }
+
+    if (hadCache && path.length === 2 && value?.server !== SESSION) {
       domainAgent(domain, true)
     }
   }
@@ -50,6 +62,9 @@ export default async function configuration(domain, notifyIfNew) {
 
     if (domainConfig) {
       const { admin, config } = domainConfig
+      if (domainConfig.storage) {
+        setDomainStorageRoutes(domain, normalizeStorageRoutes(domainConfig.storage))
+      }
 
       if (config) cache[domain] = (await getState('core', config))?.active
       else cache[domain] = {}
@@ -66,11 +81,18 @@ export default async function configuration(domain, notifyIfNew) {
           cache[domain].postgres.tables,
           POSTGRES_DEFAULT_TABLES
         )
+
+      if (!domainConfig.storage) {
+        setDomainStorageRoutes(domain, storageRoutesFromConfiguration(cache[domain]))
+      }
     }
   }
   catch (error) { console.warn(error) }
 
-  if (!cache[domain]) cache[domain] = { admin: null, postgres: { tables: POSTGRES_DEFAULT_TABLES } }
+  if (!cache[domain]) {
+    cache[domain] = { admin: null, postgres: { tables: POSTGRES_DEFAULT_TABLES } }
+    setDomainStorageRoutes(domain, storageRoutesFromConfiguration(cache[domain]))
+  }
 
   return cache[domain]
 }

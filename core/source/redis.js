@@ -1,9 +1,7 @@
 import { createRedisClient, environment } from './utils.js'
+import { DEFAULT_STORAGE_SERVER, storageServerForDomain } from './storage-routing.js'
 
-const {
-  REDIS_SERVERS,
-  REDIS_DOMAINS
-} = environment
+const { REDIS_SERVERS } = environment
 
 function parseJSONEnvironment(name, value) {
   if (!value) throw new Error(`${name} is required`)
@@ -23,18 +21,11 @@ function parseJSONEnvironment(name, value) {
 }
 
 const redisServers = parseJSONEnvironment('REDIS_SERVERS', REDIS_SERVERS)
-const redisDomains = parseJSONEnvironment('REDIS_DOMAINS', REDIS_DOMAINS)
-const defaultRedisServer = redisDomains.default
+const defaultRedisServer = DEFAULT_STORAGE_SERVER
 
-if (!defaultRedisServer) throw new Error('REDIS_DOMAINS.default is required')
 if (!redisServers[defaultRedisServer]) {
-  throw new Error(`REDIS_DOMAINS.default references unknown Redis server "${defaultRedisServer}"`)
+  throw new Error(`REDIS_SERVERS.${defaultRedisServer} is required`)
 }
-Object.entries(redisDomains).forEach(([domain, serverName]) => {
-  if (!redisServers[serverName]) {
-    throw new Error(`REDIS_DOMAINS.${domain} references unknown Redis server "${serverName}"`)
-  }
-})
 
 function clientConnectionInfo(serverName) {
   const server = redisServers[serverName]
@@ -93,7 +84,7 @@ const connected = Promise.all([
 ]).then(() => console.log(`CONNECTED TO REDIS ${Object.keys(clients).join(', ')}!`))
 
 function serverNameForDomain(domain) {
-  return redisDomains[domain] || defaultRedisServer
+  return storageServerForDomain(domain, 'redis')
 }
 
 function clientForServer(serverName) {

@@ -62,18 +62,14 @@ MemoryHigh=6G
 Environment=AUTH_SERVICE_SECRET_KEY
 Environment=GCS_SERVICE_ACCOUNT_CREDENTIALS
 Environment=OAUTH_CREDENTIALS
-Environment=POSTGRES_PASSWORD
+Environment=POSTGRES_SERVERS
 Environment=REDIS_SERVERS
-Environment=REDIS_DOMAINS
 Environment=PUBLIC_ENCRYPTION_KEY
 Environment=SECRET_ENCRYPTION_KEY
 Environment=GCS_BUCKET_NAME
 Environment=MODE
 Environment=ADMIN_DOMAIN
 Environment=GC_PROJECT_ID
-Environment=POSTGRES_HOST
-Environment=POSTGRES_PORT
-Environment=POSTGRES_USER
 Environment=PORT
 Environment=TLS_PORT
 Environment=SSL_CERT
@@ -86,16 +82,19 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable "${SERVICE_NAME}"
 
+# Escape password values before interpolating them into JSON environment values.
+# This preserves valid REDIS_SERVERS/POSTGRES_SERVERS JSON when passwords contain " or \.
 REDIS_PASSWORD_JSON=${REDIS_PASSWORD//\\/\\\\}
 REDIS_PASSWORD_JSON=${REDIS_PASSWORD_JSON//\"/\\\"}
+POSTGRES_PASSWORD_JSON=${POSTGRES_PASSWORD//\\/\\\\}
+POSTGRES_PASSWORD_JSON=${POSTGRES_PASSWORD_JSON//\"/\\\"}
 
 sudo systemctl set-environment \
   AUTH_SERVICE_SECRET_KEY="$AUTH_SERVICE_SECRET_KEY" \
   GCS_SERVICE_ACCOUNT_CREDENTIALS="$GCS_SERVICE_ACCOUNT_CREDENTIALS" \
   OAUTH_CREDENTIALS="$OAUTH_CREDENTIALS" \
-  POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-  REDIS_SERVERS="{\"redis-1\":{\"host\":\"redis-15018.fcrce259.eu-central-1-3.ec2.cloud.redislabs.com\",\"port\":15018,\"username\":\"default\",\"password\":\"$REDIS_PASSWORD_JSON\"}}" \
-  REDIS_DOMAINS='{"default":"redis-1"}' \
+  POSTGRES_SERVERS="{\"default\":{\"host\":\"10.50.0.2\",\"port\":5432,\"user\":\"postgres\",\"password\":\"$POSTGRES_PASSWORD_JSON\"}}" \
+  REDIS_SERVERS="{\"default\":{\"host\":\"redis-15018.fcrce259.eu-central-1-3.ec2.cloud.redislabs.com\",\"port\":15018,\"username\":\"default\",\"password\":\"$REDIS_PASSWORD_JSON\"}}" \
   PUBLIC_ENCRYPTION_KEY="$PUBLIC_ENCRYPTION_KEY" \
   SECRET_ENCRYPTION_KEY="$SECRET_ENCRYPTION_KEY" \
   SSL_CERT="$SSL_CERT"\
@@ -104,9 +103,6 @@ sudo systemctl set-environment \
   MODE=production \
   ADMIN_DOMAIN=admin.knowlearning.systems \
   GC_PROJECT_ID=opensourcelearningplatform \
-  POSTGRES_HOST=10.50.0.2 \
-  POSTGRES_PORT=5432 \
-  POSTGRES_USER=postgres \
   PORT=80 \
   TLS_PORT=443
 

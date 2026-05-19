@@ -6,8 +6,9 @@
     [X] persistence.js and scope-to-id.js are the critical files to ensure instance routing is appropriate
 [X] Migrate tests to easily automatable runners
 [X] Add codex dev instance to development cluster in docker-compose
-    [ ] give access to logs and debugger access to main api processes
-[ ] launch multiple postgres instances for servers to connect to
-    [ ] already uses different database per domain within one instance - investigate easiest routing location to base instance selection
-[ ] allow for configuration of domain -> postgres db instance
-[ ] make sure old agent clients pass all tests against new server
+    [X] give access to logs and debugger access to main api processes
+[X] launch multiple postgres instances for servers to connect to
+    [X] already uses different database per domain within one instance - investigate easiest routing location to base instance selection
+[X] allow for configuration of domain -> postgres db instance
+[X] move postgres and redis placement declarations into domain config
+    [X] keep old Redis copies after promotion for admin-managed cleanup

@@ -49,6 +49,8 @@ TEST_STARTUP_TIMEOUT=30000
 TEST_URL=https://localhost:5112/
 DEV_CONTROL_TOKEN=development-control-token
 DEV_CONTROL_TIMEOUT=30000
+POSTGRES_SERVERS='{"default":{"host":"postgres-1","port":5432,"user":"postgres","password":"insecure-development-password"},"postgres-2":{"host":"postgres-2","port":5432,"user":"postgres","password":"insecure-development-password"}}'
+REDIS_SERVERS='{"default":{"host":"redis-1","port":6379,"password":""},"redis-2":{"host":"redis-2","port":6379,"password":""}}'
 BROWSER_LOGS=1
 HEADED=1
 ```
@@ -67,12 +69,24 @@ api-3:8765
 api-1:9229
 api-2:9229
 api-3:9229
-postgres:5432
+postgres-1:5432
+postgres-2:5432
 redis-1:6379
 redis-2:6379
 http://gcs-emulator:8000
 https://localhost:4443
 ```
+
+From the host, `postgres-1` is bound to `localhost:5432` and `postgres-2` is
+bound to `localhost:5433`.
+
+Postgres routing is controlled by `POSTGRES_SERVERS` plus each domain config's
+optional `postgres.server` value. Redis routing is controlled by
+`REDIS_SERVERS` plus each domain config's optional `redis.server` value. Each
+server map must include a `default` entry. On first use after a Postgres remap,
+the target database is created and configured tables are repopulated from
+Redis. Redis remaps copy data to the new server and leave the old copy intact
+for admin-managed cleanup.
 
 Codex does not have Docker access from inside this container. To restart local
 development API servers after the host has bootstrapped the stack, use the dev

@@ -12,8 +12,24 @@ else
 fi
 CREDENTIALS_DIR="${CREDENTIALS_DIR:-$DEFAULT_CREDENTIALS_DIR}"
 
-BACKEND_SERVICES="postgres gcs-emulator redis-1 redis-2 api-1 api-2 api-3"
-LOG_SERVICES="api-1 api-2 api-3 postgres redis-1 redis-2 gcs-emulator"
+BACKEND_SERVICES="postgres-1 postgres-2 gcs-emulator redis-1 redis-2 api-1 api-2 api-3"
+LOG_SERVICES="api-1 api-2 api-3 postgres-1 postgres-2 redis-1 redis-2 gcs-emulator"
+TEST_ENV_VARS="
+API_HOST
+API_HOSTS
+API_PORT
+SERVER_COUNT
+ALIAS_COUNT
+TEST_GREP
+TEST_TIMEOUT
+TEST_STARTUP_TIMEOUT
+TEST_URL
+DEV_CONTROL_TOKEN
+DEV_CONTROL_TIMEOUT
+BROWSER_LOGS
+HEADED
+API_PREFLIGHT_TIMEOUT
+"
 REQUIRED_CREDENTIALS="
 AUTH_SERVICE_SECRET_KEY
 OAUTH_CREDENTIALS
@@ -33,9 +49,9 @@ Development tools:
   backend | up         Start the local core backend in Docker Compose
   codex                Open the Docker Compose Codex development session
   logs [services...]   Follow Docker Compose logs (defaults to backend services)
-  test                 Run the embedded test suite from ./test
-  browser-test         Run the browser test suite from ./test
-  cross-test           Run the cross-server browser test suite from ./test
+  test                 Run the embedded test suite in the Codex container
+  browser-test         Run the browser test suite in the Codex container
+  cross-test           Run the cross-server browser suite in the Codex container
   status               Show Docker Compose service status
   down                 Stop the local Docker Compose stack
 
@@ -88,6 +104,27 @@ compose() {
   docker compose -f "$COMPOSE_FILE" "$@"
 }
 
+run_in_codex() {
+  ensure_docker
+  load_credentials
+  ensure_codex_home
+
+  local env_args=()
+  local tty_args=()
+  local name
+  for name in $TEST_ENV_VARS; do
+    if [ "${!name+x}" = x ]; then
+      env_args+=("-e" "$name")
+    fi
+  done
+
+  if [ ! -t 0 ] || [ ! -t 1 ]; then
+    tty_args+=("-T")
+  fi
+
+  compose run --rm "${tty_args[@]}" "${env_args[@]}" --entrypoint bash codex -lc "$*"
+}
+
 ensure_codex_home() {
   mkdir -p "$ROOT_DIR/.codex-home/.codex"
 
@@ -124,18 +161,15 @@ follow_logs() {
 }
 
 run_test() {
-  cd "$ROOT_DIR/test"
-  npm test
+  run_in_codex "cd /workspace/test && npm test"
 }
 
 run_browser_test() {
-  cd "$ROOT_DIR/test"
-  npm run test:local
+  run_in_codex "cd /workspace/test && npm run test:local"
 }
 
 run_cross_test() {
-  cd "$ROOT_DIR/test"
-  npm run test:cross-server
+  run_in_codex "cd /workspace/test && npm run test:cross-server"
 }
 
 show_menu() {
@@ -174,9 +208,9 @@ EOF
 backend	Start core backend
 codex	Open Codex session
 logs	Follow backend logs
-test	Run embedded test suite
-browser-test	Run browser test suite
-cross-test	Run cross-server browser test suite
+test	Run embedded test suite in Codex container
+browser-test	Run browser test suite in Codex container
+cross-test	Run cross-server browser test suite in Codex container
 status	Show Compose status
 down	Stop Compose stack
 quit	Quit

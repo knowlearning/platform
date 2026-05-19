@@ -25,8 +25,7 @@ x-api: &api
     PORT: "8000"
     SERVE_HOST: serve:8765
     SERVICE_ACCOUNT_TOKEN: /var/run/secrets/kubernetes.io/serviceaccount/token
-    REDIS_SERVERS: '{"redis-1":{"host":"redis-1","port":6379,"password":""},"redis-2":{"host":"redis-2","port":6379,"password":""}}'
-    REDIS_DOMAINS: '{"default":"redis-1","core":"redis-1","localhost:5111":"redis-1","localhost:5112":"redis-2"}'
+    REDIS_SERVERS: '{"default":{"host":"redis-1","port":6379,"password":""},"redis-2":{"host":"redis-2","port":6379,"password":""}}'
     PUBLIC_ENCRYPTION_KEY: ${PUBLIC_ENCRYPTION_KEY}
     SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY}
     ADMIN_DOMAIN: localhost:5111
@@ -34,16 +33,16 @@ x-api: &api
     INTERNAL_GCS_API_ENDPOINT: http://gcs-emulator:8000
     EXTERNAL_GCS_API_ENDPOINT: https://localhost:4443
     GCS_BUCKET_NAME: local-gcs-bucket
-    POSTGRES_HOST: postgres
-    POSTGRES_PORT: "5432"
-    POSTGRES_PASSWORD: insecure-development-password
+    POSTGRES_SERVERS: '{"default":{"host":"postgres-1","port":5432,"user":"postgres","password":"insecure-development-password"},"postgres-2":{"host":"postgres-2","port":5432,"user":"postgres","password":"insecure-development-password"}}'
     GCS_SERVICE_ACCOUNT_CREDENTIALS: ${GCS_SERVICE_ACCOUNT_CREDENTIALS}
 
   volumes:
     - ../../../:/workspace
 
   depends_on:
-    postgres:
+    postgres-1:
+      condition: service_started
+    postgres-2:
       condition: service_started
     gcs-emulator:
       condition: service_started
@@ -56,6 +55,11 @@ x-redis: &redis
   image: redis:8.4.0
   environment:
     REDIS_PASSWORD: ""
+
+x-postgres: &postgres
+  image: postgres:alpine3.18
+  environment:
+    - POSTGRES_PASSWORD=insecure-development-password
 
 services:
 
@@ -113,17 +117,29 @@ services:
       -external-url https://localhost:4443
       -public-host localhost
 
-  postgres:
-    image: postgres:alpine3.18
-    container_name: postgres
+  postgres-1:
+    <<: *postgres
+    container_name: postgres-1
     ports:
       - 5432:5432
-    environment:
-      - POSTGRES_PASSWORD=insecure-development-password
     command:
       - postgres
       - -c
       - max_connections=300
+      - -c
+      - cluster_name=postgres-1
+
+  postgres-2:
+    <<: *postgres
+    container_name: postgres-2
+    ports:
+      - 5433:5432
+    command:
+      - postgres
+      - -c
+      - max_connections=300
+      - -c
+      - cluster_name=postgres-2
 
   api-1:
     <<: *api

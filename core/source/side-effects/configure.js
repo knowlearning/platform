@@ -4,7 +4,7 @@ import { uuid, parseYAML, environment, PatchProxy } from '../utils.js'
 import coreState from '../core-state.js'
 import { domainAdmin } from '../configuration.js'
 import domainAgent from '../domain-agent/index.js'
-import { domainIds, batchGetState } from '../persistence.js'
+import { domainIds, batchGetState, copyDomainStateToRedisServer, getState } from '../persistence.js'
 import * as postgres from '../postgres.js'
 import { download } from '../storage.js'
 import interact from '../interact.js'
@@ -13,6 +13,12 @@ import configuration from '../configuration.js'
 import scopeToId from '../scope-to-id.js'
 import SESSION from '../session.js'
 import { configuredDomains } from '../stateful.js'
+import {
+  normalizeStorageRoutes,
+  setDomainStorageRoutes,
+  storageRoutesFromConfiguration,
+  storageRoutesForDomain
+} from '../storage-routing.js'
 
 const EXISTING_TABLES_QUERY = `
   SELECT tablename
@@ -70,7 +76,6 @@ export default async function configure({ domain, user, session, scope, patch, s
     if (op === 'add' && path.length === 1 && path[0] === 'active' && await isAdmin(user, domain, value.domain)) {
       const { config, report, domain:domainToConfigure } = value
       const domainConfig = await coreState('core', 'domain-config', 'core')
-      domainConfig[domainToConfigure] = { config, report, admin: user, server: SESSION }
 
       const reportState = await coreState(user, report, domain)
       reportState.tasks = {}
@@ -85,7 +90,11 @@ export default async function configure({ domain, user, session, scope, patch, s
         response
           .text()
           .then(parseYAML)
-          .then(config => applyConfiguration(domainToConfigure, config, reportState))
+          .then(async parsedConfig => {
+            const storage = await prepareStorageForConfiguration(domainToConfigure, parsedConfig, reportState)
+            domainConfig[domainToConfigure] = { config, report, admin: user, server: SESSION, storage }
+            await applyConfiguration(domainToConfigure, parsedConfig, reportState)
+          })
           .then(() => reportState.end = Date.now())
           .catch(error => reportState.error = error.toString())
       }
@@ -96,6 +105,30 @@ export default async function configure({ domain, user, session, scope, patch, s
   }
 
   send({ si, ii })
+}
+
+async function storedStorageRoutesForDomain(domain) {
+  try {
+    const path = [`$.active[${JSON.stringify(domain)}].storage`]
+    const response = await getState('core', 'domain-config', { path })
+    const storage = Array.isArray(response) ? response[0] : response?.[path[0]]?.[0]
+    if (storage) return normalizeStorageRoutes(storage)
+  }
+  catch (error) {
+    console.warn('Error reading current storage route', domain, error)
+  }
+
+  return storageRoutesForDomain(domain)
+}
+
+export async function prepareStorageForConfiguration(domain, config, report) {
+  const previousStorage = await storedStorageRoutesForDomain(domain)
+  const nextStorage = storageRoutesFromConfiguration(config)
+
+  await copyDomainStateToRedisServer(domain, previousStorage.redis, nextStorage.redis, report)
+  setDomainStorageRoutes(domain, nextStorage)
+
+  return nextStorage
 }
 
 export async function applyConfiguration(domain, { postgres, agent }, report) {
@@ -366,16 +399,20 @@ const DOMAIN_CONFIGURED_QUERY = `SELECT EXISTS (
 
 export async function ensureDomainConfigured(domain) {
   //  TODO: more reliable check
-  if (!configuredDomains[domain]) {
-    configuredDomains[domain] = new Promise(async resolve => {
+  const config = await configuration(domain)
+  const configurationKey = postgres.configurationKeyForDomain(domain)
+  if (!configuredDomains[configurationKey]) {
+    configuredDomains[configurationKey] = (async () => {
       const { rows: [{ exists: configured }] } = await postgres.query(domain, DOMAIN_CONFIGURED_QUERY)
       if (!configured) {
         const report = { tasks: [], start: Date.now() }
-        await applyConfiguration(domain, await configuration(domain), report)
+        await applyConfiguration(domain, config, report)
           .catch(error => console.warn('configuration error', domain, error))
       }
-      resolve()
+    })().catch(error => {
+      delete configuredDomains[configurationKey]
+      throw error
     })
   }
-  await configuredDomains[domain]
+  await configuredDomains[configurationKey]
 }
