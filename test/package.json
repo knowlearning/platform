@@ -10,6 +10,9 @@
     "preview": "vite preview",
     "test:install-browsers": "playwright install chromium",
     "test:embedded": "node run-embedded-tests.js",
+    "test:embedded:root": "TEST_CONTEXTS=root node run-embedded-tests.js",
+    "test:embedded:embed1": "TEST_CONTEXTS=embed1 node run-embedded-tests.js",
+    "test:embedded:embed2": "TEST_CONTEXTS=embed2 node run-embedded-tests.js",
     "test:local": "node run-browser-tests.js",
     "test:cross-server": "CROSS_SERVER=1 node run-browser-tests.js"
   },

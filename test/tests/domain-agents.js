@@ -6,11 +6,11 @@ import LIVENESS_REPORTING_CONFIGURATION from './domain-agents/liveness-reporting
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
 const SIMPLE_MIRROR_DOMAIN = `simple-mirror-config.localhost:5112`
-const LIVENESS_DOMAIN = `liveness-test.localhost:5112`
 
 export default function () {
   const specialCrossDomainScopeName = `mirror-no-reset/${Agent.uuid()}`
   const specialCrossDomainResetScopeName =`mirror-reset/${Agent.uuid()}`
+  const livenessDomain = `liveness-test-${Agent.uuid()}.localhost:5112`
 
   const CONFIGURATION_1 = `
 authorize:
@@ -130,12 +130,10 @@ agent: |
   import Agent, { getAgent } from 'npm:@knowlearning/agents/deno.js'
   import { standardJSONPatch } from 'npm:@knowlearning/patch-proxy'
   import fastJSONPatch from 'npm:fast-json-patch'
-  console.log('DENO STARTING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
   const serverId = Agent.uuid()
 
   Agent.on('child', child => {
-    console.log('GOT CHILD!', child)
     const { environment: { user } } = child
     Agent
       .state('child-connections-' + user)
@@ -160,7 +158,6 @@ agent: |
         const myState = await Agent.state(mutation.scope)
         fastJSONPatch.applyPatch(myState, standardJSONPatch(mutation.patch))
         setTimeout(() => {
-          console.log('DENO EXITING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
           throw new Error('EXITING WITH ERROR!!!!!!!!!!')
         })
       }
@@ -356,8 +353,6 @@ agent: |
         }, domain)
       })
 
-      console.log('passed 1')
-
       reconnectMirroredState.x = 200
       await new Promise((resolve, reject) => {
         Agent.watch(reconnectMirroredStateName, ({ state }) => {
@@ -365,7 +360,6 @@ agent: |
         }, domain)
       })
 
-      console.log('passed 2')
     })
 
     it('Can keep mirroring with new agent configurations', async function () {
@@ -380,7 +374,6 @@ agent: |
       myState.x = 200
       await new Promise((resolve, reject) => {
         Agent.watch(myStateName, ({ state }) => {
-          console.log('INTERESTING....?', state)
           if (state.x === 200) resolve()
         }, SIMPLE_MIRROR_DOMAIN, SIMPLE_MIRROR_DOMAIN)
       })
@@ -391,12 +384,12 @@ agent: |
 
       const waitForConfiguration = promise => Promise.race([
         promise,
-        pause(1000)
+        pause(250)
       ])
 
       for (let i=0; i<30; i++) {
-        const p = configureDomain(LIVENESS_DOMAIN, LIVENESS_REPORTING_CONFIGURATION).catch(() => {})
-        if (Math.random() > 0.5) await waitForConfiguration(p)
+        const p = configureDomain(livenessDomain, LIVENESS_REPORTING_CONFIGURATION).catch(() => {})
+        if (i % 2) await waitForConfiguration(p)
       }
 
       let livenessTrackers = {}
@@ -406,20 +399,19 @@ agent: |
         && Date.now() - start < 15000
       ) {
         await pause(100)
-        livenessTrackers = await Agent.state('liveness-trackers', LIVENESS_DOMAIN, LIVENESS_DOMAIN)
+        livenessTrackers = await Agent.state('liveness-trackers', livenessDomain, livenessDomain)
       }
 
       expect(Object.keys(livenessTrackers).length).to.be.greaterThan(0)
 
-      let lastPing = 0
-      console.log('liveness trackers', livenessTrackers)
-      Object
-        .entries(livenessTrackers)
-        .sort((a, b) => b[1].start - a[1].start)
-        .forEach(([_, { start, ping }]) => {
-          expect(lastPing).to.be.lessThan(start)
-          lastPing = ping
-        })
+      await pause(750)
+      livenessTrackers = await Agent.state('liveness-trackers', livenessDomain, livenessDomain)
+      const activeSince = Date.now() - 1000
+      const activeTrackers = Object
+        .values(livenessTrackers)
+        .filter(({ ping }) => ping >= activeSince)
+
+      expect(activeTrackers).to.have.length(1)
     })
   })
 }

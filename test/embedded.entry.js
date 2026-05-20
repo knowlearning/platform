@@ -171,6 +171,23 @@ export default async function registerEmbeddedHarness() {
   }
 
   const origin = testUrl.origin
+  const allContexts = new Set(['root', 'embed1', 'embed2'])
+  const requestedContexts = new Set(
+    (process.env.TEST_CONTEXTS || 'root,embed1,embed2')
+      .split(',')
+      .map(context => context.trim().toLowerCase())
+      .filter(Boolean)
+  )
+  if (requestedContexts.has('all')) {
+    requestedContexts.clear()
+    allContexts.forEach(context => requestedContexts.add(context))
+  }
+  const invalidContexts = [...requestedContexts].filter(context => !allContexts.has(context))
+  if (invalidContexts.length) {
+    throw new Error(`Invalid TEST_CONTEXTS value(s): ${invalidContexts.join(', ')}`)
+  }
+  if (!requestedContexts.size) throw new Error('TEST_CONTEXTS did not select any embedded test contexts')
+  const includesContext = context => requestedContexts.has(context)
 
   const createRootContext = (name, agent=createRootAgent()) => createContext(name, agent)
 
@@ -263,30 +280,36 @@ export default async function registerEmbeddedHarness() {
   }
 
   describe('Embedded Harness Core API', function () {
-    registerSuite(
-      () => createRootContext('Root', Agent),
-      {
-      title: 'Root Core API',
-      includeRootOnly: true
-      }
-    )
-    registerSuite(
-      () => createEmbeddedContext('Embed Level 1', () => createRootContext('Embed Level 1 Parent'), 'test+'),
-      {
-      title: 'Embed Level 1 Core API',
-      includeRootOnly: false
-      }
-    )
-    registerSuite(
-      () => createEmbeddedContext(
-        'Embed Level 2',
-        () => createEmbeddedContext('Embed Level 2 Parent', () => createRootContext('Embed Level 2 Grandparent'), 'test+'),
-        'test++'
-      ),
-      {
-      title: 'Embed Level 2 Core API',
-      includeRootOnly: false
-      }
-    )
+    if (includesContext('root')) {
+      registerSuite(
+        () => createRootContext('Root', Agent),
+        {
+        title: 'Root Core API',
+        includeRootOnly: true
+        }
+      )
+    }
+    if (includesContext('embed1')) {
+      registerSuite(
+        () => createEmbeddedContext('Embed Level 1', () => createRootContext('Embed Level 1 Parent'), 'test+'),
+        {
+        title: 'Embed Level 1 Core API',
+        includeRootOnly: false
+        }
+      )
+    }
+    if (includesContext('embed2')) {
+      registerSuite(
+        () => createEmbeddedContext(
+          'Embed Level 2',
+          () => createEmbeddedContext('Embed Level 2 Parent', () => createRootContext('Embed Level 2 Grandparent'), 'test+'),
+          'test++'
+        ),
+        {
+        title: 'Embed Level 2 Core API',
+        includeRootOnly: false
+        }
+      )
+    }
   })
 }
