@@ -92,7 +92,7 @@ function clientConnectionInfo(serverName, database) {
   }
 
   const info = {
-    hostname: host,
+    host,
     port: parsedPort,
     user,
     database
@@ -109,7 +109,7 @@ async function createDatabase(serverName, database) {
   }
   catch (error) {
     console.log(error)
-    if (!ignorableErrors[error.fields?.code]) {
+    if (!ignorableErrors[error.fields?.code || error.code]) {
       console.log('ERROR CREATING DATABASE!!!!!', serverName, database, error)
       throw error
     }
@@ -120,6 +120,20 @@ function clientKey(serverName, database) {
   return JSON.stringify([serverName, database])
 }
 
+function normalizePostgresError(error) {
+  if (error && typeof error === 'object') {
+    error.fields ||= {}
+    if (error.code !== undefined && error.fields.code === undefined) {
+      error.fields.code = error.code
+    }
+    if (error.message !== undefined && error.fields.message === undefined) {
+      error.fields.message = error.message
+    }
+  }
+
+  return error
+}
+
 async function clientForDatabase(serverName, database) {
   const key = clientKey(serverName, database)
 
@@ -127,7 +141,10 @@ async function clientForDatabase(serverName, database) {
     const poolPromise = (async () => {
       if (database !== 'postgres') await createDatabase(serverName, database)
 
-      const pool = new pg.Pool(clientConnectionInfo(serverName, database), 20, true)
+      const pool = new pg.Pool({
+        ...clientConnectionInfo(serverName, database),
+        max: 20
+      })
 
       if (database !== 'postgres') {
         queryOnServer(serverName, database, 'CREATE EXTENSION IF NOT EXISTS plpgsql')
@@ -158,15 +175,22 @@ async function queryOnServer(serverName, database, text, values, rowMode, maxRet
     let connection
     try {
       connection = await pool.connect()
-      return await connection.queryObject({ text, args: values, rowMode })
+      return await connection.query({
+        text,
+        values
+      })
     } catch (err) {
+      const error = normalizePostgresError(err)
       attempt++
 
       // TODO: only fatal connection errors should force connection end
       // forcibly close / evict
-      if (connection) try { await connection.end() } catch (_) {}
+      if (connection) {
+        try { connection.release(true) } catch (_) {}
+        connection = null
+      }
 
-      if (attempt >= maxRetries) throw err
+      if (attempt >= maxRetries) throw error
       await new Promise(res => setTimeout(res, delayMs))
     } finally {
       if (connection) try { connection.release() } catch (_) {}

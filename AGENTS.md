@@ -20,6 +20,11 @@ cd /workspace/test
 TEST_GREP="suite or test name" npm test
 ```
 
+Known test caveat: the mutable-state backslash tests are expected to fail due
+to the Redis JSONPath escaping issue tracked in `TODOs.md`. Do not treat those
+specific failures as regressions or try to fix them unless the task explicitly
+targets Redis JSONPath escaping.
+
 Browser coverage is also available from the same test package. The browser
 harness starts its own Vite server; no separate dev server is required.
 
