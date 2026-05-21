@@ -1,5 +1,10 @@
 #!/bin/bash
 
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 login_to_gcloud() {
   echo "Logging in as a different user..."
   gcloud auth login
@@ -58,7 +63,7 @@ configure_adc() {
   fi
 }
 
-if [ "$1" = "production" ]; then
+if [ "${1:-}" = "production" ]; then
   while true; do
     # Check if gcloud is already logged in
     GCLOUD_USER=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")

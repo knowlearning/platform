@@ -332,7 +332,7 @@ function setRow(domain, table, columns, id, state, firstParamIndex=1) {
 
   if (!data) {
     return [
-      `DELETE FROM ${purifiedName(table)} WHERE id = $${firstParamIndex}`
+      `DELETE FROM ${purifiedName(table)} WHERE id = $${firstParamIndex}`,
       [id]
     ]
   }

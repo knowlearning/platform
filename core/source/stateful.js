@@ -10,6 +10,7 @@ export const gcpTokenCache = new Map()
 export const guarantees = {}
 
 export const activeConnections = {}
+export const activeConnectionInfo = {}
 export const sessionMessageIndexes = {}
 export const responseBuffers = {}
 export const outstandingSideEffects = {}

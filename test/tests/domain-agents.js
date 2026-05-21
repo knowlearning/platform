@@ -1,4 +1,5 @@
 import configureDomain from '../utils/configure-domain.js'
+import browserAgent from '@knowlearning/agents/browser/initialize.js'
 import SIMPLE_MIRROR_CONFIGURATION from './domain-agents/simple-mirror-config.js'
 import PROXY_TO_SIMPLE_MIRROR_CONFIGURATION from './domain-agents/proxy-to-simple-mirror-config.js'
 import LIVENESS_REPORTING_CONFIGURATION from './domain-agents/liveness-reporting-config.js'
@@ -6,11 +7,25 @@ import LIVENESS_REPORTING_CONFIGURATION from './domain-agents/liveness-reporting
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
 const SIMPLE_MIRROR_DOMAIN = `simple-mirror-config.localhost:5112`
+const NO_AGENT_CONFIGURATION = `
+agent: null
+postgres:
+  tables: {}
+  scopes: {}
+`
+const HANGING_AGENT_CONFIGURATION = `
+agent: |
+  await new Promise(() => {})
+postgres:
+  tables: {}
+  scopes: {}
+`
 
 export default function () {
   const specialCrossDomainScopeName = `mirror-no-reset/${Agent.uuid()}`
   const specialCrossDomainResetScopeName =`mirror-reset/${Agent.uuid()}`
   const livenessDomain = `liveness-test-${Agent.uuid()}.localhost:5112`
+  const agentShutdownDomain = `agent-shutdown-test-${Agent.uuid()}.localhost:5112`
 
   const CONFIGURATION_1 = `
 authorize:
@@ -206,7 +221,9 @@ agent: |
   //  Test to see if we can spin up an agent connection to another domain
   const scopeNameToMirror = "${specialCrossDomainScopeName}"
   const myState = await TestAgent.state(scopeNameToMirror)
+  myState.progress = 'remote-state-opened'
   myState.x = 100
+  myState.progress = 'remote-state-wrote-100'
 
   const start = Date.now()
   const timeout = 10000
@@ -214,12 +231,24 @@ agent: |
 
   while (Date.now() - start < timeout) {
     agentState = await TestAgent.state(scopeNameToMirror, agentDomain, agentDomain)
+    myState.observed = agentState
     if (agentState.x === 100) break
     await new Promise(r => setTimeout(r, 100))
   }
 
-  myState.success = agentState?.x === 100
-  if (!myState.success) myState.error = 'Timed out waiting for mirrored state'
+  const success = agentState?.x === 100
+  const completionPatch = [
+    { op: 'add', path: ['active', 'progress'], value: 'remote-state-observed' },
+    { op: 'add', path: ['active', 'success'], value: success }
+  ]
+  if (!success) {
+    completionPatch.push({
+      op: 'add',
+      path: ['active', 'error'],
+      value: 'Timed out waiting for mirrored state'
+    })
+  }
+  await TestAgent.interact(scopeNameToMirror, completionPatch)
 
   // set up ping to ensure connections to TestAgent connect
   const ping = await TestAgent.state('ping')
@@ -238,17 +267,23 @@ agent: |
   //  Test to see if we can spin up an agent connection to another domain
   const scopeNameToMirror = "${specialCrossDomainResetScopeName}"
   const myState = await TestAgent.state(scopeNameToMirror)
+  myState.progress = 'remote-state-opened'
   myState.x = 100
+  myState.progress = 'remote-state-wrote-100'
 
   await new Promise(r => setTimeout(r, 100))
 
   myState.x = 200
+  myState.progress = 'remote-state-wrote-200'
 
   await new Promise(r => setTimeout(r, 400))
 
   const agentState = await TestAgent.state(scopeNameToMirror, agentDomain, agentDomain)
+  myState.observed = agentState
 
-  myState.success = agentState.x === 200
+  await TestAgent.interact(scopeNameToMirror, [
+    { op: 'add', path: ['active', 'success'], value: agentState.x === 200 }
+  ])
 `
 
   describe('Domain Agent', function () {
@@ -268,6 +303,37 @@ agent: |
       expect(state.tasks.agent[1]).to.equal('ERROR: Uncaught (in promise) Error: Whoopsie!!!\nline: 2, column: 7')
     })
 
+    it('Allows a hanging domain agent startup to be removed without blocking the domain', async function () {
+      this.timeout(10000)
+
+      const domain = `hanging-agent-${Agent.uuid()}.localhost:5112`
+      await configureDomain(domain, HANGING_AGENT_CONFIGURATION)
+      await configureDomain(domain, NO_AGENT_CONFIGURATION)
+
+      const agent = browserAgent({
+        unique: true,
+        domain,
+        apiHost: process.env.API_HOST || 'socket-io.localhost:8765',
+        getToken: () => 'anonymous'
+      })
+
+      const withTimeout = (promise, message) => Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(message)), 3000))
+      ])
+
+      try {
+        const environment = await withTimeout(
+          agent.environment(),
+          'Timed out waiting for connection after hanging agent removal'
+        )
+        expect(environment.domain).to.equal(domain)
+      }
+      finally {
+        agent.disconnect?.()
+      }
+    })
+
     it('Can establish cross domain agent connections', async function () {
       this.timeout(15000)
 
@@ -281,12 +347,16 @@ agent: |
       const start = Date.now()
       const timeout = 12000
 
-      while (state.success === undefined && Date.now() - start < timeout) {
+      while (
+        state.success === undefined
+        && state.observed?.x !== 100
+        && Date.now() - start < timeout
+      ) {
         await pause(100)
         state = await Agent.state(specialCrossDomainScopeName, remoteDomain, domain)
       }
 
-      expect(state.success).to.equal(true)
+      expect(state.success === true || state.observed?.x === 100, JSON.stringify(state)).to.equal(true)
     })
 
     it('Can establish cross domain agent connections that are resilient against domain agent resets', async function () {
@@ -299,12 +369,19 @@ agent: |
       await configureDomain(remoteDomain, CONFIGURATION_4)
 
       let state = {}
-      while (state.success === undefined) {
+      const start = Date.now()
+      const timeout = 12000
+
+      while (
+        state.success === undefined
+        && state.observed?.x !== 200
+        && Date.now() - start < timeout
+      ) {
         await pause(100)
         state = await Agent.state(specialCrossDomainResetScopeName, remoteDomain, domain)
       }
 
-      expect(state.success).to.equal(true)
+      expect(state.success === true || state.observed?.x === 200, JSON.stringify(state)).to.equal(true)
     })
 
     it('Connects to most recently deployed third party domain', async function () {
@@ -412,6 +489,36 @@ agent: |
         .filter(({ ping }) => ping >= activeSince)
 
       expect(activeTrackers).to.have.length(1)
+    })
+
+    it('Stops an existing domain agent when configuration removes agent', async function () {
+      this.timeout(20000)
+
+      await configureDomain(agentShutdownDomain, LIVENESS_REPORTING_CONFIGURATION)
+
+      let livenessTrackers = {}
+      const start = Date.now()
+      while (
+        !Object.keys(livenessTrackers).length
+        && Date.now() - start < 5000
+      ) {
+        await pause(100)
+        livenessTrackers = await Agent.state('liveness-trackers', agentShutdownDomain, agentShutdownDomain)
+      }
+
+      const [session] = Object.keys(livenessTrackers)
+      expect(session).to.not.equal(undefined)
+
+      await configureDomain(agentShutdownDomain, NO_AGENT_CONFIGURATION)
+      await pause(400)
+
+      livenessTrackers = await Agent.state('liveness-trackers', agentShutdownDomain, agentShutdownDomain)
+      const stoppedPing = livenessTrackers[session].ping
+
+      await pause(500)
+
+      livenessTrackers = await Agent.state('liveness-trackers', agentShutdownDomain, agentShutdownDomain)
+      expect(livenessTrackers[session].ping).to.equal(stoppedPing)
     })
   })
 }

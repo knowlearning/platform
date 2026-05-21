@@ -41,7 +41,6 @@ After=network.target
 
 [Service]
 ExecStart=${DENO_BIN} run \\
-  --inspect=127.0.0.1:9229 \\
   --config=${CONFIG_PATH} \\
   --frozen \\
   --cached-only \\

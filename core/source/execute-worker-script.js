@@ -16,9 +16,10 @@ const {
 
 const runIdToRequests = new Map()
 
-function startWorker(environment, namespaces) {
+function startWorker(workerKey, environment, namespaces) {
   const session = uuid()
   let initialized = false
+  const pendingResponseIds = new Set()
 
   const worker = isolatedWorker(
     new URL("./domain-worker/index.js", import.meta.url).pathname
@@ -30,7 +31,8 @@ function startWorker(environment, namespaces) {
 
   worker.onerror = (e) => {
     console.error("Worker crashed:", e.message)
-    delete domainWorkers[environment.domain]
+    delete domainWorkers[workerKey]
+    rejectPendingResponses(worker, e.message)
     worker.terminate()
   }
 
@@ -41,8 +43,12 @@ function startWorker(environment, namespaces) {
     }
     else if (e.data.type === 'respond') {
       const { id, response, error } = e.data
-      if (error) domainWorkerResponses[id].reject(error)
-      else domainWorkerResponses[id].resolve(response)
+      pendingResponseIds.delete(id)
+      const responseHandler = domainWorkerResponses[id]
+      if (!responseHandler) return console.warn('Received worker response for unknown request', environment.domain, id)
+
+      if (error) responseHandler.reject(error)
+      else responseHandler.resolve(response)
       delete domainWorkerResponses[id]
     }
     else if (messageHandlers[e.data.type]) {
@@ -78,7 +84,16 @@ function startWorker(environment, namespaces) {
     }
   }
 
+  worker.pendingResponseIds = pendingResponseIds
   return worker
+}
+
+function rejectPendingResponses(worker, error) {
+  for (const id of worker.pendingResponseIds || []) {
+    domainWorkerResponses[id]?.reject(error)
+    delete domainWorkerResponses[id]
+  }
+  worker.pendingResponseIds?.clear()
 }
 
 async function decodeSecrets(secrets) {
@@ -101,13 +116,16 @@ export default function executeWorkerScript(refreshWorker, domain, user, script,
   const workerKey = domain + JSON.stringify({context, namespaces})
 
   if (refreshWorker && domainWorkers[workerKey]) {
-    domainWorkers[workerKey].terminate()
+    const staleWorker = domainWorkers[workerKey]
+    rejectPendingResponses(staleWorker, 'Worker refreshed before completing request')
+    staleWorker.terminate()
     delete domainWorkers[workerKey]
   }
 
   //  TODO: clean up dormant workers
   if (!domainWorkers[workerKey]) {
     domainWorkers[workerKey] = startWorker(
+      workerKey,
       {
         domain,
         server: SESSION,
@@ -123,9 +141,17 @@ export default function executeWorkerScript(refreshWorker, domain, user, script,
 
   const id = uuid()
 
-  domainWorkers[workerKey].postMessage({ type: 'script', script, variables, id })
-
-  return new Promise((resolve, reject) => domainWorkerResponses[id] = { resolve, reject })
+  return new Promise((resolve, reject) => {
+    domainWorkerResponses[id] = { resolve, reject }
+    domainWorkers[workerKey].pendingResponseIds.add(id)
+    domainWorkers[workerKey]
+      .postMessage({ type: 'script', script, variables, id })
+      .catch(error => {
+        domainWorkers[workerKey]?.pendingResponseIds?.delete(id)
+        delete domainWorkerResponses[id]
+        reject(error)
+      })
+  })
 }
 
 function getNamespacedScope(namespace, scope) {

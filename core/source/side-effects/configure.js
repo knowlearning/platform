@@ -3,7 +3,7 @@
 import { uuid, parseYAML, environment, PatchProxy } from '../utils.js'
 import coreState from '../core-state.js'
 import { domainAdmin } from '../configuration.js'
-import domainAgent from '../domain-agent/index.js'
+import domainAgent, { stopDomainAgent } from '../domain-agent/index.js'
 import { domainIds, batchGetState, copyDomainStateToRedisServer, getState } from '../persistence.js'
 import * as postgres from '../postgres.js'
 import { download } from '../storage.js'
@@ -59,15 +59,23 @@ INSERT INTO ${postgres.purifiedName(table)}
 `
 
 const MAX_PARAMS_IN_BATCH = 10_000
+const AGENT_STARTUP_SETTLE_DELAY = 1000
 
 const { ADMIN_DOMAIN, MODE } = environment
 
 async function isAdmin(user, requestingDomain, requestedDomain) {
   return (
-       requestingDomain === 'localhost:5112'
-    || requestingDomain === `${user}.localhost:${parseInt(requestingDomain.split(':')[1])}`
+       isDevelopmentTest(user, requestingDomain)
     || (requestingDomain === ADMIN_DOMAIN && user === await domainAdmin(requestedDomain))
   )
+}
+
+function isDevelopmentTest(user, requestingDomain) {
+  return MODE === 'local'
+    && (
+      requestingDomain === 'localhost:5112'
+      || requestingDomain === `${user}.localhost:${parseInt(requestingDomain.split(':')[1])}`
+    )
 }
 
 export default async function configure({ domain, user, session, scope, patch, si, ii, send }) {
@@ -134,7 +142,8 @@ export async function prepareStorageForConfiguration(domain, config, report) {
 export async function applyConfiguration(domain, { postgres, agent }, report) {
   const tasks = []
   if (postgres) tasks.push(() => configurePostgres(domain, postgres, report))
-  if (agent) configureAgent(domain, agent, report)
+  if (agent) tasks.push(() => configureAgent(domain, agent, report))
+  else tasks.push(() => stopDomainAgent(domain))
 
   return Promise.all(tasks.map(t => t()))
 }
@@ -142,7 +151,11 @@ export async function applyConfiguration(domain, { postgres, agent }, report) {
 async function configureAgent(domain, agent, report) {
   report.tasks.agent = ['initializing']
   try {
-    await domainAgent(domain, true)
+    const startup = domainAgent(domain, true)
+    await Promise.race([
+      startup,
+      new Promise(resolve => setTimeout(resolve, AGENT_STARTUP_SETTLE_DELAY))
+    ])
     report.tasks.agent.push('done')
   }
   catch (error) {
@@ -244,11 +257,13 @@ async function syncTables(domain, tables, report) {
 
     tableTasks.push(`Creating ${Object.keys(indices).length} indices`)
 
-    await Object.entries(indices).map(async ([name, { column, gin }]) =>  {
-      tableTasks.push(`Creating index named ${name} on ${table} for ${column}`)
-      if (gin) await postgres.createGinIndex(domain, name, table, column)
-      else await postgres.createIndex(domain, name, table, column)
-    })
+    await Promise.all(
+      Object.entries(indices).map(async ([name, { column, gin }]) =>  {
+        tableTasks.push(`Creating index named ${name} on ${table} for ${column}`)
+        if (gin) await postgres.createGinIndex(domain, name, table, column)
+        else await postgres.createIndex(domain, name, table, column)
+      })
+    )
 
     if (rows.length > 0) {
       const batchSize = 100_000

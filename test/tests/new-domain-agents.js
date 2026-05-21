@@ -1,4 +1,5 @@
 import configureDomain from '../utils/configure-domain.js'
+import browserAgent from '@knowlearning/agents/browser/initialize.js'
 
 const MIRROR_FIELD_DOMAIN = 'mirror-field.localhost:5112'
 
@@ -12,6 +13,18 @@ const BROKEN_RUNTIME_CONFIG = `
   sideEffects:
     script: |
       runtimeError()
+`
+
+const CRASH_WORKER_CONFIG = `
+  sideEffects:
+    script: |
+      globalThis.Deno.exit(42)
+`
+
+const HANGING_WORKER_CONFIG = `
+  sideEffects:
+    script: |
+      await new Promise(() => {})
 `
 
 const mirrorFieldConfig = `
@@ -76,6 +89,85 @@ export default function () {
       x.a = 100
       const response = await Agent.response()
       expect(response.log).to.deep.equal(['ReferenceError: runtimeError is not defined'])
+    })
+
+    it('Returns an error response and recovers when a side effect worker exits', async function () {
+      const { domain } = await Agent.environment()
+      await configureDomain(domain, CRASH_WORKER_CONFIG)
+
+      const crashed = await Agent.state(Agent.uuid())
+      crashed.a = 100
+
+      const crashResponse = await Agent.response()
+      expect(crashResponse.log).to.deep.equal(['Worker exited with code 42'])
+
+      const response = Agent.uuid()
+      await configureDomain(domain, getSimpleResponseConfig(response))
+
+      const recovered = await Agent.state(Agent.uuid())
+      recovered.a = 100
+
+      const recoveredResponse = await Agent.response()
+      expect(recoveredResponse.response).to.equal(response)
+    })
+
+    it('Returns an error response and recovers when a side effect worker refreshes with pending work', async function () {
+      this.timeout(10000)
+
+      const domain = `refresh-worker-${Agent.uuid()}.localhost:5112`
+      const workerAgent = browserAgent({
+        unique: true,
+        domain,
+        apiHost: process.env.API_HOST || 'socket-io.localhost:8765',
+        getToken: () => 'anonymous'
+      })
+      const refreshAgent = browserAgent({
+        unique: true,
+        domain,
+        apiHost: process.env.API_HOST || 'socket-io.localhost:8765',
+        getToken: () => 'anonymous'
+      })
+
+      const withTimeout = (promise, message) => Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(message)), 3000))
+      ])
+
+      try {
+        await Promise.all([
+          workerAgent.environment(),
+          refreshAgent.environment()
+        ])
+        const hangingState = await workerAgent.state(Agent.uuid())
+        const recoveredState = await refreshAgent.state(Agent.uuid())
+
+        await configureDomain(domain, HANGING_WORKER_CONFIG)
+
+        hangingState.a = 100
+        const hangingResponse = withTimeout(
+          workerAgent.response(),
+          'Timed out waiting for refreshed worker error response'
+        )
+        await new Promise(resolve => setTimeout(resolve, 100))
+
+        const recoveredResponse = Agent.uuid()
+        await configureDomain(domain, getSimpleResponseConfig(recoveredResponse))
+
+        recoveredState.a = 200
+
+        const refreshResponse = await hangingResponse
+        expect(refreshResponse.log).to.deep.equal(['Worker refreshed before completing request'])
+
+        const nextResponse = await withTimeout(
+          refreshAgent.response(),
+          'Timed out waiting for refreshed worker recovery response'
+        )
+        expect(nextResponse.response).to.equal(recoveredResponse)
+      }
+      finally {
+        workerAgent.disconnect?.()
+        refreshAgent.disconnect?.()
+      }
     })
 
     it('Gets expected responses after reconfigurations', async function () {

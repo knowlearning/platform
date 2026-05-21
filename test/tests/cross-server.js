@@ -75,6 +75,19 @@ async function apiStatus(apiHost) {
   return response.json()
 }
 
+async function disconnectAgent(agent) {
+  try {
+    await agent?.disconnect?.()
+  }
+  catch (error) {
+    console.warn('Error disconnecting cross-server test agent', error)
+  }
+}
+
+async function disconnectAllocatedAgents(allocated=[]) {
+  await Promise.all(allocated.map(({ agent }) => disconnectAgent(agent)))
+}
+
 async function allocateDistinctServerAgents(browserAgent, config) {
   const byServer = new Map()
   const attempts = []
@@ -102,15 +115,21 @@ async function allocateDistinctServerAgents(browserAgent, config) {
       if (!byServer.has(environment.server)) {
         byServer.set(environment.server, { agent, environment, apiHost })
       }
+      else {
+        await disconnectAgent(agent)
+      }
 
       if (byServer.size >= config.serverCount) break
     }
     catch (error) {
       attempts.push({ apiHost, error: error.message })
+      await disconnectAgent(agent)
     }
   }
 
   if (byServer.size < config.serverCount) {
+    await disconnectAllocatedAgents([...byServer.values()])
+
     const summary = attempts
       .map(({ apiHost, server, error }) => `${apiHost} -> ${server || error}`)
       .join('\n')
@@ -452,6 +471,11 @@ export default function crossServer(browserAgent, { skipIfUnavailable=false }={}
         if (skipIfUnavailable) this.skip()
         throw error
       }
+    })
+
+    after(async function () {
+      await disconnectAllocatedAgents(agents)
+      agents = []
     })
 
     it('connects clients to distinct API servers', function () {

@@ -13,6 +13,7 @@ import domainAgent from './domain-agent/index.js'
 import {
   guarantees,
   activeConnections,
+  activeConnectionInfo,
   sessionMessageIndexes,
   responseBuffers,
   outstandingSideEffects,
@@ -26,6 +27,8 @@ const {
   SESSION_RECONNECTION_INTERVAL = 60_000,
   HEARTBEAT_INTERVAL = 5_000
 } = environment
+
+const DOMAIN_AGENT_WAIT_TIMEOUT = 500
 
 function reconnection(session) {
   return new Promise((resolve, reject) => {
@@ -109,6 +112,7 @@ export default async function handleConnection(connection, domain, sid, metricsP
 
     //  TODO: tear down listeners
     delete activeConnections[targetSession]
+    delete activeConnectionInfo[targetSession]
     delete sessionMessageIndexes[targetSession]
     delete responseBuffers[targetSession]
     delete outstandingSideEffects[targetSession]
@@ -195,7 +199,7 @@ export default async function handleConnection(connection, domain, sid, metricsP
 
   let lastAgent
   connection.onmessage = async message => {
-    let agent = await domainAgent(domain).catch(() => null)
+    let agent = await availableDomainAgent(domain)
 
     if (agent && user && lastAgent !== agent) {
       // TODO: consider adding param so new agent instance knows
@@ -255,6 +259,7 @@ export default async function handleConnection(connection, domain, sid, metricsP
         })
 
         activeConnections[session] = connection
+        activeConnectionInfo[session] = { user, domain }
         responseBuffers[session].forEach(r => connection.send(r))
 
         //  Only send open on initial session auth
@@ -263,7 +268,6 @@ export default async function handleConnection(connection, domain, sid, metricsP
         }
       }
       catch (error) {
-        throw error
         console.log('Error Authorizing Agent', error)
         try {
           connection.send({ error: 'First Message Must Be A Valid Auth Message' })
@@ -341,4 +345,11 @@ export default async function handleConnection(connection, domain, sid, metricsP
       }
     }
   }
+}
+
+function availableDomainAgent(domain) {
+  return Promise.race([
+    domainAgent(domain).catch(() => null),
+    new Promise(resolve => setTimeout(() => resolve(null), DOMAIN_AGENT_WAIT_TIMEOUT))
+  ])
 }
