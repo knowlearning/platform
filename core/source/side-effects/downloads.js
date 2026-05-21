@@ -5,7 +5,7 @@ export default async function ({ domain, user, session, patch, si, ii, send }) {
     const { op, path, value } = patch[index]
     if (op === 'add' && path.length === 1 && path[0] === 'active') {
       const { id } = value
-      return send({ si, ii, url: await download(id) })
+      return send({ si, ii, url: await download(domain, id) })
     }
   }
 

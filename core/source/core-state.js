@@ -1,5 +1,5 @@
 import { PatchProxy } from './utils.js'
-import interact from './interact/index.js'
+import interact from './interact.js'
 import { outstandingCoreStateInteractions as outstanding } from './stateful.js'
 
 export default async function coreState(user, id, domain) {

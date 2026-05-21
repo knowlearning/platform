@@ -30,13 +30,13 @@ gcloud config set project opensourcelearningplatform
 # Set CORS config for production bucket.
 gcloud storage buckets update \
   gs://development-bucket-opensourcelearningplatform \
-  --cors-file=core/infrastructure/production/CORS_CONFIG_FILE
+  --cors-file=core/infrastructure/CORS_CONFIG_FILE
 ```
 
 ## Publish
 
 ```sh
-sh core/infrastructure/GCP/publish.sh production
+bash core/infrastructure/GCP/publish production
 ```
 
 # System Spec

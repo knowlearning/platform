@@ -2,10 +2,9 @@ import { parse as parseYAML } from 'https://deno.land/std@0.207.0/yaml/mod.ts'
 import { validate as isUUID } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
 import { v5 as uuidv5 } from 'npm:uuid@11.1.0'
 import { createClient as createRedisClient } from 'npm:redis@4.7.0'
-import * as pg from "jsr:@db/postgres@0.19.4"
 import Agent from 'npm:@knowlearning/agents@0.9.186/agents/generic/index.js'
 import { applyPatch } from 'npm:fast-json-patch@3.1.1/index.mjs'
-import nodePostres from 'npm:pg@8.11.0'
+import pg from 'npm:pg@8.11.0'
 import jwkToPem from 'npm:jwk-to-pem@2.0.5'
 import jwt from 'npm:jsonwebtoken@8.5.1'
 import nacl from 'npm:tweetnacl@1.0.3'
@@ -117,7 +116,7 @@ const decrypt = (mySecretKey, theirPublicKey, encryptedMessageBufferWithNonce) =
 }
 
 const decodeBase64String = string => (new TextDecoder()).decode(decodeBase64(string))
-const escapePostgresLiteral = nodePostres.escapeLiteral
+const escapePostgresLiteral = pg.escapeLiteral
 const requestDomain = request => (new URL(request.headers.get('origin') || 'https://core')).host
 
 async function decryptBase64String(privateKeyPem, encryptedBase64) {

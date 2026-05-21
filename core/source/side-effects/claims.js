@@ -1,7 +1,9 @@
+// Global State - okay, as long as 'domain-config' scope handled at peristence.js layer
+
 import { environment, uuid, randomBytes, PatchProxy } from '../utils.js'
 import coreState from '../core-state.js'
-import interact from '../interact/index.js'
-import * as redis from '../redis.js'
+import interact from '../interact.js'
+import { setState } from '../persistence.js'
 import initializationState from '../initialization-state.js'
 
 const CHALLENGE_TIMEOUT_LIMIT = 1000 * 60 * 5
@@ -10,10 +12,7 @@ const { MODE, ADMIN_DOMAIN } = environment
 
 //  TODO: remove need for core to have initialization state and rely on
 //        side effects for individual application/json;type=claim scopes
-redis.connected.then(() => {
-  const state = initializationState('core', 'core')
-  redis.client.json.set('domain-config', '$', state, { NX: true })
-})
+setState('core', 'domain-config', '$', initializationState('core', 'core'), { NX: true })
 
 export default async function claims({ domain, user, session, patch, si, ii, send }) {
   if (domain === ADMIN_DOMAIN || MODE === 'local') { //  can claim from any domain on local
@@ -25,7 +24,7 @@ export default async function claims({ domain, user, session, patch, si, ii, sen
         const claimedDomain = value.domain //  TODO: graceful fail
 
         //  Make sure the domain config is initialized
-        redis.client.json.set('domain-config', `$["active"][${JSON.stringify(claimedDomain)}]`, {}, { NX: true })
+        setState('core', 'domain-config', `$["active"][${JSON.stringify(claimedDomain)}]`, {}, { NX: true })
 
         const report = uuid()
         send({ si, ii, token, report })

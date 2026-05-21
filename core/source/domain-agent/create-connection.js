@@ -1,4 +1,4 @@
-export default function createConnection(worker, id, domain, DomainAgents) {
+export default function createConnection(worker, id, domain, DomainAgents, generation) {
   let queue = []
   let closed = false
 
@@ -21,7 +21,7 @@ export default function createConnection(worker, id, domain, DomainAgents) {
       console.warn('WORKER CLOSED THROUGH CONNECTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', info)
       closed = true
       worker.terminate()
-      delete DomainAgents[domain]
+      if (DomainAgents[domain]?.generation === generation) delete DomainAgents[domain]
     }
   }
 }
