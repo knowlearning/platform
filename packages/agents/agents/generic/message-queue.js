@@ -4,6 +4,7 @@ import pkg from '../../package.json' assert { type: 'json' }
 
 const HEARTBEAT_TIMEOUT = 10000
 const DOMAIN_MESSAGES = { open: true, mutate: true, close: true }
+const NOOP_ACK = -1
 
 function activePatch(patch) {
   return structuredClone(patch).filter(({ path }) => 'active' === path.shift())
@@ -92,6 +93,13 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
     while (outstandingSyncPromises[0] && outstandingSyncPromises[0].si < lowestOutstandingResponseIndex) {
       outstandingSyncPromises.shift().resolve()
     }
+  }
+
+  function nudgeOutstandingResponse() {
+    if (Object.keys(responses).length === 0) return
+
+    // Avoid the TCP delayed-ACK/Nagle gap after same-connection subscription echoes.
+    connection.send({ ack: NOOP_ACK })
   }
 
   function checkHeartbeat() {
@@ -207,6 +215,8 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
             }
           }
           else {
+            nudgeOutstandingResponse()
+
             const d = message.domain === domain ? '' : message.domain
             const u = message.user === user ? '' : message.user
             const s = message.scope

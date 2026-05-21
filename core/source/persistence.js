@@ -2,6 +2,8 @@ import * as redis from './redis.js'
 import sync from './sync.js'
 import { bigQueryBatchInserter } from './gcp-api.js'
 import { environment, isUUID } from './utils.js'
+import SESSION from './session.js'
+import { subscriptionResponses } from './stateful.js'
 
 const { GC_PROJECT_ID, GCS_SERVICE_ACCOUNT_CREDENTIALS } = environment
 
@@ -248,8 +250,20 @@ export async function subscribe(id, callback) {
 }
 
 export async function publish(id, message) {
+  const update = { ...message, originServer: SESSION }
+  const localSubscribers = subscriptionResponses[id] || []
+
+  for (const callback of [...localSubscribers]) {
+    try {
+      callback(update)
+    }
+    catch (error) {
+      console.warn('ERROR DELIVERING LOCAL SUBSCRIPTION UPDATE', id, error)
+    }
+  }
+
   await redis.connected
-  await redis.publishAll(id, JSON.stringify(message))
+  await redis.publishAll(id, JSON.stringify(update))
 }
 
 async function legacyDomainIds(domain) {

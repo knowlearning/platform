@@ -1,5 +1,6 @@
 import { performance } from 'node:perf_hooks'
 import { io } from 'socket.io-client'
+import { v4 as uuid } from 'uuid'
 import browserAgent from '@knowlearning/agents/browser/initialize.js'
 import { normalizeHost, preflightApiHosts } from './api-preflight.js'
 
@@ -122,6 +123,150 @@ async function socketApiRoundTrip() {
   })
 }
 
+function waitForSocketMessage(socket, pendingMessages, pendingWaiters, predicate, timeout=5000) {
+  const existingIndex = pendingMessages.findIndex(predicate)
+  if (existingIndex > -1) return Promise.resolve(pendingMessages.splice(existingIndex, 1)[0])
+
+  return new Promise((resolve, reject) => {
+    const waiter = {
+      predicate,
+      resolve,
+      reject,
+      timer: setTimeout(() => {
+        const waiterIndex = pendingWaiters.indexOf(waiter)
+        if (waiterIndex > -1) pendingWaiters.splice(waiterIndex, 1)
+        reject(new Error('Timed out waiting for raw socket message'))
+      }, timeout)
+    }
+    pendingWaiters.push(waiter)
+  })
+}
+
+async function createRawProtocolSession() {
+  const sid = await fetchSid()
+  const pendingMessages = []
+  const pendingWaiters = []
+  let si = -1
+
+  const socket = io(`https://${apiHost}`, {
+    withCredentials: true,
+    rejectUnauthorized: false,
+    reconnection: false,
+    timeout: 5000,
+    extraHeaders: {
+      origin,
+      ...(sid ? { sid } : {})
+    }
+  })
+
+  const waitFor = (predicate, timeout) => waitForSocketMessage(socket, pendingMessages, pendingWaiters, predicate, timeout)
+
+  socket.on('message', message => {
+    if (!message) return
+    message.__receivedAt = performance.now()
+    if (message.si !== undefined) socket.emit('message', { ack: message.si })
+
+    const waiterIndex = pendingWaiters.findIndex(waiter => waiter.predicate(message))
+    if (waiterIndex > -1) {
+      const [waiter] = pendingWaiters.splice(waiterIndex, 1)
+      clearTimeout(waiter.timer)
+      waiter.resolve(message)
+    }
+    else pendingMessages.push(message)
+  })
+
+  await new Promise((resolve, reject) => {
+    socket.once('connect', resolve)
+    socket.once('connect_error', reject)
+    socket.once('error', reject)
+  })
+
+  socket.emit('message', {
+    token: 'anonymous-ephemeral',
+    sid,
+    domain
+  })
+  const environment = await waitFor(message => message.auth && message.session)
+
+  function send(scope, patch) {
+    si += 1
+    socket.emit('message', { scope, patch, si, ts: Date.now() })
+    return si
+  }
+
+  async function interact(scope, patch) {
+    const messageIndex = send(scope, patch)
+    return waitFor(message => message.si === messageIndex)
+  }
+
+  function close() {
+    pendingWaiters.splice(0).forEach(waiter => {
+      clearTimeout(waiter.timer)
+      waiter.reject(new Error('Raw socket closed'))
+    })
+    socket.disconnect()
+  }
+
+  return { close, environment, interact, send, waitFor }
+}
+
+async function rawSubscribedUuidTimings(count=samples) {
+  const raw = await createRawProtocolSession()
+  const scope = uuid()
+
+  try {
+    await raw.interact('sessions', [{
+      op: 'add',
+      path: ['active', raw.environment.session],
+      value: { queries: {}, subscriptions: {} }
+    }])
+
+    await raw.interact('sessions', [{
+      op: 'add',
+      path: ['active', raw.environment.session, 'subscriptions', scope],
+      value: {
+        scope,
+        user: raw.environment.auth.user,
+        domain,
+        ii: null
+      }
+    }])
+
+    const response = []
+    const echo = []
+    const echoMinusResponse = []
+    let responseFirst = 0
+
+    for (let index = 0; index < count; index += 1) {
+      const key = `raw_${index}_${uuid()}`
+      const startedAt = performance.now()
+      const si = raw.send(scope, [{ op: 'add', path: ['active', key], value: index }])
+
+      const responseMessage = await raw.waitFor(message => message.si === si)
+      const responseAt = responseMessage.__receivedAt
+      const echoMessage = await raw.waitFor(message => (
+        message.si === undefined
+        && message.scope === scope
+        && message.patch?.some(operation => operation.path?.[1] === key)
+      ))
+      const echoAt = echoMessage.__receivedAt
+
+      if (responseAt <= echoAt) responseFirst += 1
+      response.push(responseAt - startedAt)
+      echo.push(echoAt - startedAt)
+      echoMinusResponse.push(echoAt - responseAt)
+
+      if (responseMessage.error) throw new Error(responseMessage.error)
+      if (echoMessage.error) throw new Error(echoMessage.error)
+    }
+
+    return { response, echo, echoMinusResponse, responseFirst }
+  }
+  finally {
+    raw.close()
+  }
+}
+
 function createAgent(token='anonymous') {
   const agent = browserAgent({
     unique: true,
@@ -208,6 +353,12 @@ try {
       { op: 'add', path: ['active', session, 'latencyProbe', `${index}`], value: index }
     ], false)
   }))
+
+  const rawSubscribed = await rawSubscribedUuidTimings()
+  rows.push(summarize('raw subscribed UUID response', rawSubscribed.response))
+  rows.push(summarize('raw subscribed UUID echo', rawSubscribed.echo))
+  rows.push(summarize('raw echo minus response gap', rawSubscribed.echoMinusResponse))
+  originalLog(`raw subscribed UUID response-first: ${rawSubscribed.responseFirst}/${rawSubscribed.response.length}`)
 
   const syncedScope = agent.uuid()
   const syncedState = await agent.state(syncedScope)

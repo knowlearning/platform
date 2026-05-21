@@ -1,17 +1,28 @@
 # Performance Investigation Update
 
-Date: 2026-05-20
+Date: 2026-05-21
 
 This note captures the current test-suite latency investigation so the project can be resumed without reconstructing the thread.
 
 ## Current Workspace State
 
-- The API process has been restarted back onto the original core implementation.
-- Temporary core/server/client instrumentation and A/B implementation swaps were reverted.
-- The only remaining performance-related working-tree additions are the latency probe:
+- The Postgres migration has been applied and the focused Postgres suite is stable.
+- A subscribed UUID response nudge is now applied in `packages/agents/agents/generic/message-queue.js`.
+  - When a subscription echo arrives while the Agent still has outstanding direct responses, the client sends `{ ack: -1 }`.
+  - The server already treats this as a no-op ack, but the tiny client-to-server frame collapses the TCP delayed-ACK/Nagle-shaped `~40ms` echo-to-response gap.
+  - This keeps the existing wire API and server behavior unchanged; it is a client runtime implementation detail.
+- A same-process subscription fast-path is now applied in `core/source/persistence.js` and `core/source/subscribe.js`.
+  - The API server immediately delivers updates to local subscribers after the Redis state transaction.
+  - The Redis publish still happens for cross-server delivery.
+  - Published messages include `originServer`; the originating server ignores its returned Redis publish to avoid duplicate local echoes.
+  - `originServer` is stripped before client delivery, so client update shape remains unchanged.
+- A no-client-change server-only attempt was tested and reverted:
+  - Holding same-session echoes until after the response preserved wire shape and latency, but broke existing Agent watcher/state assumptions.
+  - Moving `publish(...)` after `sync(...)` preserved legacy echo-before-response behavior, but kept the `~50ms` response latency.
+- The reusable latency probe now includes raw subscribed UUID response/echo timing:
   - `test/package.json`: adds `npm run test:latency`.
   - `test/latency-probe.js`: Vite-builds and runs the probe entry.
-  - `test/latency-probe.entry.js`: measures raw API, Agent environment/state/mutation, synced, and watch delivery timings.
+  - `test/latency-probe.entry.js`: measures raw API, Agent environment/state/mutation, synced, watch delivery, and raw subscribed UUID response ordering.
 - Run performance probe from the test package:
 
 ```sh
@@ -19,11 +30,11 @@ cd /workspace/test
 LATENCY_SAMPLES=20 npm run test:latency
 ```
 
-- Restart one API server after temporary core edits:
+- Restart API servers after core edits:
 
 ```sh
 cd /workspace/test
-node dev-api-control.js restart api-1:8765
+node dev-api-control.js restart
 ```
 
 ## Baseline Latency Shape
@@ -60,6 +71,32 @@ Agent.interact(existing scope)        p50 ~50-51ms
 Agent.interact(sessions scope)        p50 ~3ms
 mutation + Agent.synced()             p50 ~50-52ms
 cross-agent watch delivery            p50 ~50-51ms
+```
+
+Current runtime after the Postgres migration, `{ ack: -1 }` subscription nudge, and same-process subscription fast-path, with `LATENCY_SAMPLES=20`:
+
+```text
+raw fetch _sid-check                  p50   0.5ms
+raw socket.io connect + api           p50  22.3ms
+new Agent environment()               p50  73.5ms
+new ephemeral Agent environment()     p50  42.6ms
+Agent.state(new scope)                p50  18.1ms
+Agent.state(existing uncached scope)  p50   8.6ms
+Agent.state(cached scope)             p50   0.0ms
+mutation + Agent.response()           p50   8.7ms
+Agent.interact(existing scope)        p50   8.9ms
+Agent.interact(sessions scope)        p50   3.1ms
+mutation + Agent.synced()             p50   8.8ms
+cross-agent watch delivery            p50   8.6ms
+```
+
+The raw subscribed UUID probe intentionally does not send the nudge, so it still demonstrates the underlying transport gap:
+
+```text
+raw subscribed UUID response          p50  46.8ms
+raw subscribed UUID echo              p50   6.3ms
+raw echo minus response gap           p50 -40.6ms
+raw subscribed UUID response-first    0/20
 ```
 
 ## Main Findings
@@ -191,6 +228,151 @@ The p95 remained because delayed echoes from prior mutations can still interfere
 
 Conclusion: after fixing Postgres, the next speedup is to redesign own-session subscription echo/response ordering. The response should not be delayed by an own echo for the same subscribed UUID.
 
+## Compatibility Finding
+
+### No-client-change server-only fix is insufficient
+
+The fast path requires the direct response to arrive before the same-session own subscription echo. That keeps the wire shape unchanged, but it changes observable ordering for existing Agent clients. The focused Agent tests show those clients rely on the own echo updating local subscribed state before later watch/state setup proceeds.
+
+Response-first, same-wire server-only attempt:
+
+```text
+mutation + Agent.response()           p50  9.2ms
+raw subscribed UUID response          p50  8.9ms
+raw subscribed UUID echo              p50  9.1ms
+raw echo minus response gap           p50  0.2ms
+raw subscribed UUID response-first    20/20
+```
+
+But focused correctness failed:
+
+```text
+TEST_GREP="Synced State|Watchers|Latest Bugfixes" npm test
+# 143 passing, 25 failing
+```
+
+The failures were stale initial watcher/state reads, for example seeing `{}` before `{ x: 100 }`, plus embedded sync timeouts.
+
+Publish-after-sync server-only attempt:
+
+```text
+mutation + Agent.response()           p50 52.8ms
+raw subscribed UUID response          p50 52.7ms
+raw subscribed UUID echo              p50 12.1ms
+raw echo minus response gap           p50 -40.7ms
+raw subscribed UUID response-first    4/20
+```
+
+Conclusion: keeping legacy Agent behavior and getting the `~9ms` response path conflict if the fix is server-only. The current stable fast implementation avoids changing server ordering by sending a no-op client frame after receiving an echo while a response is pending.
+
+## Implemented Nudge
+
+`packages/agents/agents/generic/message-queue.js`
+
+```text
+subscription echo arrives
+  -> if any response promises are still outstanding:
+       connection.send({ ack: -1 })
+  -> continue normal watcher/state echo handling
+```
+
+Why this works:
+
+- The response is already ready server-side, but delivery commonly stalls about `40ms` after an echo on the same connection.
+- A tiny client-to-server frame forces timely TCP progress without changing response shape, echo shape, or public API calls.
+- `{ ack: -1 }` is already used during auth/init flows and is not a valid positive message `si`, so it is effectively a protocol no-op for response accounting.
+- The nudge is only sent when at least one direct response is outstanding, so idle subscription traffic does not add extra frames.
+
+Validation:
+
+```text
+LATENCY_SAMPLES=20 npm run test:latency
+mutation + Agent.response()           p50   8.9ms
+Agent.interact(existing scope)        p50   8.3ms
+mutation + Agent.synced()             p50   8.6ms
+cross-agent watch delivery            p50   7.8ms
+```
+
+Focused correctness:
+
+```text
+TEST_GREP="Synced State|Watchers|Latest Bugfixes" npm test
+# 168 passing
+```
+
+Full embedded harness:
+
+```text
+npm test
+# 398 passing, 7 failing
+```
+
+Expected failures:
+
+```text
+6 mutable-state backslash failures
+```
+
+The remaining full-run failure was:
+
+```text
+Domain Agent > Can configure many agents in series and only 1 is active at a time
+```
+
+That exact test passed on immediate rerun:
+
+```text
+TEST_GREP="Can configure many agents in series and only 1 is active at a time" npm test
+# 1 passing
+```
+
+## Implemented Same-Process Subscription Fast-Path
+
+`core/source/persistence.js` and `core/source/subscribe.js`
+
+```text
+publish(id, message)
+  -> tag message with originServer = SESSION
+  -> synchronously deliver to subscriptionResponses[id] on this API process
+  -> publish tagged message to Redis for other API processes
+
+Redis subscription callback
+  -> parse update
+  -> ignore if update.originServer === SESSION
+  -> strip originServer before client callback
+```
+
+Why this exists:
+
+- It avoids waiting for Redis pub/sub when the writer and subscriber are already on the same API process.
+- It keeps Redis as the cross-server fanout mechanism.
+- It prevents duplicate local delivery when Redis sends the originating server's own publish back to it.
+- It does not replace the client nudge, because local immediate delivery is still server-to-client and does not remove the delayed-ACK-shaped response gap.
+
+Measured impact:
+
+```text
+LATENCY_SAMPLES=20 npm run test:latency
+mutation + Agent.response()           p50   8.7ms
+mutation + Agent.synced()             p50   8.8ms
+cross-agent watch delivery            p50   8.6ms
+raw subscribed UUID echo              p50   6.3ms
+```
+
+Conclusion: this is a correct simplification/robustness improvement for local subscribers, but it did not materially improve p50 latency because local Redis pub/sub was already around `6ms`. The remaining visible gap is still the transport-level echo/response interaction handled by the client nudge.
+
+Validation after this change:
+
+```text
+TEST_GREP="Watchers|Synced State|Latest Bugfixes|Cross-server client correctness" npm test
+# 176 passing
+
+npm test
+# 399 passing, 6 failing
+```
+
+The six full-suite failures are the known Redis JSONPath backslash failures.
+
 ## Relevant Code Paths
 
 ### UUID State Creation
@@ -293,6 +475,9 @@ Agent.state(cached scope)
 mutation + Agent.response()
 Agent.interact(existing scope)
 Agent.interact(sessions scope)
+raw subscribed UUID response
+raw subscribed UUID echo
+raw echo minus response gap
 mutation + Agent.synced()
 cross-agent watch delivery
 ```
@@ -335,64 +520,23 @@ This proved the residual `~50ms` after the Postgres fix is not Agent queue batch
 
 ## Recommended Next Work
 
-1. Fix the Postgres client/query path first.
-
-Possible approaches:
-
-```text
-Option A: Replace jsr:@db/postgres with npm:pg in core/source/postgres.js.
-Option B: Find a Deno Postgres client option that avoids the slow extended parameterized path.
-Option C: Use literal interpolation only for tightly controlled internal queries, but this is riskier and not a general solution.
-```
-
-The `npm:pg` A/B is the strongest evidence and produced the largest improvement.
-
-Validation after a Postgres-client change:
+1. Decide whether the latency probe should remain as a committed diagnostic tool.
 
 ```sh
 cd /workspace/test
 LATENCY_SAMPLES=20 npm run test:latency
-npm test
 ```
 
-Also run targeted Postgres tests if iterating:
+The probe is useful while performance is active work. If kept, consider adding thresholds or a historical baseline file so the final timing summary can be watched in CI or during local release checks.
 
-```sh
-cd /workspace/test
-TEST_GREP="Postgres" npm test
-```
+2. Consider a lower-level transport fix only if Deno exposes one.
 
-2. Fix subscribed UUID response ordering.
-
-Potential directions:
-
-```text
-Do not send own subscription echoes before the direct response.
-Tag or suppress same-session own echoes where safe.
-Send direct response before publish, then send/publish the echo.
-Use a separate channel/connection for subscription echoes.
-Batch or defer subscription echoes without delaying direct responses.
-```
-
-The simple `publish after sync` experiment improved p50 but not p95, so a complete fix likely needs explicit own-echo ordering/suppression rather than only moving one call.
-
-3. Re-check full-suite behavior.
-
-The performance investigation avoided keeping core edits. Before finalizing optimizations, re-run the primary harness:
-
-```sh
-cd /workspace/test
-npm test
-```
-
-Previous context from this investigation: the full suite had a separate domain-agent lifecycle issue exposed while iterating. Keep that separate from the latency work unless it still reproduces after the current workspace is cleaned up.
+Node Socket.IO can often set `socket.conn.transport.socket.setNoDelay(true)`, but the current Deno WebSocket / Deno Socket.IO path does not expose an underlying TCP socket with `setNoDelay()`. If Deno or the Socket.IO dependency exposes that later, it would be cleaner than the `{ ack: -1 }` nudge.
 
 ## Caveats
 
-- All core/server/client tracing and A/B swaps were temporary and reverted.
-- The `npm:pg` result was an exploratory proof, not a finished production patch.
-- The current latency probe is intentionally diagnostic and may be expanded or removed before finalizing the branch.
-- The common `50ms+` number has at least two contributors:
+- All temporary tracing logs and A/B swaps should remain out of the final patch.
+- The current latency probe is diagnostic and may be expanded or removed before finalizing the branch.
+- The original common `50ms+` number had at least two contributors:
   - Original server-side parameterized Postgres floor.
   - Subscribed UUID echo/response ordering.
-

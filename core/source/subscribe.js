@@ -1,5 +1,11 @@
 import { subscriptionResponses } from './stateful.js'
 import { subscribe } from './persistence.js'
+import SESSION from './session.js'
+
+function clientUpdate(update) {
+  const { originServer, ...message } = update
+  return message
+}
 
 //  TODO: clean up subscriptions when no more subscribers
 export default function (id, callback, scope) {
@@ -13,13 +19,14 @@ export default function (id, callback, scope) {
     subscribe(id, message => {
       if (!subscriptionResponses[id]) subscriptionResponses[id] = []
       const update = JSON.parse(message)
+      if (update.originServer === SESSION) return
       subscriptionResponses[id].forEach(cb => cb(update))
     })
   }
 
   const sendUpdate = update => {
-    if (scope) update = { ...update, scope } // if given, use subscriber's named scope in update
-    callback(update)
+    const message = clientUpdate(update)
+    callback(scope ? { ...message, scope } : message) // if given, use subscriber's named scope in update
   }
 
   subscriptionResponses[id].push(sendUpdate)
