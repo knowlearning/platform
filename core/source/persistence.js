@@ -16,7 +16,7 @@ const { insert: bqInsertPatch } = bigQueryBatchInserter({
 
 const UUID_OWNER_HASH_KEY = '__knowlearning:uuid-owner-domain'
 const DOMAIN_UUID_SET_PREFIX = '__knowlearning:domain-uuids:'
-const REDIS_COPY_BATCH_SIZE = 100
+const REDIS_COPY_BATCH_SIZE = 1000
 const REDIS_COPY_PROGRESS_INTERVAL = 10_000
 const uuidOwnerCache = new Map()
 
