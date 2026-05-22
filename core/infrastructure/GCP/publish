@@ -103,7 +103,9 @@ if [ "${1:-}" = "production" ]; then
   echo "4) europe-west3-a"
   echo "5) europe-west3-b"
 
-  read -p "Enter choice [1-3]: " choice
+  REDIS_SUBSCRIPTION_SERVER_DEFAULT="default"
+
+  read -p "Enter choice [1-5]: " choice
 
   case "$choice" in
     1)
@@ -126,6 +128,7 @@ if [ "${1:-}" = "production" ]; then
       export INSTANCE_NAME="my-deno-instance-3"
       export STATIC_IP_NAME="my-static-ip-3"
       export GCP_MACHINE="n4-standard-2"
+      REDIS_SUBSCRIPTION_SERVER_DEFAULT="singapore"
       ;;
     4)
       export REGION="europe-west3"
@@ -157,7 +160,7 @@ if [ "${1:-}" = "production" ]; then
   if [ -f ../../../../.credentials/REDIS_SUBSCRIPTION_SERVER ]; then
     export REDIS_SUBSCRIPTION_SERVER="$(cat ../../../../.credentials/REDIS_SUBSCRIPTION_SERVER)"
   else
-    export REDIS_SUBSCRIPTION_SERVER="default"
+    export REDIS_SUBSCRIPTION_SERVER="$REDIS_SUBSCRIPTION_SERVER_DEFAULT"
   fi
   export SSL_CERT="$(cat ../../../../.credentials/SSL_CERT)"
   export SSL_KEY="$(cat ../../../../.credentials/SSL_KEY)"
