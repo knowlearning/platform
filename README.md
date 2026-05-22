@@ -35,6 +35,15 @@ gcloud storage buckets update \
 
 ## Publish
 
+Production publish reads deployment secrets from `.credentials` at the repo
+parent. Storage credentials are full server maps:
+
+```sh
+POSTGRES_SERVERS='{"default":{"host":"10.50.0.2","port":5432,"user":"postgres","password":"..."}}'
+REDIS_SERVERS='{"default":{"host":"redis.example.com","port":15018,"username":"default","password":"..."}}'
+REDIS_SUBSCRIPTION_SERVER='default' # optional
+```
+
 ```sh
 bash core/infrastructure/GCP/publish production
 ```

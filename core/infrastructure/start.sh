@@ -82,19 +82,15 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable "${SERVICE_NAME}"
 
-# Escape password values before interpolating them into JSON environment values.
-# This preserves valid REDIS_SERVERS/POSTGRES_SERVERS JSON when passwords contain " or \.
-REDIS_PASSWORD_JSON=${REDIS_PASSWORD//\\/\\\\}
-REDIS_PASSWORD_JSON=${REDIS_PASSWORD_JSON//\"/\\\"}
-POSTGRES_PASSWORD_JSON=${POSTGRES_PASSWORD//\\/\\\\}
-POSTGRES_PASSWORD_JSON=${POSTGRES_PASSWORD_JSON//\"/\\\"}
+: "${POSTGRES_SERVERS:?POSTGRES_SERVERS is required}"
+: "${REDIS_SERVERS:?REDIS_SERVERS is required}"
 
 sudo systemctl set-environment \
   AUTH_SERVICE_SECRET_KEY="$AUTH_SERVICE_SECRET_KEY" \
   GCS_SERVICE_ACCOUNT_CREDENTIALS="$GCS_SERVICE_ACCOUNT_CREDENTIALS" \
   OAUTH_CREDENTIALS="$OAUTH_CREDENTIALS" \
-  POSTGRES_SERVERS="{\"default\":{\"host\":\"10.50.0.2\",\"port\":5432,\"user\":\"postgres\",\"password\":\"$POSTGRES_PASSWORD_JSON\"}}" \
-  REDIS_SERVERS="{\"default\":{\"host\":\"redis-15018.fcrce259.eu-central-1-3.ec2.cloud.redislabs.com\",\"port\":15018,\"username\":\"default\",\"password\":\"$REDIS_PASSWORD_JSON\"}}" \
+  POSTGRES_SERVERS="$POSTGRES_SERVERS" \
+  REDIS_SERVERS="$REDIS_SERVERS" \
   REDIS_SUBSCRIPTION_SERVER="${REDIS_SUBSCRIPTION_SERVER:-default}" \
   PUBLIC_ENCRYPTION_KEY="$PUBLIC_ENCRYPTION_KEY" \
   SECRET_ENCRYPTION_KEY="$SECRET_ENCRYPTION_KEY" \
