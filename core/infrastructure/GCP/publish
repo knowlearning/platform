@@ -56,7 +56,12 @@ select_project() {
 
 configure_adc() {
   echo "Configuring application default credentials for project: $PROJECT"
-  gcloud auth application-default login
+
+  if gcloud auth application-default print-access-token >/dev/null 2>&1; then
+    echo "Application default credentials already available."
+  else
+    gcloud auth application-default login
+  fi
 
   if ! gcloud auth application-default set-quota-project "$PROJECT"; then
     echo "Could not set $PROJECT as the ADC quota project. Continuing anyway."
