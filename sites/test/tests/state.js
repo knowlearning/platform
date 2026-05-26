@@ -78,26 +78,6 @@ console.log('POST GETTING THIRD STATE')
       await Agent.synced()
     })
 
-    it('Keeps UUID ownership global across requested domains', async function () {
-      const { auth: { user }, domain } = await Agent.environment()
-      if (domain !== 'localhost:5112') this.skip()
-
-      const id = uuid()
-      const ownerDomain = domain
-      const otherDomain = 'localhost:5111'
-      const ownerState = await Agent.state(id)
-
-      ownerState.value = `global-uuid-${id}`
-      await Agent.synced()
-
-      const sameUUIDFromOtherDomain = await Agent2.state(id, user, otherDomain)
-      const metadata = await Agent2.metadata(id, user, otherDomain)
-
-      expect(sameUUIDFromOtherDomain).to.deep.equal(ownerState)
-      expect(metadata.domain).to.equal(ownerDomain)
-      expect(metadata.owner).to.equal(user)
-    })
-
     it('Can request two of the same states by name and await synced', async function () {
       const id = 'test'
       const t0 = await Agent.state(id)

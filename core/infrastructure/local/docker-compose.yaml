@@ -1,106 +1,4 @@
-x-api: &api
-  build:
-    context: ../../
-    dockerfile: deno.Dockerfile
-
-  restart: unless-stopped
-
-  expose:
-    - 8765
-    - 9229
-
-  working_dir: /workspace/core
-
-  environment: &api_environment
-    TLS_PORT: "8765"
-    AUTH_SERVICE_SECRET_KEY: ${AUTH_SERVICE_SECRET_KEY}
-    OAUTH_CREDENTIALS: ${OAUTH_CREDENTIALS}
-    SSL_CERT: ${SSL_CERT}
-    SSL_KEY: ${SSL_KEY}
-    MODE: local
-    DEV_CONTROL_TOKEN: ${DEV_CONTROL_TOKEN:-development-control-token}
-    DENO_INSPECT_HOST: 0.0.0.0
-    DENO_INSPECT_PORT: "9229"
-    DENO_INSPECT_MODE_FILE: /tmp/knowlearning-core-inspect-mode
-    PORT: "8000"
-    SERVE_HOST: serve:8765
-    SERVICE_ACCOUNT_TOKEN: /var/run/secrets/kubernetes.io/serviceaccount/token
-    REDIS_SERVERS: '{"default":{"host":"redis-1","port":6379,"password":""},"redis-2":{"host":"redis-2","port":6379,"password":""}}'
-    REDIS_SUBSCRIPTION_SERVER: default
-    PUBLIC_ENCRYPTION_KEY: ${PUBLIC_ENCRYPTION_KEY}
-    SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY}
-    ADMIN_DOMAIN: localhost:5111
-    GC_PROJECT_ID: opensourcelearningplatform
-    INTERNAL_GCS_API_ENDPOINT: http://gcs-emulator:8000
-    EXTERNAL_GCS_API_ENDPOINT: https://localhost:4443
-    GCS_BUCKET_NAME: local-gcs-bucket
-    POSTGRES_SERVERS: '{"default":{"host":"postgres-1","port":5432,"user":"postgres","password":"insecure-development-password"},"postgres-2":{"host":"postgres-2","port":5432,"user":"postgres","password":"insecure-development-password"}}'
-    GCS_SERVICE_ACCOUNT_CREDENTIALS: ${GCS_SERVICE_ACCOUNT_CREDENTIALS}
-
-  volumes:
-    - ../../../:/workspace
-
-  depends_on:
-    postgres-1:
-      condition: service_started
-    postgres-2:
-      condition: service_started
-    gcs-emulator:
-      condition: service_started
-    redis-1:
-      condition: service_started
-    redis-2:
-      condition: service_started
-
-x-redis: &redis
-  image: redis:8.4.0
-  environment:
-    REDIS_PASSWORD: ""
-
-x-postgres: &postgres
-  image: postgres:alpine3.18
-  environment:
-    - POSTGRES_PASSWORD=insecure-development-password
-
 services:
-
-  codex:
-    build:
-      context: .
-      dockerfile: codex.Dockerfile
-      args:
-        CODEX_VERSION: ${CODEX_VERSION:-0.130.0}
-    working_dir: /workspace
-    init: true
-    stdin_open: true
-    tty: true
-    environment:
-      HOME: /home/node
-      CODEX_HOME: /home/node/.codex
-      TERM: ${TERM:-xterm-256color}
-      OPENAI_API_KEY: ""
-      API_HOST: api-1:8765
-      API_HOSTS: api-1:8765,api-2:8765,api-3:8765
-      DEV_CONTROL_TOKEN: ${DEV_CONTROL_TOKEN:-development-control-token}
-      TEST_URL: https://localhost:5112/
-      TEST_STARTUP_TIMEOUT: "30000"
-    volumes:
-      - ../../../:/workspace
-      - ../../../.codex-home:/home/node
-    depends_on:
-      api-1:
-        condition: service_started
-      api-2:
-        condition: service_started
-      api-3:
-        condition: service_started
-    entrypoint:
-      - codex
-    command:
-      - --model
-      - ${CODEX_MODEL:-gpt-5.4}
-      - --dangerously-bypass-approvals-and-sandbox
-
   gcs-emulator:
     image: fsouza/fake-gcs-server:1.49.3
     container_name: gcs-emulator
@@ -118,56 +16,57 @@ services:
       -external-url https://localhost:4443
       -public-host localhost
 
-  postgres-1:
-    <<: *postgres
-    container_name: postgres-1
+  postgres:
+    image: postgres:alpine3.18
+    container_name: postgres
     ports:
       - 5432:5432
-    command:
-      - postgres
-      - -c
-      - max_connections=300
-      - -c
-      - cluster_name=postgres-1
+    environment:
+      - POSTGRES_PASSWORD=insecure-development-password
 
-  postgres-2:
-    <<: *postgres
-    container_name: postgres-2
-    ports:
-      - 5433:5432
-    command:
-      - postgres
-      - -c
-      - max_connections=300
-      - -c
-      - cluster_name=postgres-2
-
-  api-1:
-    <<: *api
+  api:
+    build: 
+      context: ../../
+      dockerfile: deno.Dockerfile
     ports:
       - 8765:8765
-
-  api-2:
-    <<: *api
+    container_name: api
     environment:
-      <<: *api_environment
-      REDIS_SUBSCRIPTION_SERVER: redis-2
-    ports:
-      - 8766:8765
+      - TLS_PORT=8765
+      - AUTH_SERVICE_SECRET_KEY=${AUTH_SERVICE_SECRET_KEY}
+      - OAUTH_CREDENTIALS=${OAUTH_CREDENTIALS}
+      - SSL_CERT=${SSL_CERT}
+      - SSL_KEY=${SSL_KEY}
+      - MODE=local
+      - PORT=8000
+      - SERVE_HOST=serve:8765
+      - SERVICE_ACCOUNT_TOKEN=/var/run/secrets/kubernetes.io/serviceaccount/token
+      - REDIS_PASSWORD=
+      - POSTGRES_PASSWORD=insecure-dev-password
+      - PUBLIC_ENCRYPTION_KEY=${PUBLIC_ENCRYPTION_KEY}
+      - SECRET_ENCRYPTION_KEY=${SECRET_ENCRYPTION_KEY}
+      - ADMIN_DOMAIN=localhost:5111
+      - GC_PROJECT_ID=opensourcelearningplatform
+      - INTERNAL_GCS_API_ENDPOINT=http://gcs-emulator:8000
+      - EXTERNAL_GCS_API_ENDPOINT=https://localhost:4443
+      - GCS_BUCKET_NAME=local-gcs-bucket
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_PASSWORD=insecure-development-password
+      - GCS_SERVICE_ACCOUNT_CREDENTIALS=${GCS_SERVICE_ACCOUNT_CREDENTIALS}
+    volumes:
+      - ../../../packages/agents:/agents
+    depends_on:
+      - postgres
+      - gcs-emulator
+      - redis
 
-  api-3:
-    <<: *api
-    ports:
-      - 8767:8765
-
-  redis-1:
-    <<: *redis
-    container_name: redis-1
+  redis:
+    image: redis:8.4.0
+    container_name: redis
     ports:
       - 6379:6379
-
-  redis-2:
-    <<: *redis
-    container_name: redis-2
-    ports:
-      - 6380:6379
+    environment:
+      - REDIS_PASSWORD=

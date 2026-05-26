@@ -22,7 +22,7 @@ export default async function createHealthCheck(platform, name, { project, regio
     if (info.error?.errors?.[0]?.reason === 'alreadyExists') {
       console.log(`Health check ${name} already exists`)
     }
-    else throw new Error(`Failed to create health check: ${JSON.stringify(info, null, 4)}`)
+    else throw new Error(`Failed to create health check: ${await healthCheckResponse.text()}`)
   }
 
   console.log("Health check created.")

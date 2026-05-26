@@ -1,7 +1,7 @@
-import * as postgres from './postgres.js'
-import { getState } from './persistence.js'
-import configuration from './configuration.js'
-import scopeToId from './scope-to-id.js'
+import * as postgres from '../postgres.js'
+import * as redis from '../redis.js'
+import configuration from '../configuration.js'
+import scopeToId from '../scope-to-id.js'
 
 export default async function sync(domain, user, active_type, scope) {
   const config = await configuration(domain)
@@ -15,9 +15,9 @@ export default async function sync(domain, user, active_type, scope) {
       .map(([name]) => name)
   )
 
-  if (tableNames.length === 0) return syncMetadata(domain, id)
+  if (tableNames.length === 0) return syncMetadata(id)
 
-  const state = await getState(domain, id)
+  const state = await redis.client.json.get(id)
 
   if (!state) throw new Error(`TRYING TO ADD ROW FOR NON-EXISTENT SCOPE ${domain} ${table} ${id}`)
 
@@ -31,14 +31,14 @@ export default async function sync(domain, user, active_type, scope) {
 
   //  TODO: once we're sure the metadata table is set up, we can parallelize this sync
   //        with the above
-  await syncMetadata(domain, id)
+  await syncMetadata(id)
 }
 
-async function syncMetadata(domain, id) {
+async function syncMetadata(id) {
   const pathified = name => `$.${name}`
   const columns = ['active_type', 'domain', 'name', 'updated', 'created', 'owner', 'ii', 'active_size', 'storage_size']
 
-  const values = await getState(domain, id, { path: columns.map(pathified) })
+  const values = await redis.client.json.get(id, { path: columns.map(pathified) })
 
   const orderedValues = (
     columns
@@ -63,6 +63,6 @@ async function syncMetadata(domain, id) {
         (${columnNames}) = ROW ($2,$3,$4,$5,$6,$7,$8,$9,$10)
   `
 
-  const stateDomain = values[pathified('domain')][0]
-  await postgres.query(stateDomain, query, [id, ...orderedValues])
+  const domain = values[pathified('domain')][0]
+  await postgres.query(domain, query, [id, ...orderedValues])
 }

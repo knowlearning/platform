@@ -4,7 +4,6 @@ import pkg from '../../package.json' assert { type: 'json' }
 
 const HEARTBEAT_TIMEOUT = 10000
 const DOMAIN_MESSAGES = { open: true, mutate: true, close: true }
-const NOOP_ACK = -1
 
 function activePatch(patch) {
   return structuredClone(patch).filter(({ path }) => 'active' === path.shift())
@@ -25,8 +24,6 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
   let lastSynchronousScopePatchPromise = null
   let restarting = false
   let disconnected = false
-  let lastConfirmedSI = -1
-  let sessionSID
   const outstandingSyncPromises = []
   const responses = {}
 
@@ -95,13 +92,6 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
     }
   }
 
-  function nudgeOutstandingResponse() {
-    if (Object.keys(responses).length === 0) return
-
-    // Avoid the TCP delayed-ACK/Nagle gap after same-connection subscription echoes.
-    connection.send({ ack: NOOP_ACK })
-  }
-
   function checkHeartbeat() {
     clearTimeout(lastHeartbeat)
     lastHeartbeat = setTimeout(
@@ -116,19 +106,13 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
   async function restartConnection() {
     if (restarting) return
 
-    clearTimeout(lastHeartbeat)
     authed = false
     connection.onmessage = () => {} // needs to be a no-op since a closing connection can still get messages
-    if (disconnected) return
-
-    restarting = true
-    try {
+    if (!disconnected) {
       await new Promise(r => setTimeout(r, Math.min(1000, failedConnections * 100)))
-      if (disconnected) return
+      restarting = true
       failedConnections += 1
       initConnection() // TODO: don't do this if we are purposefully unloading...
-    }
-    finally {
       restarting = false
     }
   }
@@ -140,11 +124,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
       if (!sessionMetrics.connected) sessionMetrics.connected = Date.now()
       log('AUTHORIZING NEWLY OPENED CONNECTION FOR SESSION:', session)
       failedConnections = 0
-      const currentSID = await sid?.()
-      if (!session && sessionSID === undefined) sessionSID = currentSID
-      const authMessage = { sid: sessionSID ?? currentSID, session, domain }
-      if (!session) authMessage.token = await token()
-      connection.send(authMessage)
+      connection.send({ token: await token(), sid: await sid?.(), session, domain })
     }
 
     connection.onmessage = async message => {
@@ -152,6 +132,8 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
       if (!message) return // heartbeat
 
       try {
+        if (message.error) console.warn('ERROR RESPONSE', message)
+
         if (!authed) {
           //  TODO: credential refresh flow instead of forcing login
           if (message.error) alert('Authentication Error. Please try again.')
@@ -172,14 +154,8 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
             console.warn(`REBOOTING DUE TO SERVER SWITCH ${server} -> ${message.server}`, message)
             reboot()
           }
-          else if (session !== message.session) {
-            console.warn(`REBOOTING DUE TO SESSION SWITCH ${session} -> ${message.session}`, message)
-            reboot()
-          }
           else {
-            const ack = message.ack ?? -1
-            lastConfirmedSI = Math.max(lastConfirmedSI, ack)
-            lastSentSI = ack
+            lastSentSI = message.ack
           }
           flushMessageQueue()
         }
@@ -194,29 +170,20 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
           }
           else if (message.si !== undefined) {
             if (responses[message.si]) {
-              if (message.error) console.warn('ERROR RESPONSE', message)
-
               //  TODO: remove "acknowledged" messages from queue and do accounting with si
               responses[message.si]
                 .forEach(([res, rej]) => message.error ? rej(message) : res(message))
 
               delete responses[message.si]
-              lastConfirmedSI = Math.max(lastConfirmedSI, message.si)
               connection.send({ack: message.si}) //  acknowledgement that we have received the response for this message
               resolveSyncPromises()
             }
             else {
-              if (message.si > lastConfirmedSI) {
-                if (message.error) console.warn('ERROR RESPONSE', message)
-                console.warn('received response with no pending message for si', message.si, message)
-              }
-              lastConfirmedSI = Math.max(lastConfirmedSI, message.si)
-              connection.send({ack: message.si})
+              //  TODO: consider what to do here... probably want to throw error if in dev env
+              console.warn('received MULTIPLE responses for message with si', message.si, message)
             }
           }
           else {
-            nudgeOutstandingResponse()
-
             const d = message.domain === domain ? '' : message.domain
             const u = message.user === user ? '' : message.user
             const s = message.scope
@@ -256,7 +223,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
     }
 
     connection.onclose = async error => {
-      log('CONNECTION CLOSURE', error?.message ?? error)
+      log('CONNECTION CLOSURE', error.message)
       restartConnection()
     }
 
@@ -264,7 +231,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
   }
 
   async function synced() {
-    const syncPromise = new Promise(resolve => outstandingSyncPromises.push({ si, resolve }))
+    const syncPromise = new Promise(resolve => outstandingSyncPromises.push({ si: lastSentSI, resolve }))
     resolveSyncPromises()
     return syncPromise
   }
@@ -278,24 +245,13 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
   function disconnect() {
     log('DISCONNECTED AGENT!!!!!!!!!!!!!!!')
     disconnected = true
-    clearTimeout(lastHeartbeat)
-    authed = false
-    connection.onmessage = () => {}
     connection.close({ keepalive: true })
   }
 
   function reconnect() {
     log('RECONNECTED AGENT!!!!!!!!!!!!!!!')
-    const wasDisconnected = disconnected
     disconnected = false
-    if (!wasDisconnected && authed) {
-      clearTimeout(lastHeartbeat)
-      authed = false
-      connection.onmessage = () => {}
-      connection.onclose = () => {}
-      connection.close({ keepalive: true })
-    }
-    return restartConnection()
+    restartConnection()
   }
 
   initConnection()

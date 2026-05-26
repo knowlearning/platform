@@ -1,4 +1,5 @@
-import EmbeddedAgent from "npm:@knowlearning/agents@0.9.193/agents/embedded.js"
+import { readLines } from "https://deno.land/std@0.224.0/io/read_lines.ts"
+import EmbeddedAgent from "npm:@knowlearning/agents@0.9.179/agents/embedded.js"
 
 //  TODO: consider allowing EmbeddedAgent configuration of listener, rather than overwriting like this
 const otherListeners = []
@@ -11,18 +12,14 @@ function postMessage(message) {
 const Agent = EmbeddedAgent(postMessage)
 
 // TODO: move "getAgent" into Agent.connect(domain) structure
-const domainAgents = {}
-const getAgent = (domain, runId) => {
-  if (!domainAgents[domain]) {
-    postMessage({ type: "initialize" })
-    domainAgents[domain] = EmbeddedAgent(m => postMessage({ ...m, domain }))
-  }
-  return domainAgents[domain].withRunId(runId)
+const getAgent = (domain) => {
+  postMessage({ type: "initialize" })
+  return EmbeddedAgent((message) => postMessage({ ...message, domain }))
 }
 
 // Handle messages coming in from parent via stdin
 async function handleMessages() {
-  for await (const line of readStdinLines()) {
+  for await (const line of readLines(Deno.stdin)) {
     if (!line.trim()) continue
 
     try {
@@ -37,28 +34,10 @@ async function handleMessages() {
   }
 }
 
-async function* readStdinLines() {
-  const decoder = new TextDecoder()
-  let buffer = ""
-
-  for await (const chunk of Deno.stdin.readable) {
-    buffer += decoder.decode(chunk, { stream: true })
-    let newlineIndex
-    while ((newlineIndex = buffer.indexOf("\n")) >= 0) {
-      const line = buffer.slice(0, newlineIndex)
-      buffer = buffer.slice(newlineIndex + 1)
-      yield line
-    }
-  }
-
-  buffer += decoder.decode()
-  if (buffer) yield buffer
-}
-
 async function onmessage(e) {
   if (e.data.type === "script") {
     const { script, variables, id } = e.data
-    runSafely(script, variables, id)
+    runSafely(script, variables)
       .then((response) => {
         postMessage({
           type: "respond",
@@ -81,8 +60,7 @@ async function onmessage(e) {
 postMessage({ type: "initialize" })
 handleMessages()
 
-async function runSafely(script, variables, runId) {
-  //  TODO:  scope passed Agent global to include runId with all messages
+async function runSafely(script, variables) {
   const blockedGlobals = [
     "Deno",
     "require",
@@ -97,8 +75,8 @@ async function runSafely(script, variables, runId) {
   ]
 
   const extraGlobals = {
-    Agent: Agent.withRunId(runId),
-    getAgent: domain => getAgent(domain, runId)
+    Agent,
+    getAgent,
   }
 
   const sandbox = new Function(

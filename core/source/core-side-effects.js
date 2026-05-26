@@ -1,14 +1,12 @@
-// Global state - okay, as long as 'domain-config' scope handled at peristence.js layer
-
-import { environment, isUUID, uuid } from './utils.js'
+import { environment, isUUID, uuid } from './utils.js';
 import scopeToId from './scope-to-id.js'
 import configuredQuery from './configured-query.js'
-import { applyConfiguration, prepareStorageForConfiguration } from './side-effects/configure.js'
+import { applyConfiguration } from './side-effects/configure.js'
 import sideEffects from './side-effects/index.js'
 import subscribe from './subscribe.js'
 import authorize from './authorize.js'
-import interact from './interact.js'
-import { getState } from './persistence.js'
+import interact from './interact/index.js'
+import * as redis from './redis.js'
 import coreState, { coreStateSynced } from './core-state.js'
 import { domainAdmin } from './configuration.js'
 import SESSION from './session.js'
@@ -46,7 +44,7 @@ export default async function coreSideEffects({
               const ss = subscriptions[session]
               if (!ss[subscribeId]) ss[subscribeId] = subscribe(subscribeId, send, subscribedScope)
 
-              const state = await getState(scopeDomain, subscribeId)
+              const state = await redis.client.json.get(subscribeId)
               send({ ...state, id: subscribeId, si })
             }
             else {
@@ -94,19 +92,17 @@ export default async function coreSideEffects({
     ) {
       const report = value
       const reportState = await coreState(ADMIN_DOMAIN, report, ADMIN_DOMAIN)
+      const domainConfig = await coreState('core', 'domain-config', 'core')
       const coreConfigCopyId = uuid()
       const coreConfigCopy = await coreState(ADMIN_DOMAIN, coreConfigCopyId, 'core')
+      domainConfig[configureDomain] = { config: coreConfigCopyId, report, admin: user, server: SESSION }
 
       reportState.tasks = {}
       reportState.start = Date.now()
 
       try {
-        const configuration = await getState(domain, id)
+        const configuration = await redis.client.json.get(id)
         Object.assign(coreConfigCopy, configuration.active)
-        await coreStateSynced()
-        const storage = await prepareStorageForConfiguration(configureDomain, configuration.active, reportState)
-        const domainConfig = await coreState('core', 'domain-config', 'core')
-        domainConfig[configureDomain] = { config: coreConfigCopyId, report, admin: user, server: SESSION, storage }
         await coreStateSynced()
         await applyConfiguration(configureDomain, configuration.active, reportState)
         reportState.end = Date.now()

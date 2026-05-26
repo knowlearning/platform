@@ -1,24 +1,16 @@
-// Global State
-
 import { uuid, parseYAML, environment, PatchProxy } from '../utils.js'
 import coreState from '../core-state.js'
 import { domainAdmin } from '../configuration.js'
-import domainAgent, { stopDomainAgent } from '../domain-agent/index.js'
-import { domainIds, batchGetState, copyDomainStateToRedisServer, getState } from '../persistence.js'
+import domainAgent from '../domain-agent/index.js'
+import * as redis from '../redis.js'
 import * as postgres from '../postgres.js'
 import { download } from '../storage.js'
-import interact from '../interact.js'
+import interact from '../interact/index.js'
 import POSTGRES_DEFAULT_TABLES from '../postgres-default-tables.js'
 import configuration from '../configuration.js'
 import scopeToId from '../scope-to-id.js'
 import SESSION from '../session.js'
 import { configuredDomains } from '../stateful.js'
-import {
-  normalizeStorageRoutes,
-  setDomainStorageRoutes,
-  storageRoutesFromConfiguration,
-  storageRoutesForDomain
-} from '../storage-routing.js'
 
 const EXISTING_TABLES_QUERY = `
   SELECT tablename
@@ -59,23 +51,15 @@ INSERT INTO ${postgres.purifiedName(table)}
 `
 
 const MAX_PARAMS_IN_BATCH = 10_000
-const AGENT_STARTUP_SETTLE_DELAY = 1000
 
 const { ADMIN_DOMAIN, MODE } = environment
 
 async function isAdmin(user, requestingDomain, requestedDomain) {
   return (
-       isDevelopmentTest(user, requestingDomain)
+       requestingDomain === 'localhost:5112'
+    || requestingDomain === `${user}.localhost:${parseInt(requestingDomain.split(':')[1])}`
     || (requestingDomain === ADMIN_DOMAIN && user === await domainAdmin(requestedDomain))
   )
-}
-
-function isDevelopmentTest(user, requestingDomain) {
-  return MODE === 'local'
-    && (
-      requestingDomain === 'localhost:5112'
-      || requestingDomain === `${user}.localhost:${parseInt(requestingDomain.split(':')[1])}`
-    )
 }
 
 export default async function configure({ domain, user, session, scope, patch, si, ii, send }) {
@@ -84,13 +68,14 @@ export default async function configure({ domain, user, session, scope, patch, s
     if (op === 'add' && path.length === 1 && path[0] === 'active' && await isAdmin(user, domain, value.domain)) {
       const { config, report, domain:domainToConfigure } = value
       const domainConfig = await coreState('core', 'domain-config', 'core')
+      domainConfig[domainToConfigure] = { config, report, admin: user, server: SESSION }
 
       const reportState = await coreState(user, report, domain)
       reportState.tasks = {}
       reportState.start = Date.now()
 
       try {
-        const url = await download(domain, config, 3, true)
+        const url = await download(config, 3, true)
         const response = await fetch(url)
 
         if (response.status !== 200) throw new Error('Error getting config')
@@ -98,11 +83,7 @@ export default async function configure({ domain, user, session, scope, patch, s
         response
           .text()
           .then(parseYAML)
-          .then(async parsedConfig => {
-            const storage = await prepareStorageForConfiguration(domainToConfigure, parsedConfig, reportState)
-            domainConfig[domainToConfigure] = { config, report, admin: user, server: SESSION, storage }
-            await applyConfiguration(domainToConfigure, parsedConfig, reportState)
-          })
+          .then(config => applyConfiguration(domainToConfigure, config, reportState))
           .then(() => reportState.end = Date.now())
           .catch(error => reportState.error = error.toString())
       }
@@ -115,35 +96,10 @@ export default async function configure({ domain, user, session, scope, patch, s
   send({ si, ii })
 }
 
-async function storedStorageRoutesForDomain(domain) {
-  try {
-    const path = [`$.active[${JSON.stringify(domain)}].storage`]
-    const response = await getState('core', 'domain-config', { path })
-    const storage = Array.isArray(response) ? response[0] : response?.[path[0]]?.[0]
-    if (storage) return normalizeStorageRoutes(storage)
-  }
-  catch (error) {
-    console.warn('Error reading current storage route', domain, error)
-  }
-
-  return storageRoutesForDomain(domain)
-}
-
-export async function prepareStorageForConfiguration(domain, config, report) {
-  const previousStorage = await storedStorageRoutesForDomain(domain)
-  const nextStorage = storageRoutesFromConfiguration(config)
-
-  await copyDomainStateToRedisServer(domain, previousStorage.redis, nextStorage.redis, report)
-  setDomainStorageRoutes(domain, nextStorage)
-
-  return nextStorage
-}
-
 export async function applyConfiguration(domain, { postgres, agent }, report) {
   const tasks = []
   if (postgres) tasks.push(() => configurePostgres(domain, postgres, report))
-  if (agent) tasks.push(() => configureAgent(domain, agent, report))
-  else tasks.push(() => stopDomainAgent(domain))
+  if (agent) configureAgent(domain, agent, report)
 
   return Promise.all(tasks.map(t => t()))
 }
@@ -151,11 +107,7 @@ export async function applyConfiguration(domain, { postgres, agent }, report) {
 async function configureAgent(domain, agent, report) {
   report.tasks.agent = ['initializing']
   try {
-    const startup = domainAgent(domain, true)
-    await Promise.race([
-      startup,
-      new Promise(resolve => setTimeout(resolve, AGENT_STARTUP_SETTLE_DELAY))
-    ])
+    await domainAgent(domain, true)
     report.tasks.agent.push('done')
   }
   catch (error) {
@@ -213,7 +165,7 @@ async function syncTables(domain, tables, report) {
   Object.values(tables).forEach(({type}) => typeGroups[type] = [])
 
   //  TODO: do in chunks...
-  const allIds = await domainIds(domain)
+  const allIds = await redis.client.sendCommand(['smembers', domain])
 
   const typeBatchSize = 10_000
 
@@ -228,8 +180,9 @@ async function syncTables(domain, tables, report) {
     const start = batchNum * typeBatchSize
     const end = start + typeBatchSize
     const batchIds = allIds.slice(start, end)
-
-    const batchTypes = await batchGetState(domain, batchIds, { path: [`$.active_type`] })
+    const transaction = redis.client.multi()
+    batchIds.forEach(id => transaction.json.get(id, { path: [`$.active_type`] }))
+    const batchTypes = await transaction.exec()
 
     for (let idNum = 0; idNum < batchIds.length; idNum += 1) {
       const id = batchIds[idNum]
@@ -257,25 +210,24 @@ async function syncTables(domain, tables, report) {
 
     tableTasks.push(`Creating ${Object.keys(indices).length} indices`)
 
-    await Promise.all(
-      Object.entries(indices).map(async ([name, { column, gin }]) =>  {
-        tableTasks.push(`Creating index named ${name} on ${table} for ${column}`)
-        if (gin) await postgres.createGinIndex(domain, name, table, column)
-        else await postgres.createIndex(domain, name, table, column)
-      })
-    )
+    await Object.entries(indices).map(async ([name, { column, gin }]) =>  {
+      tableTasks.push(`Creating index named ${name} on ${table} for ${column}`)
+      if (gin) await postgres.createGinIndex(domain, name, table, column)
+      else await postgres.createIndex(domain, name, table, column)
+    })
 
     if (rows.length > 0) {
       const batchSize = 100_000
       //  too many transactions queued up will trigger a "RangeError: Too many elements passed to Promise.all"
       for (let batchNum=0; batchNum * batchSize < rows.length; batchNum += 1) {
+        const transaction = redis.client.multi()
+        //  TODO: limit fetched data to data in table columns
         const start = batchNum * batchSize
         const end = start + batchSize
         const batch = rows.slice(start, end)
+        batch.forEach( id => transaction.json.get(id) )
         tableTasks.push(`Fetching ${batch.length} states to sync`)
-
-        //  TODO: limit fetched data to data in table columns (can do with get options)
-        const states = await batchGetState(domain, batch)
+        const states = await transaction.exec()
 
         tableTasks.push(`Assembling sync query for ${states.length} states`)
         const rowsToInsert = []
@@ -414,20 +366,16 @@ const DOMAIN_CONFIGURED_QUERY = `SELECT EXISTS (
 
 export async function ensureDomainConfigured(domain) {
   //  TODO: more reliable check
-  const config = await configuration(domain)
-  const configurationKey = postgres.configurationKeyForDomain(domain)
-  if (!configuredDomains[configurationKey]) {
-    configuredDomains[configurationKey] = (async () => {
+  if (!configuredDomains[domain]) {
+    configuredDomains[domain] = new Promise(async resolve => {
       const { rows: [{ exists: configured }] } = await postgres.query(domain, DOMAIN_CONFIGURED_QUERY)
       if (!configured) {
         const report = { tasks: [], start: Date.now() }
-        await applyConfiguration(domain, config, report)
+        await applyConfiguration(domain, await configuration(domain), report)
           .catch(error => console.warn('configuration error', domain, error))
       }
-    })().catch(error => {
-      delete configuredDomains[configurationKey]
-      throw error
+      resolve()
     })
   }
-  await configuredDomains[configurationKey]
+  await configuredDomains[domain]
 }

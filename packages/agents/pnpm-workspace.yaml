@@ -1,3 +1,0 @@
-allowBuilds:
-  deno-bin: true
-  esbuild: true

@@ -2,9 +2,9 @@
 
 This checklist tracks regression coverage and feature coverage for the
 `external` query-composition model implemented in
-[`core/source/configured-query.js`](../core/source/configured-query.js)
+[`core/source/configured-query.js`](../../core/source/configured-query.js)
 and exercised from
-[`test/tests/postgres.js`](./tests/postgres.js).
+[`sites/test/tests/postgres.js`](./tests/postgres.js).
 
 Use it as the source of truth when adding coverage, debugging regressions,
 or reviewing changes to query resolution, parameter rewriting, or domain
@@ -12,7 +12,7 @@ configuration behavior.
 
 ## Status Key
 
-- `[x]` Covered by the current suite in `test/tests/postgres.js`
+- `[x]` Covered by the current suite in `sites/test/tests/postgres.js`
 - `[ ]` Not currently covered and should be added if the behavior matters
 
 ## Baseline Postgres Regressions

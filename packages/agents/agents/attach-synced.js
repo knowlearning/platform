@@ -1,4 +1,4 @@
-import { applyPatch } from 'fast-json-patch/index.mjs'
+import { applyPatch } from 'fast-json-patch'
 import { standardJSONPatch } from '@knowlearning/patch-proxy'
 
 // Wraps a state promise with a .synced(callback?) method that applies external

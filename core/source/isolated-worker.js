@@ -1,15 +1,6 @@
 export default function isolatedWorker(modulePath) {
-  const configPath = new URL("../deno.json", import.meta.url).pathname
   const cmd = new Deno.Command(Deno.execPath(), {
-    args: [
-      'run',
-      '--config',
-      configPath,
-      '--frozen',
-      '--cached-only',
-      '--allow-net',
-      modulePath
-    ],
+    args: ['run', '--allow-net', modulePath],
     stdin: 'piped',
     stdout: 'piped',
     stderr: 'piped'
@@ -21,20 +12,9 @@ export default function isolatedWorker(modulePath) {
   const decoder = new TextDecoder()
   const reader = child.stdout.getReader()
   const errReader = child.stderr.getReader()
-  let terminated = false
 
   let onmessage = null
   let onerror = null
-
-  child.status
-    .then(status => {
-      if (!terminated) {
-        onerror?.(new Error(`Worker exited with code ${status.code}`))
-      }
-    })
-    .catch(error => {
-      if (!terminated) onerror?.(error)
-    })
 
   // Continuously read stdout lines as messages
   ;(async () => {
@@ -81,7 +61,6 @@ export default function isolatedWorker(modulePath) {
       await writer.write(encoded)
     },
     terminate() {
-      terminated = true
       try {
         child.kill("SIGTERM")
       } catch {}

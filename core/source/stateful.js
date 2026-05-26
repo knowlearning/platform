@@ -2,7 +2,6 @@ export const DomainAgents = {}
 export const configuredDomains = {}
 export const agents = {}
 export const configCache = {}
-export const storageRouteCache = {}
 export const outstandingCoreStateInteractions = new Set()
 export const domainWorkers = {}
 export const domainWorkerResponses = {}
@@ -10,7 +9,6 @@ export const gcpTokenCache = new Map()
 export const guarantees = {}
 
 export const activeConnections = {}
-export const activeConnectionInfo = {}
 export const sessionMessageIndexes = {}
 export const responseBuffers = {}
 export const outstandingSideEffects = {}

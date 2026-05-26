@@ -21,8 +21,6 @@ export default function handleSocketIOConnection(socket, metricsPromise) {
   const domain = requestDomain({ headers: socket.handshake.headers })
   const sid = getCookies(socket.handshake.headers)['sid']
 
-  metricsPromise.then(m => m.socketio.opened += 1)
-
   let sendOnCloseErrorReported = false
   let closeOnCloseErrorReported = false
   let socketError
@@ -58,6 +56,10 @@ export default function handleSocketIOConnection(socket, metricsPromise) {
       console.warn('ERROR HANDLING SOCKET.IO MESSAGE', err)
       socket.emit('error', { error: 'Error handling message' })
     }
+  })
+
+  socket.on('connect', () => {
+    metricsPromise.then(m => m.socketio.opened += 1)
   })
 
   socket.on('error', (err) => {
