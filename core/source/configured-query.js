@@ -11,7 +11,11 @@ const {
 const MAX_FOREIGN_QUERY_DEPTH = 25
 
 export default async function configuredQuery(requestingDomain, targetDomain, queryName, params=[], user, context=[], queryStack=[]) {
-  if (typeof targetDomain !== 'string') {
+  if (Array.isArray(targetDomain) && targetDomain.length === 1 && typeof targetDomain[0] === 'string') {
+    // Some deployed clients passed query target domains as [domain]; accept only that compatibility shape.
+    targetDomain = targetDomain[0]
+  }
+  else if (typeof targetDomain !== 'string') {
     const error = new Error(`Query target domain must be a string: ${JSON.stringify(targetDomain)}`)
     error.code = 'INVALID QUERY TARGET DOMAIN'
     throw error

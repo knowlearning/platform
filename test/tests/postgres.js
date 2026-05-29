@@ -1366,10 +1366,26 @@ postgres:
         .to.deep.equal([{ value: domain }])
     })
 
-    it('Rejects invalid query target domains without blocking later session messages', async function () {
+    it('Allows single-item array query target domains without blocking later session messages', async function () {
+      const { domain } = await Agent.environment()
+      const arrayDomainQuery = Agent
+        .query('wildcard-requesting-domain-values', [], [FOREIGN_QUERY_DOMAIN])
+        .catch(error => error)
+
+      const response = await Promise.race([
+        arrayDomainQuery,
+        pause(1000).then(() => 'timed out waiting for array target domain query')
+      ])
+
+      expect(response).to.deep.equal([{ value: domain }])
+      expect(await Agent.query('wildcard-requesting-domain-values', [], FOREIGN_QUERY_DOMAIN))
+        .to.deep.equal([{ value: domain }])
+    })
+
+    it('Rejects other array query target domains without blocking later session messages', async function () {
       const { domain } = await Agent.environment()
       const invalidQuery = Agent
-        .query('wildcard-requesting-domain-values', [], [FOREIGN_QUERY_DOMAIN])
+        .query('wildcard-requesting-domain-values', [], [FOREIGN_QUERY_DOMAIN, 'extra.example'])
         .catch(error => error)
 
       const error = await Promise.race([
