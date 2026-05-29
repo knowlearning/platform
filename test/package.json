@@ -1,0 +1,38 @@
+{
+  "name": "vue-component",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node run-embedded-tests.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test:install-browsers": "playwright install chromium",
+    "test:embedded": "node run-embedded-tests.js",
+    "test:embedded:root": "TEST_CONTEXTS=root node run-embedded-tests.js",
+    "test:embedded:embed1": "TEST_CONTEXTS=embed1 node run-embedded-tests.js",
+    "test:embedded:embed2": "TEST_CONTEXTS=embed2 node run-embedded-tests.js",
+    "test:latency": "node latency-probe.js",
+    "test:local": "node run-browser-tests.js",
+    "test:cross-server": "CROSS_SERVER=1 node run-browser-tests.js"
+  },
+  "dependencies": {
+    "@knowlearning/patch-proxy": "^1.3.2",
+    "@vitejs/plugin-basic-ssl": "^1.1.0",
+    "chai": "^4.4.1",
+    "eslint-linter-browserify": "^8.57.0",
+    "fast-json-patch": "^3.1.1",
+    "mocha": "^10.3.0",
+    "socket.io-client": "^4.8.1",
+    "uuid": "^9.0.1",
+    "vue": "^3.4.21",
+    "vuex": "^4.1.0",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.6.2",
+    "playwright": "^1.56.1",
+    "vite": "^4.5.2"
+  }
+}

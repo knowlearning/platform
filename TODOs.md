@@ -32,6 +32,7 @@
 - [ ] better error sent to agent when trying to download a uuid that isn't an uploaded thing
 - [ ] document/surface error for localhosts connecting on non https connections
 - [ ] Agent.embed should guard against infinite loops in embeddings
+- [ ] Redis JSONPath escaping drops keys with backslash sequences; intentionally left unresolved while fixing upload/download routing.
 
 
 

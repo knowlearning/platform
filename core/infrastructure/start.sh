@@ -24,8 +24,14 @@ git checkout trunk
 SERVICE_NAME="my-deno-app"
 USER_NAME="$(whoami)"
 DENO_BIN="$HOME/.deno/bin/deno"
-APP_PATH="$HOME/platform/core/source/index.js"
+CORE_PATH="$HOME/platform/core"
+APP_PATH="$CORE_PATH/source/index.js"
+DOMAIN_WORKER_PATH="$CORE_PATH/source/domain-worker/index.js"
+CONFIG_PATH="$CORE_PATH/deno.json"
 CERT_PATH="/etc/ssl/certs/ca-certificates.crt"
+
+cd "$CORE_PATH"
+"$DENO_BIN" install --frozen --entrypoint "$APP_PATH" "$DOMAIN_WORKER_PATH"
 
 # 1. Write the systemd service file
 sudo tee "/etc/systemd/system/${SERVICE_NAME}.service" > /dev/null <<EOF
@@ -35,7 +41,9 @@ After=network.target
 
 [Service]
 ExecStart=${DENO_BIN} run \\
-  --inspect=127.0.0.1:9229 \\
+  --config=${CONFIG_PATH} \\
+  --frozen \\
+  --cached-only \\
   --allow-sys \\
   --allow-net \\
   --allow-write \\
@@ -44,7 +52,7 @@ ExecStart=${DENO_BIN} run \\
   --cert=${CERT_PATH} \\
   --allow-env \\
   ${APP_PATH}
-WorkingDirectory=${HOME}
+WorkingDirectory=${CORE_PATH}
 Restart=always
 RestartSec=1
 User=${USER_NAME}
@@ -53,20 +61,15 @@ MemoryHigh=6G
 Environment=AUTH_SERVICE_SECRET_KEY
 Environment=GCS_SERVICE_ACCOUNT_CREDENTIALS
 Environment=OAUTH_CREDENTIALS
-Environment=POSTGRES_PASSWORD
-Environment=REDIS_PASSWORD
+Environment=POSTGRES_SERVERS
+Environment=REDIS_SERVERS
+Environment=REDIS_SUBSCRIPTION_SERVER
 Environment=PUBLIC_ENCRYPTION_KEY
 Environment=SECRET_ENCRYPTION_KEY
 Environment=GCS_BUCKET_NAME
 Environment=MODE
 Environment=ADMIN_DOMAIN
 Environment=GC_PROJECT_ID
-Environment=POSTGRES_HOST
-Environment=POSTGRES_PORT
-Environment=POSTGRES_USER
-Environment=REDIS_USER
-Environment=REDIS_HOST
-Environment=REDIS_PORT
 Environment=PORT
 Environment=TLS_PORT
 Environment=SSL_CERT
@@ -78,12 +81,17 @@ EOF
 
 sudo systemctl daemon-reload
 sudo systemctl enable "${SERVICE_NAME}"
+
+: "${POSTGRES_SERVERS:?POSTGRES_SERVERS is required}"
+: "${REDIS_SERVERS:?REDIS_SERVERS is required}"
+
 sudo systemctl set-environment \
   AUTH_SERVICE_SECRET_KEY="$AUTH_SERVICE_SECRET_KEY" \
   GCS_SERVICE_ACCOUNT_CREDENTIALS="$GCS_SERVICE_ACCOUNT_CREDENTIALS" \
   OAUTH_CREDENTIALS="$OAUTH_CREDENTIALS" \
-  POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
-  REDIS_PASSWORD="$REDIS_PASSWORD" \
+  POSTGRES_SERVERS="$POSTGRES_SERVERS" \
+  REDIS_SERVERS="$REDIS_SERVERS" \
+  REDIS_SUBSCRIPTION_SERVER="${REDIS_SUBSCRIPTION_SERVER:-default}" \
   PUBLIC_ENCRYPTION_KEY="$PUBLIC_ENCRYPTION_KEY" \
   SECRET_ENCRYPTION_KEY="$SECRET_ENCRYPTION_KEY" \
   SSL_CERT="$SSL_CERT"\
@@ -92,12 +100,6 @@ sudo systemctl set-environment \
   MODE=production \
   ADMIN_DOMAIN=admin.knowlearning.systems \
   GC_PROJECT_ID=opensourcelearningplatform \
-  POSTGRES_HOST=10.50.0.2 \
-  POSTGRES_PORT=5432 \
-  POSTGRES_USER=postgres \
-  REDIS_USER=default \
-  REDIS_HOST=redis-15018.fcrce259.eu-central-1-3.ec2.cloud.redislabs.com \
-  REDIS_PORT=15018 \
   PORT=80 \
   TLS_PORT=443
 

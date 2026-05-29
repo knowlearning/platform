@@ -1,5 +1,5 @@
 import { createGCSClient, uuid, environment } from './utils.js'
-import * as redis from './redis.js'
+import { getState } from './persistence.js'
 
 const DOWNLOAD_RETRY_INTERVAL = 1000
 
@@ -48,14 +48,14 @@ async function upload(contentType, internal=false) {
   return { url: directedURL(url, internal), info }
 }
 
-async function download(id, retries=3, internal=false) {
+async function download(domain, id, retries=3, internal=false) {
   if (!id) throw new Error('id required for download')
 
   //  TODO: Validation. If is not an immutable scope, download history
   //        otherwise download referenced object as here
 
   try {
-    const [uploadId] = await redis.client.json.get(id, { path: ['$.active.id'] })
+    const [uploadId] = await getState(domain, id, { path: ['$.active.id'] })
     const expires = Date.now() + 15 * 60 * 1000
     const options = { action: 'read', expires }
 
@@ -68,7 +68,7 @@ async function download(id, retries=3, internal=false) {
     // TODO: ensure errors propogate
     else {
       await new Promise(r => setTimeout(r, DOWNLOAD_RETRY_INTERVAL))
-      return download(id, retries-1, internal)
+      return download(domain, id, retries-1, internal)
     }
   }
 }

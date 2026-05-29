@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Current Parent / Old Child Fixture</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: monospace;
+        background: #12130f;
+        color: #f4ecd8;
+      }
+      #status {
+        box-sizing: border-box;
+        height: 220px;
+        overflow: auto;
+        margin: 0;
+        padding: 12px;
+        white-space: pre-wrap;
+        border-bottom: 1px solid #3f4634;
+      }
+      iframe {
+        display: block;
+        width: 100vw;
+        height: calc(100vh - 220px);
+        border: 0;
+        background: white;
+      }
+    </style>
+  </head>
+  <body>
+    <pre id="status">current parent starting...</pre>
+    <iframe id="child-frame"></iframe>
+    <script type="module" src="/current-parent-old-child.js"></script>
+  </body>
+</html>

@@ -18,15 +18,15 @@ export default defineConfig({
     alias: [
       {
         find: '@knowlearning/agents/vue.js',
-        replacement: __dirname + '/../../packages/agents/vue.js'
+        replacement: __dirname + '/../packages/agents/vue.js'
       },
       {
         find: '@knowlearning/agents/browser.js',
-        replacement: __dirname + '/../../packages/agents/browser.js'
+        replacement: __dirname + '/../packages/agents/browser.js'
       },
       {
         find: '@knowlearning/agents/browser/initialize.js',
-        replacement: __dirname + '/../../packages/agents/agents/browser/initialize.js'
+        replacement: __dirname + '/../packages/agents/agents/browser/initialize.js'
       },
       {
         find: '@knowlearning/patch-proxy',
@@ -34,7 +34,7 @@ export default defineConfig({
       },
       {
         find: 'fast-json-patch',
-        replacement: 'node_modules/fast-json-patch/index.mjs'
+        replacement: 'node_modules/fast-json-patch'
       },
       {
         find: 'uuid',

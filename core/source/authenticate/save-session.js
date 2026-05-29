@@ -1,5 +1,5 @@
 import { encryptSymmetric } from '../utils.js'
-import interact from '../interact/index.js'
+import interact from '../interact.js'
 import * as hash from './hash.js'
 
 const SESSION_TYPE = 'application/json;type=session'

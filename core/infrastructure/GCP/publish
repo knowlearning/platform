@@ -1,5 +1,10 @@
 #!/bin/bash
 
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 login_to_gcloud() {
   echo "Logging in as a different user..."
   gcloud auth login
@@ -51,14 +56,19 @@ select_project() {
 
 configure_adc() {
   echo "Configuring application default credentials for project: $PROJECT"
-  gcloud auth application-default login
+
+  if gcloud auth application-default print-access-token >/dev/null 2>&1; then
+    echo "Application default credentials already available."
+  else
+    gcloud auth application-default login
+  fi
 
   if ! gcloud auth application-default set-quota-project "$PROJECT"; then
     echo "Could not set $PROJECT as the ADC quota project. Continuing anyway."
   fi
 }
 
-if [ "$1" = "production" ]; then
+if [ "${1:-}" = "production" ]; then
   while true; do
     # Check if gcloud is already logged in
     GCLOUD_USER=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
@@ -98,7 +108,9 @@ if [ "$1" = "production" ]; then
   echo "4) europe-west3-a"
   echo "5) europe-west3-b"
 
-  read -p "Enter choice [1-3]: " choice
+  REDIS_SUBSCRIPTION_SERVER_DEFAULT="default"
+
+  read -p "Enter choice [1-5]: " choice
 
   case "$choice" in
     1)
@@ -147,8 +159,13 @@ if [ "$1" = "production" ]; then
   export AUTH_SERVICE_SECRET_KEY="$(cat ../../../../.credentials/AUTH_SERVICE_SECRET_KEY)"
   export GCS_SERVICE_ACCOUNT_CREDENTIALS="$(cat ../../../../.credentials/GCS_SERVICE_ACCOUNT_CREDENTIALS)"
   export OAUTH_CREDENTIALS="$(cat ../../../../.credentials/OAUTH_CREDENTIALS)"
-  export POSTGRES_PASSWORD="$(cat ../../../../.credentials/POSTGRES_PASSWORD)"
-  export REDIS_PASSWORD="$(cat ../../../../.credentials/REDIS_PASSWORD)"
+  export POSTGRES_SERVERS="$(cat ../../../../.credentials/POSTGRES_SERVERS)"
+  export REDIS_SERVERS="$(cat ../../../../.credentials/REDIS_SERVERS)"
+  if [ -f ../../../../.credentials/REDIS_SUBSCRIPTION_SERVER ]; then
+    export REDIS_SUBSCRIPTION_SERVER="$(cat ../../../../.credentials/REDIS_SUBSCRIPTION_SERVER)"
+  else
+    export REDIS_SUBSCRIPTION_SERVER="$REDIS_SUBSCRIPTION_SERVER_DEFAULT"
+  fi
   export SSL_CERT="$(cat ../../../../.credentials/SSL_CERT)"
   export SSL_KEY="$(cat ../../../../.credentials/SSL_KEY)"
   export PUBLIC_ENCRYPTION_KEY="$(cat ../../../../.credentials/PUBLIC_ENCRYPTION_KEY)"
@@ -162,8 +179,9 @@ if [ "$1" = "production" ]; then
           AUTH_SERVICE_SECRET_KEY \
           GCS_SERVICE_ACCOUNT_CREDENTIALS \
           OAUTH_CREDENTIALS \
-          POSTGRES_PASSWORD \
-          REDIS_PASSWORD \
+          POSTGRES_SERVERS \
+          REDIS_SERVERS \
+          REDIS_SUBSCRIPTION_SERVER \
           PUBLIC_ENCRYPTION_KEY \
           SECRET_ENCRYPTION_KEY \
           SSL_CERT \

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Live Embed Probe</title>
+    <style>
+      body {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        margin: 0;
+        background: #101214;
+        color: #e7ecef;
+      }
+
+      #status {
+        box-sizing: border-box;
+        height: 180px;
+        overflow: auto;
+        padding: 12px;
+        white-space: pre-wrap;
+        border-bottom: 1px solid #30363d;
+      }
+
+      iframe {
+        display: block;
+        width: 100vw;
+        height: calc(100vh - 180px);
+        border: 0;
+        background: white;
+      }
+    </style>
+  </head>
+  <body>
+    <pre id="status">starting live embed probe...</pre>
+    <iframe id="target-frame"></iframe>
+    <script type="module" src="/live-embed.js"></script>
+  </body>
+</html>
