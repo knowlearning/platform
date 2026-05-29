@@ -310,6 +310,7 @@ export default async function handleConnection(connection, domain, sid, metricsP
 
           const log = []
           let response
+          const isSessionQuery = scope === 'sessions' && patch[0]?.path?.[2] === 'queries'
           const domainSideEffectResponse = (
             handleSideEffects({ domain, user, scope, patch, id, context, session })
               .then(r => response = r)
@@ -319,14 +320,19 @@ export default async function handleConnection(connection, domain, sid, metricsP
 
           await coreSideEffects({
             id, session, domain, user, scope, active_type, patch, si, ii,
-            send: async message => (
-              domainSideEffectResponse
+            send: async message => {
+              if (isSessionQuery) {
+                send(message)
+                return
+              }
+
+              return domainSideEffectResponse
                 .finally(() => {
                   message.log = log
                   message.response = response
                   send(message)
                 })
-            )
+            }
           })
           if (agent && user !== domain) {
             const data = { scope, patch, ii, id, context }

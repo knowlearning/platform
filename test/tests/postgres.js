@@ -1366,6 +1366,22 @@ postgres:
         .to.deep.equal([{ value: domain }])
     })
 
+    it('Rejects invalid query target domains without blocking later session messages', async function () {
+      const { domain } = await Agent.environment()
+      const invalidQuery = Agent
+        .query('wildcard-requesting-domain-values', [], [FOREIGN_QUERY_DOMAIN])
+        .catch(error => error)
+
+      const error = await Promise.race([
+        invalidQuery,
+        pause(1000).then(() => 'timed out waiting for invalid query rejection')
+      ])
+
+      expect(error).to.equal('INVALID QUERY TARGET DOMAIN')
+      expect(await Agent.query('wildcard-requesting-domain-values', [], FOREIGN_QUERY_DOMAIN))
+        .to.deep.equal([{ value: domain }])
+    })
+
     it('Allows embedded browser Agent.query requests to matching cross-domain patterns', async function () {
       this.timeout(5000)
 

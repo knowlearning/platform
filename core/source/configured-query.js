@@ -11,6 +11,12 @@ const {
 const MAX_FOREIGN_QUERY_DEPTH = 25
 
 export default async function configuredQuery(requestingDomain, targetDomain, queryName, params=[], user, context=[], queryStack=[]) {
+  if (typeof targetDomain !== 'string') {
+    const error = new Error(`Query target domain must be a string: ${JSON.stringify(targetDomain)}`)
+    error.code = 'INVALID QUERY TARGET DOMAIN'
+    throw error
+  }
+
   if (
     requestingDomain === ADMIN_DOMAIN
     && queryName !== 'current-config'
