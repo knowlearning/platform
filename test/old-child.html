@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Old Child Fixture</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: monospace;
+        background: #f4f1e8;
+        color: #1d2528;
+      }
+      pre {
+        margin: 0;
+        padding: 12px;
+        white-space: pre-wrap;
+      }
+    </style>
+    <script>
+      const oldChildParams = new URLSearchParams(location.search)
+      localStorage.setItem('API_HOST', oldChildParams.get('apiHost') || 'api-1:8765')
+      window.__oldChildEvents = []
+      window.recordOldChildEvent = function recordOldChildEvent(type, data) {
+        const event = { type, elapsed: Date.now() - window.__oldChildStartedAt, data }
+        window.__oldChildEvents.push(event)
+        const output = document.getElementById('output')
+        if (output) output.textContent = window.__oldChildEvents.map(e => `${e.elapsed}ms ${e.type} ${JSON.stringify(e.data)}`).join('\n')
+        console.log(`[old-child:${type}]`, data)
+      }
+      window.__oldChildStartedAt = Date.now()
+    </script>
+    <script src="/old-agents-0.9.191-browser.js"></script>
+  </head>
+  <body>
+    <pre id="output">old child starting...</pre>
+    <script>
+      ;(async () => {
+        recordOldChildEvent('script-start', {
+          href: location.href,
+          apiHost: localStorage.getItem('API_HOST'),
+          embedded: window.Agent && window.Agent.embedded
+        })
+
+        try {
+          const environment = await Agent.environment()
+          recordOldChildEvent('environment', {
+            domain: environment.domain,
+            session: environment.session,
+            user: environment.auth && environment.auth.user,
+            provider: environment.auth && environment.auth.provider,
+            version: environment.version
+          })
+
+          const state = await Agent.state('old-client-embedded-child-state')
+          recordOldChildEvent('state', {
+            keys: state && typeof state === 'object' ? Object.keys(state) : []
+          })
+
+          state.loadedAt = Date.now()
+          state.domain = environment.domain
+          if (Agent.synced) await Agent.synced()
+          recordOldChildEvent('synced', {})
+
+          await Agent.close({
+            status: 'loaded',
+            domain: environment.domain,
+            session: environment.session,
+            version: environment.version
+          })
+          recordOldChildEvent('close-sent', {})
+        }
+        catch (error) {
+          recordOldChildEvent('error', {
+            message: error && error.message || String(error),
+            stack: error && error.stack,
+            value: error
+          })
+          try {
+            await Agent.close({
+              status: 'error',
+              message: error && error.message || String(error)
+            })
+          }
+          catch (closeError) {
+            recordOldChildEvent('close-error', {
+              message: closeError && closeError.message || String(closeError)
+            })
+          }
+        }
+      })()
+    </script>
+  </body>
+</html>

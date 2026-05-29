@@ -133,7 +133,6 @@ if [ "${1:-}" = "production" ]; then
       export INSTANCE_NAME="my-deno-instance-3"
       export STATIC_IP_NAME="my-static-ip-3"
       export GCP_MACHINE="n4-standard-2"
-      REDIS_SUBSCRIPTION_SERVER_DEFAULT="singapore"
       ;;
     4)
       export REGION="europe-west3"

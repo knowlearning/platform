@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Old Parent Fixture</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: monospace;
+        background: #101820;
+        color: #f7f1df;
+      }
+      #status {
+        box-sizing: border-box;
+        height: 220px;
+        overflow: auto;
+        margin: 0;
+        padding: 12px;
+        white-space: pre-wrap;
+        border-bottom: 1px solid #3a4650;
+      }
+      iframe {
+        display: block;
+        width: 100vw;
+        height: calc(100vh - 220px);
+        border: 0;
+        background: white;
+      }
+    </style>
+    <script>
+      const oldParentParams = new URLSearchParams(location.search)
+      localStorage.setItem('API_HOST', oldParentParams.get('apiHost') || 'api-1:8765')
+      window.__oldEmbedProbe = {
+        startedAt: Date.now(),
+        opened: false,
+        closed: false,
+        done: false,
+        events: []
+      }
+      window.recordOldParentEvent = function recordOldParentEvent(type, data) {
+        const probe = window.__oldEmbedProbe
+        const event = { type, elapsed: Date.now() - probe.startedAt, data }
+        probe.events.push(event)
+        const status = document.getElementById('status')
+        if (status) status.textContent = probe.events.map(e => `${e.elapsed}ms ${e.type} ${JSON.stringify(e.data)}`).join('\n')
+        console.log(`[old-parent:${type}]`, data)
+      }
+    </script>
+    <script src="/old-agents-0.9.191-browser.js"></script>
+  </head>
+  <body>
+    <pre id="status">old parent starting...</pre>
+    <iframe id="child-frame"></iframe>
+    <script>
+      ;(async () => {
+        const params = new URLSearchParams(location.search)
+        const timeoutMs = Number.parseInt(params.get('timeout') || '15000', 10)
+        const childUrl = params.get('child') || 'https://old-child.localhost:5112/old-child.html'
+        const iframe = document.getElementById('child-frame')
+
+        window.addEventListener('message', event => {
+          const data = event.data
+          recordOldParentEvent('window-message', {
+            origin: event.origin,
+            type: data && data.type,
+            requestId: data && data.requestId,
+            session: data && data.session,
+            keys: data && typeof data === 'object' ? Object.keys(data) : []
+          })
+        })
+
+        iframe.addEventListener('load', () => {
+          recordOldParentEvent('iframe-load', { src: iframe.src })
+        })
+
+        recordOldParentEvent('script-start', {
+          href: location.href,
+          childUrl,
+          apiHost: localStorage.getItem('API_HOST'),
+          embedded: window.Agent && window.Agent.embedded
+        })
+
+        try {
+          const environment = await Agent.environment()
+          recordOldParentEvent('environment', {
+            domain: environment.domain,
+            session: environment.session,
+            user: environment.auth && environment.auth.user,
+            provider: environment.auth && environment.auth.provider,
+            version: environment.version
+          })
+
+          const embedding = Agent.embed({ id: childUrl, mode: 'old-local-parent' }, iframe)
+          embedding.on('open', () => {
+            window.__oldEmbedProbe.opened = true
+            recordOldParentEvent('embed-open', { src: iframe.src })
+          })
+          embedding.on('close', info => {
+            window.__oldEmbedProbe.closed = true
+            recordOldParentEvent('embed-close', info)
+          })
+        }
+        catch (error) {
+          recordOldParentEvent('error', {
+            message: error && error.message || String(error),
+            stack: error && error.stack,
+            value: error
+          })
+        }
+
+        setTimeout(() => {
+          window.__oldEmbedProbe.done = true
+          recordOldParentEvent('timeout', {
+            opened: window.__oldEmbedProbe.opened,
+            closed: window.__oldEmbedProbe.closed,
+            iframeSrc: iframe.src
+          })
+        }, timeoutMs)
+      })()
+    </script>
+  </body>
+</html>
