@@ -30,13 +30,22 @@ gcloud config set project opensourcelearningplatform
 # Set CORS config for production bucket.
 gcloud storage buckets update \
   gs://development-bucket-opensourcelearningplatform \
-  --cors-file=core/infrastructure/production/CORS_CONFIG_FILE
+  --cors-file=core/infrastructure/CORS_CONFIG_FILE
 ```
 
 ## Publish
 
+Production publish reads deployment secrets from `.credentials` at the repo
+parent. Storage credentials are full server maps:
+
 ```sh
-sh core/infrastructure/GCP/publish.sh production
+POSTGRES_SERVERS='{"default":{"host":"10.50.0.2","port":5432,"user":"postgres","password":"..."}}'
+REDIS_SERVERS='{"default":{"host":"redis.example.com","port":15018,"username":"default","password":"..."}}'
+REDIS_SUBSCRIPTION_SERVER='default' # optional
+```
+
+```sh
+bash core/infrastructure/GCP/publish production
 ```
 
 # System Spec

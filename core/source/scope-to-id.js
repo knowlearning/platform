@@ -1,9 +1,11 @@
+// Global State - key file for ensuring ids land in the right place and are pulled from the right place
+
 import { isUUID, uuid, environment } from './utils.js'
 import initializationState from './initialization-state.js'
-import * as redis from './redis.js'
+import { claimStateOwner, setState, stateExists } from './persistence.js'
 import * as postgres from './postgres.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
-import sync from './interact/sync.js'
+import sync from './sync.js'
 import { scopeToIdCache as cache } from './stateful.js'
 
 const { ADMIN_DOMAIN } = environment
@@ -30,10 +32,12 @@ export default async function scopeToId(domain, user, scope) {
   await ensureDomainConfigured(domain)
 
   if (isUUID(scope)) {
-    if (await redis.client.exists(scope)) return scope
+    const ownerDomain = await claimStateOwner(domain, scope)
+    if (ownerDomain !== domain) return scope
+    if (await stateExists(domain, scope)) return scope
 
     const state = initializationState(domain, user, scope)
-    await redis.client.json.set(scope, '$', state, { NX: true })
+    await setState(domain, scope, '$', state, { NX: true })
     await sync(domain, user, state.active_type, scope)
     return scope
   }
@@ -41,6 +45,10 @@ export default async function scopeToId(domain, user, scope) {
   const { rows: [response] } = await postgres.query(domain, MOST_RECENT_NAMED_SCOPE_QUERY, [domain, scope, user])
 
   if (response) {
+    const ownerDomain = await claimStateOwner(domain, response.id)
+    if (ownerDomain !== domain) {
+      throw new Error(`Named scope ${scope} resolved to UUID ${response.id} owned by ${ownerDomain}`)
+    }
     cacheScope(domain, user, scope, response.id)
     return response.id
   }
@@ -48,7 +56,7 @@ export default async function scopeToId(domain, user, scope) {
     const id = uuid()
     cacheScope(domain, user, scope, id)
     const state = initializationState(domain, user, scope)
-    await redis.client.json.set(id, '$', state)
+    await setState(domain, id, '$', state)
     await sync(domain, user, state.active_type, id)
     return id
   }

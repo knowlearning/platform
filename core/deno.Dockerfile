@@ -3,23 +3,13 @@ FROM denoland/deno:2.2.7
 RUN apt update && apt install -y procps
 
 # Copy local code to the container image.
-COPY ./source/utils.js ./source/utils.js
-RUN deno cache ./source/utils.js
-
+COPY ./deno.json ./deno.lock ./
+COPY ./infrastructure/local/start-api.sh /usr/local/bin/start-api.sh
 COPY ./source ./source
 
-RUN deno cache ./source/index.js
+RUN chmod +x /usr/local/bin/start-api.sh
+
+RUN deno install --frozen --entrypoint ./source/index.js ./source/domain-worker/index.js
 
 # Run the web service on container startup.
-CMD [ \
-  "deno", \
-  "run", \
-  "--allow-sys", \
-  "--allow-net", \
-  "--allow-env", \
-  "--allow-write", \
-  "--allow-read", \
-  "--allow-run", \
-  "--v8-flags=--max-old-space-size=8000", \
-  "./source/index.js" \
-]
+CMD ["/usr/local/bin/start-api.sh"]

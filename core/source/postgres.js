@@ -1,5 +1,6 @@
 import { randomBytes, pg, environment, escapePostgresLiteral } from './utils.js'
 import { postgresClientPools as clientPools } from './stateful.js'
+import { DEFAULT_STORAGE_SERVER, storageServerForDomain } from './storage-routing.js'
 
 // necessary to ensure that
 function purifiedName(name) {
@@ -13,11 +14,7 @@ export function domainToDbName(domain) {
   else throw new Error('INVALID DB NAME' + domain)
 }
 
-const {
-  POSTGRES_HOST,
-  POSTGRES_PORT,
-  POSTGRES_PASSWORD
-} = environment
+const { POSTGRES_SERVERS } = environment
 
 const constantMap = {
   PLpgSQL: 'PLpgSQL',
@@ -41,57 +38,176 @@ const ignorableErrors = {
   '42P04': true  // database already exists
 }
 
-const config = {
-  hostname: POSTGRES_HOST,
-  port: POSTGRES_PORT,
-  user: 'postgres',
-  password: POSTGRES_PASSWORD
-}
+function parseJSONEnvironment(name, value) {
+  if (!value) throw new Error(`${name} is required`)
 
-async function client(domain) {
-  if (clientPools[domain]) return clientPools[domain]
-  return clientPools[domain] = new Promise(async resolve => {
-    const database = domain === 'postgres' ? 'postgres' : domainToDbName(domain)
-    if (domain !== 'postgres') {
-      //  Create database for domain on-demand
-      try {
-        await query('postgres', `CREATE DATABASE "${database}"`)
-        query(domain, 'CREATE EXTENSION IF NOT EXISTS plpgsql')
-          .catch(error => console.warn(`error creating plpgsql extension for ${database}`, error))
-      }
-      catch (error) {
-        console.log(error)
-        if (!ignorableErrors[error.fields?.code]) {
-          console.log('ERROR CREATING DATABASE!!!!!', error)
-        }
-      }
+  try {
+    const parsed = JSON.parse(value)
+
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('must be a JSON object')
     }
-    resolve(new pg.Pool({ ...config, database }, 20, true))
-  })
+
+    return parsed
+  }
+  catch (error) {
+    throw new Error(`${name} must be valid JSON object: ${error.message}`)
+  }
 }
 
-async function query(database, text, values, rowMode, maxRetries = 5, delayMs = 200) {
+const postgresServers = parseJSONEnvironment('POSTGRES_SERVERS', POSTGRES_SERVERS)
+const defaultPostgresServer = DEFAULT_STORAGE_SERVER
+
+if (!postgresServers[defaultPostgresServer]) {
+  throw new Error(`POSTGRES_SERVERS.${defaultPostgresServer} is required`)
+}
+
+function serverNameForDomain(domain) {
+  return storageServerForDomain(domain, 'postgres')
+}
+
+function configurationKeyForDomain(domain) {
+  return JSON.stringify([serverNameForDomain(domain), domain])
+}
+
+function clientConnectionInfo(serverName, database) {
+  const server = postgresServers[serverName]
+
+  if (!server || typeof server !== 'object' || Array.isArray(server)) {
+    throw new Error(`POSTGRES_SERVERS.${serverName} must be a connection info object`)
+  }
+
+  const {
+    host,
+    port,
+    password,
+    user='postgres'
+  } = server
+
+  const parsedPort = Number(port)
+
+  if (!host) throw new Error(`POSTGRES_SERVERS.${serverName}.host is required`)
+  if (!Number.isInteger(parsedPort) || parsedPort <= 0) {
+    throw new Error(`POSTGRES_SERVERS.${serverName}.port must be a positive integer`)
+  }
+
+  const info = {
+    host,
+    port: parsedPort,
+    user,
+    database
+  }
+
+  if (password !== undefined) info.password = password
+
+  return info
+}
+
+async function createDatabase(serverName, database) {
+  try {
+    await queryOnServer(serverName, 'postgres', `CREATE DATABASE "${database}"`)
+  }
+  catch (error) {
+    console.log(error)
+    if (!ignorableErrors[error.fields?.code || error.code]) {
+      console.log('ERROR CREATING DATABASE!!!!!', serverName, database, error)
+      throw error
+    }
+  }
+}
+
+function clientKey(serverName, database) {
+  return JSON.stringify([serverName, database])
+}
+
+function normalizePostgresError(error) {
+  if (error && typeof error === 'object') {
+    error.fields ||= {}
+    if (error.code !== undefined && error.fields.code === undefined) {
+      error.fields.code = error.code
+    }
+    if (error.message !== undefined && error.fields.message === undefined) {
+      error.fields.message = error.message
+    }
+  }
+
+  return error
+}
+
+async function clientForDatabase(serverName, database) {
+  const key = clientKey(serverName, database)
+
+  if (!clientPools[key]) {
+    const poolPromise = (async () => {
+      if (database !== 'postgres') await createDatabase(serverName, database)
+
+      const pool = new pg.Pool({
+        ...clientConnectionInfo(serverName, database),
+        max: 20
+      })
+
+      if (database !== 'postgres') {
+        queryOnServer(serverName, database, 'CREATE EXTENSION IF NOT EXISTS plpgsql')
+          .catch(error => console.warn(`error creating plpgsql extension for ${serverName}/${database}`, error))
+      }
+
+      return pool
+    })()
+
+    clientPools[key] = poolPromise.catch(error => {
+      delete clientPools[key]
+      throw error
+    })
+  }
+
+  return clientPools[key]
+}
+
+function databaseForDomain(domain) {
+  return domain === 'postgres' ? 'postgres' : domainToDbName(domain)
+}
+
+async function queryOnServer(serverName, database, text, values, rowMode, maxRetries = 5, delayMs = 200) {
   let attempt = 0
-  const pool = await client(database)
+  const pool = await clientForDatabase(serverName, database)
 
   while (true) {
     let connection
     try {
       connection = await pool.connect()
-      return await connection.queryObject({ text, args: values, rowMode })
+      return await connection.query({
+        text,
+        values
+      })
     } catch (err) {
+      const error = normalizePostgresError(err)
       attempt++
 
       // TODO: only fatal connection errors should force connection end
       // forcibly close / evict
-      if (connection) try { await connection.end() } catch (_) {}
+      if (connection) {
+        try { connection.release(true) } catch (_) {}
+        connection = null
+      }
 
-      if (attempt >= maxRetries) throw err
+      if (attempt >= maxRetries) throw error
       await new Promise(res => setTimeout(res, delayMs))
     } finally {
       if (connection) try { connection.release() } catch (_) {}
     }
   }
+}
+
+async function query(database, text, values, rowMode, maxRetries = 5, delayMs = 200) {
+  return queryOnServer(
+    serverNameForDomain(database),
+    databaseForDomain(database),
+    text,
+    values,
+    rowMode,
+    maxRetries,
+    delayMs
+  )
 }
 
 
@@ -216,7 +332,7 @@ function setRow(domain, table, columns, id, state, firstParamIndex=1) {
 
   if (!data) {
     return [
-      `DELETE FROM ${purifiedName(table)} WHERE id = $${firstParamIndex}`
+      `DELETE FROM ${purifiedName(table)} WHERE id = $${firstParamIndex}`,
       [id]
     ]
   }
@@ -269,6 +385,7 @@ export {
   removeRow,
   createFunction,
   deleteFunction,
+  configurationKeyForDomain,
   purifiedName,
   query
 }

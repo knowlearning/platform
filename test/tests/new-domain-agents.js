@@ -1,4 +1,5 @@
-import YAML from 'yaml'
+import configureDomain from '../utils/configure-domain.js'
+import browserAgent from '@knowlearning/agents/browser/initialize.js'
 
 const MIRROR_FIELD_DOMAIN = 'mirror-field.localhost:5112'
 
@@ -14,55 +15,52 @@ const BROKEN_RUNTIME_CONFIG = `
       runtimeError()
 `
 
+const CRASH_WORKER_CONFIG = `
+  sideEffects:
+    script: |
+      globalThis.Deno.exit(42)
+`
+
+const HANGING_WORKER_CONFIG = `
+  sideEffects:
+    script: |
+      await new Promise(() => {})
+`
+
 const mirrorFieldConfig = `
   sideEffects:
     script: |
-      patch.forEach(async op => {
+      for (const op of patch) {
         if (op.path.length === 1 && op.path[0] === 'mirror') {
           const state = await Agent.state(scope)
           state.mirror = op.value
+          await Agent.synced()
         }
-      })
+      }
 `
 const mirrorFieldConfig2 = `
   sideEffects:
     script: |
-      patch.forEach(async op => {
+      for (const op of patch) {
         if (op.path.length === 1 && op.path[0] === 'mirror') {
           const state = await Agent.state(scope)
           state.mirror = op.value + '2'
+          await Agent.synced()
         }
-      })
+      }
 `
 const toMirrorFieldConfig = `
   sideEffects:
     script: |
-      patch.forEach(async op => {
+      for (const op of patch) {
         if (op.path.length === 1 && op.path[0] === 'mirror') {
           const MirrorAgent = getAgent('${MIRROR_FIELD_DOMAIN}')
           const state = await MirrorAgent.state(scope)
           state.mirror = op.value
-          const { auth: { user } } = await Agent.environment()
+          await MirrorAgent.synced()
         }
-      })
+      }
 `
-
-async function configure(domain, configuration, awaitInitialized) {
-  const config = YAML.parse(configuration)
-  const report = Agent.uuid()
-
-  const configState = await Agent.state(`configuration/${domain}`)
-
-  Object.assign(configState, config)
-  await Agent.response() //  TODO: investigate why awaiting synced here results in 'Throws error on permission violation' test timeout
-  configState.deployment = report
-
-  return new Promise(resolve => {
-    Agent.watch(report, ({ state }) => {
-      if (state.end) resolve()
-    }, 'localhost:5111', 'localhost:5111')
-  })
-}
 
 export default function () {
 
@@ -77,7 +75,7 @@ export default function () {
   describe('New Domain Agent', function () {
     it('Is resilient against broken side effect scripts (syntax)', async function () {
       const { domain } = await Agent.environment()
-      await configure(domain, BROKEN_SYNTAX_CONFIG)
+      await configureDomain(domain, BROKEN_SYNTAX_CONFIG)
       const x = await Agent.state(Agent.uuid())
       x.a = 100
       const response = await Agent.response()
@@ -86,11 +84,90 @@ export default function () {
 
     it('Is resilient against broken side effect scripts (runtime)', async function () {
       const { domain } = await Agent.environment()
-      await configure(domain, BROKEN_RUNTIME_CONFIG)
+      await configureDomain(domain, BROKEN_RUNTIME_CONFIG)
       const x = await Agent.state(Agent.uuid())
       x.a = 100
       const response = await Agent.response()
       expect(response.log).to.deep.equal(['ReferenceError: runtimeError is not defined'])
+    })
+
+    it('Returns an error response and recovers when a side effect worker exits', async function () {
+      const { domain } = await Agent.environment()
+      await configureDomain(domain, CRASH_WORKER_CONFIG)
+
+      const crashed = await Agent.state(Agent.uuid())
+      crashed.a = 100
+
+      const crashResponse = await Agent.response()
+      expect(crashResponse.log).to.deep.equal(['Worker exited with code 42'])
+
+      const response = Agent.uuid()
+      await configureDomain(domain, getSimpleResponseConfig(response))
+
+      const recovered = await Agent.state(Agent.uuid())
+      recovered.a = 100
+
+      const recoveredResponse = await Agent.response()
+      expect(recoveredResponse.response).to.equal(response)
+    })
+
+    it('Returns an error response and recovers when a side effect worker refreshes with pending work', async function () {
+      this.timeout(10000)
+
+      const domain = `refresh-worker-${Agent.uuid()}.localhost:5112`
+      const workerAgent = browserAgent({
+        unique: true,
+        domain,
+        apiHost: process.env.API_HOST || 'socket-io.localhost:8765',
+        getToken: () => 'anonymous'
+      })
+      const refreshAgent = browserAgent({
+        unique: true,
+        domain,
+        apiHost: process.env.API_HOST || 'socket-io.localhost:8765',
+        getToken: () => 'anonymous'
+      })
+
+      const withTimeout = (promise, message) => Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(message)), 3000))
+      ])
+
+      try {
+        await Promise.all([
+          workerAgent.environment(),
+          refreshAgent.environment()
+        ])
+        const hangingState = await workerAgent.state(Agent.uuid())
+        const recoveredState = await refreshAgent.state(Agent.uuid())
+
+        await configureDomain(domain, HANGING_WORKER_CONFIG)
+
+        hangingState.a = 100
+        const hangingResponse = withTimeout(
+          workerAgent.response(),
+          'Timed out waiting for refreshed worker error response'
+        )
+        await new Promise(resolve => setTimeout(resolve, 100))
+
+        const recoveredResponse = Agent.uuid()
+        await configureDomain(domain, getSimpleResponseConfig(recoveredResponse))
+
+        recoveredState.a = 200
+
+        const refreshResponse = await hangingResponse
+        expect(refreshResponse.log).to.deep.equal(['Worker refreshed before completing request'])
+
+        const nextResponse = await withTimeout(
+          refreshAgent.response(),
+          'Timed out waiting for refreshed worker recovery response'
+        )
+        expect(nextResponse.response).to.equal(recoveredResponse)
+      }
+      finally {
+        workerAgent.disconnect?.()
+        refreshAgent.disconnect?.()
+      }
     })
 
     it('Gets expected responses after reconfigurations', async function () {
@@ -98,7 +175,7 @@ export default function () {
         this.timeout(5000)
         const response = Agent.uuid()
         const { domain } = await Agent.environment()
-        await configure(domain, getSimpleResponseConfig(response))
+        await configureDomain(domain, getSimpleResponseConfig(response))
         const x = await Agent.state(Agent.uuid())
         x.a = 100
         const r = await Agent.response()
@@ -116,7 +193,7 @@ export default function () {
             state.myOwnId = id
       `
       const { domain } = await Agent.environment()
-      await configure(domain, stateSettingConfig)
+      await configureDomain(domain, stateSettingConfig)
       await Agent.state()
       const x = await Agent.state(stateId)
       expect(x.myOwnId).to.equal(stateId)
@@ -130,7 +207,7 @@ export default function () {
             return Agent.environment().then(e => e.domain)
       `
       const { domain } = await Agent.environment()
-      await configure(domain, stateSettingConfig)
+      await configureDomain(domain, stateSettingConfig)
       const x = await Agent.state('x')
       x.asdf = 1
       const { response } = await Agent.response()
@@ -153,7 +230,7 @@ export default function () {
             return Agent.metadata('${stateId}')
       `
       const { domain } = await Agent.environment()
-      await configure(domain, stateSettingConfig)
+      await configureDomain(domain, stateSettingConfig)
       const x = await Agent.state('x')
       x.asdf = 1
       const { response: { ii } } = await Agent.response()
@@ -162,8 +239,8 @@ export default function () {
 
     it('Allows domain agents (configured) to connect to each other', async function () {
       this.timeout(3000)
-      await configure('localhost:5112', toMirrorFieldConfig)
-      await configure(MIRROR_FIELD_DOMAIN, mirrorFieldConfig)
+      await configureDomain('localhost:5112', toMirrorFieldConfig)
+      await configureDomain(MIRROR_FIELD_DOMAIN, mirrorFieldConfig)
       const scope = `x-${Agent.uuid()}`
       const state = await Agent.state(scope)
       const dataToMirror = Agent.uuid()
@@ -185,8 +262,8 @@ export default function () {
 
     it('Allows domain agents (reconfigured) to connect to each other', async function () {
       this.timeout(3000)
-      await configure('localhost:5112', toMirrorFieldConfig)
-      await configure(MIRROR_FIELD_DOMAIN, mirrorFieldConfig2)
+      await configureDomain('localhost:5112', toMirrorFieldConfig)
+      await configureDomain(MIRROR_FIELD_DOMAIN, mirrorFieldConfig2)
       await pause(1000)
       const scope = `x-${Agent.uuid()}`
       const state = await Agent.state(scope)
@@ -215,25 +292,25 @@ export default function () {
             await import('../index.js')
             return 'success'
       `
-      await configure('localhost:5112', config)
+      await configureDomain('localhost:5112', config)
       const state = await Agent.state(Agent.uuid())
       state.x = 100
       const { response, log } = await Agent.response()
       expect(response).to.not.equal('success')
       expect(log.length).to.equal(1)
-      expect(log[0]).to.equal('TypeError: Requires read access to "/source/index.js", run again with the --allow-read flag')
+      expect(log[0]).to.equal('TypeError: Requires read access to "/workspace/core/source/index.js", run again with the --allow-read flag')
     })
 
     it('Sends back improperly encoded secrets as null', async () => {
       const config = `
         secrets:
-          improperly_encoded_secret: Y6OvsoSoSQlkbEe7TwlmIAIaDJMOFtFo52Xy/ioJNT1tPrlvszdDF2OMJ57N5+pAgmLh2WOadvLBNHqQnM3QHnN47p4cnoRwWQCsGn6cawmkhd4=
+          improperly_encoded_secret: GPAXy5QiOSuZ41cTZaEbkFhZgvF/H1tIJ0xYxOCiQwKQFtlQer1x40RhsQAcTGwdNgOft4SgDhDOEOqjaP0pnKauKS3YCev9W72461CI+ebtjqV4FFIuSHTQUKDK44TZ
         sideEffects:
           script: |
             const { secrets } = await Agent.environment()
             return secrets.improperly_encoded_secret
       `
-      await configure('localhost:5112', config)
+      await configureDomain('localhost:5112', config)
       const state = await Agent.state(Agent.uuid())
       state.x = 100
       const { response, log } = await Agent.response()
@@ -244,18 +321,18 @@ export default function () {
     it('makes properly encoded secrets available to worker scripts', async () => {
       const config = `
         secrets:
-          properly_encoded_secret: GPAXy5QiOSuZ41cTZaEbkFhZgvF/H1tIJ0xYxOCiQwKQFtlQer1x40RhsQAcTGwdNgOft4SgDhDOEOqjaP0pnKauKS3YCev9W72461CI+ebtjqV4FFIuSHTQUKDK44TZ
+          properly_encoded_secret: Y6OvsoSoSQlkbEe7TwlmIAIaDJMOFtFo52Xy/ioJNT1tPrlvszdDF2OMJ57N5+pAgmLh2WOadvLBNHqQnM3QHnN47p4cnoRwWQCsGn6cawmkhd4=
         sideEffects:
           script: |
             const { secrets } = await Agent.environment()
             return secrets.properly_encoded_secret
       `
-      await configure('localhost:5112', config)
+      await configureDomain('localhost:5112', config)
       const state = await Agent.state(Agent.uuid())
       state.x = 100
       const { response, log } = await Agent.response()
       console.log('RESPONSE', response, log)
-      expect(response).to.equal('not-very-secret-actually')
+      expect(response).to.equal('notsosecret')
     })
   })
 

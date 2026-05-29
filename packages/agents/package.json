@@ -1,6 +1,6 @@
 {
   "name": "@knowlearning/agents",
-  "version": "0.9.191",
+  "version": "0.9.193",
   "description": "API for embedding applications in KnowLearning systems.",
   "main": "node.js",
   "browser": "browser.js",
@@ -11,7 +11,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "CI=true corepack pnpm install --frozen-lockfile && node test/run-embedded-integration.js && deno run --no-lock --allow-env --allow-read --allow-sys --node-modules-dir=manual node_modules/mocha/bin/mocha.js --reporter spec test/deno-embedded-import.js"
   },
   "repository": {
     "type": "git",
@@ -30,6 +30,9 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "chai": "^5.1.2",
+    "deno-bin": "2.2.7",
+    "mocha": "^10.8.2",
     "vite": "^6.2.1"
   }
 }
