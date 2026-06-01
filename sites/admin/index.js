@@ -19,6 +19,7 @@ import DomainConfig from './domain-config.vue'
 import DomainAgents from './domain-agents.vue'
 import DomainSQL from './domain-sql.vue'
 import DomainTests from './domain-tests.vue'
+import HistoryViewer from './history-viewer.vue'
 
 import './third-party-setup.js'
 
@@ -28,6 +29,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', component: { template: '<div></div>' } },
+    { path: '/history', component: HistoryViewer },
     { path: '/nodes', component: NodesPanel },
     { path: '/:domain/config', component: DomainConfig, props: true },
     { path: '/:domain/agents', component: DomainAgents, props: true },

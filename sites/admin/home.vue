@@ -21,7 +21,7 @@
           }"
         />
         <v-toolbar-title>
-          {{ domain }}
+          {{ title }}
         </v-toolbar-title>
         <v-tabs
           v-model="selectedTab"
@@ -34,6 +34,14 @@
           <v-tab value="tests">Tests</v-tab>
         </v-tabs>
         <v-spacer />
+        <v-btn
+          class="me-2"
+          :variant="isHistoryRoute ? 'flat' : 'text'"
+          prepend-icon="fa-solid fa-clock-rotate-left"
+          @click="$router.push('/history')"
+        >
+          History
+        </v-btn>
         <v-btn
           @click="logout"
           append-icon="fa-solid fa-arrow-right-from-bracket"
@@ -83,6 +91,13 @@ export default {
   computed: {
     domain() {
       return this.$router.currentRoute.value?.params?.domain
+    },
+    title() {
+      if (this.isHistoryRoute) return 'History'
+      return this.domain
+    },
+    isHistoryRoute() {
+      return this.$router.currentRoute.value?.path === '/history'
     },
     selectedTab: {
       get() {
