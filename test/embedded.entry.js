@@ -27,6 +27,7 @@ export default async function registerEmbeddedHarness() {
     { default: browserAgent },
     { vuePersistentStore },
     { default: latestBugfixes },
+    { default: historyPatchFormat },
     { default: mutate },
     { default: watch },
     { default: watchDeep },
@@ -49,6 +50,7 @@ export default async function registerEmbeddedHarness() {
     import('@knowlearning/agents/browser/initialize.js'),
     import('@knowlearning/agents/vue.js'),
     import('./tests/latest-bugfixes.js'),
+    import('./tests/history-patch-format.js'),
     import('./tests/mutate.js'),
     import('./tests/watch.js'),
     import('./tests/watch-deep.js'),
@@ -259,6 +261,7 @@ export default async function registerEmbeddedHarness() {
       })
 
       latestBugfixes()
+      historyPatchFormat()
       if (includeRootOnly) crossServer(browserAgent, { skipIfUnavailable: true })
       if (includeRootOnly) postgres()
       if (includeRootOnly) domainAgents()

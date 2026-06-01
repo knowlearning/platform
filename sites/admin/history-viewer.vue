@@ -109,11 +109,10 @@
 </template>
 
 <script setup>
-import { applyPatch } from 'fast-json-patch/index.mjs'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { standardJSONPatch } from '@knowlearning/patch-proxy'
 import { validate as isUUID } from 'uuid'
+import { applyHistoryPatch } from './history-patch.js'
 
 const CHECKPOINT_INTERVAL = 50
 
@@ -304,12 +303,7 @@ function getSnapshotAtStep(step) {
 }
 
 function applyCustomPatch(snapshot, patch) {
-  return applyPatch(
-    snapshot,
-    standardJSONPatch(patch),
-    true,
-    false
-  ).newDocument
+  return applyHistoryPatch(snapshot, patch)
 }
 
 function normalizeStep(value) {

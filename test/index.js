@@ -17,6 +17,7 @@ import stateTest from './tests/state.js'
 import environmentTest from './tests/environment.js'
 import namespacedEmbeddings from './tests/namespaced-embeddings.js'
 import latestBugfixes from './tests/latest-bugfixes.js'
+import historyPatchFormat from './tests/history-patch-format.js'
 import syncedState from './tests/synced-state.js'
 import crossServer from './tests/cross-server.js'
 import runEmbeddedMode from './embedded-modes.js'
@@ -77,6 +78,7 @@ else if (!(await runEmbeddedMode({ Agent, id, mode }))) {
   else {
     describe(`${mode.length > 4 ? `Embed Level ${mode.length - 4}` : 'Root'} Core API`, function () {
       latestBugfixes()
+      historyPatchFormat()
       if (mode.length === 4) crossServer(browserAgent, { skipIfUnavailable: true })
       if (mode.length === 4) postgres()
       if (mode.length === 4) domainAgents()
