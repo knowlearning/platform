@@ -86,6 +86,23 @@ async function gcpPOST(creds, url, scopes, payload) {
   return json
 }
 
+async function gcpGET(creds, url, scopes) {
+  const token = await getAccessToken(creds, scopes)
+  const response = await fetch(url, {
+    headers: {
+      "Authorization": `Bearer ${token}`
+    }
+  })
+
+  const json = await response.json()
+
+  if (!response.ok) {
+    throw new Error(`GCP GET Failed: ${url} ${response.status} ${JSON.stringify(json)}`)
+  }
+
+  return json
+}
+
 export async function insertRowsToBigQuery({
   creds,
   project,
@@ -109,6 +126,83 @@ export async function insertRowsToBigQuery({
   }
 
   return response
+}
+
+function bigQueryParameter(name, value) {
+  return {
+    name,
+    parameterType: { type: 'STRING' },
+    parameterValue: { value }
+  }
+}
+
+function parseBigQueryValue(value, field) {
+  if (value === null || value === undefined) return null
+
+  if (field.type === 'INTEGER' || field.type === 'INT64') return Number.parseInt(value, 10)
+  if (field.type === 'FLOAT' || field.type === 'FLOAT64' || field.type === 'NUMERIC') return Number.parseFloat(value)
+  if (field.type === 'BOOLEAN' || field.type === 'BOOL') return value === 'true'
+
+  return value
+}
+
+function parseBigQueryRows(schema, rows=[]) {
+  const fields = schema?.fields || []
+
+  return rows.map(row => {
+    const parsed = {}
+    row.f.forEach(({ v }, index) => {
+      const field = fields[index]
+      parsed[field.name] = parseBigQueryValue(v, field)
+    })
+    return parsed
+  })
+}
+
+async function getBigQueryQueryResults(creds, project, jobReference, pageToken) {
+  const url = new URL(`https://bigquery.googleapis.com/bigquery/v2/projects/${project}/queries/${jobReference.jobId}`)
+  url.searchParams.set('timeoutMs', '10000')
+  if (jobReference.location) url.searchParams.set('location', jobReference.location)
+  if (pageToken) url.searchParams.set('pageToken', pageToken)
+
+  return gcpGET(creds, url.toString(), 'https://www.googleapis.com/auth/bigquery')
+}
+
+export async function queryBigQuery({
+  creds,
+  project,
+  query,
+  params={}
+}) {
+  const scopes = 'https://www.googleapis.com/auth/bigquery'
+  const queryResponse = await gcpPOST(
+    creds,
+    `https://bigquery.googleapis.com/bigquery/v2/projects/${project}/queries`,
+    scopes,
+    {
+      query,
+      useLegacySql: false,
+      parameterMode: 'NAMED',
+      queryParameters: Object.entries(params).map(([name, value]) => bigQueryParameter(name, value))
+    }
+  )
+
+  let currentResponse = queryResponse
+  while (!currentResponse.jobComplete) {
+    currentResponse = await getBigQueryQueryResults(creds, project, queryResponse.jobReference)
+  }
+
+  const rows = parseBigQueryRows(currentResponse.schema, currentResponse.rows)
+  let { pageToken } = currentResponse
+  const { jobReference } = queryResponse
+
+  while (pageToken) {
+    const page = await getBigQueryQueryResults(creds, project, jobReference, pageToken)
+    rows.push(...parseBigQueryRows(page.schema || currentResponse.schema, page.rows))
+    pageToken = page.pageToken
+  }
+
+  return rows
 }
 
 const isRetryable = {

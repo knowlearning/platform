@@ -7,12 +7,19 @@ import { subscriptionResponses } from './stateful.js'
 
 const { GC_PROJECT_ID, GCS_SERVICE_ACCOUNT_CREDENTIALS } = environment
 
-const { insert: bqInsertPatch } = bigQueryBatchInserter({
+const {
+  insert: bqInsertPatch,
+  flush: flushBQPatches
+} = bigQueryBatchInserter({
   creds: JSON.parse(GCS_SERVICE_ACCOUNT_CREDENTIALS),
   project: GC_PROJECT_ID,
   dataset: 'core',
   table: 'patches'
 })
+
+export function flushPatchRecords() {
+  return flushBQPatches()
+}
 
 const UUID_OWNER_HASH_KEY = '__knowlearning:uuid-owner-domain'
 const DOMAIN_UUID_SET_PREFIX = '__knowlearning:domain-uuids:'
@@ -455,11 +462,12 @@ function move(transaction, id, path, from) {
 
 function recordPatch(domain, user, context, id, index, name, patch, timestamp) {
   patch
-    .map(({ op, path, from=null, value=null }) => {
+    .map(({ op, path, from=null, value=null }, operationIndex) => {
       bqInsertPatch({
         timestamp: new Date(timestamp).toISOString(),
         id,
         index,
+        operation_index: operationIndex,
         op,
         path: JSON.stringify(path),
         from: JSON.stringify(from),
