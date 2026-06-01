@@ -79,6 +79,91 @@
           />
         </div>
 
+        <v-alert
+          v-if="replayFailure"
+          type="warning"
+          class="mt-4"
+        >
+          Replay failed at step {{ replayFailure.step }}, operation {{ replayFailure.failedPosition === null ? '?' : replayFailure.failedPosition + 1 }} of {{ replayFailure.orderedPatch.length }}.
+          {{ replayFailure.message }}
+        </v-alert>
+
+        <v-card
+          v-if="replayFailureEntry"
+          variant="outlined"
+          class="mt-4"
+        >
+          <v-card-title>Reorder Failing Operations</v-card-title>
+          <v-card-text>
+            <div class="history-replay-actions">
+              <v-chip>Failing step {{ replayFailure.step }}</v-chip>
+              <v-btn
+                size="small"
+                variant="tonal"
+                @click="jumpToFailureStep"
+              >
+                Jump to step
+              </v-btn>
+              <v-btn
+                size="small"
+                variant="text"
+                :disabled="!hasCustomOperationOrder(replayFailure.step)"
+                @click="resetOperationOrder(replayFailure.step)"
+              >
+                Reset order
+              </v-btn>
+            </div>
+
+            <div class="history-operation-list">
+              <div
+                v-for="(item, applyIndex) in replayFailureOperations"
+                :key="`${replayFailure.step}:${item.originalIndex}:${applyIndex}`"
+                class="history-operation-item"
+              >
+                <div class="history-operation-toolbar">
+                  <div class="history-operation-chips">
+                    <v-chip size="small">Apply {{ applyIndex + 1 }}</v-chip>
+                    <v-chip
+                      size="small"
+                      variant="outlined"
+                    >
+                      Original {{ item.originalIndex + 1 }}
+                    </v-chip>
+                    <v-chip
+                      v-if="replayFailure.failedPosition === applyIndex"
+                      size="small"
+                      color="warning"
+                    >
+                      Fails here
+                    </v-chip>
+                  </div>
+
+                  <div class="history-operation-buttons">
+                    <v-btn
+                      size="x-small"
+                      variant="text"
+                      :disabled="applyIndex === 0"
+                      @click="moveOperation(replayFailure.step, applyIndex, -1)"
+                    >
+                      Up
+                    </v-btn>
+                    <v-btn
+                      size="x-small"
+                      variant="text"
+                      :disabled="applyIndex === replayFailureOperations.length - 1"
+                      @click="moveOperation(replayFailure.step, applyIndex, 1)"
+                    >
+                      Down
+                    </v-btn>
+                  </div>
+                </div>
+
+                <pre class="history-code">{{ JSON.stringify(item.operation, null, 2) }}</pre>
+              </div>
+            </div>
+          </v-card-text>
+        </v-card>
+
         <v-row class="mt-2">
           <v-col
             cols="12"
@@ -96,7 +181,7 @@
             md="7"
           >
             <v-card variant="outlined">
-              <v-card-title>State Snapshot</v-card-title>
+              <v-card-title>{{ selectedSnapshotTitle }}</v-card-title>
               <v-card-text>
                 <pre class="history-code">{{ selectedSnapshotText }}</pre>
               </v-card-text>
@@ -112,7 +197,11 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { validate as isUUID } from 'uuid'
-import { applyHistoryPatch } from './history-patch.js'
+import {
+  defaultHistoryOperationOrder,
+  inspectHistoryPatchApplication,
+  orderHistoryPatch
+} from './history-patch.js'
 
 const CHECKPOINT_INTERVAL = 50
 
@@ -125,6 +214,7 @@ const loading = ref(false)
 const error = ref('')
 const historyEntries = ref([])
 const selectedStep = ref(0)
+const patchOperationOrders = ref({})
 
 let snapshotCache = new Map([[0, {}]])
 
@@ -149,16 +239,49 @@ const selectedEntry = computed(() => {
   return historyEntries.value[selectedStep.value - 1] || null
 })
 
-const selectedSnapshot = computed(() => getSnapshotAtStep(selectedStep.value))
+const selectedSnapshotResult = computed(() => getSnapshotResultAtStep(selectedStep.value))
+
+const selectedSnapshot = computed(() => selectedSnapshotResult.value.snapshot)
+
+const replayFailure = computed(() => selectedSnapshotResult.value.error)
+
+const replayFailureEntry = computed(() => {
+  if (!replayFailure.value) return null
+  return historyEntries.value[replayFailure.value.step - 1] || null
+})
+
+const replayFailureOperations = computed(() => {
+  if (!replayFailure.value || !replayFailureEntry.value) return []
+
+  return getOperationOrder(replayFailure.value.step, replayFailureEntry.value.patch)
+    .map((originalIndex, applyIndex) => ({
+      applyIndex,
+      originalIndex,
+      operation: replayFailureEntry.value.patch[originalIndex]
+    }))
+})
 
 const selectedPatchText = computed(() => {
   if (!selectedEntry.value) {
     return 'No patch selected yet. Move the scrubber to step 1 or later.'
   }
-  return JSON.stringify(selectedEntry.value.patch, null, 2)
+
+  return JSON.stringify(
+    orderHistoryPatch(
+      selectedEntry.value.patch,
+      getOperationOrder(selectedStep.value, selectedEntry.value.patch)
+    ),
+    null,
+    2
+  )
 })
 
 const selectedSnapshotText = computed(() => JSON.stringify(selectedSnapshot.value, null, 2))
+
+const selectedSnapshotTitle = computed(() => {
+  if (!replayFailure.value) return 'State Snapshot'
+  return `State Snapshot Through Step ${replayFailure.value.step - 1}`
+})
 
 const selectedStepLabel = computed(() => {
   if (selectedStep.value === 0) return 'Step 0'
@@ -214,7 +337,8 @@ function resetHistory(id='') {
   error.value = ''
   historyEntries.value = []
   selectedStep.value = 0
-  snapshotCache = new Map([[0, {}]])
+  patchOperationOrders.value = {}
+  resetSnapshotCache()
 }
 
 async function loadHistory(id) {
@@ -223,14 +347,14 @@ async function loadHistory(id) {
   historyId.value = id
   historyEntries.value = []
   selectedStep.value = 0
-  snapshotCache = new Map([[0, {}]])
+  patchOperationOrders.value = {}
+  resetSnapshotCache()
 
   try {
     const text = await Agent.download(id).then(response => response.text())
     const entries = parseHistory(text)
 
     historyEntries.value = entries
-    seedCheckpoints(entries)
     selectedStep.value = entries.length
   }
   catch (caughtError) {
@@ -254,7 +378,7 @@ function parseHistory(text) {
       throw new Error(`Could not parse history line ${index + 1}.`)
     }
 
-    const timestamp = Number.parseInt(line.slice(0, separatorIndex), 10)
+    const timestamp = Number(line.slice(0, separatorIndex))
     if (!Number.isFinite(timestamp)) {
       throw new Error(`History line ${index + 1} has an invalid timestamp.`)
     }
@@ -271,39 +395,106 @@ function parseHistory(text) {
   })
 }
 
-function seedCheckpoints(entries) {
-  let snapshot = {}
-  snapshotCache = new Map([[0, snapshot]])
-
-  entries.forEach((entry, index) => {
-    snapshot = applyCustomPatch(snapshot, entry.patch)
-    const step = index + 1
-
-    if (step % CHECKPOINT_INTERVAL === 0 || step === entries.length) {
-      snapshotCache.set(step, snapshot)
-    }
-  })
-}
-
-function getSnapshotAtStep(step) {
+function getSnapshotResultAtStep(step) {
   const normalizedStep = normalizeStep(step)
   if (snapshotCache.has(normalizedStep)) {
-    return snapshotCache.get(normalizedStep)
+    return {
+      snapshot: snapshotCache.get(normalizedStep),
+      error: null
+    }
   }
 
-  const checkpointStep = Math.floor(normalizedStep / CHECKPOINT_INTERVAL) * CHECKPOINT_INTERVAL
-  let snapshot = structuredClone(snapshotCache.get(checkpointStep) || {})
+  const cachedStep = getNearestCachedStep(normalizedStep)
+  let snapshot = structuredClone(snapshotCache.get(cachedStep) || {})
 
-  for (let index = checkpointStep; index < normalizedStep; index += 1) {
-    snapshot = applyCustomPatch(snapshot, historyEntries.value[index].patch)
+  for (let index = cachedStep; index < normalizedStep; index += 1) {
+    const stepNumber = index + 1
+    const entry = historyEntries.value[index]
+    const result = inspectHistoryPatchApplication(
+      snapshot,
+      entry.patch,
+      getOperationOrder(stepNumber, entry.patch)
+    )
+
+    if (!result.ok) {
+      return {
+        snapshot,
+        error: {
+          step: stepNumber,
+          orderedPatch: result.orderedPatch,
+          operationOrder: result.operationOrder,
+          ...result.error
+        }
+      }
+    }
+
+    snapshot = result.snapshot
+
+    if (stepNumber % CHECKPOINT_INTERVAL === 0 || stepNumber === normalizedStep) {
+      snapshotCache.set(stepNumber, snapshot)
+    }
   }
 
-  snapshotCache.set(normalizedStep, snapshot)
-  return snapshot
+  return {
+    snapshot,
+    error: null
+  }
 }
 
-function applyCustomPatch(snapshot, patch) {
-  return applyHistoryPatch(snapshot, patch)
+function getNearestCachedStep(step) {
+  let nearest = 0
+
+  snapshotCache.forEach((_, cachedStep) => {
+    if (cachedStep <= step && cachedStep > nearest) nearest = cachedStep
+  })
+
+  return nearest
+}
+
+function getOperationOrder(step, patch=[]) {
+  return patchOperationOrders.value[step] || defaultHistoryOperationOrder(patch)
+}
+
+function hasCustomOperationOrder(step) {
+  return !!patchOperationOrders.value[step]
+}
+
+function moveOperation(step, applyIndex, offset) {
+  const entry = historyEntries.value[step - 1]
+  if (!entry) return
+
+  const nextIndex = applyIndex + offset
+  if (nextIndex < 0 || nextIndex >= entry.patch.length) return
+
+  const nextOrder = [...getOperationOrder(step, entry.patch)]
+  const [moved] = nextOrder.splice(applyIndex, 1)
+  nextOrder.splice(nextIndex, 0, moved)
+
+  patchOperationOrders.value = {
+    ...patchOperationOrders.value,
+    [step]: nextOrder
+  }
+
+  resetSnapshotCache()
+}
+
+function resetOperationOrder(step) {
+  if (!patchOperationOrders.value[step]) return
+
+  const nextOrders = { ...patchOperationOrders.value }
+  delete nextOrders[step]
+  patchOperationOrders.value = nextOrders
+
+  resetSnapshotCache()
+}
+
+function jumpToFailureStep() {
+  if (!replayFailure.value) return
+  selectedStep.value = replayFailure.value.step
+}
+
+function resetSnapshotCache() {
+  snapshotCache = new Map([[0, {}]])
 }
 
 function normalizeStep(value) {
@@ -364,6 +555,44 @@ function downloadRaw() {
   white-space: pre-wrap;
   word-break: break-word;
   font-family: monospace;
+}
+
+.history-replay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.history-operation-list {
+  display: grid;
+  gap: 12px;
+}
+
+.history-operation-item {
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+}
+
+.history-operation-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.history-operation-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.history-operation-buttons {
+  display: flex;
+  gap: 8px;
 }
 
 @media (max-width: 720px) {
