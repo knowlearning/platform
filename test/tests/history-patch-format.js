@@ -68,7 +68,7 @@ export default function historyPatchFormat() {
         },
         {
           op: 'replace',
-          path: ['modules', moduleId, 'problems', 25],
+          path: ['modules', moduleId, 'problems', 26],
           value: null
         },
         {
@@ -97,6 +97,30 @@ export default function historyPatchFormat() {
       expect(reordered.snapshot.modules[moduleId].problems).to.deep.equal(problems.slice(0, 25))
 
       expect(applyHistoryPatch(snapshot, patch, [1, 0, 2])).to.deep.equal(reordered.snapshot)
+    })
+
+    it('treats replace at array length as an append during history replay', function () {
+      const moduleId = '7a2112a0-8f0d-11f0-a1aa-735a7427b3c2'
+      const problems = Array.from({ length: 24 }, (_, index) => `problem-${index}`)
+      const patch = [
+        {
+          op: 'replace',
+          path: ['modules', moduleId, 'problems', 24],
+          value: 'problem-24'
+        }
+      ]
+      const snapshot = {
+        modules: {
+          [moduleId]: {
+            problems
+          }
+        }
+      }
+
+      const replayed = inspectHistoryPatchApplication(snapshot, patch)
+      expect(replayed.ok).to.equal(true)
+      expect(replayed.snapshot.modules[moduleId].problems).to.deep.equal([...problems, 'problem-24'])
+      expect(applyHistoryPatch(snapshot, patch)).to.deep.equal(replayed.snapshot)
     })
   })
 }

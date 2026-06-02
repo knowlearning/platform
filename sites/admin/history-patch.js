@@ -68,12 +68,7 @@ function applyOrderedHistoryPatch(snapshot, patch, operationOrder) {
 
   normalizedPatch.forEach((operation, index) => {
     try {
-      currentSnapshot = applyPatch(
-        currentSnapshot,
-        [operation],
-        true,
-        false
-      ).newDocument
+      currentSnapshot = applyHistoryOperation(currentSnapshot, operation).newDocument
     }
     catch (caughtError) {
       caughtError.orderedPatch = orderedPatch
@@ -89,6 +84,37 @@ function applyOrderedHistoryPatch(snapshot, patch, operationOrder) {
     snapshot: currentSnapshot,
     orderedPatch,
     operationOrder: operationOrderResolved
+  }
+}
+
+function applyHistoryOperation(snapshot, operation) {
+  try {
+    return applyPatch(snapshot, [operation], true, false)
+  }
+  catch (caughtError) {
+    const fallbackOperation = appendFallbackHistoryOperation(snapshot, operation, caughtError)
+    if (!fallbackOperation) throw caughtError
+    return applyPatch(snapshot, [fallbackOperation], true, false)
+  }
+}
+
+function appendFallbackHistoryOperation(snapshot, operation, error) {
+  if (operation.op !== 'replace') return null
+  if (error?.name !== 'OPERATION_PATH_UNRESOLVABLE') return null
+
+  const pathSegments = parseHistoryPointer(operation.path)
+  if (pathSegments.length === 0) return null
+
+  const parentPathSegments = pathSegments.slice(0, -1)
+  const lastSegment = pathSegments[pathSegments.length - 1]
+  const parentValue = resolveHistoryValue(snapshot, parentPathSegments)
+
+  if (!Array.isArray(parentValue) || !isHistoryArrayIndex(lastSegment)) return null
+  if (Number(lastSegment) !== parentValue.length) return null
+
+  return {
+    ...operation,
+    op: 'add'
   }
 }
 
@@ -116,6 +142,29 @@ function resolveHistoryOperationOrder(patch, operationOrder) {
   return resolvedOrder
 }
 
+function resolveHistoryValue(snapshot, pathSegments) {
+  let current = snapshot
+
+  for (const segment of pathSegments) {
+    if (Array.isArray(current)) {
+      if (!isHistoryArrayIndex(segment)) return undefined
+
+      const index = Number(segment)
+      if (index < 0 || index >= current.length) return undefined
+      current = current[index]
+      continue
+    }
+
+    if (!current || typeof current !== 'object' || !(segment in current)) {
+      return undefined
+    }
+
+    current = current[segment]
+  }
+
+  return current
+}
+
 function normalizeHistoryPath(path) {
   if (typeof path === 'string') return path
   if (!Array.isArray(path)) {
@@ -131,4 +180,20 @@ function sanitizeHistoryPathSegment(segment) {
   }
 
   return String(segment)
+}
+
+function parseHistoryPointer(path) {
+  if (path === '') return []
+  if (!path.startsWith('/')) {
+    throw new Error('History patch string paths must be valid JSON Pointers.')
+  }
+
+  return path
+    .slice(1)
+    .split('/')
+    .map(segment => segment.replaceAll('~1', '/').replaceAll('~0', '~'))
+}
+
+function isHistoryArrayIndex(segment) {
+  return /^(0|[1-9]\d*)$/.test(segment)
 }
