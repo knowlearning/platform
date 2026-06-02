@@ -405,7 +405,7 @@ function getSnapshotResultAtStep(step) {
   }
 
   const cachedStep = getNearestCachedStep(normalizedStep)
-  let snapshot = structuredClone(snapshotCache.get(cachedStep) || {})
+  let snapshot = snapshotCache.get(cachedStep) || {}
 
   for (let index = cachedStep; index < normalizedStep; index += 1) {
     const stepNumber = index + 1
