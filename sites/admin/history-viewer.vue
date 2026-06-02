@@ -465,7 +465,7 @@ function parseHistory(text) {
       throw new Error(`Could not parse history line ${index + 1}.`)
     }
 
-    const timestamp = Number(line.slice(0, separatorIndex))
+    const timestamp = normalizeHistoryTimestamp(Number(line.slice(0, separatorIndex)))
     if (!Number.isFinite(timestamp)) {
       throw new Error(`History line ${index + 1} has an invalid timestamp.`)
     }
@@ -614,6 +614,15 @@ function normalizeStep(value) {
   const parsedValue = Number.parseInt(value, 10)
   if (!Number.isFinite(parsedValue)) return 0
   return Math.max(0, Math.min(parsedValue, historyEntries.value.length))
+}
+
+function normalizeHistoryTimestamp(timestamp) {
+  if (!Number.isFinite(timestamp)) return timestamp
+
+  // Legacy raw history can encode epoch seconds, including scientific notation.
+  if (Math.abs(timestamp) < 1e12) return timestamp * 1000
+
+  return timestamp
 }
 
 function formatTimestamp(timestamp) {
