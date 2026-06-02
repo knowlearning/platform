@@ -57,6 +57,22 @@
           <v-chip v-else>Before first patch</v-chip>
         </div>
 
+        <v-alert
+          v-if="restoreError"
+          type="error"
+          class="mt-4"
+        >
+          {{ restoreError }}
+        </v-alert>
+
+        <v-alert
+          v-else-if="restoreSuccess"
+          type="success"
+          class="mt-4"
+        >
+          {{ restoreSuccess }}
+        </v-alert>
+
         <div class="history-scrubber">
           <v-slider
             v-model="selectedStepInput"
@@ -92,6 +108,15 @@
           >
             {{ skippedReplayFailures.length }} skipped
           </v-chip>
+          <v-btn
+            color="warning"
+            variant="tonal"
+            :loading="restoring"
+            :disabled="restoring"
+            @click="restoreSelectedSnapshot"
+          >
+            Restore visible snapshot
+          </v-btn>
         </div>
 
         <v-alert
@@ -284,6 +309,9 @@ const historyEntries = ref([])
 const selectedStep = ref(0)
 const patchOperationOrders = ref({})
 const skipBrokenPatches = ref(false)
+const restoring = ref(false)
+const restoreError = ref('')
+const restoreSuccess = ref('')
 
 let snapshotCache = new Map([[0, { snapshot: {}, skippedFailures: [] }]])
 
@@ -424,10 +452,12 @@ function resetHistory(id='') {
   selectedStep.value = 0
   patchOperationOrders.value = {}
   skipBrokenPatches.value = false
+  restoreError.value = ''
+  restoreSuccess.value = ''
   resetSnapshotCache()
 }
 
-async function loadHistory(id) {
+async function loadHistory(id, { preserveRestoreFeedback=false }={}) {
   loading.value = true
   error.value = ''
   historyId.value = id
@@ -435,6 +465,10 @@ async function loadHistory(id) {
   selectedStep.value = 0
   patchOperationOrders.value = {}
   skipBrokenPatches.value = false
+  if (!preserveRestoreFeedback) {
+    restoreError.value = ''
+    restoreSuccess.value = ''
+  }
   resetSnapshotCache()
 
   try {
@@ -450,6 +484,40 @@ async function loadHistory(id) {
   }
   finally {
     loading.value = false
+  }
+}
+
+async function restoreSelectedSnapshot() {
+  if (!historyId.value || restoring.value) return
+
+  const summary = selectedSnapshotTitle.value
+  const confirmed = window.confirm(
+    `Replace the current active state for ${historyId.value} with the visible scrubbed snapshot?\n\n${summary}`
+  )
+
+  if (!confirmed) return
+
+  restoring.value = true
+  restoreError.value = ''
+  restoreSuccess.value = ''
+
+  try {
+    await Agent.interact(historyId.value, [
+      {
+        op: 'add',
+        path: ['active'],
+        value: JSON.parse(JSON.stringify(selectedSnapshot.value))
+      }
+    ])
+
+    restoreSuccess.value = `Restored ${historyId.value} from ${summary}.`
+    await loadHistory(historyId.value, { preserveRestoreFeedback: true })
+  }
+  catch (caughtError) {
+    restoreError.value = caughtError?.message || String(caughtError)
+  }
+  finally {
+    restoring.value = false
   }
 }
 

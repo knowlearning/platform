@@ -22,7 +22,14 @@ const DJWT = {
   getNumericDate
 }
 
-const environment = Deno.env.toObject()
+const SUPER_ADMINS = [
+  'f74e9cb3-2b53-4c85-9b0c-f1d61b032b3f'
+]
+
+const environment = {
+  ...Deno.env.toObject(),
+  SUPER_ADMINS
+}
 
 const evalFilter = (expression, variables) => jexl.eval(expression, variables)
 
