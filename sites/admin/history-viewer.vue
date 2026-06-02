@@ -238,7 +238,7 @@
             md="5"
           >
             <v-card variant="outlined">
-              <v-card-title>Selected Patch</v-card-title>
+              <v-card-title>{{ selectedPatchTitle }}</v-card-title>
               <v-card-text>
                 <pre class="history-code">{{ selectedPatchText }}</pre>
               </v-card-text>
@@ -350,6 +350,11 @@ const selectedPatchText = computed(() => {
     null,
     2
   )
+})
+
+const selectedPatchTitle = computed(() => {
+  if (!selectedEntry.value) return 'Selected Patch'
+  return `Selected Patch at ${formatTimestamp(selectedEntry.value.timestamp)}`
 })
 
 const selectedSnapshotText = computed(() => JSON.stringify(selectedSnapshot.value, null, 2))
