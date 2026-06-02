@@ -79,6 +79,21 @@
           />
         </div>
 
+        <div class="history-replay-options">
+          <v-checkbox
+            v-model="skipBrokenPatches"
+            label="Skip broken patches while replaying"
+            density="compact"
+            hide-details
+          />
+          <v-chip
+            v-if="skipBrokenPatches && skippedReplayFailures.length > 0"
+            size="small"
+          >
+            {{ skippedReplayFailures.length }} skipped
+          </v-chip>
+        </div>
+
         <v-alert
           v-if="replayFailure"
           type="warning"
@@ -87,6 +102,59 @@
           Replay failed at step {{ replayFailure.step }}, operation {{ replayFailure.failedPosition === null ? '?' : replayFailure.failedPosition + 1 }} of {{ replayFailure.orderedPatch.length }}.
           {{ replayFailure.message }}
         </v-alert>
+
+        <v-card
+          v-if="skipBrokenPatches && skippedReplayFailuresWithEntries.length > 0"
+          variant="outlined"
+          class="mt-4"
+        >
+          <v-card-title>Skipped Broken Patches</v-card-title>
+          <v-card-text>
+            <div class="history-replay-actions">
+              <v-chip>{{ skippedReplayFailures.length }} skipped through step {{ selectedStep }}</v-chip>
+            </div>
+
+            <div class="history-operation-list">
+              <div
+                v-for="failure in skippedReplayFailuresWithEntries"
+                :key="`skipped:${failure.step}`"
+                class="history-operation-item"
+              >
+                <div class="history-operation-toolbar">
+                  <div class="history-operation-chips">
+                    <v-chip size="small">Step {{ failure.step }}</v-chip>
+                    <v-chip
+                      v-if="failure.entry"
+                      size="small"
+                      variant="outlined"
+                    >
+                      {{ formatTimestamp(failure.entry.timestamp) }}
+                    </v-chip>
+                    <v-chip
+                      size="small"
+                      color="warning"
+                    >
+                      Operation {{ failure.failedPosition === null ? '?' : failure.failedPosition + 1 }}
+                    </v-chip>
+                  </div>
+
+                  <div class="history-operation-buttons">
+                    <v-btn
+                      size="x-small"
+                      variant="text"
+                      @click="jumpToStep(failure.step)"
+                    >
+                      Jump
+                    </v-btn>
+                  </div>
+                </div>
+
+                <div class="history-failure-message">{{ failure.message }}</div>
+                <pre class="history-code">{{ JSON.stringify(failure.orderedPatch, null, 2) }}</pre>
+              </div>
+            </div>
+          </v-card-text>
+        </v-card>
 
         <v-card
           v-if="replayFailureEntry"
@@ -215,8 +283,9 @@ const error = ref('')
 const historyEntries = ref([])
 const selectedStep = ref(0)
 const patchOperationOrders = ref({})
+const skipBrokenPatches = ref(false)
 
-let snapshotCache = new Map([[0, {}]])
+let snapshotCache = new Map([[0, { snapshot: {}, skippedFailures: [] }]])
 
 const trimmedInput = computed(() => inputId.value.trim())
 
@@ -245,10 +314,17 @@ const selectedSnapshot = computed(() => selectedSnapshotResult.value.snapshot)
 
 const replayFailure = computed(() => selectedSnapshotResult.value.error)
 
+const skippedReplayFailures = computed(() => selectedSnapshotResult.value.skippedFailures || [])
+
 const replayFailureEntry = computed(() => {
   if (!replayFailure.value) return null
   return historyEntries.value[replayFailure.value.step - 1] || null
 })
+
+const skippedReplayFailuresWithEntries = computed(() => skippedReplayFailures.value.map(failure => ({
+  ...failure,
+  entry: historyEntries.value[failure.step - 1] || null
+})))
 
 const replayFailureOperations = computed(() => {
   if (!replayFailure.value || !replayFailureEntry.value) return []
@@ -310,6 +386,10 @@ watch(
   { immediate: true }
 )
 
+watch(skipBrokenPatches, () => {
+  resetSnapshotCache()
+})
+
 async function submit() {
   if (!trimmedInput.value) {
     await router.replace({ path: '/history' })
@@ -338,6 +418,7 @@ function resetHistory(id='') {
   historyEntries.value = []
   selectedStep.value = 0
   patchOperationOrders.value = {}
+  skipBrokenPatches.value = false
   resetSnapshotCache()
 }
 
@@ -348,6 +429,7 @@ async function loadHistory(id) {
   historyEntries.value = []
   selectedStep.value = 0
   patchOperationOrders.value = {}
+  skipBrokenPatches.value = false
   resetSnapshotCache()
 
   try {
@@ -399,13 +481,15 @@ function getSnapshotResultAtStep(step) {
   const normalizedStep = normalizeStep(step)
   if (snapshotCache.has(normalizedStep)) {
     return {
-      snapshot: snapshotCache.get(normalizedStep),
+      ...snapshotCache.get(normalizedStep),
       error: null
     }
   }
 
   const cachedStep = getNearestCachedStep(normalizedStep)
-  let snapshot = snapshotCache.get(cachedStep) || {}
+  const cachedResult = snapshotCache.get(cachedStep) || { snapshot: {}, skippedFailures: [] }
+  let snapshot = cachedResult.snapshot
+  let skippedFailures = [...cachedResult.skippedFailures]
 
   for (let index = cachedStep; index < normalizedStep; index += 1) {
     const stepNumber = index + 1
@@ -417,26 +501,46 @@ function getSnapshotResultAtStep(step) {
     )
 
     if (!result.ok) {
+      const failure = {
+        step: stepNumber,
+        orderedPatch: result.orderedPatch,
+        operationOrder: result.operationOrder,
+        ...result.error
+      }
+
+      if (skipBrokenPatches.value) {
+        skippedFailures.push(failure)
+
+        if (stepNumber % CHECKPOINT_INTERVAL === 0 || stepNumber === normalizedStep) {
+          snapshotCache.set(stepNumber, {
+            snapshot,
+            skippedFailures: [...skippedFailures]
+          })
+        }
+
+        continue
+      }
+
       return {
         snapshot,
-        error: {
-          step: stepNumber,
-          orderedPatch: result.orderedPatch,
-          operationOrder: result.operationOrder,
-          ...result.error
-        }
+        skippedFailures,
+        error: failure
       }
     }
 
     snapshot = result.snapshot
 
     if (stepNumber % CHECKPOINT_INTERVAL === 0 || stepNumber === normalizedStep) {
-      snapshotCache.set(stepNumber, snapshot)
+      snapshotCache.set(stepNumber, {
+        snapshot,
+        skippedFailures: [...skippedFailures]
+      })
     }
   }
 
   return {
     snapshot,
+    skippedFailures,
     error: null
   }
 }
@@ -490,11 +594,15 @@ function resetOperationOrder(step) {
 
 function jumpToFailureStep() {
   if (!replayFailure.value) return
-  selectedStep.value = replayFailure.value.step
+  jumpToStep(replayFailure.value.step)
+}
+
+function jumpToStep(step) {
+  selectedStep.value = normalizeStep(step)
 }
 
 function resetSnapshotCache() {
-  snapshotCache = new Map([[0, {}]])
+  snapshotCache = new Map([[0, { snapshot: {}, skippedFailures: [] }]])
 }
 
 function normalizeStep(value) {
@@ -565,6 +673,14 @@ function downloadRaw() {
   margin-bottom: 16px;
 }
 
+.history-replay-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+}
+
 .history-operation-list {
   display: grid;
   gap: 12px;
@@ -593,6 +709,10 @@ function downloadRaw() {
 .history-operation-buttons {
   display: flex;
   gap: 8px;
+}
+
+.history-failure-message {
+  margin-bottom: 8px;
 }
 
 @media (max-width: 720px) {
