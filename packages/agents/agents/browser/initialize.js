@@ -3,10 +3,8 @@ import EmbeddedAgent from './embedded.js'
 import createEmbed from '../embed.js'
 import selectFile from './select-file.js'
 
-let Agent = window.__default_knowlearning_agent
-
 export default function browserAgent(options={}) {
-  if (Agent && !options.unique) return Agent
+  if (window.__default_knowlearning_agent && !options.unique) return window.__default_knowlearning_agent
 
   let embedded
 
@@ -31,7 +29,7 @@ export default function browserAgent(options={}) {
     return originalUpload(info)
   }
 
-  if (!Agent) window.__default_knowlearning_agent = Agent = newAgent
+  if (!window.__default_knowlearning_agent) window.__default_knowlearning_agent = newAgent
 
   return newAgent
 }
