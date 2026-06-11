@@ -44,6 +44,7 @@ export default async function registerEmbeddedHarness() {
     { default: namespacedEmbeddings },
     { default: syncedState },
     { default: reconnect },
+    { default: subscriptionHardening },
     { default: crossServer }
   ] = await Promise.all([
     import('@knowlearning/agents/browser.js'),
@@ -67,6 +68,7 @@ export default async function registerEmbeddedHarness() {
     import('./tests/namespaced-embeddings.js'),
     import('./tests/synced-state.js'),
     import('./tests/reconnect.js'),
+    import('./tests/subscription-hardening.js'),
     import('./tests/cross-server.js')
   ])
 
@@ -276,6 +278,7 @@ export default async function registerEmbeddedHarness() {
       vuex(vuePersistentStore)
       namespacedEmbeddings()
       if (includeRootOnly) reconnect()
+      if (includeRootOnly) subscriptionHardening()
       uploads()
       multiAgent()
       syncedState()

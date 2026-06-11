@@ -15,6 +15,46 @@ import SESSION from './session.js'
 import { guarantees, subscriptions } from './stateful.js'
 
 const { ADMIN_DOMAIN, MODE } = environment
+const INITIAL_STATE_READ_RETRY_DELAYS = [50, 150]
+
+function errorMessage(error, fallback='STATE_SUBSCRIPTION_FAILED') {
+  const message = error?.code || error?.message || (error === undefined ? '' : String(error))
+  return message || fallback
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+async function getInitialSubscriptionState(domain, id) {
+  let lastError
+
+  for (let attempt = 0; attempt <= INITIAL_STATE_READ_RETRY_DELAYS.length; attempt += 1) {
+    try {
+      const state = await getState(domain, id)
+      if (state && typeof state === 'object') return state
+      lastError = new Error(`State ${id} was not available`)
+    }
+    catch (error) {
+      lastError = error
+    }
+
+    if (attempt < INITIAL_STATE_READ_RETRY_DELAYS.length) {
+      await delay(INITIAL_STATE_READ_RETRY_DELAYS[attempt])
+    }
+  }
+
+  throw lastError || new Error(`State ${id} was not available`)
+}
+
+function subscriptionStateResponse(state, id, si) {
+  return {
+    ...state,
+    active: Object.prototype.hasOwnProperty.call(state, 'active') ? state.active : {},
+    id,
+    si
+  }
+}
 
 export default async function coreSideEffects({
   id, session, domain, user, scope, active_type, patch, si, ii, send
@@ -40,10 +80,43 @@ export default async function coreSideEffects({
               if (!subscriptions[session]) subscriptions[session] = {}
 
               const ss = subscriptions[session]
-              if (!ss[subscribeId]) ss[subscribeId] = subscribe(subscribeId, send, subscribedScope)
+              let createdSubscription = false
+              if (!ss[subscribeId]) {
+                ss[subscribeId] = subscribe(subscribeId, send, subscribedScope)
+                createdSubscription = true
+              }
 
-              const state = await getState(scopeDomain, subscribeId)
-              send({ ...state, id: subscribeId, si })
+              try {
+                const state = await getInitialSubscriptionState(scopeDomain, subscribeId)
+                send(subscriptionStateResponse(state, subscribeId, si))
+              }
+              catch (error) {
+                console.warn('ERROR INITIALIZING SUBSCRIPTION', {
+                  domain: scopeDomain,
+                  user,
+                  session,
+                  scope: subscribedScope,
+                  id: subscribeId,
+                  error: errorMessage(error)
+                })
+                if (createdSubscription) {
+                  try {
+                    await ss[subscribeId]?.()
+                  }
+                  catch (cleanupError) {
+                    console.warn('ERROR CLEANING UP FAILED SUBSCRIPTION', {
+                      domain: scopeDomain,
+                      user,
+                      session,
+                      scope: subscribedScope,
+                      id: subscribeId,
+                      error: errorMessage(cleanupError)
+                    })
+                  }
+                  delete ss[subscribeId]
+                }
+                throw error
+              }
             }
             else {
               let error = `User ${user} Not Autorized To Access ${subscribedScope}`
@@ -69,7 +142,7 @@ export default async function coreSideEffects({
       catch (error) {
         console.warn(error)
         console.warn(path, patch)
-        send({ si, ii, error: error.code })
+        send({ si, ii, error: errorMessage(error) })
       }
     }
     else send({ si, ii })
