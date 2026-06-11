@@ -52,6 +52,7 @@ Development tools:
   test                 Run the embedded test suite in the Codex container
   browser-test         Run the browser test suite in the Codex container
   cross-test           Run the cross-server browser suite in the Codex container
+  production-ssh       Connect to a production server over SSH
   status               Show Docker Compose service status
   down                 Stop the local Docker Compose stack
 
@@ -60,6 +61,7 @@ Examples:
   ./develop logs api-1
   ./develop codex
   ./develop test
+  ./develop production-ssh
 
 Credentials default to:
   $DEFAULT_CREDENTIALS_DIR
@@ -72,6 +74,13 @@ EOF
 ensure_docker() {
   if ! command -v docker >/dev/null 2>&1; then
     echo "docker is required but was not found in PATH" >&2
+    exit 1
+  fi
+}
+
+ensure_gcloud() {
+  if ! command -v gcloud >/dev/null 2>&1; then
+    echo "gcloud is required but was not found in PATH" >&2
     exit 1
   fi
 }
@@ -172,6 +181,11 @@ run_cross_test() {
   run_in_codex "cd /workspace/test && npm run test:cross-server"
 }
 
+connect_production_ssh() {
+  ensure_gcloud
+  bash "$CORE_DIR/infrastructure/GCP/connect.sh"
+}
+
 show_menu() {
   usage
   cat <<EOF
@@ -211,6 +225,7 @@ logs	Follow backend logs
 test	Run embedded test suite in Codex container
 browser-test	Run browser test suite in Codex container
 cross-test	Run cross-server browser test suite in Codex container
+production-ssh	Connect to a production server over SSH
 status	Show Compose status
 down	Stop Compose stack
 quit	Quit
@@ -226,6 +241,7 @@ EOF
     test) run_test ;;
     browser-test) run_browser_test ;;
     cross-test) run_cross_test ;;
+    production-ssh) connect_production_ssh ;;
     status) ensure_docker; load_credentials; compose ps ;;
     down) ensure_docker; load_credentials; compose down --remove-orphans ;;
     quit|"") exit 0 ;;
@@ -247,6 +263,7 @@ case "$command" in
   test) run_test ;;
   browser-test|test:local) run_browser_test ;;
   cross-test|test:cross-server) run_cross_test ;;
+  production-ssh) connect_production_ssh ;;
   status|ps) ensure_docker; load_credentials; compose ps ;;
   down|stop) ensure_docker; load_credentials; compose down --remove-orphans ;;
   *) usage >&2; printf "\nUnknown command: %s\n" "$command" >&2; exit 1 ;;
