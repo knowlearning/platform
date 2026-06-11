@@ -122,7 +122,7 @@ run_in_codex() {
     tty_args+=("-T")
   fi
 
-  compose run --rm "${tty_args[@]}" "${env_args[@]}" --entrypoint bash codex -lc "$*"
+  compose run --rm --build "${tty_args[@]}" "${env_args[@]}" --entrypoint bash codex -lc "$*"
 }
 
 ensure_codex_home() {
@@ -147,7 +147,7 @@ open_codex() {
   ensure_docker
   load_credentials
   ensure_codex_home
-  compose run --rm codex "$@"
+  compose run --rm --build codex "$@"
 }
 
 follow_logs() {

@@ -68,8 +68,6 @@ services:
     build:
       context: .
       dockerfile: codex.Dockerfile
-      args:
-        CODEX_VERSION: ${CODEX_VERSION:-0.135.0}
     working_dir: /workspace
     init: true
     stdin_open: true
