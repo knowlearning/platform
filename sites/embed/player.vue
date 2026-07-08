@@ -119,19 +119,12 @@
     console.log('HANDLING CLOSE!', info, candliGameId, embedded)
     if (embedded) {
       if (candliGameId) {
-        await Agent.synced()
-        // try { await Agent.response() }
-        // catch (error) {}
+        try { await Agent.response() }
+        catch (error) {}
         const latestCompetencies = await Agent.state(`pila/latest_competencies/${candliGameId}`)
         const success = info?.success
-        if (candliGameId.startsWith('candli_editor/')) {
-          //  Strip out competencies for now since latest seem to not be updated
-          Agent.close({ success })
-        }
-        else {
-          const competencies = copy(latestCompetencies)
-          Agent.close({ competencies, success })
-        }
+        const competencies = copy(latestCompetencies)
+        Agent.close({ competencies, success })
       }
       else Agent.close(info)
     }
