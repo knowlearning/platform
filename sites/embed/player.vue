@@ -119,8 +119,7 @@
     console.log('HANDLING CLOSE!', info, candliGameId, embedded)
     if (embedded) {
       if (candliGameId) {
-        try { await Agent.response() }
-        catch (error) {}
+        await new Promise(r => setTimeout(r, 3000))
         const latestCompetencies = await Agent.state(`pila/latest_competencies/${candliGameId}`)
         const success = info?.success
         const competencies = copy(latestCompetencies)
