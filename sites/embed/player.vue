@@ -120,7 +120,7 @@
     if (embedded) {
       if (candliGameId) {
         // pause briefly in case candli reports updates with async races with close
-        await new Promise(r => setTimeout(r, 500))
+        await new Promise(r => setTimeout(r, 100))
         await Agent.synced()
         const latestCompetencies = await Agent.state(`pila/latest_competencies/${candliGameId}`)
         const success = info?.success
