@@ -119,7 +119,9 @@
     console.log('HANDLING CLOSE!', info, candliGameId, embedded)
     if (embedded) {
       if (candliGameId) {
-        await new Promise(r => setTimeout(r, 3000))
+        // pause briefly in case candli reports updates with async races with close
+        await new Promise(r => setTimeout(r, 500))
+        await Agent.synced()
         const latestCompetencies = await Agent.state(`pila/latest_competencies/${candliGameId}`)
         const success = info?.success
         const competencies = copy(latestCompetencies)
