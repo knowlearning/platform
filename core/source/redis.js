@@ -1,7 +1,7 @@
 import { createRedisClient, environment } from './utils.js'
 import { DEFAULT_STORAGE_SERVER, storageServerForDomain } from './storage-routing.js'
 
-const { REDIS_SERVERS, REDIS_SUBSCRIPTION_SERVER } = environment
+const { MODE, REDIS_SERVERS, REDIS_SUBSCRIPTION_SERVER } = environment
 
 function parseJSONEnvironment(name, value) {
   if (!value) throw new Error(`${name} is required`)
@@ -58,6 +58,7 @@ function clientConnectionInfo(serverName) {
     socket: { host, port: parsedPort }
   }
 
+  if (MODE === 'production') info.socket.tls = true
   if (password !== undefined) info.password = password
   if (username || user) info.username = username || user
 

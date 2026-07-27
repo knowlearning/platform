@@ -44,6 +44,9 @@ REDIS_SERVERS='{"default":{"host":"redis.example.com","port":15018,"username":"d
 REDIS_SUBSCRIPTION_SERVER='default' # optional
 ```
 
+Core connects to each configured Redis server over TLS when `MODE=production`.
+Use the Redis TLS port and a hostname covered by its publicly trusted certificate.
+
 ```sh
 bash core/infrastructure/GCP/publish production
 ```
