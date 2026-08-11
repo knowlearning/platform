@@ -4,7 +4,7 @@ import { uuid, parseYAML, environment, PatchProxy } from '../utils.js'
 import coreState from '../core-state.js'
 import { domainAdmin } from '../configuration.js'
 import domainAgent, { stopDomainAgent } from '../domain-agent/index.js'
-import { domainIds, batchGetState, copyDomainStateToRedisServer, getState } from '../persistence.js'
+import { domainIds, batchGetState, copyDomainStateToRedisServer, getState, initializeStateRegistry } from '../persistence.js'
 import * as postgres from '../postgres.js'
 import { download } from '../storage.js'
 import interact from '../interact.js'
@@ -210,7 +210,9 @@ async function syncTables(domain, tables, report) {
 
   const typeGroups = {}
 
-  Object.values(tables).forEach(({type}) => typeGroups[type] = [])
+  Object.values(tables).forEach(({type}) => {
+    if (type) typeGroups[type] = []
+  })
 
   //  TODO: do in chunks...
   const allIds = await domainIds(domain)
@@ -251,7 +253,7 @@ async function syncTables(domain, tables, report) {
     await postgres.createTable(domain, table, columns)
     tableTasks.push('Fetching syncable states from metadata')
 
-    const rows = table === 'metadata' ? allIds : typeGroups[type]
+    const rows = table === 'metadata' ? allIds : typeGroups[type] || []
 
     tableTasks.push(`0/${rows.length} rows synced`)
 
@@ -406,11 +408,12 @@ async function syncFunctions(domain, functions, report) {
 
 }
 
-const DOMAIN_CONFIGURED_QUERY = `SELECT EXISTS (
-  SELECT 1
+const DOMAIN_CONFIGURED_QUERY = `
+  SELECT COUNT(*) = 2 AS configured
   FROM information_schema.tables
-  WHERE table_name = 'metadata'
-)`
+  WHERE table_schema = 'public'
+    AND table_name IN ('metadata', 'state')
+`
 
 export async function ensureDomainConfigured(domain) {
   //  TODO: more reliable check
@@ -418,12 +421,13 @@ export async function ensureDomainConfigured(domain) {
   const configurationKey = postgres.configurationKeyForDomain(domain)
   if (!configuredDomains[configurationKey]) {
     configuredDomains[configurationKey] = (async () => {
-      const { rows: [{ exists: configured }] } = await postgres.query(domain, DOMAIN_CONFIGURED_QUERY)
+      const { rows: [{ configured }] } = await postgres.query(domain, DOMAIN_CONFIGURED_QUERY)
       if (!configured) {
         const report = { tasks: [], start: Date.now() }
         await applyConfiguration(domain, config, report)
           .catch(error => console.warn('configuration error', domain, error))
       }
+      if (domain === 'core') await initializeStateRegistry()
     })().catch(error => {
       delete configuredDomains[configurationKey]
       throw error

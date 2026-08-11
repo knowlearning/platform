@@ -63,7 +63,7 @@ const INSPECT_PORT = DENO_INSPECT_PORT || '9229'
 const ACTIVE_INSPECT_MODE = DENO_INSPECT_MODE_ACTIVE || DENO_INSPECT_MODE || (MODE === 'local' ? 'inspect' : 'none')
 
 ensureDomainConfigured(ADMIN_DOMAIN)
-ensureDomainConfigured('core')
+await ensureDomainConfigured('core')
 
 Deno.serve({ port: TLS_PORT, cert, key }, handler)
 

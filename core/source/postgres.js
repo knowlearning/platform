@@ -26,6 +26,7 @@ const constantMap = {
   BIGINT: 'BIGINT',
   JSON: 'JSON',
   JSONB: 'JSONB',
+  'JSONB[]': 'JSONB[]',
   DECIMAL: 'DECIMAL',
   NUMERIC: 'NUMERIC',
   FLOAT: 'FLOAT',
@@ -217,8 +218,8 @@ async function createTable(domain, table, columns) {
     IF EXISTS (
         SELECT column_name
         FROM information_schema.columns
-        WHERE table_name = '${purifiedName(table)}'
-          AND column_name = '${purifiedName(column)}'
+        WHERE table_name = ${escapePostgresLiteral(table)}
+          AND column_name = ${escapePostgresLiteral(column)}
     )
     THEN
         ALTER TABLE ${purifiedName(table)}

@@ -1,3 +1,13 @@
+export const STATE_TABLE = {
+  columns: {
+    id: 'UUID',
+    path: 'JSONB[]',
+    value: 'JSONB',
+    ii: 'BIGINT',
+    order_key: 'BIGINT'
+  }
+}
+
 export default {
   metadata: {
     columns: {
@@ -33,5 +43,6 @@ export default {
     indices: {
       session_credential: { column: 'session_credential' }
     }
-  }
+  },
+  state: STATE_TABLE
 }

@@ -1,4 +1,5 @@
 import * as redis from './redis.js'
+import * as postgres from './postgres.js'
 import sync from './sync.js'
 import { bigQueryBatchInserter } from './gcp-api.js'
 import { environment, isUUID } from './utils.js'
@@ -25,7 +26,29 @@ const UUID_OWNER_HASH_KEY = '__knowlearning:uuid-owner-domain'
 const DOMAIN_UUID_SET_PREFIX = '__knowlearning:domain-uuids:'
 const REDIS_COPY_BATCH_SIZE = 1000
 const REDIS_COPY_PROGRESS_INTERVAL = 10_000
+const CORE_STATE_ROOT_ID = '00000000-0000-0000-0000-000000000000'
 const uuidOwnerCache = new Map()
+
+export function initializeStateRegistry() {
+  return postgres.query('core', `
+    INSERT INTO state (id, path, value, ii)
+    VALUES ($1, ARRAY[to_jsonb('core'::TEXT)], '{}'::JSONB, 0)
+    ON CONFLICT (id) DO NOTHING
+  `, [CORE_STATE_ROOT_ID])
+}
+
+async function registerStateOwner(id, domain) {
+  await postgres.query('core', `
+    INSERT INTO state (id, path, value, ii)
+    VALUES (
+      $1::UUID,
+      ARRAY[to_jsonb('core'::TEXT), to_jsonb(($1::UUID)::TEXT)],
+      to_jsonb($2::TEXT),
+      0
+    )
+    ON CONFLICT (id) DO NOTHING
+  `, [id, domain])
+}
 
 const CLAIM_UUID_OWNER_SCRIPT = `
   local current_owner = redis.call('HGET', KEYS[1], ARGV[1])
@@ -202,6 +225,10 @@ export async function setState(domain, id, path, value, options) {
 
   if (isUUID(id) && path === '$' && value?.domain && value.domain !== ownerDomain) {
     throw new Error(`UUID ${id} is owned by ${ownerDomain}; refusing to initialize for ${value.domain}`)
+  }
+
+  if (isUUID(id)) {
+    await registerStateOwner(id, ownerDomain || domain)
   }
 
   return redis.clientForDomain(ownerDomain || domain).json.set(id, path, value, options)
