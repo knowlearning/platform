@@ -245,19 +245,26 @@ async function createTable(domain, table, columns) {
   `)
 }
 
-async function createIndex(domain, name, table, column) {
+async function createIndex(domain, name, table, column, { unique=false }={}) {
+  const uniqueQualifier = unique ? 'UNIQUE ' : ''
+  const lockName = escapePostgresLiteral(`knowlearning:index:${table}:${name}`)
+
   await query(domain, `
     DO $$
     BEGIN
-      CREATE INDEX IF NOT EXISTS ${purifiedName(name)} ON ${purifiedName(table)} (${purifiedName(column)});
+      PERFORM pg_advisory_xact_lock(hashtext(${lockName}));
+      CREATE ${uniqueQualifier}INDEX IF NOT EXISTS ${purifiedName(name)} ON ${purifiedName(table)} (${purifiedName(column)});
     END $$;
   `)
 }
 
 async function createGinIndex(domain, name, table, column) {
+  const lockName = escapePostgresLiteral(`knowlearning:index:${table}:${name}`)
+
   await query(domain, `
     DO $$
     BEGIN
+      PERFORM pg_advisory_xact_lock(hashtext(${lockName}));
       CREATE INDEX IF NOT EXISTS ${purifiedName(name)} ON ${purifiedName(table)} USING GIN (${purifiedName(column)});
     END $$;
   `)

@@ -426,6 +426,59 @@ postgres:
   expect(rows).to.deep.equal([{ id, text_value: value }])
 }
 
+async function expectIndexReconciliationAcrossServers(browserAgent, configurer, readerInfo) {
+  const runId = configurer.agent.uuid()
+  const domain = `cross-index-${runId}.localhost:5112`
+
+  await configureDomain(domain, `
+postgres:
+  tables: {}
+  queries:
+    drop-state-path-index: |
+      DROP INDEX state_path
+    state-path-index-exists: |
+      SELECT EXISTS (
+        SELECT 1
+        FROM pg_catalog.pg_class AS index_class
+        JOIN pg_catalog.pg_namespace AS namespace
+          ON namespace.oid = index_class.relnamespace
+        WHERE namespace.nspname = 'public'
+          AND index_class.relname = 'state_path'
+          AND index_class.relkind = 'i'
+      ) AS exists
+`, configurer.agent)
+
+  const writer = browserAgent({
+    unique: true,
+    domain,
+    apiHost: configurer.apiHost,
+    getToken: () => 'anonymous-ephemeral'
+  })
+  const reader = browserAgent({
+    unique: true,
+    domain,
+    apiHost: readerInfo.apiHost,
+    getToken: () => 'anonymous-ephemeral'
+  })
+
+  try {
+    await writer.environment()
+    await writer.state(writer.uuid())
+    expect(await writer.query('state-path-index-exists')).to.deep.equal([{ exists: true }])
+
+    await writer.query('drop-state-path-index')
+    expect(await writer.query('state-path-index-exists')).to.deep.equal([{ exists: false }])
+
+    await reader.environment()
+    await reader.state(reader.uuid())
+    expect(await reader.query('state-path-index-exists')).to.deep.equal([{ exists: true }])
+  }
+  finally {
+    writer.disconnect?.()
+    reader.disconnect?.()
+  }
+}
+
 async function expectUploadAcrossServers(uploader, downloader) {
   const id = uploader.agent.uuid()
   const data = JSON.stringify({
@@ -520,6 +573,10 @@ export default function crossServer(browserAgent, { skipIfUnavailable=false }={}
 
     it('serves postgres side effects across servers', async function () {
       await expectPostgresAcrossServers(agents[0], agents[1])
+    })
+
+    it('reconciles missing configured indexes across API servers', async function () {
+      await expectIndexReconciliationAcrossServers(browserAgent, agents[0], agents[1])
     })
 
     it('serves uploads and downloads across servers', async function () {

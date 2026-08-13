@@ -5,6 +5,9 @@ export const STATE_TABLE = {
     value: 'JSONB',
     ii: 'BIGINT',
     order_key: 'BIGINT'
+  },
+  indices: {
+    state_path: { column: 'path', unique: true }
   }
 }
 

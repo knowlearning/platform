@@ -173,6 +173,18 @@ async function configurePostgres(domain, { tables={}, functions={} }, report) {
   ])
 }
 
+async function ensureTableIndexes(domain, table, indices={}, tasks) {
+  await Promise.all(
+    Object.entries(indices).map(async ([name, { column, gin, unique }]) =>  {
+      if (gin && unique) throw new Error(`Index ${name} cannot be both GIN and unique`)
+
+      tasks?.push(`Creating index named ${name} on ${table} for ${column}`)
+      if (gin) await postgres.createGinIndex(domain, name, table, column)
+      else await postgres.createIndex(domain, name, table, column, { unique })
+    })
+  )
+}
+
 async function syncTables(domain, tables, report) {
   report.tasks.postgres.clean_views = []
   await cleanOutViews(domain, report.tasks.postgres.clean_views)
@@ -258,14 +270,7 @@ async function syncTables(domain, tables, report) {
     tableTasks.push(`0/${rows.length} rows synced`)
 
     tableTasks.push(`Creating ${Object.keys(indices).length} indices`)
-
-    await Promise.all(
-      Object.entries(indices).map(async ([name, { column, gin }]) =>  {
-        tableTasks.push(`Creating index named ${name} on ${table} for ${column}`)
-        if (gin) await postgres.createGinIndex(domain, name, table, column)
-        else await postgres.createIndex(domain, name, table, column)
-      })
-    )
+    await ensureTableIndexes(domain, table, indices, tableTasks)
 
     if (rows.length > 0) {
       const batchSize = 100_000
@@ -426,6 +431,13 @@ export async function ensureDomainConfigured(domain) {
         const report = { tasks: [], start: Date.now() }
         await applyConfiguration(domain, config, report)
           .catch(error => console.warn('configuration error', domain, error))
+      }
+      else {
+        await Promise.all(
+          Object
+            .entries(config.postgres?.tables || {})
+            .map(([table, { indices }]) => ensureTableIndexes(domain, table, indices))
+        )
       }
       if (domain === 'core') await initializeStateRegistry()
     })().catch(error => {

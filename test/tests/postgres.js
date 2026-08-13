@@ -123,6 +123,22 @@ postgres:
   queries:
     postgres-cluster-name: |
       SHOW cluster_name
+    state-path-index: |
+      SELECT
+        index_info.indisunique AS is_unique,
+        access_method.amname AS index_method
+      FROM pg_catalog.pg_class AS table_info
+      JOIN pg_catalog.pg_namespace AS namespace
+        ON namespace.oid = table_info.relnamespace
+      JOIN pg_catalog.pg_index AS index_info
+        ON index_info.indrelid = table_info.oid
+      JOIN pg_catalog.pg_class AS index_class
+        ON index_class.oid = index_info.indexrelid
+      JOIN pg_catalog.pg_am AS access_method
+        ON access_method.oid = index_class.relam
+      WHERE namespace.nspname = 'public'
+        AND table_info.relname = 'state'
+        AND index_class.relname = 'state_path'
     my-test-table-entries: |
       SELECT * FROM test_table WHERE id = '${TEST_ENTRY_1_ID}'
     my-test-table-entries-metadata: |
@@ -738,6 +754,11 @@ postgres:
     it('Routes unconfigured current-domain postgres queries to the default Postgres server', async function () {
       expect(await Agent.query('postgres-cluster-name'))
         .to.deep.equal([{ cluster_name: 'postgres-1' }])
+    })
+
+    it('Creates a unique B-tree index for state paths', async function () {
+      expect(await Agent.query('state-path-index'))
+        .to.deep.equal([{ is_unique: true, index_method: 'btree' }])
     })
 
     describe('Domain-configured storage routing', function () {
