@@ -45,6 +45,18 @@ export default function authenticateToken(domain, token, authority) {
           const credentialId = uuidv5(userPublicKey, BASE64_PUBLIC_KEY_NAMESPACE)
 
           const { user, providerPublicKey } = await Agent.state(credentialId)
+
+  console.warn('CODE AUTH CREDENTIAL', {
+    credentialId,
+    user,
+    providerPublicKeyPresent: Boolean(providerPublicKey),
+    providerPublicKeyCharacters: providerPublicKey?.length,
+    providerPublicKeyBytes: providerPublicKey
+      ? decodeBase64(providerPublicKey).length
+      : null
+  })
+
+          
           const { owner: credentialOwner  } = await Agent.metadata(credentialId)
           const { owner: userOwner        } = await Agent.metadata(user)
 
