@@ -1,7 +1,7 @@
 import { uuid, uuidv5, environment, decryptBase64String, decodeBase64, box } from '../utils.js'
 import JWTVerification from './verify-jwt.js'
 import decryptJSON from './decrypt-json.js'
-import Agent from '../agent.js'
+import { getState } from '../persistence.js'
 
 const {
   AUTH_SERVICE_SECRET_KEY,
@@ -44,7 +44,11 @@ export default function authenticateToken(domain, token, authority) {
 
           const credentialId = uuidv5(userPublicKey, BASE64_PUBLIC_KEY_NAMESPACE)
 
-          const { user, providerPublicKey } = await Agent.state(credentialId)
+          const {
+            active: { user, providerPublicKey },
+            owner: credentialOwner
+          } = await getState('core', credentialId)
+          const { owner: userOwner } = await getState('core', user)
 
   console.warn('CODE AUTH CREDENTIAL', {
     credentialId,
@@ -56,9 +60,6 @@ export default function authenticateToken(domain, token, authority) {
       : null
   })
 
-          
-          const { owner: credentialOwner  } = await Agent.metadata(credentialId)
-          const { owner: userOwner        } = await Agent.metadata(user)
 
           // Prove authenticating user has owner provided user secret
           const {
