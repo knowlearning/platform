@@ -128,58 +128,84 @@
           {{ replayFailure.message }}
         </v-alert>
 
-        <v-card
+        <v-expansion-panels
           v-if="skipBrokenPatches && skippedReplayFailuresWithEntries.length > 0"
-          variant="outlined"
-          class="mt-4"
+          class="history-skipped-patches mt-4"
         >
-          <v-card-title>Skipped Broken Patches</v-card-title>
-          <v-card-text>
-            <div class="history-replay-actions">
-              <v-chip>{{ skippedReplayFailures.length }} skipped through step {{ selectedStep }}</v-chip>
-            </div>
-
-            <div class="history-operation-list">
-              <div
-                v-for="failure in skippedReplayFailuresWithEntries"
-                :key="`skipped:${failure.step}`"
-                class="history-operation-item"
-              >
-                <div class="history-operation-toolbar">
-                  <div class="history-operation-chips">
-                    <v-chip size="small">Step {{ failure.step }}</v-chip>
-                    <v-chip
-                      v-if="failure.entry"
-                      size="small"
-                      variant="outlined"
-                    >
-                      {{ formatTimestamp(failure.entry.timestamp) }}
-                    </v-chip>
-                    <v-chip
-                      size="small"
-                      color="warning"
-                    >
-                      Operation {{ failure.failedPosition === null ? '?' : failure.failedPosition + 1 }}
-                    </v-chip>
-                  </div>
-
-                  <div class="history-operation-buttons">
-                    <v-btn
-                      size="x-small"
-                      variant="text"
-                      @click="jumpToStep(failure.step)"
-                    >
-                      Jump
-                    </v-btn>
-                  </div>
-                </div>
-
-                <div class="history-failure-message">{{ failure.message }}</div>
-                <pre class="history-code">{{ JSON.stringify(failure.orderedPatch, null, 2) }}</pre>
+          <v-expansion-panel>
+            <v-expansion-panel-title>
+              <div class="history-skipped-summary">
+                <span class="history-skipped-title">Skipped Broken Patches</span>
+                <v-chip
+                  size="small"
+                  color="warning"
+                >
+                  {{ skippedReplayFailures.length }} skipped
+                </v-chip>
+                <span class="history-skipped-scope">Through step {{ selectedStep }}</span>
               </div>
-            </div>
-          </v-card-text>
-        </v-card>
+            </v-expansion-panel-title>
+
+            <v-expansion-panel-text>
+              <v-expansion-panels
+                multiple
+                variant="accordion"
+                class="history-failure-panels"
+              >
+                <v-expansion-panel
+                  v-for="failure in skippedReplayFailuresWithEntries"
+                  :key="`skipped:${failure.step}`"
+                  class="history-failure-panel"
+                >
+                  <v-expansion-panel-title>
+                    <div class="history-failure-summary">
+                      <div class="history-operation-chips">
+                        <v-chip size="small">Step {{ failure.step }}</v-chip>
+                        <v-chip
+                          v-if="failure.entry"
+                          size="small"
+                          variant="outlined"
+                        >
+                          {{ formatTimestamp(failure.entry.timestamp) }}
+                        </v-chip>
+                        <v-chip
+                          size="small"
+                          color="warning"
+                        >
+                          Operation {{ failure.failedPosition === null ? '?' : failure.failedPosition + 1 }}
+                        </v-chip>
+                      </div>
+
+                      <div class="history-failure-message">{{ failure.message }}</div>
+                    </div>
+                  </v-expansion-panel-title>
+
+                  <v-expansion-panel-text>
+                    <div class="history-patch-detail-heading">
+                      <div class="history-patch-detail-label">
+                        <span>Patch operations in replay order</span>
+                        <v-chip
+                          size="x-small"
+                          variant="outlined"
+                        >
+                          {{ failure.orderedPatch.length }} operations
+                        </v-chip>
+                      </div>
+                      <v-btn
+                        size="x-small"
+                        variant="text"
+                        @click="jumpToStep(failure.step)"
+                      >
+                        Jump to step
+                      </v-btn>
+                    </div>
+                    <pre class="history-code history-failure-code">{{ JSON.stringify(failure.orderedPatch, null, 2) }}</pre>
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
 
         <v-card
           v-if="replayFailureEntry"
@@ -763,6 +789,40 @@ function downloadRaw() {
   margin-top: 12px;
 }
 
+.history-skipped-summary {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.history-skipped-title {
+  font-size: 1.125rem;
+  font-weight: 500;
+}
+
+.history-skipped-scope {
+  color: rgba(0, 0, 0, 0.64);
+  font-size: 0.875rem;
+}
+
+.history-failure-panels {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.history-failure-panel {
+  box-shadow: none !important;
+}
+
+.history-failure-summary {
+  min-width: 0;
+  padding: 4px 0;
+}
+
 .history-operation-list {
   display: grid;
   gap: 12px;
@@ -794,7 +854,35 @@ function downloadRaw() {
 }
 
 .history-failure-message {
-  margin-bottom: 8px;
+  margin-top: 8px;
+  color: rgba(0, 0, 0, 0.72);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.history-patch-detail-heading,
+.history-patch-detail-label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.history-patch-detail-heading {
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.history-failure-code {
+  max-height: 420px;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.03);
+  white-space: pre;
+  word-break: normal;
 }
 
 @media (max-width: 720px) {
@@ -804,6 +892,10 @@ function downloadRaw() {
 
   .history-step-field {
     max-width: none;
+  }
+
+  .history-skipped-title {
+    flex-basis: 100%;
   }
 }
 </style>
