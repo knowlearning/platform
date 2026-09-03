@@ -2,7 +2,7 @@ import reserveStaticIp from './reserve-static-ip.js'
 import createFirewallRule from './create-firewall-rule.js'
 import createInstance from './create-instance.js'
 
-const image = "projects/debian-cloud/global/images/family/debian-11"
+const image = "projects/debian-cloud/global/images/family/debian-13"
 const httpFirewallRule = "http-firewall-rule"
 const httpFirewallTag = "http-firewall-tag"
 
