@@ -219,6 +219,7 @@ export async function batchGetState(domain, ids, options) {
   return results
 }
 
+const ownersRegistered = {}
 export async function setState(domain, id, path, value, options) {
   await redis.connected
   const ownerDomain = await ownerDomainForState(domain, id, { create: isUUID(id) })
@@ -227,8 +228,9 @@ export async function setState(domain, id, path, value, options) {
     throw new Error(`UUID ${id} is owned by ${ownerDomain}; refusing to initialize for ${value.domain}`)
   }
 
-  if (isUUID(id)) {
-    await registerStateOwner(id, ownerDomain || domain)
+  if (isUUID(id) && !ownersRegistered[id]) {
+    ownersRegistered[id] = true
+    registerStateOwner(id, ownerDomain || domain)
   }
 
   return redis.clientForDomain(ownerDomain || domain).json.set(id, path, value, options)
