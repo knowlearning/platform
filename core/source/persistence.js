@@ -386,6 +386,11 @@ async function legacyDomainIds(domain) {
 
 // BEGIN patchState implementation
 
+const MAINTENANCE_SCRIPT = `
+  local active_size = redis.call('JSON.DEBUG', 'MEMORY', KEYS[1])
+  redis.call('JSON.SET', KEYS[1], '$.active_size', tonumber(active_size))
+`
+
 const MOVE_SCRIPT = `
   local key = KEYS[1]
   local path = ARGV[1]
@@ -429,6 +434,7 @@ export async function patchState(domain, user, context, id, patch, timestamp, na
     else if (op === 'move') move(transaction, id, path, from)
   }
 
+  transaction.eval(MAINTENANCE_SCRIPT, { keys: [id] })
   transaction.json.set(id, '$.updated', timestamp)
   transaction.json.get(id, { path: '$.active_type' })
 
