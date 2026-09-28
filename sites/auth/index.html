@@ -18,6 +18,7 @@
 
       const LINE_CLIENT_ID = '2008017560'
       const LINE_OAUTH2_URL = 'https://access.line.me/oauth2/v2.1/authorize'
+      const STATE_FALLBACK_PREFIX = 'KLAUTH1'
 
       const CORE_AUTH_SERVICE_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA59Uz6jvBJF3B8/7xMqGo
@@ -33,13 +34,28 @@ ZQIDAQAB
       if (window.location.pathname !== '/') {
         const [_, provider, state] = window.location.pathname.split('/')
         const info = { origin: document.referrer, provider }
-        localStorage.setItem(state, JSON.stringify(info))
+        let providerState = state
+
+        try {
+          const serializedInfo = JSON.stringify(info)
+          window.localStorage.setItem(state, serializedInfo)
+          if (window.localStorage.getItem(state) !== serializedInfo) {
+            throw new Error('Auth storage did not retain the transaction')
+          }
+        }
+        catch {
+          providerState = encodeFallbackState({
+            state,
+            provider,
+            origin: new URL(info.origin).origin
+          })
+        }
 
         const query = {
           redirect_uri: window.location.origin + '/',
           response_type: 'code',
           nonce: Math.random().toString(36).substring(2),
-          state
+          state: providerState
         }
 
         let url
@@ -78,16 +94,57 @@ ZQIDAQAB
         const { state, code } = Object.fromEntries(new URLSearchParams(window.location.search).entries())
 
         if (code && state) {
-          const { origin, provider } = JSON.parse(localStorage.getItem(state))
-          localStorage.removeItem(state)
+          let originalState = state
+          let info
+
+          if (state.startsWith(STATE_FALLBACK_PREFIX)) {
+            info = parseFallbackState(state)
+            originalState = info.state
+          }
+          else {
+            info = JSON.parse(window.localStorage.getItem(state))
+            window.localStorage.removeItem(state)
+          }
+
+          const { origin, provider } = info
 
           const { protocol, host } = new URL(origin)
 
           const tokenContents = { code, provider, domain: host }
           encryptString(CORE_AUTH_SERVICE_PUBLIC_KEY, JSON.stringify(tokenContents))
-            .then(encryptedToken => window.location.href = `${protocol}//${host}/auth/${state}/${encryptedToken}`)
+            .then(encryptedToken => window.location.href = `${protocol}//${host}/auth/${originalState}/${encryptedToken}`)
             .catch(error => console.warn(error))
         }
+      }
+
+      function encodeFallbackState(info) {
+        const bytes = new TextEncoder().encode(JSON.stringify(info))
+        return STATE_FALLBACK_PREFIX + Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')
+      }
+
+      function parseFallbackState(state) {
+        const encoded = state.slice(STATE_FALLBACK_PREFIX.length)
+        if (!/^(?:[0-9a-f]{2})+$/.test(encoded)) throw new Error('Invalid auth fallback encoding')
+        const bytes = Uint8Array.from(encoded.match(/../g), pair => parseInt(pair, 16))
+        const info = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
+        if (
+          !info ||
+          typeof info.state !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(info.state) ||
+          typeof info.provider !== 'string' || !info.provider.trim() ||
+          typeof info.origin !== 'string'
+        ) {
+          throw new Error('Invalid auth fallback state')
+        }
+
+        const origin = new URL(info.origin)
+        if (
+          !['http:', 'https:'].includes(origin.protocol) ||
+          origin.username || origin.password
+        ) {
+          throw new Error('Invalid auth fallback origin')
+        }
+
+        return info
       }
 
       function parseHash(hash) {
