@@ -1,7 +1,14 @@
 # Auth redirect storage fallback
 
-Every request stores `{ origin: document.referrer, provider }` in the auth
-site's localStorage under the app's original state value, when storage permits.
+Every request stores `{ origin, provider }` in the auth site's localStorage under
+the app's original state value, when storage permits. A present
+`document.referrer` remains authoritative. If it is empty, only iOS/iPadOS
+browsers or macOS Safari may use the SDK's existing encoded return URL from
+`/PROVIDER/STATE/ENCODED_RETURN_URL`. This fallback requires an absolute HTTP(S)
+URL without credentials and uses only its origin, dropping the path, query,
+and fragment. The resolved value also supplies custom providers' `origin`
+parameter. Missing or invalid return URLs report an error; other browsers still
+require a referrer. URL validation checks format, not destination authorization.
 
 Every outgoing OAuth `state` contains
 `KLAUTH1` followed by hexadecimal UTF-8 JSON with the original `state`,

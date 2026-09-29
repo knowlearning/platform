@@ -162,10 +162,13 @@ async function runAuthPage({
 }
 
 function startAuth(options = {}) {
-  const { provider = 'google', ...pageOptions } = options
-  const ignoredRedirect = encodeURIComponent('https://ignored.example/destination')
+  const {
+    provider = 'google',
+    encodedReturnUrl = encodeURIComponent('https://ignored.example/destination'),
+    ...pageOptions
+  } = options
   return runAuthPage({
-    url: `${AUTH_ORIGIN}/${provider}/${ORIGINAL_STATE}/${ignoredRedirect}`,
+    url: `${AUTH_ORIGIN}/${provider}/${ORIGINAL_STATE}/${encodedReturnUrl}`,
     ...pageOptions
   })
 }
@@ -412,6 +415,133 @@ export default function authRedirect() {
         expect(start.redirect.searchParams.get('redirect_uri')).to.equal(`${AUTH_ORIGIN}/`)
         expect(start.redirect.searchParams.get('response_type')).to.equal('code')
       })
+
+      it(`Roundtrips a custom provider without a referrer ${blockedAccessor ? 'with blocked storage' : 'with working storage'}`, async function () {
+        const storage = createStorage()
+        const returnUrl = `${APP_ORIGIN}/private-return-path?private-return-query=value#private-return-fragment`
+        const start = await startAuth({
+          provider: 'login.pilaproject.org',
+          encodedReturnUrl: encodeURIComponent(returnUrl),
+          referrer: '',
+          storage,
+          blockedAccessor,
+          navigator: IOS_NAVIGATOR
+        })
+        expect(start.error).to.equal(undefined)
+        expect(start.agentLoads).to.equal(0)
+        expect(start.redirect.origin).to.equal('https://login.pilaproject.org')
+        expect(start.redirect.searchParams.get('origin')).to.equal(APP_ORIGIN)
+        expect(start.redirect.searchParams.get('redirect_uri')).to.equal(`${AUTH_ORIGIN}/`)
+        const state = start.redirect.searchParams.get('state')
+        expect(JSON.parse(decodeFallbackPayload(state))).to.deep.equal({
+          state: ORIGINAL_STATE,
+          origin: APP_ORIGIN,
+          provider: 'login.pilaproject.org'
+        })
+        for (const secret of ['private-return-path', 'private-return-query', 'private-return-fragment']) {
+          expect(decodeFallbackPayload(state)).not.to.include(secret)
+          expect(start.redirect.href).not.to.include(secret)
+        }
+        if (!blockedAccessor) {
+          expect(JSON.parse(storage.values.get(ORIGINAL_STATE))).to.deep.equal({
+            origin: APP_ORIGIN,
+            provider: 'login.pilaproject.org'
+          })
+        }
+        const callback = await completeAuth(state, { storage, blockedAccessor, navigator: IOS_NAVIGATOR })
+        expectCallback(callback, { provider: 'login.pilaproject.org' })
+      })
+    }
+
+    for (const encodedReturnUrl of [encodeURIComponent('https://unexpected.example/private-return-path'), '%E0%A4%A']) {
+      it(`Keeps a present referrer authoritative over return URL ${encodedReturnUrl}`, async function () {
+        const storage = createStorage()
+        const start = await startAuth({
+          provider: 'login.pilaproject.org',
+          encodedReturnUrl,
+          storage,
+          navigator: IOS_NAVIGATOR
+        })
+        expect(start.error).to.equal(undefined)
+        expect(start.agentLoads).to.equal(0)
+        expect(start.redirect.searchParams.get('origin')).to.equal(REFERRER)
+        expect(JSON.parse(storage.values.get(ORIGINAL_STATE)).origin).to.equal(REFERRER)
+        const state = start.redirect.searchParams.get('state')
+        expect(JSON.parse(decodeFallbackPayload(state)).origin).to.equal(APP_ORIGIN)
+        expectCallback(await completeAuth(state, { storage, navigator: IOS_NAVIGATOR }), {
+          provider: 'login.pilaproject.org'
+        })
+      })
+    }
+
+    it('Does not replace a nonempty invalid referrer with a valid return URL', async function () {
+      const start = await startAuth({
+        referrer: 'not-a-valid-referrer',
+        encodedReturnUrl: encodeURIComponent(REFERRER),
+        navigator: IOS_NAVIGATOR
+      })
+      expectReportedError(start)
+      expect(start.storage.values.size).to.equal(0)
+    })
+
+    const invalidReturnUrls = [
+      ['missing return URL', ''],
+      ['malformed URL encoding', '%E0%A4%A'],
+      ['relative return URL', encodeURIComponent('/private-return-path?private-return-query=value#private-return-fragment')],
+      ['protocol-relative return URL', encodeURIComponent('//app.example/private-return-path')],
+      ['JavaScript return URL', encodeURIComponent('javascript:privateReturnSecret()')],
+      ['data return URL', encodeURIComponent('data:text/html,private-return-secret')],
+      ['file return URL', encodeURIComponent('file:///private-return-path')],
+      ['FTP return URL', encodeURIComponent('ftp://app.example/private-return-path')],
+      ['return URL username', encodeURIComponent('https://private-return-user@app.example/private-return-path')],
+      ['return URL password', encodeURIComponent('https://:private-return-password@app.example/private-return-path')],
+      ['double-encoded return URL', encodeURIComponent(encodeURIComponent(REFERRER))]
+    ]
+
+    for (const [description, encodedReturnUrl] of invalidReturnUrls) {
+      it(`Reports ${description} without forwarding or retaining private URL data`, async function () {
+        const start = await startAuth({
+          provider: 'login.pilaproject.org',
+          referrer: '',
+          encodedReturnUrl,
+          navigator: IOS_NAVIGATOR
+        })
+        const report = expectReportedError(start)
+        expect(report.provider).to.equal('login.pilaproject.org')
+        expect(start.storage.values.size).to.equal(0)
+        expect(start.payloads).to.deep.equal([])
+        const serialized = JSON.stringify(report)
+        for (const secret of ['private-return', 'privateReturnSecret', 'private-referrer-token', '%E0%A4%A']) {
+          expect(serialized).not.to.include(secret)
+        }
+      })
+    }
+
+    it('Reports a missing return path segment when the referrer is unavailable', async function () {
+      const start = await runAuthPage({
+        url: `${AUTH_ORIGIN}/google/${ORIGINAL_STATE}`,
+        referrer: '',
+        navigator: IOS_NAVIGATOR
+      })
+      expectReportedError(start)
+      expect(start.storage.values.size).to.equal(0)
+    })
+
+    for (const origin of ['https://app.example:8443', 'http://localhost:5112']) {
+      it(`Recovers the origin ${origin} from an encoded return URL without a referrer`, async function () {
+        const storage = createStorage()
+        const start = await startAuth({
+          referrer: '',
+          encodedReturnUrl: encodeURIComponent(`${origin}/lesson?private-return-query=value#private-return-fragment`),
+          storage,
+          navigator: SAFARI_NAVIGATOR
+        })
+        expect(start.error).to.equal(undefined)
+        expect(start.agentLoads).to.equal(0)
+        const state = start.redirect.searchParams.get('state')
+        expect(JSON.parse(decodeFallbackPayload(state)).origin).to.equal(origin)
+        expectCallback(await completeAuth(state, { storage, navigator: SAFARI_NAVIGATOR }), { origin })
+      })
     }
 
     for (const origin of ['https://app.example:8443', 'http://localhost:5112']) {
@@ -508,6 +638,30 @@ export default function authRedirect() {
           expectReportedError(start)
           expectReportedError(callback)
           expect(callback.payloads).to.deep.equal([])
+        }
+      })
+
+      it(`${supportsRecovery ? 'Allows' : 'Rejects'} missing-referrer recovery on ${browser}`, async function () {
+        const storage = createStorage()
+        const encodedReturnUrl = encodeURIComponent(`${APP_ORIGIN}/private-return-path?private-return-query=value#private-return-fragment`)
+        const start = await startAuth({ navigator, referrer: '', encodedReturnUrl, storage })
+        if (supportsRecovery) {
+          expect(start.error).to.equal(undefined)
+          expect(start.agentLoads).to.equal(0)
+          expect(JSON.parse(storage.values.get(ORIGINAL_STATE))).to.deep.equal({ origin: APP_ORIGIN, provider: 'google' })
+          const state = start.redirect.searchParams.get('state')
+          expect(JSON.parse(decodeFallbackPayload(state))).to.deep.equal({
+            state: ORIGINAL_STATE,
+            origin: APP_ORIGIN,
+            provider: 'google'
+          })
+          expectCallback(await completeAuth(state, { storage, navigator }))
+        }
+        else {
+          const report = expectReportedError(start)
+          expect(storage.values.size).to.equal(0)
+          expect(JSON.stringify(report)).not.to.include('private-return')
+          expect(JSON.stringify(report)).not.to.include(encodedReturnUrl)
         }
       })
     }

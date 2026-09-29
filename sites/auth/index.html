@@ -58,10 +58,11 @@ ZQIDAQAB
         }
 
         if (window.location.pathname !== '/') {
-          const [_, provider, state] = window.location.pathname.split('/')
+          const [, provider, state, encodedReturnUrl] = window.location.pathname.split('/')
           authProvider = provider
           sensitiveValues.add(state)
-          const info = { origin: document.referrer, provider }
+          sensitiveValues.add(encodedReturnUrl)
+          const info = { origin: resolveAuthOrigin(encodedReturnUrl), provider }
 
           authStage = 'storage'
           const providerState = encodeFallbackState({
@@ -115,7 +116,7 @@ ZQIDAQAB
             url = LINE_OAUTH2_URL
           }
           else {
-            query.origin = document.referrer
+            query.origin = info.origin
             url = `https://${provider}`
           }
 
@@ -247,6 +248,23 @@ ZQIDAQAB
           throw new Error('Invalid auth transaction origin')
         }
         return info
+      }
+
+      function resolveAuthOrigin(encodedReturnUrl) {
+        if (document.referrer) return document.referrer
+        if (!canRecoverAuthState()) throw new Error('Missing auth referrer')
+        if (!encodedReturnUrl) throw new Error('Missing auth return URL')
+
+        let returnUrl
+        try { returnUrl = new URL(decodeURIComponent(encodedReturnUrl)) }
+        catch { throw new Error('Invalid auth return URL') }
+        if (
+          !['http:', 'https:'].includes(returnUrl.protocol) ||
+          returnUrl.username || returnUrl.password
+        ) {
+          throw new Error('Invalid auth return URL')
+        }
+        return returnUrl.origin
       }
 
       function canRecoverAuthState() {
