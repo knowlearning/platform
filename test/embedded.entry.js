@@ -47,6 +47,7 @@ export default async function registerEmbeddedHarness() {
     { default: subscriptionHardening },
     { default: authentication },
     { default: authRedirect },
+    { default: browserStorage },
     { default: crossServer }
   ] = await Promise.all([
     import('@knowlearning/agents/browser.js'),
@@ -73,6 +74,7 @@ export default async function registerEmbeddedHarness() {
     import('./tests/subscription-hardening.js'),
     import('./tests/authentication.js'),
     import('./tests/auth-redirect.js'),
+    import('./tests/browser-storage.js'),
     import('./tests/cross-server.js')
   ])
 
@@ -285,6 +287,7 @@ export default async function registerEmbeddedHarness() {
       if (includeRootOnly) subscriptionHardening()
       if (includeRootOnly) authentication(browserAgent)
       if (includeRootOnly) authRedirect()
+      if (includeRootOnly) browserStorage()
       uploads()
       multiAgent()
       syncedState()

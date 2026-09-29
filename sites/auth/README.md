@@ -21,3 +21,30 @@ storage becomes available again before the provider returns.
 The fallback must be selected before leaving for the provider. If a normal
 transaction is lost or becomes unreadable later, its callback still fails:
 the original OAuth state contains no routing information to recover.
+
+## Error reports
+
+Fatal auth errors, OAuth error callbacks, and uncaught page errors display a
+centered error message. Only the first error loads `/agents.js`, a separate
+bundle built from the current agents source. Successful redirects and recovered
+storage failures do not load the agents package.
+
+The reporter creates a JSON state with `type: 'auth-error'`, the error name,
+message and stack, an ISO timestamp, provider, and auth stage. It redacts callback
+values and URLs from diagnostics, and does not include authorization codes,
+tokens, raw OAuth state, or provider error descriptions as report fields. Reports
+are created in the auth site's domain without consuming a stored login token;
+existing cookie/session identity still applies.
+
+After the API acknowledges the state write, the page displays `Error: UUID`.
+Loading and saving share a ten-second timeout; failures display
+`Error: report unavailable`. The agents package guards localStorage access and
+retains the API session ID in memory when storage is unavailable, allowing
+reports to be saved without persistent browser storage. Reporting uses an
+explicit API host to avoid the SDK's initial session reload and
+disconnects once finished. For local testing, the `API_HOST` localStorage value
+overrides the production API host.
+
+`npm run build` emits both the inline auth page and the lazy agents bundle.
+The import uses a variable URL so Vite leaves it pointing at the bundled entry
+instead of copying the unbundled module as a static asset.

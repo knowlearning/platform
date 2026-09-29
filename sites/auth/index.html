@@ -4,8 +4,24 @@
     <link rel="icon" type="image/png" href="/logo-orange.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Auth</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        font-family: sans-serif;
+      }
+
+      #error {
+        padding: 1rem;
+        text-align: center;
+        overflow-wrap: anywhere;
+      }
+    </style>
   </head>
   <body>
+    <div id="error" role="alert" hidden></div>
     <script>
       const GOOGLE_CLIENT_ID = '603559646501-i29ma3u7c590ijimgp809vpdhg52jibd.apps.googleusercontent.com'
       const GOOGLE_OAUTH2_URL = 'https://accounts.google.com/o/oauth2/auth'
@@ -19,6 +35,10 @@
       const LINE_CLIENT_ID = '2008017560'
       const LINE_OAUTH2_URL = 'https://access.line.me/oauth2/v2.1/authorize'
       const STATE_FALLBACK_PREFIX = 'KLAUTH1'
+      const sensitiveValues = new Set()
+      let authProvider = null
+      let authStage = window.location.pathname === '/' ? 'callback' : 'redirect'
+      let reportingError = false
 
       const CORE_AUTH_SERVICE_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA59Uz6jvBJF3B8/7xMqGo
@@ -31,69 +51,81 @@ ZQIDAQAB
 -----END PUBLIC KEY-----
 `
 
-      if (window.location.pathname !== '/') {
-        const [_, provider, state] = window.location.pathname.split('/')
-        const info = { origin: document.referrer, provider }
-        let providerState = state
+      async function runAuth() {
+        const params = new URLSearchParams(window.location.search)
+        for (const [key, value] of params) {
+          if (key !== 'error') sensitiveValues.add(value)
+        }
 
-        try {
-          const serializedInfo = JSON.stringify(info)
-          window.localStorage.setItem(state, serializedInfo)
-          if (window.localStorage.getItem(state) !== serializedInfo) {
-            throw new Error('Auth storage did not retain the transaction')
+        if (window.location.pathname !== '/') {
+          const [_, provider, state] = window.location.pathname.split('/')
+          authProvider = provider
+          sensitiveValues.add(state)
+          const info = { origin: document.referrer, provider }
+          let providerState = state
+
+          authStage = 'storage'
+          try {
+            const serializedInfo = JSON.stringify(info)
+            window.localStorage.setItem(state, serializedInfo)
+            if (window.localStorage.getItem(state) !== serializedInfo) {
+              throw new Error('Auth storage did not retain the transaction')
+            }
           }
-        }
-        catch {
-          providerState = encodeFallbackState({
-            state,
-            provider,
-            origin: new URL(info.origin).origin
-          })
-        }
+          catch {
+            providerState = encodeFallbackState({
+              state,
+              provider,
+              origin: new URL(info.origin).origin
+            })
+          }
 
-        const query = {
-          redirect_uri: window.location.origin + '/',
-          response_type: 'code',
-          nonce: Math.random().toString(36).substring(2),
-          state: providerState
-        }
+          authStage = 'redirect'
+          const query = {
+            redirect_uri: window.location.origin + '/',
+            response_type: 'code',
+            nonce: Math.random().toString(36).substring(2),
+            state: providerState
+          }
 
-        let url
+          let url
 
-        if (provider === 'google') {
-          query.client_id = GOOGLE_CLIENT_ID
-          query.prompt = 'select_account'
-          query.scope = 'openid profile'
-          url = GOOGLE_OAUTH2_URL
-        }
-        else if (provider === 'microsoft') {
-          query.client_id = MICROSOFT_CLIENT_ID
-          query.prompt = 'select_account'
-          query.scope = 'openid profile'
-          url = MICROSOFT_OAUTH2_URL
-        }
-        else if (provider === 'classlink') {
-          query.client_id = CLASSLINK_CLIENT_ID
-          query.prompt = 'select_account'
-          query.scope = 'profile'
-          url = CLASSLINK_OAUTH2_URL
-        }
-        else if (provider === 'line') {
-          query.client_id = LINE_CLIENT_ID
-          query.scope = 'openid profile'
-          url = LINE_OAUTH2_URL
+          if (provider === 'google') {
+            query.client_id = GOOGLE_CLIENT_ID
+            query.prompt = 'select_account'
+            query.scope = 'openid profile'
+            url = GOOGLE_OAUTH2_URL
+          }
+          else if (provider === 'microsoft') {
+            query.client_id = MICROSOFT_CLIENT_ID
+            query.prompt = 'select_account'
+            query.scope = 'openid profile'
+            url = MICROSOFT_OAUTH2_URL
+          }
+          else if (provider === 'classlink') {
+            query.client_id = CLASSLINK_CLIENT_ID
+            query.prompt = 'select_account'
+            query.scope = 'profile'
+            url = CLASSLINK_OAUTH2_URL
+          }
+          else if (provider === 'line') {
+            query.client_id = LINE_CLIENT_ID
+            query.scope = 'openid profile'
+            url = LINE_OAUTH2_URL
+          }
+          else {
+            query.origin = document.referrer
+            url = `https://${provider}`
+          }
+
+          window.location.href = `${url}?${objectToQuerystring(query)}`
         }
         else {
-          query.origin = document.referrer
-          url = `https://${provider}`
-        }
+          const { state, code, error } = Object.fromEntries(params)
+          if (params.has('error')) throw new Error(`OAuth error: ${error}`)
+          if (!window.location.search) return
+          if (!code || !state) throw new Error('Missing auth callback code or state')
 
-        window.location.href = `${url}?${objectToQuerystring(query)}`
-      }
-      else {
-        const { state, code } = Object.fromEntries(new URLSearchParams(window.location.search).entries())
-
-        if (code && state) {
           let originalState = state
           let info
 
@@ -102,19 +134,96 @@ ZQIDAQAB
             originalState = info.state
           }
           else {
-            info = JSON.parse(window.localStorage.getItem(state))
+            authStage = 'storage'
+            info = parseAuthInfo(window.localStorage.getItem(state))
             window.localStorage.removeItem(state)
           }
 
+          if (!info) throw new Error('Missing auth transaction')
           const { origin, provider } = info
-
+          authProvider = provider
+          sensitiveValues.add(originalState)
+          authStage = 'callback'
           const { protocol, host } = new URL(origin)
 
+          authStage = 'encryption'
           const tokenContents = { code, provider, domain: host }
-          encryptString(CORE_AUTH_SERVICE_PUBLIC_KEY, JSON.stringify(tokenContents))
-            .then(encryptedToken => window.location.href = `${protocol}//${host}/auth/${originalState}/${encryptedToken}`)
-            .catch(error => console.warn(error))
+          const encryptedToken = await encryptString(CORE_AUTH_SERVICE_PUBLIC_KEY, JSON.stringify(tokenContents))
+          sensitiveValues.add(encryptedToken)
+          authStage = 'redirect'
+          window.location.href = `${protocol}//${host}/auth/${originalState}/${encryptedToken}`
         }
+      }
+
+      function showError(message) {
+        const element = document.getElementById('error')
+        element.textContent = `Error: ${message}`
+        element.hidden = false
+      }
+
+      function redactErrorText(value) {
+        let text = String(value ?? '')
+        for (const secret of [...sensitiveValues].filter(Boolean).sort((first, second) => second.length - first.length)) {
+          text = text.split(secret).join('[redacted]')
+          text = text.split(encodeURIComponent(secret)).join('[redacted]')
+        }
+        return text.replace(/https?:\/\/[^\s)]+/g, '[url]')
+      }
+
+      async function reportError(error) {
+        if (reportingError) return
+        reportingError = true
+        showError('reporting…')
+
+        let agent
+        let timeout
+        let finished = false
+        try {
+          const report = {
+            type: 'auth-error',
+            name: redactErrorText(error?.name || 'Error'),
+            message: redactErrorText(error?.message ?? error),
+            stack: redactErrorText(error?.stack),
+            timestamp: new Date().toISOString(),
+            provider: authProvider ? redactErrorText(authProvider) : null,
+            stage: authStage
+          }
+          const saveReport = async () => {
+            const agentsUrl = '/agents.js'
+            const { default: createAgent } = await import(agentsUrl)
+            if (finished) return
+            agent = createAgent()
+            const id = agent.uuid()
+            const response = await agent.interact(id, [
+              { op: 'add', path: ['active_type'], value: 'application/json' },
+              { op: 'add', path: ['active'], value: report }
+            ])
+            if (!Number.isInteger(response?.ii) || response.ii < 0) throw new Error('Report was not saved')
+            return id
+          }
+          const id = await Promise.race([
+            saveReport(),
+            new Promise((resolve, reject) => {
+              timeout = setTimeout(() => reject(new Error('Error report timed out')), 10000)
+            })
+          ])
+          showError(id)
+        }
+        catch (reportingFailure) {
+          console.warn('Could not save auth error report', reportingFailure)
+          showError('report unavailable')
+        }
+        finally {
+          finished = true
+          clearTimeout(timeout)
+          try { agent?.disconnect() }
+          catch (disconnectError) { console.warn('Could not disconnect error reporter', disconnectError) }
+        }
+      }
+
+      function parseAuthInfo(value) {
+        try { return JSON.parse(value) }
+        catch { throw new Error('Invalid auth transaction JSON') }
       }
 
       function encodeFallbackState(info) {
@@ -126,7 +235,7 @@ ZQIDAQAB
         const encoded = state.slice(STATE_FALLBACK_PREFIX.length)
         if (!/^(?:[0-9a-f]{2})+$/.test(encoded)) throw new Error('Invalid auth fallback encoding')
         const bytes = Uint8Array.from(encoded.match(/../g), pair => parseInt(pair, 16))
-        const info = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
+        const info = parseAuthInfo(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
         if (
           !info ||
           typeof info.state !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(info.state) ||
@@ -210,6 +319,10 @@ ZQIDAQAB
         }
         return array.buffer
       }
+
+      window.addEventListener('error', event => reportError(event.error || new Error(event.message)))
+      window.addEventListener('unhandledrejection', event => reportError(event.reason))
+      runAuth().catch(reportError)
     </script>
   </body>
 </html>

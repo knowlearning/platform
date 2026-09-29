@@ -1,3 +1,5 @@
+import storage from './storage.js'
+
 const AUTH_HOST = 'https://auth.knowlearning.systems'
 const CORE_AUTH_SERVICE_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA59Uz6jvBJF3B8/7xMqGo
@@ -13,17 +15,17 @@ ZQIDAQAB
 if (window.location.pathname.startsWith('/auth/')) {
   const state_token = window.location.pathname.slice(6)
   const [state] = state_token.split('/', 1)
-  const origin = window.localStorage.getItem(state)
+  const origin = storage.getItem(state)
   if (origin) {
     const token = state_token.slice(state.length + 1)
-    window.localStorage.setItem('token', token)
-    window.location.href = origin
+    if (storage.setItem('token', token)) window.location.href = origin
+    else console.warn('Unable to store authentication token')
   }
 }
 
 async function login(provider='google', code) {
   const state = Math.random().toString(36).substring(2)
-  window.localStorage.setItem(state, window.location.href)
+  if (!storage.setItem(state, window.location.href)) throw new Error('Unable to store authentication state')
 
   if (provider === 'code') {
     const tokenContents = { code, provider, domain: window.location.host }
@@ -38,14 +40,15 @@ async function login(provider='google', code) {
 
 function logout() {
   //  Doing this will establish a new anonymous session
-  window.localStorage.setItem('token', Math.random().toString(36).substring(2))
+  if (!storage.setItem('token', Math.random().toString(36).substring(2))) {
+    throw new Error('Unable to store logout token')
+  }
   window.location.reload()
 }
 
 async function getToken() {
-  const token = localStorage.getItem('token')
-  window.localStorage.removeItem('token')
-  return token
+  const token = storage.getItem('token')
+  return token && storage.removeItem('token') ? token : null
 }
 
 
@@ -104,4 +107,3 @@ export {
   login,
   logout
 }
-

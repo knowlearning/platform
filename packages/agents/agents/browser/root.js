@@ -1,13 +1,14 @@
 import { v1 as uuid } from 'uuid'
 import { applyPatch } from 'fast-json-patch/index.mjs'
 import { getToken, login, logout } from './auth.js'
+import storage from './storage.js'
 import GenericAgent from '../generic/index.js'
 import { io } from 'socket.io-client'
 
 const TEST_DOMAIN = 'tests.knowlearning.systems'
 const LANGUAGES = [...navigator.languages]
 
-const DEFAULT_API_HOST = localStorage.getItem('API_HOST') || 'socket-io.knowlearning.systems'
+const DEFAULT_API_HOST = storage.getItem('API_HOST') || 'socket-io.knowlearning.systems'
 // const API_HOST = 'api-test.knowlearning.systems'
 // const API_HOST = 'localhost:8765'
 
@@ -18,30 +19,41 @@ async function ensureSidEstablished(apiHost, sidStorageKey, reloadOnChange) {
     credentials: 'include'
   })
 
-  const hasLocalStorageSID = !!localStorage.getItem(sidStorageKey)
+  const storedSid = storage.getItem(sidStorageKey)
   if (response.status === 201) {
-    if (!hasLocalStorageSID) {
-      const sentSid = await response.text()
-      localStorage.setItem(sidStorageKey, sentSid)
-      if (reloadOnChange) location.reload()
-    }
+    if (storedSid) return storedSid
+    const sentSid = await response.text()
+    const persisted = storage.setItem(sidStorageKey, sentSid)
+    if (reloadOnChange && persisted) location.reload()
+    return sentSid
   }
   else if (response.status === 200) {
-    if (hasLocalStorageSID) {
-      localStorage.removeItem(sidStorageKey)
-      if (reloadOnChange) location.reload()
+    if (storedSid) {
+      const removed = storage.removeItem(sidStorageKey)
+      if (reloadOnChange && removed) location.reload()
     }
+    return null
   }
   else {
     console.warn('Issue Connecting To the API Server')
   }
+  return storedSid
 }
 
 export default (options={}) => {
   const apiHost = options.apiHost || DEFAULT_API_HOST
   const hasExplicitApiHost = !!options.apiHost
   const sidStorageKey = hasExplicitApiHost ? `sid:${apiHost}` : 'sid'
+  let currentSid = storage.getItem(sidStorageKey)
   const sidReady = ensureSidEstablished(apiHost, sidStorageKey, !hasExplicitApiHost)
+    .then(sid => {
+      currentSid = sid
+      return sid
+    })
+    .catch(error => {
+      console.warn('Issue Establishing API Server Session', error)
+      return currentSid
+    })
 
   const Connection = function () {
     let socket
@@ -51,7 +63,7 @@ export default (options={}) => {
     const openSocket = () => {
       if (closed) return
 
-      const sid = localStorage.getItem(sidStorageKey)
+      const sid = currentSid
 
       // socket.io client connection
       socket = io(`https://${apiHost}`, {
@@ -79,12 +91,9 @@ export default (options={}) => {
     }
 
     if (hasExplicitApiHost) {
-      sidReady
-        .catch(error => console.warn('Issue Establishing API Server Session', error))
-        .finally(openSocket)
+      sidReady.then(openSocket)
     }
     else {
-      sidReady.catch(error => console.warn('Issue Establishing API Server Session', error))
       openSocket()
     }
 
@@ -114,7 +123,7 @@ export default (options={}) => {
 
   const agent = GenericAgent({
     token: options.getToken || getToken,
-    sid: () => localStorage.getItem(sidStorageKey),
+    sid: () => sidReady,
     domain: window.location.host,
     Connection,
     uuid,
@@ -127,12 +136,13 @@ export default (options={}) => {
   })
 
   agent.local = () => {
-    localStorage.setItem('api', 'local')
+    if (!storage.setItem('api', 'local')) throw new Error('Unable to store API preference')
     location.reload()
   }
   agent.remote = (mode='production') => {
-    localStorage.setItem('api', 'remote')
-    localStorage.setItem('mode', mode)
+    if (!storage.setItem('api', 'remote') || !storage.setItem('mode', mode)) {
+      throw new Error('Unable to store API preference')
+    }
     location.reload()
   }
   agent.close = () => {
@@ -143,5 +153,5 @@ export default (options={}) => {
 }
 
 function debugLog() {
-  if (localStorage.getItem('__default_knowlearning_agent.debug')) console.log(...arguments)
+  if (storage.getItem('__default_knowlearning_agent.debug')) console.log(...arguments)
 }

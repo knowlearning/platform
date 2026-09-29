@@ -21,6 +21,7 @@ import historyPatchFormat from './tests/history-patch-format.js'
 import syncedState from './tests/synced-state.js'
 import authentication from './tests/authentication.js'
 import authRedirect from './tests/auth-redirect.js'
+import browserStorage from './tests/browser-storage.js'
 import crossServer from './tests/cross-server.js'
 import runEmbeddedMode from './embedded-modes.js'
 import Agent from '@knowlearning/agents/browser.js'
@@ -97,6 +98,7 @@ else if (!(await runEmbeddedMode({ Agent, id, mode }))) {
       if (mode.length === 4) reconnect()
       if (mode.length === 4) authentication(browserAgent)
       if (mode.length === 4) authRedirect()
+      if (mode.length === 4) browserStorage()
       uploads()
       multiAgent()
       syncedState()
