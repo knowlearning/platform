@@ -6,6 +6,24 @@ const REFERRER = `${APP_ORIGIN}/lesson?private-referrer-token=example`
 const ORIGINAL_STATE = 'pending-login-state'
 const AUTH_CODE = 'provider-authorization-code'
 const ERROR_STATE = 'c6d49240-2a68-4c98-898f-a3d656b34e45'
+const CHROME_NAVIGATOR = {
+  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  vendor: 'Google Inc.',
+  platform: 'MacIntel',
+  maxTouchPoints: 0
+}
+const SAFARI_NAVIGATOR = {
+  userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Safari/605.1.15',
+  vendor: 'Apple Computer, Inc.',
+  platform: 'MacIntel',
+  maxTouchPoints: 0
+}
+const IOS_NAVIGATOR = {
+  userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1',
+  vendor: 'Apple Computer, Inc.',
+  platform: 'iPhone',
+  maxTouchPoints: 5
+}
 const authScript = authHtml.match(/<script>([\s\S]*?)<\/script>/)[1]
 const executeAuth = new Function('window', 'document', 'crypto', 'console', 'loadAgents', 'setTimeout', 'clearTimeout', authScript
   .replace('import(agentsUrl)', 'loadAgents()')
@@ -28,6 +46,7 @@ function createStorage(failure) {
     },
     removeItem(key) {
       removed.push(key)
+      if (failure === 'remove') throw new Error('Storage removal blocked')
       values.delete(key)
     }
   }
@@ -38,6 +57,7 @@ async function runAuthPage({
   referrer = REFERRER,
   storage = createStorage(),
   blockedAccessor = false,
+  navigator = CHROME_NAVIGATOR,
   encryptionError,
   loadError,
   initializeError,
@@ -72,6 +92,7 @@ async function runAuthPage({
   }
   const window = {
     location,
+    navigator,
     addEventListener(type, handler) { listeners[type] = handler }
   }
   Object.defineProperty(window, 'localStorage', {
@@ -154,12 +175,12 @@ function completeAuth(state, options = {}) {
   return runAuthPage({ url: `${AUTH_ORIGIN}/?${query}`, ...options })
 }
 
-function expectCallback(page, { origin = APP_ORIGIN, provider = 'google' } = {}) {
+function expectCallback(page, { origin = APP_ORIGIN, provider = 'google', state = ORIGINAL_STATE } = {}) {
   expect(page.error).to.equal(undefined)
   expect(page.agentLoads).to.equal(0)
   expect(page.errorElement.hidden).to.equal(true)
   expect(page.redirect.origin).to.equal(origin)
-  expect(page.redirect.pathname).to.match(new RegExp(`^/auth/${ORIGINAL_STATE}/[^/]+$`))
+  expect(page.redirect.pathname).to.match(new RegExp(`^/auth/${state}/[^/]+$`))
   expect(page.payloads).to.deep.equal([{
     code: AUTH_CODE,
     provider,
@@ -215,7 +236,7 @@ function encodeFallback(overrides = {}) {
 
 export default function authRedirect() {
   describe('Auth redirect', function () {
-    it('Preserves the existing localStorage flow when storage works', async function () {
+    it('Always encodes provider state while preserving the localStorage flow', async function () {
       const storage = createStorage()
       const start = await startAuth({ storage })
       expect(start.error).to.equal(undefined)
@@ -223,24 +244,38 @@ export default function authRedirect() {
       expect(start.errorElement.hidden).to.equal(true)
       expect(storage.values.get(ORIGINAL_STATE)).to.equal(JSON.stringify({ origin: REFERRER, provider: 'google' }))
       expect(start.redirect.origin + start.redirect.pathname).to.equal('https://accounts.google.com/o/oauth2/auth')
-      expect(start.redirect.searchParams.get('state')).to.equal(ORIGINAL_STATE)
+      const state = start.redirect.searchParams.get('state')
+      expect(JSON.parse(decodeFallbackPayload(state))).to.deep.equal({
+        state: ORIGINAL_STATE,
+        origin: APP_ORIGIN,
+        provider: 'google'
+      })
+      expect(decodeFallbackPayload(state)).not.to.include('private-referrer-token')
       expect(start.redirect.searchParams.get('redirect_uri')).to.equal(`${AUTH_ORIGIN}/`)
       expect(start.redirect.searchParams.get('response_type')).to.equal('code')
       expect(start.redirect.searchParams.get('prompt')).to.equal('select_account')
       expect(start.redirect.searchParams.get('scope')).to.equal('openid profile')
       expect(start.redirect.searchParams.get('nonce')).to.be.a('string').and.not.equal('')
 
-      const callback = await completeAuth(ORIGINAL_STATE, { storage })
+      const callback = await completeAuth(state, { storage })
       expectCallback(callback)
       expect(storage.values.has(ORIGINAL_STATE)).to.equal(false)
       expect(storage.removed).to.deep.equal([ORIGINAL_STATE])
     })
 
+    it('Accepts existing raw nonce callbacks when their stored transaction is available', async function () {
+      const storage = createStorage()
+      storage.values.set(ORIGINAL_STATE, JSON.stringify({ origin: REFERRER, provider: 'google' }))
+      expectCallback(await completeAuth(ORIGINAL_STATE, { storage }))
+      expect(storage.removed).to.deep.equal([ORIGINAL_STATE])
+    })
+
     for (const failure of ['accessor', 'write', 'read', 'silent', 'mismatch']) {
-      it(`Roundtrips without callback storage after a storage ${failure} failure`, async function () {
+      it(`Roundtrips on iOS without callback storage after a storage ${failure} failure`, async function () {
         const start = await startAuth({
           storage: createStorage(failure),
-          blockedAccessor: failure === 'accessor'
+          blockedAccessor: failure === 'accessor',
+          navigator: IOS_NAVIGATOR
         })
         expect(start.error).to.equal(undefined)
         expect(start.agentLoads).to.equal(0)
@@ -248,39 +283,129 @@ export default function authRedirect() {
         expect(state).not.to.equal(ORIGINAL_STATE)
         expect(decodeFallbackPayload(state)).not.to.include('private-referrer-token')
 
-        const callback = await completeAuth(state, { blockedAccessor: true })
+        const callback = await completeAuth(state, { blockedAccessor: true, navigator: IOS_NAVIGATOR })
         expectCallback(callback)
+      })
+
+      it(`Reports a storage ${failure} failure before leaving a non-Safari desktop browser`, async function () {
+        const start = await startAuth({ storage: createStorage(failure), blockedAccessor: failure === 'accessor' })
+        const report = expectReportedError(start)
+        expect(report.stage).to.equal('storage')
+        expect(start.payloads).to.deep.equal([])
       })
     }
 
-    it('Uses fallback metadata when storage becomes available on callback', async function () {
-      const start = await startAuth({ blockedAccessor: true })
-      const state = start.redirect.searchParams.get('state')
+    it('Recovers on iOS when storage is cleared between the provider redirect and callback', async function () {
       const storage = createStorage()
-      storage.values.set(state, JSON.stringify({ origin: 'https://unexpected.example', provider: 'microsoft' }))
-
-      expectCallback(await completeAuth(state, { storage }))
+      const start = await startAuth({ storage, navigator: IOS_NAVIGATOR })
+      expect(storage.values.has(ORIGINAL_STATE)).to.equal(true)
+      storage.values.clear()
+      expectCallback(await completeAuth(start.redirect.searchParams.get('state'), { storage, navigator: IOS_NAVIGATOR }))
     })
 
-    it('Rejects a missing legacy transaction instead of treating its nonce as fallback metadata', async function () {
-      const callback = await completeAuth(ORIGINAL_STATE)
+    it('Reports lost callback storage on a non-Safari desktop browser', async function () {
+      const storage = createStorage()
+      const start = await startAuth({ storage })
+      storage.values.clear()
+      const callback = await completeAuth(start.redirect.searchParams.get('state'), { storage })
       expectReportedError(callback)
       expect(callback.payloads).to.deep.equal([])
     })
 
+    it('Uses available stored metadata instead of conflicting encoded metadata on Safari', async function () {
+      const storage = createStorage()
+      storage.values.set(ORIGINAL_STATE, JSON.stringify({ origin: REFERRER, provider: 'google' }))
+      const state = encodeFallback({ origin: 'https://unexpected.example', provider: 'microsoft' })
+      expectCallback(await completeAuth(state, { storage, navigator: SAFARI_NAVIGATOR }))
+      expect(storage.removed).to.deep.equal([ORIGINAL_STATE])
+    })
+
+    it('Keeps successfully read transaction metadata when cleanup fails', async function () {
+      const storage = createStorage('remove')
+      storage.values.set(ORIGINAL_STATE, JSON.stringify({ origin: REFERRER, provider: 'google' }))
+      const state = encodeFallback({ origin: 'https://unexpected.example', provider: 'microsoft' })
+      expectCallback(await completeAuth(state, { storage }))
+      expect(storage.values.has(ORIGINAL_STATE)).to.equal(true)
+      expect(storage.removed).to.deep.equal([ORIGINAL_STATE])
+    })
+
+    it('Does not delete unrelated storage when its key is supplied as the encoded nonce', async function () {
+      const storage = createStorage()
+      storage.values.set('API_HOST', 'api.example')
+      const callback = await completeAuth(encodeFallback({ state: 'API_HOST' }), { storage, navigator: SAFARI_NAVIGATOR })
+      expectCallback(callback, { state: 'API_HOST' })
+      expect(storage.values.get('API_HOST')).to.equal('api.example')
+      expect(storage.removed).to.deep.equal([])
+    })
+
+    it('Does not remove stored data when recovery follows a storage read failure', async function () {
+      const storage = createStorage('read')
+      const storedInfo = JSON.stringify({ origin: REFERRER, provider: 'google' })
+      storage.values.set(ORIGINAL_STATE, storedInfo)
+      expectCallback(await completeAuth(encodeFallback(), { storage, navigator: SAFARI_NAVIGATOR }))
+      expect(storage.values.get(ORIGINAL_STATE)).to.equal(storedInfo)
+      expect(storage.removed).to.deep.equal([])
+    })
+
+    it('Looks up the original nonce when storage becomes available on callback', async function () {
+      const start = await startAuth({ blockedAccessor: true, navigator: IOS_NAVIGATOR })
+      const state = start.redirect.searchParams.get('state')
+      const storage = createStorage()
+      storage.values.set(state, JSON.stringify({ origin: 'https://unexpected.example', provider: 'microsoft' }))
+
+      expectCallback(await completeAuth(state, { storage, navigator: IOS_NAVIGATOR }))
+    })
+
+    for (const navigator of [CHROME_NAVIGATOR, IOS_NAVIGATOR]) {
+      it(`Rejects a missing legacy transaction on ${navigator.platform} instead of treating its nonce as metadata`, async function () {
+        const callback = await completeAuth(ORIGINAL_STATE, { navigator })
+        expectReportedError(callback)
+        expect(callback.payloads).to.deep.equal([])
+      })
+    }
+
+    for (const navigator of [CHROME_NAVIGATOR, SAFARI_NAVIGATOR]) {
+      for (const failure of ['read', 'accessor']) {
+        it(`${navigator === SAFARI_NAVIGATOR ? 'Recovers' : 'Reports'} a callback storage ${failure} failure on ${navigator.vendor}`, async function () {
+          const callback = await completeAuth(encodeFallback(), {
+            storage: createStorage(failure),
+            blockedAccessor: failure === 'accessor',
+            navigator
+          })
+          if (navigator === SAFARI_NAVIGATOR) expectCallback(callback)
+          else {
+            expectReportedError(callback)
+            expect(callback.payloads).to.deep.equal([])
+          }
+        })
+      }
+      for (const storedInfo of ['not-json', 'null', '{}']) {
+        it(`${navigator === SAFARI_NAVIGATOR ? 'Recovers' : 'Reports'} invalid stored metadata ${storedInfo} on ${navigator.vendor}`, async function () {
+          const storage = createStorage()
+          storage.values.set(ORIGINAL_STATE, storedInfo)
+          const callback = await completeAuth(encodeFallback(), { storage, navigator })
+          if (navigator === SAFARI_NAVIGATOR) expectCallback(callback)
+          else {
+            expectReportedError(callback)
+            expect(callback.payloads).to.deep.equal([])
+          }
+        })
+      }
+    }
+
     for (const provider of ['google', 'microsoft', 'classlink', 'line', 'login.custom.example']) {
       it(`Preserves the ${provider} provider across fallback`, async function () {
-        const start = await startAuth({ provider, blockedAccessor: true })
+        const start = await startAuth({ provider, blockedAccessor: true, navigator: IOS_NAVIGATOR })
         expect(start.error).to.equal(undefined)
         const state = start.redirect.searchParams.get('state')
         expect(state).to.match(/^[a-zA-Z0-9]+$/)
-        expectCallback(await completeAuth(state, { blockedAccessor: true }), { provider })
+        expectCallback(await completeAuth(state, { blockedAccessor: true, navigator: IOS_NAVIGATOR }), { provider })
       })
     }
 
     for (const blockedAccessor of [false, true]) {
       it(`Preserves custom provider query parameters ${blockedAccessor ? 'with fallback' : 'with storage'}`, async function () {
-        const start = await startAuth({ provider: 'login.custom.example', blockedAccessor })
+        const start = await startAuth({ provider: 'login.custom.example', blockedAccessor, navigator: IOS_NAVIGATOR })
         expect(start.error).to.equal(undefined)
         expect(start.redirect.origin).to.equal('https://login.custom.example')
         expect(start.redirect.searchParams.get('origin')).to.equal(REFERRER)
@@ -291,10 +416,99 @@ export default function authRedirect() {
 
     for (const origin of ['https://app.example:8443', 'http://localhost:5112']) {
       it(`Supports the fallback destination ${origin}`, async function () {
-        const start = await startAuth({ referrer: `${origin}/lesson`, blockedAccessor: true })
+        const start = await startAuth({ referrer: `${origin}/lesson`, blockedAccessor: true, navigator: IOS_NAVIGATOR })
         expect(start.error).to.equal(undefined)
         const state = start.redirect.searchParams.get('state')
-        expectCallback(await completeAuth(state, { blockedAccessor: true }), { origin })
+        expectCallback(await completeAuth(state, { blockedAccessor: true, navigator: IOS_NAVIGATOR }), { origin })
+      })
+    }
+
+    const browserCases = [
+      ['iPhone Safari', IOS_NAVIGATOR, true],
+      ['iPad Safari', {
+        ...IOS_NAVIGATOR,
+        userAgent: IOS_NAVIGATOR.userAgent.replaceAll('iPhone', 'iPad'),
+        platform: 'iPad'
+      }, true],
+      ['iPod Safari', {
+        ...IOS_NAVIGATOR,
+        userAgent: IOS_NAVIGATOR.userAgent.replaceAll('iPhone', 'iPod'),
+        platform: 'iPod'
+      }, true],
+      ['iOS Chrome', {
+        ...IOS_NAVIGATOR,
+        userAgent: IOS_NAVIGATOR.userAgent.replace('Version/18.6', 'CriOS/140.0.7339.39')
+      }, true],
+      ['iOS Firefox', {
+        ...IOS_NAVIGATOR,
+        userAgent: IOS_NAVIGATOR.userAgent.replace('Version/18.6', 'FxiOS/142.0')
+      }, true],
+      ['iOS Edge', {
+        ...IOS_NAVIGATOR,
+        userAgent: IOS_NAVIGATOR.userAgent.replace('Version/18.6', 'EdgiOS/140.0.3485.54')
+      }, true],
+      ['iOS webview without Safari token', {
+        ...IOS_NAVIGATOR,
+        userAgent: IOS_NAVIGATOR.userAgent.replace(' Version/18.6', '').replace(' Safari/604.1', '')
+      }, true],
+      ['desktop-mode iPad', { ...SAFARI_NAVIGATOR, maxTouchPoints: 5 }, true],
+      ['desktop-mode iPad with Macintosh user agent', {
+        ...SAFARI_NAVIGATOR,
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15',
+        platform: '',
+        maxTouchPoints: 5
+      }, true],
+      ['desktop-mode iPad with MacIntel platform', {
+        ...SAFARI_NAVIGATOR,
+        userAgent: 'Mozilla/5.0 AppleWebKit/605.1.15',
+        maxTouchPoints: 5
+      }, true],
+      ['macOS Safari', SAFARI_NAVIGATOR, true],
+      ['macOS Chrome', CHROME_NAVIGATOR, false],
+      ['macOS Edge', {
+        ...CHROME_NAVIGATOR,
+        userAgent: `${CHROME_NAVIGATOR.userAgent} Edg/140.0.3485.54`
+      }, false],
+      ['macOS Firefox', {
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:142.0) Gecko/20100101 Firefox/142.0',
+        vendor: '',
+        platform: 'MacIntel',
+        maxTouchPoints: 0
+      }, false],
+      ['Android Chrome', {
+        ...CHROME_NAVIGATOR,
+        userAgent: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
+        platform: 'Linux armv8l',
+        maxTouchPoints: 5
+      }, false],
+      ['Android browser with Apple vendor', {
+        ...SAFARI_NAVIGATOR,
+        userAgent: 'Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 (KHTML, like Gecko) Version/18.6 Mobile Safari/537.36',
+        platform: 'Linux armv8l',
+        maxTouchPoints: 5
+      }, false],
+      ['unknown browser', { userAgent: '', vendor: '', platform: '', maxTouchPoints: 0 }, false]
+    ]
+
+    for (const [browser, navigator, supportsRecovery] of browserCases) {
+      it(`${supportsRecovery ? 'Allows' : 'Rejects'} storage recovery on ${browser}`, async function () {
+        const start = await startAuth({ navigator, blockedAccessor: true })
+        const callback = await completeAuth(encodeFallback(), { navigator })
+        if (supportsRecovery) {
+          expect(start.error).to.equal(undefined)
+          expect(start.agentLoads).to.equal(0)
+          expect(JSON.parse(decodeFallbackPayload(start.redirect.searchParams.get('state')))).to.deep.equal({
+            state: ORIGINAL_STATE,
+            origin: APP_ORIGIN,
+            provider: 'google'
+          })
+          expectCallback(callback)
+        }
+        else {
+          expectReportedError(start)
+          expectReportedError(callback)
+          expect(callback.payloads).to.deep.equal([])
+        }
       })
     }
 
@@ -317,7 +531,7 @@ export default function authRedirect() {
 
     for (const [description, state] of invalidStates) {
       it(`Rejects fallback ${description} without forwarding a credential`, async function () {
-        const callback = await completeAuth(state, { blockedAccessor: true })
+        const callback = await completeAuth(state, { blockedAccessor: true, navigator: IOS_NAVIGATOR })
         expectReportedError(callback)
         expect(callback.payloads).to.deep.equal([])
       })
@@ -332,7 +546,7 @@ export default function authRedirect() {
     })
 
     it('Reports rejected encryption instead of leaving the auth screen blank', async function () {
-      const callback = await completeAuth(encodeFallback(), { encryptionError: new Error('Encryption failed') })
+      const callback = await completeAuth(encodeFallback(), { encryptionError: new Error('Encryption failed'), navigator: IOS_NAVIGATOR })
       const report = expectReportedError(callback)
       expect(report.stage).to.equal('encryption')
       expect(report.provider).to.equal('google')
@@ -367,7 +581,7 @@ export default function authRedirect() {
       const url = `${AUTH_ORIGIN}/?${new URLSearchParams({ state, code: AUTH_CODE, access_token: 'private-access-token' })}`
       const encryptionError = new Error(`Encryption failed for ${AUTH_CODE} and private-access-token at ${url} from ${REFERRER}`)
       encryptionError.stack = `Error: ${encryptionError.message}\n    at encrypt (${url}:1:2)`
-      const callback = await runAuthPage({ url, encryptionError })
+      const callback = await runAuthPage({ url, encryptionError, navigator: IOS_NAVIGATOR })
       const report = expectReportedError(callback)
       const serialized = JSON.stringify(report)
       for (const secret of [AUTH_CODE, state, 'private-access-token', 'private-referrer-token', url, REFERRER]) {
@@ -394,6 +608,7 @@ export default function authRedirect() {
       it(`Shows a fallback when ${failure} fails`, async function () {
         const callback = await completeAuth(encodeFallback(), {
           encryptionError: new Error('Encryption failed'),
+          navigator: IOS_NAVIGATOR,
           ...options
         })
         expect(callback.error).to.equal(undefined)
@@ -407,6 +622,7 @@ export default function authRedirect() {
     it('Keeps the fallback visible when a timed-out save later succeeds', async function () {
       const callback = await completeAuth(encodeFallback(), {
         encryptionError: new Error('Encryption failed'),
+        navigator: IOS_NAVIGATOR,
         pendingWrite: true,
         timeoutMs: 0
       })
@@ -420,6 +636,7 @@ export default function authRedirect() {
     it('Skips agent initialization when a timed-out module import later succeeds', async function () {
       const callback = await completeAuth(encodeFallback(), {
         encryptionError: new Error('Encryption failed'),
+        navigator: IOS_NAVIGATOR,
         pendingImport: true,
         timeoutMs: 0
       })

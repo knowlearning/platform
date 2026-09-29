@@ -62,9 +62,14 @@ ZQIDAQAB
           authProvider = provider
           sensitiveValues.add(state)
           const info = { origin: document.referrer, provider }
-          let providerState = state
 
           authStage = 'storage'
+          const providerState = encodeFallbackState({
+            state,
+            provider,
+            origin: new URL(info.origin).origin
+          })
+          sensitiveValues.add(providerState)
           try {
             const serializedInfo = JSON.stringify(info)
             window.localStorage.setItem(state, serializedInfo)
@@ -72,12 +77,8 @@ ZQIDAQAB
               throw new Error('Auth storage did not retain the transaction')
             }
           }
-          catch {
-            providerState = encodeFallbackState({
-              state,
-              provider,
-              origin: new URL(info.origin).origin
-            })
+          catch (error) {
+            if (!canRecoverAuthState()) throw error
           }
 
           authStage = 'redirect'
@@ -127,22 +128,27 @@ ZQIDAQAB
           if (!code || !state) throw new Error('Missing auth callback code or state')
 
           let originalState = state
+          let fallbackInfo
           let info
 
           if (state.startsWith(STATE_FALLBACK_PREFIX)) {
-            info = parseFallbackState(state)
-            originalState = info.state
+            fallbackInfo = parseFallbackState(state)
+            originalState = fallbackInfo.state
           }
-          else {
-            authStage = 'storage'
-            info = parseAuthInfo(window.localStorage.getItem(state))
-            window.localStorage.removeItem(state)
-          }
+          sensitiveValues.add(originalState)
 
-          if (!info) throw new Error('Missing auth transaction')
+          authStage = 'storage'
+          try {
+            info = parseAuthInfo(window.localStorage.getItem(originalState))
+            try { window.localStorage.removeItem(originalState) }
+            catch {}
+          }
+          catch (error) {
+            if (!fallbackInfo || !canRecoverAuthState()) throw error
+            info = fallbackInfo
+          }
           const { origin, provider } = info
           authProvider = provider
-          sensitiveValues.add(originalState)
           authStage = 'callback'
           const { protocol, host } = new URL(origin)
 
@@ -222,8 +228,34 @@ ZQIDAQAB
       }
 
       function parseAuthInfo(value) {
-        try { return JSON.parse(value) }
+        let info
+        try { info = JSON.parse(value) }
         catch { throw new Error('Invalid auth transaction JSON') }
+        if (!info) throw new Error('Missing auth transaction')
+        if (
+          typeof info.provider !== 'string' || !info.provider.trim() ||
+          typeof info.origin !== 'string'
+        ) {
+          throw new Error('Invalid auth transaction')
+        }
+
+        const origin = new URL(info.origin)
+        if (
+          !['http:', 'https:'].includes(origin.protocol) ||
+          origin.username || origin.password
+        ) {
+          throw new Error('Invalid auth transaction origin')
+        }
+        return info
+      }
+
+      function canRecoverAuthState() {
+        const { userAgent = '', platform = '', maxTouchPoints = 0 } = window.navigator || {}
+        const isMac = /Macintosh/i.test(userAgent) || platform === 'MacIntel'
+        const isIOS = /iPad|iPhone|iPod/i.test(userAgent) || (isMac && maxTouchPoints > 1)
+        const isSafari = isMac && /Version\//i.test(userAgent) && /Safari\//i.test(userAgent) &&
+          !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR|Opera|Android/i.test(userAgent)
+        return isIOS || isSafari
       }
 
       function encodeFallbackState(info) {
@@ -236,21 +268,8 @@ ZQIDAQAB
         if (!/^(?:[0-9a-f]{2})+$/.test(encoded)) throw new Error('Invalid auth fallback encoding')
         const bytes = Uint8Array.from(encoded.match(/../g), pair => parseInt(pair, 16))
         const info = parseAuthInfo(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
-        if (
-          !info ||
-          typeof info.state !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(info.state) ||
-          typeof info.provider !== 'string' || !info.provider.trim() ||
-          typeof info.origin !== 'string'
-        ) {
+        if (typeof info.state !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(info.state)) {
           throw new Error('Invalid auth fallback state')
-        }
-
-        const origin = new URL(info.origin)
-        if (
-          !['http:', 'https:'].includes(origin.protocol) ||
-          origin.username || origin.password
-        ) {
-          throw new Error('Invalid auth fallback origin')
         }
 
         return info
