@@ -1,4 +1,7 @@
+import connectionHeartbeat from './connection-heartbeat.js'
+
 export default function () {
+  connectionHeartbeat()
   let orignalEnv
   describe('Session Reconnections', function () {
     it(

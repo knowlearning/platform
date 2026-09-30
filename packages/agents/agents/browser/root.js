@@ -56,6 +56,7 @@ export default (options={}) => {
     })
 
   const Connection = function () {
+    this.managesHeartbeat = true
     let socket
     let closed = false
     const pendingMessages = []

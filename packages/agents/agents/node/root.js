@@ -53,6 +53,7 @@ export default function rootAgent(options={}) {
   const allowInsecureTLS = process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0'
 
   const Connection = function () {
+    this.managesHeartbeat = true
     let socket
     let closed = false
     const pendingMessages = []
@@ -70,15 +71,7 @@ export default function rootAgent(options={}) {
         }
       })
 
-      socket.io.on('packet', () => {
-        if (this.onmessage) this.onmessage(undefined)
-      })
-
       socket.on('connect', () => {
-        socket.io.engine?.on('ping', () => {
-          if (this.onmessage) this.onmessage(undefined)
-        })
-
         if (this.onopen) this.onopen()
         while (pendingMessages.length) send(pendingMessages.shift())
       })

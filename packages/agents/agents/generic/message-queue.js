@@ -104,6 +104,7 @@ export default function messageQueue({ token, sid, domain, Connection, watchers,
 
   function checkHeartbeat() {
     clearTimeout(lastHeartbeat)
+    if (connection.managesHeartbeat) return
     lastHeartbeat = setTimeout(
       () => {
         log('CLOSING DUE TO HEARTBEAT TIMEOUT')
