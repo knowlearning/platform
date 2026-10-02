@@ -5,6 +5,8 @@ import { bigQueryBatchInserter } from './gcp-api.js'
 import { environment, isUUID } from './utils.js'
 import SESSION from './session.js'
 import { subscriptionResponses } from './stateful.js'
+import { redisBatch } from './redis-batch.js'
+import { createUUIDOwnerIndex, domainUUIDSetKey } from './redis-state-index.js'
 
 const { GC_PROJECT_ID, GCS_SERVICE_ACCOUNT_CREDENTIALS } = environment
 
@@ -22,12 +24,10 @@ export function flushPatchRecords() {
   return flushBQPatches()
 }
 
-const UUID_OWNER_HASH_KEY = '__knowlearning:uuid-owner-domain'
-const DOMAIN_UUID_SET_PREFIX = '__knowlearning:domain-uuids:'
 const REDIS_COPY_BATCH_SIZE = 1000
 const REDIS_COPY_PROGRESS_INTERVAL = 10_000
 const CORE_STATE_ROOT_ID = '00000000-0000-0000-0000-000000000000'
-const uuidOwnerCache = new Map()
+const uuidOwnerIndex = createUUIDOwnerIndex(redis.client)
 
 export function initializeStateRegistry() {
   return postgres.query('core', `
@@ -50,81 +50,12 @@ async function registerStateOwner(id, domain) {
   `, [id, domain])
 }
 
-const CLAIM_UUID_OWNER_SCRIPT = `
-  local current_owner = redis.call('HGET', KEYS[1], ARGV[1])
-
-  if current_owner then
-    if current_owner == ARGV[2] then
-      redis.call('SADD', KEYS[2], ARGV[1])
-    end
-    return { current_owner, 0 }
-  end
-
-  redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
-  redis.call('SADD', KEYS[2], ARGV[1])
-  return { ARGV[2], 1 }
-`
-
-const CLAIM_UUID_OWNERS_BATCH_SCRIPT = `
-  local domain = ARGV[1]
-
-  for index = 2, #ARGV do
-    local id = ARGV[index]
-    redis.call('HSETNX', KEYS[1], id, domain)
-    redis.call('SADD', KEYS[2], id)
-  end
-
-  return #ARGV - 1
-`
-
-function domainUUIDSetKey(domain) {
-  return `${DOMAIN_UUID_SET_PREFIX}${domain}`
-}
-
 function normalizeDomainPathResponse(response) {
   if (!response) return null
   if (Array.isArray(response)) return response[0] || null
   if (Array.isArray(response['$.domain'])) return response['$.domain'][0] || null
   if (typeof response === 'string') return response
   return null
-}
-
-async function indexedOwnerDomain(id) {
-  if (!isUUID(id)) return null
-  if (uuidOwnerCache.has(id)) return uuidOwnerCache.get(id)
-
-  await redis.connected
-  const domain = await redis.client.hGet(UUID_OWNER_HASH_KEY, id)
-
-  if (domain) uuidOwnerCache.set(id, domain)
-  return domain || null
-}
-
-async function claimUUIDOwner(domain, id) {
-  await redis.connected
-
-  const [ownerDomain, claimed] = await redis.client.eval(
-    CLAIM_UUID_OWNER_SCRIPT,
-    {
-      keys: [UUID_OWNER_HASH_KEY, domainUUIDSetKey(domain)],
-      arguments: [id, domain]
-    }
-  )
-
-  if (ownerDomain) uuidOwnerCache.set(id, ownerDomain)
-  return { ownerDomain, claimed: claimed === 1 || claimed === '1' }
-}
-
-async function claimUUIDOwners(domain, ids) {
-  if (ids.length === 0) return 0
-
-  return redis.client.eval(
-    CLAIM_UUID_OWNERS_BATCH_SCRIPT,
-    {
-      keys: [UUID_OWNER_HASH_KEY, domainUUIDSetKey(domain)],
-      arguments: [domain, ...ids]
-    }
-  )
 }
 
 async function stateDomainOnClient(client, id) {
@@ -161,12 +92,13 @@ async function findExistingOwnerDomain(id) {
 async function ownerDomainForState(domain, id, { create=false }={}) {
   if (!isUUID(id)) return domain
 
-  const indexedDomain = await indexedOwnerDomain(id)
+  await redis.connected
+  const indexedDomain = await uuidOwnerIndex.ownerDomain(id)
   if (indexedDomain) return indexedDomain
 
   const existingDomain = await findExistingOwnerDomain(id)
   if (existingDomain) {
-    const { ownerDomain } = await claimUUIDOwner(existingDomain, id)
+    const ownerDomain = await uuidOwnerIndex.claim(existingDomain, id)
     if (ownerDomain !== existingDomain) {
       throw new Error(`UUID ${id} exists in ${existingDomain} but owner index says ${ownerDomain}`)
     }
@@ -175,7 +107,7 @@ async function ownerDomainForState(domain, id, { create=false }={}) {
 
   if (!create) return null
 
-  return (await claimUUIDOwner(domain, id)).ownerDomain
+  return uuidOwnerIndex.claim(domain, id)
 }
 
 async function clientForState(domain, id, options) {
@@ -194,27 +126,34 @@ export async function getState(domain, id, options) {
 
 export async function batchGetState(domain, ids, options) {
   await redis.connected
-  const results = new Array(ids.length)
-  const groups = new Map()
+  const results = []
 
-  await Promise.all(
-    ids.map(async (id, index) => {
-      const client = await clientForState(domain, id)
-      if (!groups.has(client)) groups.set(client, [])
-      groups.get(client).push({ id, index })
-    })
-  )
+  for (let start = 0; start < ids.length; start += REDIS_COPY_BATCH_SIZE) {
+    const batchIds = ids.slice(start, start + REDIS_COPY_BATCH_SIZE)
+    const batchResults = new Array(batchIds.length)
+    const groups = new Map()
 
-  await Promise.all(
-    [...groups.entries()].map(async ([client, entries]) => {
-      const transaction = client.multi()
-      entries.forEach(({ id }) => transaction.json.get(id, options))
-      const response = await transaction.exec()
-      response.forEach((value, index) => {
-        results[entries[index].index] = value
+    await Promise.all(
+      batchIds.map(async (id, index) => {
+        const client = await clientForState(domain, id)
+        if (!groups.has(client)) groups.set(client, [])
+        groups.get(client).push({ id, index })
       })
-    })
-  )
+    )
+
+    await Promise.all(
+      [...groups.entries()].map(async ([client, entries]) => {
+        const response = await redisBatch(client, entries, (pipeline, { id }) => {
+          pipeline.json.get(id, options)
+        })
+        response.forEach((value, index) => {
+          batchResults[entries[index].index] = value
+        })
+      })
+    )
+
+    results.push(...batchResults)
+  }
 
   return results
 }
@@ -287,7 +226,7 @@ export async function copyDomainStateToRedisServer(domain, fromServerName, toSer
 
   for (let start = 0; start < ids.length; start += REDIS_COPY_BATCH_SIZE) {
     const batchIds = ids.slice(start, start + REDIS_COPY_BATCH_SIZE)
-    const domainResults = await jsonMGet(fromClient, batchIds, '$.domain')
+    const domainResults = await rawJSONGetBatch(fromClient, batchIds, '$.domain')
     const idsToCopy = batchIds.filter((id, index) => (
       redisJSONPathValue(domainResults[index]) === domain
     ))
@@ -301,7 +240,7 @@ export async function copyDomainStateToRedisServer(domain, fromServerName, toSer
 
     if (entries.length === 0) continue
 
-    await claimUUIDOwners(domain, entries.map(({ id }) => id))
+    await uuidOwnerIndex.claimBatch(domain, entries.map(({ id }) => id))
     await rawJSONSetBatch(toClient, entries)
     copied += entries.length
 
@@ -317,11 +256,6 @@ export async function copyDomainStateToRedisServer(domain, fromServerName, toSer
   return { copied, skipped: false }
 }
 
-async function jsonMGet(client, ids, path) {
-  if (ids.length === 0) return []
-  return client.sendCommand(['JSON.MGET', ...ids, path])
-}
-
 function redisJSONPathValue(value) {
   if (value === null || value === undefined) return null
 
@@ -329,20 +263,16 @@ function redisJSONPathValue(value) {
   return Array.isArray(parsed) ? parsed[0] : parsed
 }
 
-async function rawJSONGetBatch(client, ids) {
-  if (ids.length === 0) return []
-
-  const pipeline = client.multi()
-  ids.forEach(id => pipeline.addCommand(['JSON.GET', id]))
-  return pipeline.exec(true)
+async function rawJSONGetBatch(client, ids, path) {
+  return redisBatch(client, ids, (pipeline, id) => {
+    pipeline.addCommand(path ? ['JSON.GET', id, path] : ['JSON.GET', id])
+  })
 }
 
 async function rawJSONSetBatch(client, entries) {
-  if (entries.length === 0) return []
-
-  const pipeline = client.multi()
-  entries.forEach(({ id, state }) => pipeline.addCommand(['JSON.SET', id, '$', state]))
-  return pipeline.exec(true)
+  return redisBatch(client, entries, (pipeline, { id, state }) => {
+    pipeline.addCommand(['JSON.SET', id, '$', state])
+  })
 }
 
 export async function subscribe(id, callback) {

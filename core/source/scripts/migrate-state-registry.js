@@ -1,3 +1,5 @@
+import { redisBatch } from '../redis-batch.js'
+
 const REQUIRED_ENVIRONMENT = {
   REDIS_SERVERS: '{"default":{"host":"redis.example.com","port":6379,"password":"..."}}',
   POSTGRES_SERVERS: '{"default":{"host":"postgres.example.com","port":5432,"user":"postgres","password":"..."}}'
@@ -99,9 +101,9 @@ async function migrateRedisStates() {
       stats.uuids += redisIds.length
 
       if (redisIds.length > 0) {
-        const redisDomains = await client.sendCommand([
-          'JSON.MGET', ...redisIds, '$.domain'
-        ])
+        const redisDomains = await redisBatch(client, redisIds, (pipeline, id) => {
+          pipeline.addCommand(['JSON.GET', id, '$.domain'])
+        })
         const states = redisIds.flatMap((id, index) => {
           if (!redisDomains[index]) return []
 

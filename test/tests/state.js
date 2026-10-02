@@ -1,3 +1,9 @@
+const isNodeRuntime = () => typeof process !== 'undefined' && process.versions?.node
+const loadRedisDiagnostics = async () => {
+  const dynamicImport = Function('specifier', 'return import(specifier)')
+  return dynamicImport(`file://${process.cwd()}/utils/redis-diagnostics.node.js`)
+}
+
 export default function () {
   describe('Get and Set States', function () {
     // TODO: test clearing a runstate
@@ -96,6 +102,27 @@ console.log('POST GETTING THIRD STATE')
       expect(sameUUIDFromOtherDomain).to.deep.equal(ownerState)
       expect(metadata.domain).to.equal(ownerDomain)
       expect(metadata.owner).to.equal(user)
+    })
+
+    it('Repairs UUID domain membership after an interrupted ownership claim', async function () {
+      if (!isNodeRuntime()) this.skip()
+      const { domain } = await Agent.environment()
+      if (domain !== 'localhost:5112') this.skip()
+
+      const redis = await loadRedisDiagnostics()
+      const id = uuid()
+      const ownerHash = '__knowlearning:uuid-owner-domain'
+      const domainSet = `__knowlearning:domain-uuids:${domain}`
+      await redis.command('default', ['HSETNX', ownerHash, id, domain])
+      expect(await redis.command('default', ['SISMEMBER', domainSet, id])).to.equal(0)
+
+      const state = await Agent.state(id)
+      state.value = `recovered-${id}`
+      await Agent.synced()
+
+      expect(await redis.command('default', ['HGET', ownerHash, id])).to.equal(domain)
+      expect(await redis.command('default', ['SISMEMBER', domainSet, id])).to.equal(1)
+      expect(await Agent2.state(id)).to.deep.equal(state)
     })
 
     it('Can request two of the same states by name and await synced', async function () {

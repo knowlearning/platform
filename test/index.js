@@ -14,6 +14,7 @@ import domainAgents from './tests/domain-agents.js'
 import newDomainAgents from './tests/new-domain-agents.js'
 import vuex from './tests/vuex.js'
 import stateTest from './tests/state.js'
+import redisCluster from './tests/redis-cluster.js'
 import environmentTest from './tests/environment.js'
 import namespacedEmbeddings from './tests/namespaced-embeddings.js'
 import latestBugfixes from './tests/latest-bugfixes.js'
@@ -80,6 +81,7 @@ else if (!(await runEmbeddedMode({ Agent, id, mode }))) {
   }
   else {
     describe(`${mode.length > 4 ? `Embed Level ${mode.length - 4}` : 'Root'} Core API`, function () {
+      if (mode.length === 4) redisCluster()
       latestBugfixes()
       historyPatchFormat()
       if (mode.length === 4) crossServer(browserAgent, { skipIfUnavailable: true })

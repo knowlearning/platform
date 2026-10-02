@@ -1,5 +1,6 @@
 import { v1 as uuid } from 'uuid'
 import * as chai from 'chai'
+import redisCluster from './tests/redis-cluster.js'
 import {
   createEmbeddedTarget,
   installTestEnvironment,
@@ -295,6 +296,7 @@ export default async function registerEmbeddedHarness() {
   }
 
   describe('Embedded Harness Core API', function () {
+    redisCluster()
     if (includesContext('root')) {
       registerSuite(
         () => createRootContext('Root', Agent),

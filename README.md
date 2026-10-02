@@ -47,6 +47,12 @@ REDIS_SUBSCRIPTION_SERVER='default' # optional
 Core connects to each configured Redis server over TLS when `MODE=production`.
 Use the Redis TLS port and a hostname covered by its publicly trusted certificate.
 
+For clustered Redis, use a managed/proxy endpoint that routes commands to their
+shards, such as Redis Cloud's standard endpoint. The current `createClient`
+connections do not follow native Redis Cluster
+`MOVED` redirects. Independent batches use bounded, nontransactional pipelines;
+single-state updates retain their atomic transactions and Lua scripts.
+
 ```sh
 bash core/infrastructure/GCP/publish production
 ```
