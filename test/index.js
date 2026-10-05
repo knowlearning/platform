@@ -23,6 +23,7 @@ import syncedState from './tests/synced-state.js'
 import authentication from './tests/authentication.js'
 import authRedirect from './tests/auth-redirect.js'
 import browserStorage from './tests/browser-storage.js'
+import socketioWebsocket from './tests/socketio-websocket.js'
 import crossServer from './tests/cross-server.js'
 import runEmbeddedMode from './embedded-modes.js'
 import Agent from '@knowlearning/agents/browser.js'
@@ -101,6 +102,7 @@ else if (!(await runEmbeddedMode({ Agent, id, mode }))) {
       if (mode.length === 4) authentication(browserAgent)
       if (mode.length === 4) authRedirect()
       if (mode.length === 4) browserStorage()
+      if (mode.length === 4) socketioWebsocket()
       uploads()
       multiAgent()
       syncedState()

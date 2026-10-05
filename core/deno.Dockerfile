@@ -6,6 +6,7 @@ RUN apt update && apt install -y procps
 COPY ./deno.json ./deno.lock ./
 COPY ./infrastructure/local/start-api.sh /usr/local/bin/start-api.sh
 COPY ./source ./source
+COPY ./vendor ./vendor
 
 RUN chmod +x /usr/local/bin/start-api.sh
 
