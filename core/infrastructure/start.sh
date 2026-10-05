@@ -11,7 +11,7 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 
 sudo apt update
 sudo apt install git unzip -y
-curl -fsSL https://deno.land/install.sh | sh -s -- -y v2.2.7
+curl -fsSL https://deno.land/install.sh | sh -s -- -y v2.9.7
 
 # allow deno binary to bind to low ports
 sudo setcap 'cap_net_bind_service=+ep' $HOME/.deno/bin/deno

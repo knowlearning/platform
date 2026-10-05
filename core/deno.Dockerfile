@@ -1,4 +1,4 @@
-FROM denoland/deno:2.2.7
+FROM denoland/deno:2.9.7
 
 RUN apt update && apt install -y procps
 
