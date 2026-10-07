@@ -42,6 +42,13 @@ initiating app's own origin. Legacy callbacks containing only a raw state nonce
 remain supported when their stored record exists, but cannot recover if it is
 lost.
 
+The current SDK generates app state as `auth-` followed by 32 lowercase hex
+digits from 16 cryptographically random bytes. The app checks this exact format
+before looking up its stored return URL, so unrelated keys such as `sid` cannot
+validate a callback. The auth site passes the original state through unchanged.
+If the SDK updates during a login started with the old unprefixed state format,
+that login must be restarted.
+
 ## Error reports
 
 Fatal auth errors, OAuth error callbacks, and uncaught page errors display a
@@ -50,8 +57,15 @@ bundle built from the current agents source. Successful redirects and recovered
 storage failures do not load the agents package.
 
 The reporter creates a JSON state with `type: 'auth-error'`, the error name,
-message and stack, an ISO timestamp, provider, and auth stage. It redacts callback
-values and URLs from diagnostics, and does not include authorization codes,
+message and stack, an ISO timestamp, provider, auth stage, and a `browser` object.
+Browser diagnostics contain `userAgent`, `vendor`, `platform`, `language`,
+`maxTouchPoints`, `cookieEnabled`, and `onLine` from `navigator`. Missing or
+unreadable fields are `null` and do not prevent reporting. If browser collection
+fails altogether, the original error is still reported with `browser: null`.
+These browser-reported
+values are diagnostic hints, not proof that storage or network requests work.
+It redacts callback values and URLs from all diagnostic strings, including
+browser fields, and does not include authorization codes,
 tokens, raw OAuth state, or provider error descriptions as report fields. Reports
 are created in the auth site's domain without consuming a stored login token;
 existing cookie/session identity still applies.

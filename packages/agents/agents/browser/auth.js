@@ -15,7 +15,7 @@ ZQIDAQAB
 if (window.location.pathname.startsWith('/auth/')) {
   const state_token = window.location.pathname.slice(6)
   const [state] = state_token.split('/', 1)
-  const origin = storage.getItem(state)
+  const origin = /^auth-[0-9a-f]{32}$/.test(state) ? storage.getItem(state) : null
   if (origin) {
     const token = state_token.slice(state.length + 1)
     if (storage.setItem('token', token)) window.location.href = origin
@@ -24,7 +24,10 @@ if (window.location.pathname.startsWith('/auth/')) {
 }
 
 async function login(provider='google', code) {
-  const state = Math.random().toString(36).substring(2)
+  const state = 'auth-' + Array.from(
+    crypto.getRandomValues(new Uint8Array(16)),
+    byte => byte.toString(16).padStart(2, '0')
+  ).join('')
   if (!storage.setItem(state, window.location.href)) throw new Error('Unable to store authentication state')
 
   if (provider === 'code') {

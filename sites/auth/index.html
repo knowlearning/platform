@@ -177,6 +177,29 @@ ZQIDAQAB
         return text.replace(/https?:\/\/[^\s)]+/g, '[url]')
       }
 
+      function getBrowserInfo() {
+        const browser = {}
+        const fields = {
+          userAgent: 'string',
+          vendor: 'string',
+          platform: 'string',
+          language: 'string',
+          maxTouchPoints: 'number',
+          cookieEnabled: 'boolean',
+          onLine: 'boolean'
+        }
+        for (const [field, type] of Object.entries(fields)) {
+          browser[field] = null
+          try {
+            const value = window.navigator?.[field]
+            if (typeof value !== type || (type === 'number' && !Number.isFinite(value))) continue
+            browser[field] = type === 'string' ? redactErrorText(value) : value
+          }
+          catch {}
+        }
+        return browser
+      }
+
       async function reportError(error) {
         if (reportingError) return
         reportingError = true
@@ -193,8 +216,11 @@ ZQIDAQAB
             stack: redactErrorText(error?.stack),
             timestamp: new Date().toISOString(),
             provider: authProvider ? redactErrorText(authProvider) : null,
-            stage: authStage
+            stage: authStage,
+            browser: null
           }
+          try { report.browser = getBrowserInfo() }
+          catch {}
           const saveReport = async () => {
             const agentsUrl = '/agents.js'
             const { default: createAgent } = await import(agentsUrl)

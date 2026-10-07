@@ -2,6 +2,8 @@ import storageSource from '../../packages/agents/agents/browser/storage.js?raw'
 import rootSource from '../../packages/agents/agents/browser/root.js?raw'
 import authSource from '../../packages/agents/agents/browser/auth.js?raw'
 
+const AUTH_STATE = 'auth-' + 'a'.repeat(32)
+
 function createPage(failure, pathname = '/') {
   const values = new Map()
   const page = {
@@ -225,27 +227,66 @@ export default function browserStorage() {
     })
 
     it('Imports callback handling with a blocked localStorage accessor', async function () {
-      const page = createPage('accessor', '/auth/login-state/encrypted-token')
+      const page = createPage('accessor', `/auth/${AUTH_STATE}/encrypted-token`)
       const auth = loadAuth(page, loadStorage(page))
       expect(await auth.getToken()).to.equal(null)
-      expect(page.location.href).to.equal('https://app.example/auth/login-state/encrypted-token')
+      expect(page.location.href).to.equal(`https://app.example/auth/${AUTH_STATE}/encrypted-token`)
     })
 
     it('Preserves the callback token handoff with working storage', async function () {
-      const page = createPage(undefined, '/auth/login-state/encrypted-token')
-      page.values.set('login-state', 'https://app.example/lesson')
-      const auth = loadAuth(page, loadStorage(page))
+      const page = createPage(undefined, '/lesson')
+      const storage = loadStorage(page)
+      await loadAuth(page, storage).login()
+      const redirect = new URL(page.location.href)
+      const [, provider, state, returnUrl] = redirect.pathname.split('/')
+      expect(redirect.origin).to.equal('https://auth.knowlearning.systems')
+      expect(provider).to.equal('google')
+      expect(state).to.match(/^auth-[0-9a-f]{32}$/)
+      expect(decodeURIComponent(returnUrl)).to.equal('https://app.example/lesson')
+      expect(page.values.get(state)).to.equal('https://app.example/lesson')
+
+      page.location.pathname = `/auth/${state}/encrypted-token`
+      page.location.href = `https://app.example${page.location.pathname}`
+      const auth = loadAuth(page, storage)
       expect(page.location.href).to.equal('https://app.example/lesson')
       expect(await auth.getToken()).to.equal('encrypted-token')
       expect(page.values.has('token')).to.equal(false)
     })
 
+    for (const state of ['sid', 'API_HOST', 'token', 'login-state', 'auth-sid', 'auth-' + 'a'.repeat(31), AUTH_STATE + 'a', 'auth-' + 'g'.repeat(32)]) {
+      it(`Rejects callback state ${state} before reading unrelated storage`, function () {
+        const page = createPage(undefined, `/auth/${state}/encrypted-token`)
+        page.values.set(state, 'https://app.example/lesson')
+        const storage = loadStorage(page)
+        const reads = []
+        loadAuth(page, {
+          ...storage,
+          getItem(key) {
+            reads.push(key)
+            return storage.getItem(key)
+          }
+        })
+        expect(reads).to.deep.equal([])
+        expect(page.location.href).to.equal(`https://app.example/auth/${state}/encrypted-token`)
+        expect(page.values.get(state)).to.equal('https://app.example/lesson')
+        expect(page.values.get('token')).not.to.equal('encrypted-token')
+      })
+    }
+
+    it('Rejects a well-formed callback state without a matching pending login', function () {
+      const page = createPage(undefined, `/auth/${AUTH_STATE}/encrypted-token`)
+      page.values.set('sid', 'existing-session')
+      loadAuth(page, loadStorage(page))
+      expect(page.location.href).to.equal(`https://app.example/auth/${AUTH_STATE}/encrypted-token`)
+      expect(page.values.has('token')).to.equal(false)
+    })
+
     for (const failure of ['write', 'silent-write']) {
       it(`Keeps the callback in place when token persistence has a ${failure} failure`, function () {
-        const page = createPage(failure, '/auth/login-state/encrypted-token')
-        page.values.set('login-state', 'https://app.example/lesson')
+        const page = createPage(failure, `/auth/${AUTH_STATE}/encrypted-token`)
+        page.values.set(AUTH_STATE, 'https://app.example/lesson')
         loadAuth(page, loadStorage(page))
-        expect(page.location.href).to.equal('https://app.example/auth/login-state/encrypted-token')
+        expect(page.location.href).to.equal(`https://app.example/auth/${AUTH_STATE}/encrypted-token`)
         expect(page.values.has('token')).to.equal(false)
       })
     }

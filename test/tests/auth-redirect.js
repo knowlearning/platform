@@ -25,8 +25,9 @@ const IOS_NAVIGATOR = {
   maxTouchPoints: 5
 }
 const authScript = authHtml.match(/<script>([\s\S]*?)<\/script>/)[1]
-const executeAuth = new Function('window', 'document', 'crypto', 'console', 'loadAgents', 'setTimeout', 'clearTimeout', authScript
+const executeAuth = new Function('window', 'document', 'crypto', 'console', 'loadAgents', 'setTimeout', 'clearTimeout', 'browserInfoError', authScript
   .replace('import(agentsUrl)', 'loadAgents()')
+  .replace('function getBrowserInfo() {', 'function getBrowserInfo() { if (browserInfoError) throw browserInfoError;')
   .replace('runAuth().catch(reportError)', 'window.reportError = reportError; return runAuth().catch(reportError)'))
 
 function createStorage(failure) {
@@ -58,6 +59,8 @@ async function runAuthPage({
   storage = createStorage(),
   blockedAccessor = false,
   navigator = CHROME_NAVIGATOR,
+  blockedNavigatorAccessor = false,
+  browserInfoError,
   encryptionError,
   loadError,
   initializeError,
@@ -92,7 +95,10 @@ async function runAuthPage({
   }
   const window = {
     location,
-    navigator,
+    get navigator() {
+      if (blockedNavigatorAccessor) throw new Error('Navigator access blocked')
+      return navigator
+    },
     addEventListener(type, handler) { listeners[type] = handler }
   }
   Object.defineProperty(window, 'localStorage', {
@@ -151,7 +157,7 @@ async function runAuthPage({
   try {
     await executeAuth(window, document, crypto, {
       warn(...messages) { result.warnings.push(messages) }
-    }, loadAgents, (callback, delay) => setTimeout(callback, timeoutMs ?? delay), clearTimeout)
+    }, loadAgents, (callback, delay) => setTimeout(callback, timeoutMs ?? delay), clearTimeout, browserInfoError)
   }
   catch (error) {
     result.error = error
@@ -697,6 +703,88 @@ export default function authRedirect() {
       expect(report.stage).to.equal('storage')
       expect(report.message).to.include('Storage access blocked')
       expect(callback.payloads).to.deep.equal([])
+    })
+
+    for (const navigator of [CHROME_NAVIGATOR, SAFARI_NAVIGATOR, IOS_NAVIGATOR]) {
+      it(`Includes browser diagnostics for a missing transaction on ${navigator.userAgent}`, async function () {
+        const browser = { ...navigator, language: 'en-US', cookieEnabled: false, onLine: false }
+        const callback = await completeAuth(ORIGINAL_STATE, { navigator: browser })
+        const report = expectReportedError(callback)
+        expect(report.message).to.equal('Missing auth transaction')
+        expect(report.stage).to.equal('storage')
+        expect(report.browser).to.deep.equal(browser)
+      })
+    }
+
+    it('Saves the original error when browser diagnostics are missing or unreadable', async function () {
+      const navigator = {
+        ...CHROME_NAVIGATOR,
+        get userAgent() { throw new Error('Browser information blocked') },
+        maxTouchPoints: NaN,
+        cookieEnabled: 'unknown'
+      }
+      const report = expectReportedError(await completeAuth(ORIGINAL_STATE, { navigator }))
+      expect(report.message).to.equal('Missing auth transaction')
+      expect(report.browser).to.deep.equal({
+        userAgent: null,
+        vendor: CHROME_NAVIGATOR.vendor,
+        platform: CHROME_NAVIGATOR.platform,
+        language: null,
+        maxTouchPoints: null,
+        cookieEnabled: null,
+        onLine: null
+      })
+      const withoutNavigator = expectReportedError(await completeAuth(ORIGINAL_STATE, { navigator: null }))
+      expect(Object.values(withoutNavigator.browser).every(value => value === null)).to.equal(true)
+    })
+
+    it('Saves the original error when accessing navigator itself throws', async function () {
+      const report = expectReportedError(await completeAuth(ORIGINAL_STATE, { blockedNavigatorAccessor: true }))
+      expect(report.message).to.equal('Missing auth transaction')
+      expect(Object.values(report.browser).every(value => value === null)).to.equal(true)
+    })
+
+    it('Saves the original error even when the entire browser collector throws', async function () {
+      const report = expectReportedError(await completeAuth(ORIGINAL_STATE, {
+        browserInfoError: new Error('Unexpected browser collection failure')
+      }))
+      expect(report.message).to.equal('Missing auth transaction')
+      expect(report.stage).to.equal('storage')
+      expect(report.browser).to.equal(null)
+    })
+
+    it('Keeps non-serializable browser values out of the report', async function () {
+      const circular = {}
+      circular.self = circular
+      const report = expectReportedError(await completeAuth(ORIGINAL_STATE, {
+        navigator: {
+          userAgent: circular,
+          vendor: Symbol('vendor'),
+          platform: () => 'platform',
+          language: { toJSON() { throw new Error('Cannot serialize language') } },
+          maxTouchPoints: Infinity,
+          cookieEnabled: {},
+          onLine: undefined
+        }
+      }))
+      expect(Object.values(report.browser).every(value => value === null)).to.equal(true)
+      expect(JSON.parse(JSON.stringify(report)).message).to.equal('Missing auth transaction')
+    })
+
+    it('Redacts callback credentials and URLs from browser diagnostics', async function () {
+      const report = expectReportedError(await completeAuth(ORIGINAL_STATE, {
+        navigator: {
+          ...CHROME_NAVIGATOR,
+          userAgent: `${CHROME_NAVIGATOR.userAgent} ${AUTH_CODE} ${REFERRER}`,
+          vendor: `${ORIGINAL_STATE} ${REFERRER}`
+        }
+      }))
+      const serialized = JSON.stringify(report)
+      expect(report.browser.userAgent).to.include(CHROME_NAVIGATOR.userAgent)
+      expect(report.browser.userAgent).to.include('[redacted]')
+      for (const secret of [AUTH_CODE, ORIGINAL_STATE, REFERRER]) {
+        expect(serialized).not.to.include(secret)
+      }
     })
 
     it('Reports rejected encryption instead of leaving the auth screen blank', async function () {
