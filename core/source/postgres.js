@@ -270,6 +270,18 @@ async function createGinIndex(domain, name, table, column) {
   `)
 }
 
+async function createGistIndex(domain, name, table, column) {
+  const lockName = escapePostgresLiteral(`knowlearning:index:${table}:${name}`)
+
+  await query(domain, `
+    DO $$
+    BEGIN
+      PERFORM pg_advisory_xact_lock(hashtext(${lockName}));
+      CREATE INDEX IF NOT EXISTS ${purifiedName(name)} ON ${purifiedName(table)} USING GIST (${purifiedName(column)});
+    END $$;
+  `)
+}
+
 async function createFunction(domain, name, definition) {
   await deleteFunction(domain, name) // if arguments change, postgres treats functions with the same name as different
 
@@ -386,6 +398,7 @@ export {
   createTable,
   createIndex,
   createGinIndex,
+  createGistIndex,
   removeTable,
   removeColumn,
   setColumn,

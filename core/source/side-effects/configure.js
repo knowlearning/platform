@@ -175,11 +175,14 @@ async function configurePostgres(domain, { tables={}, functions={} }, report) {
 
 async function ensureTableIndexes(domain, table, indices={}, tasks) {
   await Promise.all(
-    Object.entries(indices).map(async ([name, { column, gin, unique }]) =>  {
+    Object.entries(indices).map(async ([name, { column, gin, gist, unique }]) =>  {
       if (gin && unique) throw new Error(`Index ${name} cannot be both GIN and unique`)
+      if (gist && unique) throw new Error(`Index ${name} cannot be both GiST and unique`)
+      if (gin && gist) throw new Error(`Index ${name} cannot be both GIN and GiST`)
 
       tasks?.push(`Creating index named ${name} on ${table} for ${column}`)
       if (gin) await postgres.createGinIndex(domain, name, table, column)
+      else if (gist) await postgres.createGistIndex(domain, name, table, column)
       else await postgres.createIndex(domain, name, table, column, { unique })
     })
   )

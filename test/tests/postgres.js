@@ -761,6 +761,98 @@ postgres:
         .to.deep.equal([{ is_unique: true, index_method: 'btree' }])
     })
 
+    describe('Domain-configured indexes', function () {
+      this.timeout(10000)
+
+      const indexConfiguration = indices => `
+postgres:
+  tables:
+    index_test_table:
+      columns:
+        text_value: TEXT
+        json_value: JSONB
+      indices: ${JSON.stringify(indices)}
+  queries:
+    prepare-gist-extension:
+      domains:
+      - ${CURRENT_DOMAIN}
+      body: |
+        DO $$
+        BEGIN
+          CREATE SCHEMA IF NOT EXISTS test_index_extensions;
+          CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA test_index_extensions;
+        END $$;
+    configured-indexes:
+      domains:
+      - ${CURRENT_DOMAIN}
+      body: |
+        SELECT
+          index_class.relname AS index_name,
+          index_info.indisunique AS is_unique,
+          access_method.amname AS index_method
+        FROM pg_catalog.pg_class AS table_info
+        JOIN pg_catalog.pg_namespace AS namespace
+          ON namespace.oid = table_info.relnamespace
+        JOIN pg_catalog.pg_index AS index_info
+          ON index_info.indrelid = table_info.oid
+        JOIN pg_catalog.pg_class AS index_class
+          ON index_class.oid = index_info.indexrelid
+        JOIN pg_catalog.pg_am AS access_method
+          ON access_method.oid = index_class.relam
+        WHERE namespace.nspname = 'public'
+          AND table_info.relname = 'index_test_table'
+          AND NOT index_info.indisprimary
+        ORDER BY index_class.relname
+`
+
+      const configureIndexes = async (domain, indices) => {
+        const reportId = await configureDomain(domain, indexConfiguration(indices))
+        return Agent.state(reportId)
+      }
+
+      it('Creates GiST, GIN, and B-tree indexes and reapplies them safely', async function () {
+        const domain = `index-methods-${uuid()}.localhost:5112`
+        const initialReport = await configureIndexes(domain, {})
+        expect(initialReport.error).to.equal(undefined)
+        await Agent.query('prepare-gist-extension', [], domain)
+
+        const indices = {
+          test_btree: { column: 'text_value' },
+          test_gin: { column: 'json_value', gin: true },
+          test_gist: { column: 'text_value', gist: true },
+          test_unique: { column: 'text_value', unique: true }
+        }
+        const expectedIndexes = [
+          { index_name: 'test_btree', is_unique: false, index_method: 'btree' },
+          { index_name: 'test_gin', is_unique: false, index_method: 'gin' },
+          { index_name: 'test_gist', is_unique: false, index_method: 'gist' },
+          { index_name: 'test_unique', is_unique: true, index_method: 'btree' }
+        ]
+
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          const report = await configureIndexes(domain, indices)
+          expect(report.error).to.equal(undefined)
+          expect(await Agent.query('configured-indexes', [], domain))
+            .to.deep.equal(expectedIndexes)
+        }
+      })
+
+      for (const { options, conflict } of [
+        { options: { gin: true, gist: true }, conflict: 'GIN and GiST' },
+        { options: { gist: true, unique: true }, conflict: 'GiST and unique' },
+        { options: { gin: true, unique: true }, conflict: 'GIN and unique' }
+      ]) {
+        it(`Rejects an index configured as both ${conflict}`, async function () {
+          const domain = `invalid-index-${uuid()}.localhost:5112`
+          const report = await configureIndexes(domain, {
+            invalid_index: { column: 'text_value', ...options }
+          })
+
+          expect(report.error).to.equal(`Error: Index invalid_index cannot be both ${conflict}`)
+        })
+      }
+    })
+
     describe('Domain-configured storage routing', function () {
       this.timeout(20000)
 
