@@ -294,12 +294,13 @@ ZQIDAQAB
       }
 
       function canRecoverAuthState() {
-        const { userAgent = '', platform = '', maxTouchPoints = 0 } = window.navigator || {}
-        const isMac = /Macintosh/i.test(userAgent) || platform === 'MacIntel'
-        const isIOS = /iPad|iPhone|iPod/i.test(userAgent) || (isMac && maxTouchPoints > 1)
-        const isSafari = isMac && /Version\//i.test(userAgent) && /Safari\//i.test(userAgent) &&
-          !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR|Opera|Android/i.test(userAgent)
-        return isIOS || isSafari
+        return true // csrf protection applied on requesting domain side
+        // const { userAgent = '', platform = '', maxTouchPoints = 0 } = window.navigator || {}
+        // const isMac = /Macintosh/i.test(userAgent) || platform === 'MacIntel'
+        // const isIOS = /iPad|iPhone|iPod/i.test(userAgent) || (isMac && maxTouchPoints > 1)
+        // const isSafari = isMac && /Version\//i.test(userAgent) && /Safari\//i.test(userAgent) &&
+        //   !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR|Opera|Android/i.test(userAgent)
+        // return isIOS || isSafari
       }
 
       function encodeFallbackState(info) {
