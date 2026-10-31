@@ -5,7 +5,7 @@ import scopeToId from './scope-to-id.js'
 import handleSideEffects from './handle-side-effects.js'
 import coreSideEffects from './core-side-effects.js'
 import { getState } from './persistence.js'
-import interact from './interact.js'
+import interact, { assertInteractionAllowed } from './interact.js'
 import isolatedWorker from './isolated-worker.js'
 import { domainWorkers, domainWorkerResponses } from './stateful.js'
 
@@ -182,6 +182,7 @@ const messageHandlers = {
     const id = await scopeToId(stateRequestDomain || domain, user, namespacedScope)
     const log = []
     let response
+    await assertInteractionAllowed(stateRequestDomain || domain, user, id, patch)
     const domainSideEffectResponse = handleSideEffects({
       domain: stateRequestDomain || domain,
       user, scope, patch, id, context, session

@@ -1,6 +1,6 @@
 import { jwt, environment } from './utils.js'
 import authenticate from './authenticate/index.js'
-import interact from './interact.js'
+import interact, { assertInteractionAllowed } from './interact.js'
 import scopeToId from './scope-to-id.js'
 import subscribe from './subscribe.js'
 import authorize from './authorize.js'
@@ -311,12 +311,21 @@ export default async function handleConnection(connection, domain, sid, metricsP
           const log = []
           let response
           const isSessionQuery = scope === 'sessions' && patch[0]?.path?.[2] === 'queries'
+          try { await assertInteractionAllowed(domain, user, id, patch) }
+          catch (error) {
+            resolveSideEffects()
+            throw error
+          }
           const domainSideEffectResponse = (
             handleSideEffects({ domain, user, scope, patch, id, context, session })
               .then(r => response = r)
               .catch(error => log.push(error))
           )
           const { ii, active_type } = await interact(domain, user, scope, patch, context)
+            .catch(error => {
+              domainSideEffectResponse.finally(resolveSideEffects)
+              throw error
+            })
 
           await coreSideEffects({
             id, session, domain, user, scope, active_type, patch, si, ii,

@@ -1,8 +1,8 @@
 import { encryptSymmetric } from '../utils.js'
-import interact from '../interact.js'
+import scopeToId from '../scope-to-id.js'
+import { getState, patchState } from '../persistence.js'
 import * as hash from './hash.js'
-
-const SESSION_TYPE = 'application/json;type=session'
+import { SESSION_OWNER, SESSION_TYPE } from './session-protection.js'
 
 export default async function saveSession(domain, session, sid, user_id, provider, info) {
   const [session_credential, sid_encrypted_info] = await Promise.all([
@@ -17,5 +17,12 @@ export default async function saveSession(domain, session, sid, user_id, provide
       path: ['active']
     }
   ]
-  await interact(domain, user_id, session, sessionPatch)
+  // Bypass the client mutation path only here, after authentication succeeded.
+  // Core owns the record; active.user_id remains the login identity.
+  const id = await scopeToId(domain, SESSION_OWNER, session)
+  const metadata = await getState(domain, id, { path: ['$.domain', '$.owner'] })
+  if (metadata?.['$.domain']?.[0] !== domain || metadata?.['$.owner']?.[0] !== SESSION_OWNER) {
+    throw new Error('INVALID AUTHENTICATION SESSION OWNER')
+  }
+  await patchState(domain, SESSION_OWNER, [], id, sessionPatch, Date.now(), session)
 }
