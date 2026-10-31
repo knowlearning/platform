@@ -280,28 +280,27 @@ export default function authRedirect() {
     })
 
     for (const failure of ['accessor', 'write', 'read', 'silent', 'mismatch']) {
-      it(`Roundtrips on iOS without callback storage after a storage ${failure} failure`, async function () {
-        const start = await startAuth({
-          storage: createStorage(failure),
-          blockedAccessor: failure === 'accessor',
-          navigator: IOS_NAVIGATOR
+      for (const [browser, navigator] of [['iOS', IOS_NAVIGATOR], ['desktop Chrome', CHROME_NAVIGATOR]]) {
+        it(`Roundtrips on ${browser} without callback storage after a storage ${failure} failure`, async function () {
+          const start = await startAuth({
+            storage: createStorage(failure),
+            blockedAccessor: failure === 'accessor',
+            navigator
+          })
+          expect(start.error).to.equal(undefined)
+          expect(start.agentLoads).to.equal(0)
+          const state = start.redirect.searchParams.get('state')
+          expect(JSON.parse(decodeFallbackPayload(state))).to.deep.equal({
+            state: ORIGINAL_STATE,
+            origin: APP_ORIGIN,
+            provider: 'google'
+          })
+          expect(decodeFallbackPayload(state)).not.to.include('private-referrer-token')
+
+          const callback = await completeAuth(state, { blockedAccessor: true, navigator })
+          expectCallback(callback)
         })
-        expect(start.error).to.equal(undefined)
-        expect(start.agentLoads).to.equal(0)
-        const state = start.redirect.searchParams.get('state')
-        expect(state).not.to.equal(ORIGINAL_STATE)
-        expect(decodeFallbackPayload(state)).not.to.include('private-referrer-token')
-
-        const callback = await completeAuth(state, { blockedAccessor: true, navigator: IOS_NAVIGATOR })
-        expectCallback(callback)
-      })
-
-      it(`Reports a storage ${failure} failure before leaving a non-Safari desktop browser`, async function () {
-        const start = await startAuth({ storage: createStorage(failure), blockedAccessor: failure === 'accessor' })
-        const report = expectReportedError(start)
-        expect(report.stage).to.equal('storage')
-        expect(start.payloads).to.deep.equal([])
-      })
+      }
     }
 
     it('Recovers on iOS when storage is cleared between the provider redirect and callback', async function () {
@@ -312,13 +311,12 @@ export default function authRedirect() {
       expectCallback(await completeAuth(start.redirect.searchParams.get('state'), { storage, navigator: IOS_NAVIGATOR }))
     })
 
-    it('Reports lost callback storage on a non-Safari desktop browser', async function () {
+    it('Recovers lost callback storage on a non-Safari desktop browser', async function () {
       const storage = createStorage()
       const start = await startAuth({ storage })
       storage.values.clear()
       const callback = await completeAuth(start.redirect.searchParams.get('state'), { storage })
-      expectReportedError(callback)
-      expect(callback.payloads).to.deep.equal([])
+      expectCallback(callback)
     })
 
     it('Uses available stored metadata instead of conflicting encoded metadata on Safari', async function () {
@@ -375,29 +373,23 @@ export default function authRedirect() {
 
     for (const navigator of [CHROME_NAVIGATOR, SAFARI_NAVIGATOR]) {
       for (const failure of ['read', 'accessor']) {
-        it(`${navigator === SAFARI_NAVIGATOR ? 'Recovers' : 'Reports'} a callback storage ${failure} failure on ${navigator.vendor}`, async function () {
+        it(`Recovers a callback storage ${failure} failure on ${navigator.vendor}`, async function () {
           const callback = await completeAuth(encodeFallback(), {
             storage: createStorage(failure),
             blockedAccessor: failure === 'accessor',
             navigator
           })
-          if (navigator === SAFARI_NAVIGATOR) expectCallback(callback)
-          else {
-            expectReportedError(callback)
-            expect(callback.payloads).to.deep.equal([])
-          }
+          expectCallback(callback)
         })
       }
       for (const storedInfo of ['not-json', 'null', '{}']) {
-        it(`${navigator === SAFARI_NAVIGATOR ? 'Recovers' : 'Reports'} invalid stored metadata ${storedInfo} on ${navigator.vendor}`, async function () {
+        it(`Recovers invalid stored metadata ${storedInfo} on ${navigator.vendor}`, async function () {
           const storage = createStorage()
           storage.values.set(ORIGINAL_STATE, storedInfo)
           const callback = await completeAuth(encodeFallback(), { storage, navigator })
-          if (navigator === SAFARI_NAVIGATOR) expectCallback(callback)
-          else {
-            expectReportedError(callback)
-            expect(callback.payloads).to.deep.equal([])
-          }
+          expectCallback(callback)
+          expect(storage.values.get(ORIGINAL_STATE)).to.equal(storedInfo)
+          expect(storage.removed).to.deep.equal([])
         })
       }
     }
@@ -560,115 +552,101 @@ export default function authRedirect() {
     }
 
     const browserCases = [
-      ['iPhone Safari', IOS_NAVIGATOR, true],
+      ['iPhone Safari', IOS_NAVIGATOR],
       ['iPad Safari', {
         ...IOS_NAVIGATOR,
         userAgent: IOS_NAVIGATOR.userAgent.replaceAll('iPhone', 'iPad'),
         platform: 'iPad'
-      }, true],
+      }],
       ['iPod Safari', {
         ...IOS_NAVIGATOR,
         userAgent: IOS_NAVIGATOR.userAgent.replaceAll('iPhone', 'iPod'),
         platform: 'iPod'
-      }, true],
+      }],
       ['iOS Chrome', {
         ...IOS_NAVIGATOR,
         userAgent: IOS_NAVIGATOR.userAgent.replace('Version/18.6', 'CriOS/140.0.7339.39')
-      }, true],
+      }],
       ['iOS Firefox', {
         ...IOS_NAVIGATOR,
         userAgent: IOS_NAVIGATOR.userAgent.replace('Version/18.6', 'FxiOS/142.0')
-      }, true],
+      }],
       ['iOS Edge', {
         ...IOS_NAVIGATOR,
         userAgent: IOS_NAVIGATOR.userAgent.replace('Version/18.6', 'EdgiOS/140.0.3485.54')
-      }, true],
+      }],
       ['iOS webview without Safari token', {
         ...IOS_NAVIGATOR,
         userAgent: IOS_NAVIGATOR.userAgent.replace(' Version/18.6', '').replace(' Safari/604.1', '')
-      }, true],
-      ['desktop-mode iPad', { ...SAFARI_NAVIGATOR, maxTouchPoints: 5 }, true],
+      }],
+      ['desktop-mode iPad', { ...SAFARI_NAVIGATOR, maxTouchPoints: 5 }],
       ['desktop-mode iPad with Macintosh user agent', {
         ...SAFARI_NAVIGATOR,
         userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15',
         platform: '',
         maxTouchPoints: 5
-      }, true],
+      }],
       ['desktop-mode iPad with MacIntel platform', {
         ...SAFARI_NAVIGATOR,
         userAgent: 'Mozilla/5.0 AppleWebKit/605.1.15',
         maxTouchPoints: 5
-      }, true],
-      ['macOS Safari', SAFARI_NAVIGATOR, true],
-      ['macOS Chrome', CHROME_NAVIGATOR, false],
+      }],
+      ['macOS Safari', SAFARI_NAVIGATOR],
+      ['macOS Chrome', CHROME_NAVIGATOR],
       ['macOS Edge', {
         ...CHROME_NAVIGATOR,
         userAgent: `${CHROME_NAVIGATOR.userAgent} Edg/140.0.3485.54`
-      }, false],
+      }],
       ['macOS Firefox', {
         userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:142.0) Gecko/20100101 Firefox/142.0',
         vendor: '',
         platform: 'MacIntel',
         maxTouchPoints: 0
-      }, false],
+      }],
       ['Android Chrome', {
         ...CHROME_NAVIGATOR,
         userAgent: 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
         platform: 'Linux armv8l',
         maxTouchPoints: 5
-      }, false],
+      }],
       ['Android browser with Apple vendor', {
         ...SAFARI_NAVIGATOR,
         userAgent: 'Mozilla/5.0 (Linux; Android 15) AppleWebKit/537.36 (KHTML, like Gecko) Version/18.6 Mobile Safari/537.36',
         platform: 'Linux armv8l',
         maxTouchPoints: 5
-      }, false],
-      ['unknown browser', { userAgent: '', vendor: '', platform: '', maxTouchPoints: 0 }, false]
+      }],
+      ['unknown browser', { userAgent: '', vendor: '', platform: '', maxTouchPoints: 0 }]
     ]
 
-    for (const [browser, navigator, supportsRecovery] of browserCases) {
-      it(`${supportsRecovery ? 'Allows' : 'Rejects'} storage recovery on ${browser}`, async function () {
+    for (const [browser, navigator] of browserCases) {
+      it(`Allows storage recovery on ${browser}`, async function () {
         const start = await startAuth({ navigator, blockedAccessor: true })
-        const callback = await completeAuth(encodeFallback(), { navigator })
-        if (supportsRecovery) {
-          expect(start.error).to.equal(undefined)
-          expect(start.agentLoads).to.equal(0)
-          expect(JSON.parse(decodeFallbackPayload(start.redirect.searchParams.get('state')))).to.deep.equal({
-            state: ORIGINAL_STATE,
-            origin: APP_ORIGIN,
-            provider: 'google'
-          })
-          expectCallback(callback)
-        }
-        else {
-          expectReportedError(start)
-          expectReportedError(callback)
-          expect(callback.payloads).to.deep.equal([])
-        }
+        expect(start.error).to.equal(undefined)
+        expect(start.agentLoads).to.equal(0)
+        const state = start.redirect.searchParams.get('state')
+        expect(JSON.parse(decodeFallbackPayload(state))).to.deep.equal({
+          state: ORIGINAL_STATE,
+          origin: APP_ORIGIN,
+          provider: 'google'
+        })
+        expectCallback(await completeAuth(state, { navigator, blockedAccessor: true }))
       })
 
-      it(`${supportsRecovery ? 'Allows' : 'Rejects'} missing-referrer recovery on ${browser}`, async function () {
+      it(`Allows missing-referrer recovery on ${browser}`, async function () {
         const storage = createStorage()
         const encodedReturnUrl = encodeURIComponent(`${APP_ORIGIN}/private-return-path?private-return-query=value#private-return-fragment`)
         const start = await startAuth({ navigator, referrer: '', encodedReturnUrl, storage })
-        if (supportsRecovery) {
-          expect(start.error).to.equal(undefined)
-          expect(start.agentLoads).to.equal(0)
-          expect(JSON.parse(storage.values.get(ORIGINAL_STATE))).to.deep.equal({ origin: APP_ORIGIN, provider: 'google' })
-          const state = start.redirect.searchParams.get('state')
-          expect(JSON.parse(decodeFallbackPayload(state))).to.deep.equal({
-            state: ORIGINAL_STATE,
-            origin: APP_ORIGIN,
-            provider: 'google'
-          })
-          expectCallback(await completeAuth(state, { storage, navigator }))
-        }
-        else {
-          const report = expectReportedError(start)
-          expect(storage.values.size).to.equal(0)
-          expect(JSON.stringify(report)).not.to.include('private-return')
-          expect(JSON.stringify(report)).not.to.include(encodedReturnUrl)
-        }
+        expect(start.error).to.equal(undefined)
+        expect(start.agentLoads).to.equal(0)
+        expect(JSON.parse(storage.values.get(ORIGINAL_STATE))).to.deep.equal({ origin: APP_ORIGIN, provider: 'google' })
+        const state = start.redirect.searchParams.get('state')
+        expect(JSON.parse(decodeFallbackPayload(state))).to.deep.equal({
+          state: ORIGINAL_STATE,
+          origin: APP_ORIGIN,
+          provider: 'google'
+        })
+        expect(start.redirect.href).not.to.include('private-return')
+        expectCallback(await completeAuth(state, { storage, navigator }))
       })
     }
 

@@ -1,5 +1,6 @@
 import nacl from 'tweetnacl'
 import { v5 as uuidv5 } from 'uuid'
+import { io } from 'socket.io-client'
 
 const AUTH_SERVICE_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA59Uz6jvBJF3B8/7xMqGo
@@ -11,6 +12,7 @@ NT5I3YnLZpcl1e/fydC+B6zSz2nZfLb2iDBbADDVj2+i9JUEFomg6ng1DjHUGMYc
 ZQIDAQAB
 -----END PUBLIC KEY-----`
 const CREDENTIAL_NAMESPACE = '1b4555f2-a89c-4633-834a-a064c195ab22'
+const SESSION_TYPE = 'application/json;type=session'
 const encoder = new TextEncoder()
 
 function encodeBase64(bytes) {
@@ -83,8 +85,156 @@ function withTimeout(promise, timeout, message) {
   ])
 }
 
+function authenticationApiHost() {
+  const environment = typeof process === 'undefined' ? {} : process.env
+  return environment.API_HOST || localStorage.getItem('API_HOST') || 'socket-io.localhost:8765'
+}
+
+async function authenticationConnection({ sid=uuid(), token, session }={}) {
+  const { domain } = await Agent.environment()
+  const socket = io(`https://${authenticationApiHost()}`, {
+    autoConnect: false,
+    forceNew: true,
+    reconnection: false,
+    withCredentials: true,
+    ...(typeof process !== 'undefined' && process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0' ? { rejectUnauthorized: false } : {}),
+    extraHeaders: { origin: `https://${domain}` }
+  })
+  const pending = new Map()
+  let resolveAuthentication, rejectAuthentication
+  const authenticated = new Promise((resolve, reject) => {
+    resolveAuthentication = resolve
+    rejectAuthentication = reject
+  })
+  socket.on('connect', () => socket.emit('message', { domain, sid, token, session }))
+  socket.on('connect_error', rejectAuthentication)
+  socket.on('message', message => {
+    if (!message) return
+    if (message.auth) resolveAuthentication(message)
+    else if (message.si !== undefined) {
+      socket.emit('message', { ack: message.si })
+      pending.get(message.si)?.(message)
+    }
+    else if (message.error) rejectAuthentication(new Error(message.error))
+  })
+  const close = () => {
+    socket.emit('message', { type: 'close' })
+    socket.disconnect()
+  }
+  socket.connect()
+  try {
+    const environment = await withTimeout(authenticated, 10000, 'Timed out authenticating the test connection')
+    let messageIndex = environment.ack ?? -1
+    const interact = async (scope, patch) => {
+      const index = ++messageIndex
+      const response = new Promise(resolve => pending.set(index, resolve))
+      socket.emit('message', { scope, patch, context: [], si: index })
+      try {
+        return await withTimeout(response, 5000, `Timed out waiting for authentication test message ${index}`)
+      }
+      finally { pending.delete(index) }
+    }
+    const initialized = await interact('sessions', [{
+      op: 'add', path: ['active', environment.session], value: { queries: {}, subscriptions: {} }
+    }])
+    expect(initialized).not.to.have.property('error')
+    const readState = scope => interact('sessions', [{
+      op: 'add',
+      path: ['active', environment.session, 'subscriptions', uuid()],
+      value: { scope, user: environment.auth.user, domain, ii: null }
+    }])
+    return { environment, sid, interact, readState, close }
+  }
+  catch (error) {
+    close()
+    throw error
+  }
+}
+
 export default function authentication(browserAgent) {
   describe('Authentication', function () {
+    it('Persists core-owned sessions and restores them with and without a session ID', async function () {
+      this.timeout(20000)
+      const connections = []
+      const connect = async options => {
+        const connection = await authenticationConnection(options)
+        connections.push(connection)
+        return connection
+      }
+
+      try {
+        const initial = await connect({ token: 'anonymous' })
+        const { session, auth: { user, provider } } = initial.environment
+        const saved = await initial.readState(session)
+        expect(saved).to.include({ owner: 'core', active_type: SESSION_TYPE })
+        expect(saved.active).to.include({ user_id: user, provider })
+        initial.close()
+
+        const reattached = await connect({ sid: initial.sid, session })
+        expect(reattached.environment.session).to.equal(session)
+        expect(reattached.environment.auth).to.include({ user, provider })
+        reattached.close()
+
+        const restored = await connect({ sid: initial.sid })
+        expect(restored.environment.session).not.to.equal(session)
+        expect(restored.environment.auth).to.include({ user, provider })
+        const renewed = await restored.readState(restored.environment.session)
+        expect(renewed).to.include({ owner: 'core', active_type: SESSION_TYPE })
+        expect(renewed.active).to.include({ user_id: user, provider })
+        expect(renewed.active.session_credential).to.equal(saved.active.session_credential)
+      }
+      finally { connections.forEach(connection => connection.close()) }
+    })
+
+    it('Rejects forged metadata and session patches without changing persisted state or blocking later writes', async function () {
+      this.timeout(20000)
+      const connection = await authenticationConnection({ token: 'anonymous' })
+      const id = uuid()
+      const { session, auth: { user } } = connection.environment
+      const activePatch = [{ op: 'add', path: ['active'], value: { value: 'original' } }]
+
+      try {
+        expect(await connection.interact(id, activePatch)).not.to.have.property('error')
+        const original = await connection.readState(id)
+        const credential = await connection.readState(session)
+        const metadataPatches = [
+          { op: 'replace', path: ['owner'], value: 'core' },
+          { op: 'replace', path: ['domain'], value: 'forged.example' },
+          { op: 'replace', path: ['created'], value: 0 },
+          { op: 'replace', path: ['active_type'], value: SESSION_TYPE }
+        ]
+        for (const patch of metadataPatches) {
+          const response = await connection.interact(id, [
+            { op: 'replace', path: ['active', 'value'], value: 'forged' },
+            patch
+          ])
+          expect(response).to.have.property('error')
+          const unchanged = await connection.readState(id)
+          expect(unchanged.active).to.deep.equal(original.active)
+          expect(unchanged).to.include({
+            owner: user, domain: original.domain, created: original.created,
+            active_type: original.active_type, ii: original.ii
+          })
+        }
+        for (const patch of [
+          { op: 'replace', path: ['active', 'user_id'], value: uuid() },
+          { op: 'replace', path: ['active_type'], value: 'application/json' }
+        ]) {
+          expect(await connection.interact(session, [patch])).to.have.property('error')
+        }
+        const unchangedCredential = await connection.readState(session)
+        expect(unchangedCredential.active).to.deep.equal(credential.active)
+        expect(unchangedCredential).to.include({ owner: 'core', active_type: SESSION_TYPE, ii: credential.ii })
+
+        const accepted = await connection.interact(id, [
+          { op: 'replace', path: ['active', 'value'], value: 'accepted' }
+        ])
+        expect(accepted).not.to.have.property('error')
+        expect((await connection.readState(id)).active).to.deep.equal({ value: 'accepted' })
+      }
+      finally { connection.close() }
+    })
+
     it('Authenticates user-created accounts', async function () {
       this.timeout(15000)
 
@@ -124,7 +274,7 @@ export default function authentication(browserAgent) {
       const authenticatedAgent = browserAgent({
         unique: true,
         root: true,
-        apiHost: process.env.API_HOST || 'socket-io.localhost:8765',
+        apiHost: authenticationApiHost(),
         getToken: () => {
           const value = nextToken
           nextToken = undefined
@@ -140,6 +290,9 @@ export default function authentication(browserAgent) {
         )
         expect(environment.auth).to.include({ user, provider: owner })
         expect(environment.auth.info).to.deep.equal(info)
+        expect(await authenticatedAgent.metadata(environment.session))
+          .to.include({ owner: 'core', active_type: SESSION_TYPE })
+        expect(await authenticatedAgent.state(environment.session)).to.include({ user_id: user, provider: owner })
       }
       finally {
         authenticatedAgent.disconnect?.()
