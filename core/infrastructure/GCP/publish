@@ -107,10 +107,13 @@ if [ "${1:-}" = "production" ]; then
   echo "3) asia"
   echo "4) europe-west3-a"
   echo "5) europe-west3-b"
+  echo "6) europe-west3-a (instance 6)"
+  echo "7) europe-west3-b (instance 7)"
+  echo "8) europe-west3-a (instance 8)"
 
   REDIS_SUBSCRIPTION_SERVER_DEFAULT="default"
 
-  read -p "Enter choice [1-5]: " choice
+  read -p "Enter choice [1-8]: " choice
 
   case "$choice" in
     1)
@@ -134,18 +137,18 @@ if [ "${1:-}" = "production" ]; then
       export STATIC_IP_NAME="my-static-ip-3"
       export GCP_MACHINE="n4-standard-2"
       ;;
-    4)
+    4|6|8)
       export REGION="europe-west3"
       export ZONE="europe-west3-a"
-      export INSTANCE_NAME="my-deno-instance-4"
-      export STATIC_IP_NAME="my-static-ip-4"
+      export INSTANCE_NAME="my-deno-instance-$choice"
+      export STATIC_IP_NAME="my-static-ip-$choice"
       export GCP_MACHINE="n4-standard-2"
       ;;
-    5)
+    5|7)
       export REGION="europe-west3"
       export ZONE="europe-west3-b"
-      export INSTANCE_NAME="my-deno-instance-5"
-      export STATIC_IP_NAME="my-static-ip-5"
+      export INSTANCE_NAME="my-deno-instance-$choice"
+      export STATIC_IP_NAME="my-static-ip-$choice"
       export GCP_MACHINE="n4-standard-2"
       ;;
     *)
