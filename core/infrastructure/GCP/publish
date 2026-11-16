@@ -69,6 +69,8 @@ configure_adc() {
 }
 
 if [ "${1:-}" = "production" ]; then
+  shift
+
   while true; do
     # Check if gcloud is already logged in
     GCLOUD_USER=$(gcloud auth list --filter=status:ACTIVE --format="value(account)")
@@ -101,100 +103,127 @@ if [ "${1:-}" = "production" ]; then
   select_project
   configure_adc
 
-  echo "Select an environment:"
-  echo "1) us-a"
-  echo "2) us-b"
-  echo "3) asia"
-  echo "4) europe-west3-a"
-  echo "5) europe-west3-b"
-  echo "6) europe-west3-a (instance 6)"
-  echo "7) europe-west3-b (instance 7)"
-  echo "8) europe-west3-a (instance 8)"
-  echo "9) europe-west3-b (instance 9)"
+  if [ "$#" -gt 0 ]; then
+    selection="$*"
+  else
+    echo "Select production servers:"
+    echo "1) us-a"
+    echo "2) us-b"
+    echo "3) asia"
+    echo "4) europe-west3-a"
+    echo "5) europe-west3-b"
+    echo "6) europe-west3-a (instance 6)"
+    echo "7) europe-west3-b (instance 7)"
+    echo "8) europe-west3-a (instance 8)"
+    echo "9) europe-west3-b (instance 9)"
+
+    read -r -p "Enter server numbers (e.g. 1 3 6 or 1,3,6), or all: " selection
+  fi
+
+  read -r -a choices <<< "${selection//,/ }"
+
+  if [ "${choices[*]}" = "all" ]; then
+    choices=(1 2 3 4 5 6 7 8 9)
+  fi
+
+  if [ "${#choices[@]}" -eq 0 ]; then
+    echo "Select at least one server." >&2
+    exit 1
+  fi
+
+  selected_servers=()
+  for choice in "${choices[@]}"; do
+    case "$choice" in
+      [1-9]) selected_servers[$choice]="$choice" ;;
+      *)
+        echo "Invalid server selection: $choice. Use numbers 1-9 or all." >&2
+        exit 1
+        ;;
+    esac
+  done
 
   REDIS_SUBSCRIPTION_SERVER_DEFAULT="default"
 
-  read -p "Enter choice [1-9]: " choice
+  for choice in "${selected_servers[@]}"; do
+    case "$choice" in
+      1)
+        export REGION="us-central1"
+        export ZONE="us-central1-a"
+        export INSTANCE_NAME="my-deno-instance-1"
+        export STATIC_IP_NAME="my-static-ip-1"
+        export GCP_MACHINE="n4-standard-2"
+        ;;
+      2)
+        export REGION="us-central1"
+        export ZONE="us-central1-b"
+        export INSTANCE_NAME="my-deno-instance-2"
+        export STATIC_IP_NAME="my-static-ip-2"
+        export GCP_MACHINE="n4-standard-2"
+        ;;
+      3)
+        export REGION="asia-southeast1"
+        export ZONE="asia-southeast1-a"
+        export INSTANCE_NAME="my-deno-instance-3"
+        export STATIC_IP_NAME="my-static-ip-3"
+        export GCP_MACHINE="n4-standard-2"
+        ;;
+      4|6|8)
+        export REGION="europe-west3"
+        export ZONE="europe-west3-a"
+        export INSTANCE_NAME="my-deno-instance-$choice"
+        export STATIC_IP_NAME="my-static-ip-$choice"
+        export GCP_MACHINE="n4-standard-2"
+        ;;
+      5|7|9)
+        export REGION="europe-west3"
+        export ZONE="europe-west3-b"
+        export INSTANCE_NAME="my-deno-instance-$choice"
+        export STATIC_IP_NAME="my-static-ip-$choice"
+        export GCP_MACHINE="n4-standard-2"
+        ;;
+    esac
 
-  case "$choice" in
-    1)
-      export REGION="us-central1"
-      export ZONE="us-central1-a"
-      export INSTANCE_NAME="my-deno-instance-1"
-      export STATIC_IP_NAME="my-static-ip-1"
-      export GCP_MACHINE="n4-standard-2"
-      ;;
-    2)
-      export REGION="us-central1"
-      export ZONE="us-central1-b"
-      export INSTANCE_NAME="my-deno-instance-2"
-      export STATIC_IP_NAME="my-static-ip-2"
-      export GCP_MACHINE="n4-standard-2"
-      ;;
-    3)
-      export REGION="asia-southeast1"
-      export ZONE="asia-southeast1-a"
-      export INSTANCE_NAME="my-deno-instance-3"
-      export STATIC_IP_NAME="my-static-ip-3"
-      export GCP_MACHINE="n4-standard-2"
-      ;;
-    4|6|8)
-      export REGION="europe-west3"
-      export ZONE="europe-west3-a"
-      export INSTANCE_NAME="my-deno-instance-$choice"
-      export STATIC_IP_NAME="my-static-ip-$choice"
-      export GCP_MACHINE="n4-standard-2"
-      ;;
-    5|7|9)
-      export REGION="europe-west3"
-      export ZONE="europe-west3-b"
-      export INSTANCE_NAME="my-deno-instance-$choice"
-      export STATIC_IP_NAME="my-static-ip-$choice"
-      export GCP_MACHINE="n4-standard-2"
-      ;;
-    *)
-      echo "Invalid choice"
-      exit 1
-      ;;
-  esac
+    echo "Deploying $INSTANCE_NAME ($ZONE)..."
+    deno run --allow-net --allow-run --allow-env index.js
 
-  deno run --allow-net --allow-run --allow-env index.js
+    export AUTH_SERVICE_SECRET_KEY="$(cat ../../../../.credentials/AUTH_SERVICE_SECRET_KEY)"
+    export GCS_SERVICE_ACCOUNT_CREDENTIALS="$(cat ../../../../.credentials/GCS_SERVICE_ACCOUNT_CREDENTIALS)"
+    export OAUTH_CREDENTIALS="$(cat ../../../../.credentials/OAUTH_CREDENTIALS)"
+    export POSTGRES_SERVERS="$(cat ../../../../.credentials/POSTGRES_SERVERS)"
+    export REDIS_SERVERS="$(cat ../../../../.credentials/REDIS_SERVERS)"
+    if [ -f ../../../../.credentials/REDIS_SUBSCRIPTION_SERVER ]; then
+      export REDIS_SUBSCRIPTION_SERVER="$(cat ../../../../.credentials/REDIS_SUBSCRIPTION_SERVER)"
+    else
+      export REDIS_SUBSCRIPTION_SERVER="$REDIS_SUBSCRIPTION_SERVER_DEFAULT"
+    fi
+    export SSL_CERT="$(cat ../../../../.credentials/SSL_CERT)"
+    export SSL_KEY="$(cat ../../../../.credentials/SSL_KEY)"
+    export PUBLIC_ENCRYPTION_KEY="$(cat ../../../../.credentials/PUBLIC_ENCRYPTION_KEY)"
+    export SECRET_ENCRYPTION_KEY="$(cat ../../../../.credentials/SECRET_ENCRYPTION_KEY)"
 
-  export AUTH_SERVICE_SECRET_KEY="$(cat ../../../../.credentials/AUTH_SERVICE_SECRET_KEY)"
-  export GCS_SERVICE_ACCOUNT_CREDENTIALS="$(cat ../../../../.credentials/GCS_SERVICE_ACCOUNT_CREDENTIALS)"
-  export OAUTH_CREDENTIALS="$(cat ../../../../.credentials/OAUTH_CREDENTIALS)"
-  export POSTGRES_SERVERS="$(cat ../../../../.credentials/POSTGRES_SERVERS)"
-  export REDIS_SERVERS="$(cat ../../../../.credentials/REDIS_SERVERS)"
-  if [ -f ../../../../.credentials/REDIS_SUBSCRIPTION_SERVER ]; then
-    export REDIS_SUBSCRIPTION_SERVER="$(cat ../../../../.credentials/REDIS_SUBSCRIPTION_SERVER)"
-  else
-    export REDIS_SUBSCRIPTION_SERVER="$REDIS_SUBSCRIPTION_SERVER_DEFAULT"
-  fi
-  export SSL_CERT="$(cat ../../../../.credentials/SSL_CERT)"
-  export SSL_KEY="$(cat ../../../../.credentials/SSL_KEY)"
-  export PUBLIC_ENCRYPTION_KEY="$(cat ../../../../.credentials/PUBLIC_ENCRYPTION_KEY)"
-  export SECRET_ENCRYPTION_KEY="$(cat ../../../../.credentials/SECRET_ENCRYPTION_KEY)"
+    while true; do
+      gcloud compute ssh "admin@$INSTANCE_NAME" \
+        --zone="$ZONE" \
+        --project="$PROJECT" \
+        -- -o "SendEnv \
+            AUTH_SERVICE_SECRET_KEY \
+            GCS_SERVICE_ACCOUNT_CREDENTIALS \
+            OAUTH_CREDENTIALS \
+            POSTGRES_SERVERS \
+            REDIS_SERVERS \
+            REDIS_SUBSCRIPTION_SERVER \
+            PUBLIC_ENCRYPTION_KEY \
+            SECRET_ENCRYPTION_KEY \
+            SSL_CERT \
+            SSL_KEY" \
+        "bash -s" < ../start.sh && break
+      echo "Retrying in 3 seconds..."
+      sleep 3
+    done
 
-  while true; do
-    gcloud compute ssh admin@$INSTANCE_NAME \
-      --zone=$ZONE \
-      --project=$PROJECT \
-      -- -o "SendEnv \
-          AUTH_SERVICE_SECRET_KEY \
-          GCS_SERVICE_ACCOUNT_CREDENTIALS \
-          OAUTH_CREDENTIALS \
-          POSTGRES_SERVERS \
-          REDIS_SERVERS \
-          REDIS_SUBSCRIPTION_SERVER \
-          PUBLIC_ENCRYPTION_KEY \
-          SECRET_ENCRYPTION_KEY \
-          SSL_CERT \
-          SSL_KEY" \
-      "bash -s" < ../start.sh && break
-    echo "Retrying in 3 seconds..."
-    sleep 3
+    echo "Deployment completed for $INSTANCE_NAME."
   done
 
 else
-  echo "Usage: $0 production"
+  echo "Usage: $0 production [server numbers | all]"
 fi

@@ -55,7 +55,31 @@ single-state updates retain their atomic transactions and Lua scripts.
 
 ```sh
 bash core/infrastructure/GCP/publish production
+bash core/infrastructure/GCP/publish production 1 3 6
+bash core/infrastructure/GCP/publish production all
 ```
+
+Select servers from the numbered menu, or pass numbers separated by spaces or
+commas. Use `all` to deploy all nine servers. Each selected server deploys once,
+in ascending server-number order, and finishes provisioning and startup before
+the next server begins. Authentication and project selection happen once;
+existing per-server confirmations and SSH retries still apply. Infrastructure
+errors stop the deployment before proceeding to another server.
+
+## Server logs
+
+Download logs from any combination of the nine production servers listed in the
+publish script. Run without arguments for a numbered menu, or pass server numbers
+separated by spaces or commas. Use `all` to download from every server:
+
+```sh
+bash core/infrastructure/GCP/download-logs.sh
+bash core/infrastructure/GCP/download-logs.sh 1 3 6
+bash core/infrastructure/GCP/download-logs.sh all
+```
+
+The script uses the current gcloud project and saves a separate timestamped log
+file for each selected server in your home directory.
 
 # System Spec
 
