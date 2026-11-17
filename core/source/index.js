@@ -6,6 +6,7 @@ import Agent from './agent.js'
 import SESSION from './session.js'
 import { subscriptionRedisServer } from './redis.js'
 import { CPUData, processData, networkData, getInstanceInfo } from './metrics.js'
+import { connectionOpened, shouldRestart } from './idle-restart.js'
 
 const io = new SocketIOServer({
   cors: {
@@ -15,6 +16,10 @@ const io = new SocketIOServer({
     allowedHeaders: ["sid"],
     credentials: true
   }
+})
+
+io.engine.on('connection', socket => {
+  socket.once('close', connectionOpened())
 })
 
 io.on("connection", (socket) => {
@@ -42,6 +47,7 @@ const LOCAL_SOCKET_IO_ALIAS = /^socket-io-\d+\.localhost:\d+$/
 const LOCAL_COMPOSE_API_SERVICE = /^api-\d+:8765$/
 const VALID_INSPECT_MODES = new Set(['inspect', 'inspect-wait', 'inspect-brk'])
 let shutdownApiServer = () => Deno.exit(0)
+let shuttingDown = false
 
 const {
   MODE,
@@ -169,6 +175,9 @@ async function handleDevControlRequest(request) {
 }
 
 async function handler(request, info) {
+  if (shuttingDown) {
+    return new Response('Server restarting', { status: 503, headers: { 'Retry-After': '1' } })
+  }
   const devControlResponse = await handleDevControlRequest(request)
   if (devControlResponse) return devControlResponse
 
@@ -190,7 +199,6 @@ globalThis.addEventListener("unhandledrejection", event => {
 const metricsPromise = Agent
   .state('metrics')
   .then(metrics => {
-    let shuttingDown = false
     metrics[SESSION] = {
       connections: {},
       websockets: {
@@ -210,6 +218,12 @@ const metricsPromise = Agent
 
     let lastCall
     async function pollMetrics() {
+      if (shuttingDown) return
+      if (MODE === 'production' && shouldRestart(environment.SESSION_RECONNECTION_INTERVAL)) {
+        console.log('Restarting API server after sustained inactivity.')
+        await shutdown()
+        return
+      }
       lastCall = Date.now()
       metrics[SESSION].ping = lastCall
       try {
@@ -233,7 +247,22 @@ const metricsPromise = Agent
       delete metrics[SESSION]
       //  TODO: diagnose why Agent.synced() not sufficient
       await new Promise(r => setTimeout(r, 250))
-      await Agent.synced()
+      let syncTimeout
+      try {
+        await Promise.race([
+          Agent.synced(),
+          new Promise((resolve, reject) => {
+            syncTimeout = setTimeout(() => reject(new Error('Internal agent synchronization timed out after 10 seconds')), 10_000)
+          })
+        ])
+      }
+      catch (error) {
+        console.error('Shutdown synchronization incomplete; exiting.', error)
+        return Deno.exit(1)
+      }
+      finally {
+        clearTimeout(syncTimeout)
+      }
       console.log("Cleanup complete.")
       Deno.exit()
     }

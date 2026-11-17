@@ -1,5 +1,6 @@
 import { randomBytes, getCookies, requestDomain } from './utils.js'
 import handleConnection from './handle-connection.js'
+import { connectionOpened } from './idle-restart.js'
 
 function JSONReplacer(key, value) {
   // TODO: some validation to make sure we error instead of sending the wrong response
@@ -45,6 +46,7 @@ export default function handleHTTPRequest(request, metricsPromise) {
   }
 
   const { socket, response } = Deno.upgradeWebSocket(request, { idleTimeout: 10, headers })
+  const releaseConnection = connectionOpened()
 
   let sendOnCloseErrorReported = false
   let closeOnCloseErrorReported = false
@@ -92,6 +94,7 @@ export default function handleHTTPRequest(request, metricsPromise) {
   })
   socket.addEventListener('close', () => {
     if (!closed) {
+      releaseConnection()
       metricsPromise.then(m => m.websockets.closed += 1)
       connection.onclose(socketError?.toString())
     }

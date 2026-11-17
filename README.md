@@ -81,6 +81,28 @@ bash core/infrastructure/GCP/download-logs.sh all
 The script uses the current gcloud project and saves a separate timestamped log
 file for each selected server in your home directory.
 
+## Idle restarts
+
+Production API processes restart opportunistically after at least two hours of
+uptime and two continuous minutes without external connections. The idle period
+always exceeds the existing session reconnection window; a new connection resets
+it, including connections that have not authenticated yet. Systemd starts the
+process again using the existing service restart policy.
+
+Only external WebSocket and Socket.IO transports count, not internal agents or
+workers. Restarts use the existing shutdown path, and new requests receive a
+retryable 503 once shutdown starts. After the existing 250 ms settling delay,
+shutdown waits up to 10 seconds for the internal metrics agent to synchronize.
+If synchronization fails or times out, the process logs the failure and exits
+with status 1 so the supervisor can restart it; unconfirmed metrics or the
+agent's own session/log updates may be lost. This is a connection-based check,
+not a drain of background work. Busy servers may never qualify. The fixed
+policy introduces no new configuration settings.
+
+From `test/`, run `node --test ../core/test/*.test.mjs` for the focused safety
+tests. These exercise the actual startup wiring with simulated clocks and
+external services; they do not validate live systemd recovery.
+
 # System Spec
 
 ## Client Request Loop
