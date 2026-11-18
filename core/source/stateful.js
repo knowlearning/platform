@@ -1,6 +1,5 @@
 export const DomainAgents = {}
 export const configuredDomains = {}
-export const agents = {}
 export const configCache = {}
 export const storageRouteCache = {}
 export const outstandingCoreStateInteractions = new Set()

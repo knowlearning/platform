@@ -51,7 +51,7 @@ function reconnection(session) {
   })
 }
 
-export default async function handleConnection(connection, domain, sid, metricsPromise, secrets={}) {
+export default async function handleConnection(connection, domain, sid, secrets={}) {
   let user, session, provider, heartbeatTimeout, abortConnection
 
   function ensureSessionState(targetSession) {
@@ -103,12 +103,6 @@ export default async function handleConnection(connection, domain, sid, metricsP
 
     const activeConnection = activeConnections[targetSession]
     if (activeConnection && activeConnection !== connection) return
-
-    metricsPromise
-      ?.then(m => delete m.connections[targetSession])
-      .catch(error => {
-        console.log('ERROR removing connection data', domain, user, targetSession, error)
-      }) // TODO: assess if missed case here on reconnect attempt
 
     //  TODO: tear down listeners
     delete activeConnections[targetSession]
@@ -228,14 +222,6 @@ export default async function handleConnection(connection, domain, sid, metricsP
           reconnectionPromiseResolvers[session]?.()
         }
         else {
-          if (domain !== 'core') {
-            metricsPromise
-              ?.then(metrics => {
-                if (abortConnection) console.log('CONNECTION ABORTED BEFORE SESSION ESTABLISHED', domain, user, session)
-                else metrics.connections[session] = { user, domain }
-              })
-              .catch(error => console.log('ERROR INITIALIZING METRICS', user, domain, session))
-          }
           sessionMessageIndexes[session] = -1
           responseBuffers[session] = []
           outstandingSideEffects[session] = {}

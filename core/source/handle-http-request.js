@@ -18,7 +18,7 @@ function serialize(value) {
   }
 }
 
-export default function handleHTTPRequest(request, metricsPromise) {
+export default function handleHTTPRequest(request) {
   const domain = requestDomain(request)
   const previousSid = getCookies(request.headers)['sid']
   const sid = previousSid || randomBytes(16, 'hex')
@@ -81,28 +81,20 @@ export default function handleHTTPRequest(request, metricsPromise) {
   })
 
   let socketError
-  let opened = false
   let closed = false
-  socket.addEventListener('open', error => {
-    if (!opened) metricsPromise.then(m => m.websockets.opened += 1)
-    else console.log('MULTIPLE WS OPENS')
-    opened = true
-  })
   socket.addEventListener('error', error => {
-    metricsPromise.then(m => m.websockets.errored += 1)
     socketError = error
   })
   socket.addEventListener('close', () => {
     if (!closed) {
       releaseConnection()
-      metricsPromise.then(m => m.websockets.closed += 1)
       connection.onclose(socketError?.toString())
     }
     else console.log('MULTIPLE WS CLOSES')
     closed = true
   })
 
-  handleConnection(connection, domain, sid, metricsPromise)
+  handleConnection(connection, domain, sid)
 
   return response
 }

@@ -17,11 +17,9 @@ function serialize(value) {
   }
 }
 
-export default function handleSocketIOConnection(socket, metricsPromise) {
+export default function handleSocketIOConnection(socket) {
   const domain = requestDomain({ headers: socket.handshake.headers })
   const sid = getCookies(socket.handshake.headers)['sid']
-
-  metricsPromise.then(m => m.socketio.opened += 1)
 
   let sendOnCloseErrorReported = false
   let closeOnCloseErrorReported = false
@@ -61,13 +59,11 @@ export default function handleSocketIOConnection(socket, metricsPromise) {
   })
 
   socket.on('error', (err) => {
-    metricsPromise.then(m => m.socketio.errored += 1)
     socketError = err
   })
 
   socket.on('disconnect', (reason) => {
     if (!closed) {
-      metricsPromise.then(m => m.socketio.closed += 1)
       connection.onclose(socketError?.toString() || reason)
     } else {
       console.log('MULTIPLE SOCKET.IO CLOSES')
@@ -75,5 +71,5 @@ export default function handleSocketIOConnection(socket, metricsPromise) {
     closed = true
   })
 
-  handleConnection(connection, domain, sid, metricsPromise)
+  handleConnection(connection, domain, sid)
 }

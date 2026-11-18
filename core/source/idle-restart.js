@@ -1,5 +1,5 @@
 const MIN_UPTIME = 2 * 60 * 60 * 1000
-const IDLE_INTERVAL = 120_000
+const IDLE_INTERVAL = 65_000
 const startedAt = performance.now()
 let connections = 0
 let idleSince = startedAt

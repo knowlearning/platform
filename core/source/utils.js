@@ -2,7 +2,6 @@ import { parse as parseYAML } from 'https://deno.land/std@0.207.0/yaml/mod.ts'
 import { validate as isUUID } from 'https://deno.land/std@0.207.0/uuid/mod.ts'
 import { v5 as uuidv5 } from 'npm:uuid@11.1.0'
 import { createClient as createRedisClient } from 'npm:redis@4.7.0'
-import Agent from 'npm:@knowlearning/agents@0.9.186/agents/generic/index.js'
 import { applyPatch } from 'npm:fast-json-patch@3.1.1/index.mjs'
 import pg from 'npm:pg@8.11.0'
 import jwkToPem from 'npm:jwk-to-pem@2.0.5'
@@ -232,7 +231,6 @@ export {
   escapePostgresLiteral,
   environment,
   PatchProxy,
-  Agent,
   applyPatch,
   evalFilter,
   SocketIOServer,

@@ -2,10 +2,8 @@ import { environment, requestDomain, SocketIOServer } from './utils.js'
 import handleHttpRequest from './handle-http-request.js'
 import handleSocketIOConnection from './handle-socketio-connection.js'
 import { ensureDomainConfigured } from './side-effects/configure.js'
-import Agent from './agent.js'
 import SESSION from './session.js'
 import { subscriptionRedisServer } from './redis.js'
-import { CPUData, processData, networkData, getInstanceInfo } from './metrics.js'
 import { connectionOpened, shouldRestart } from './idle-restart.js'
 
 const io = new SocketIOServer({
@@ -18,8 +16,15 @@ const io = new SocketIOServer({
   }
 })
 
+const socketIOConnections = new Map()
 io.engine.on('connection', socket => {
-  socket.once('close', connectionOpened())
+  const releaseConnection = connectionOpened()
+  const close = () => {
+    socketIOConnections.delete(socket)
+    releaseConnection()
+  }
+  socketIOConnections.set(socket, close)
+  socket.once('close', close)
 })
 
 io.on("connection", (socket) => {
@@ -31,12 +36,12 @@ io.on("connection", (socket) => {
     console.log(`socket ${socket.id} disconnected due to ${reason}`)
   })
 
-  handleSocketIOConnection(socket, metricsPromise)
+  handleSocketIOConnection(socket)
 })
 
 const socketIOHandler = io.handler()
 
-const METRICS_POLL_INTERVAL = 5000
+const IDLE_CHECK_INTERVAL = 5000
 const STARTED_AT = Date.now()
 const SOCKET_IO_HOSTS = [
   'socket-io.localhost:8765',
@@ -46,8 +51,8 @@ const SOCKET_IO_HOSTS = [
 const LOCAL_SOCKET_IO_ALIAS = /^socket-io-\d+\.localhost:\d+$/
 const LOCAL_COMPOSE_API_SERVICE = /^api-\d+:8765$/
 const VALID_INSPECT_MODES = new Set(['inspect', 'inspect-wait', 'inspect-brk'])
-let shutdownApiServer = () => Deno.exit(0)
 let shuttingDown = false
+let idleRestartInterval
 
 const {
   MODE,
@@ -72,6 +77,20 @@ ensureDomainConfigured(ADMIN_DOMAIN)
 await ensureDomainConfigured('core')
 
 Deno.serve({ port: TLS_PORT, cert, key }, handler)
+
+Deno.addSignalListener('SIGTERM', shutdownApiServer)
+
+if (MODE === 'production') {
+  idleRestartInterval = setInterval(() => {
+    if (shuttingDown) return
+    for (const [socket, close] of socketIOConnections) {
+      if (socket.readyState === 'closed') close()
+    }
+    if (!shouldRestart(environment.SESSION_RECONNECTION_INTERVAL)) return
+    console.log('Restarting API server after sustained inactivity.')
+    shutdownApiServer()
+  }, IDLE_CHECK_INTERVAL)
+}
 
 function jsonResponse(body, init={}) {
   const headers = new Headers(init.headers)
@@ -188,7 +207,7 @@ async function handler(request, info) {
   const isLocalComposeApiService = MODE === 'local' && LOCAL_COMPOSE_API_SERVICE.test(url.host)
   if (request.url.endsWith('/_sid-check')) return handleHttpRequest(request)
   else if (SOCKET_IO_HOSTS.includes(url.host) || isLocalSocketIOAlias || isLocalComposeApiService) return socketIOHandler(request, info)
-  else return handleHttpRequest(request, metricsPromise)
+  else return handleHttpRequest(request)
 }
 
 globalThis.addEventListener("unhandledrejection", event => {
@@ -196,79 +215,10 @@ globalThis.addEventListener("unhandledrejection", event => {
   event.preventDefault()
 })
 
-const metricsPromise = Agent
-  .state('metrics')
-  .then(metrics => {
-    metrics[SESSION] = {
-      connections: {},
-      websockets: {
-        opened: 0,
-        closed: 0,
-        errored: 0
-      },
-      socketio: {
-        opened: 0,
-        closed: 0,
-        errored: 0
-      }
-    }
-
-    CPUData().then(data => metrics[SESSION].cpu = data)
-    getInstanceInfo().then(data => metrics[SESSION].instance = data)
-
-    let lastCall
-    async function pollMetrics() {
-      if (shuttingDown) return
-      if (MODE === 'production' && shouldRestart(environment.SESSION_RECONNECTION_INTERVAL)) {
-        console.log('Restarting API server after sustained inactivity.')
-        await shutdown()
-        return
-      }
-      lastCall = Date.now()
-      metrics[SESSION].ping = lastCall
-      try {
-        await Promise.all([
-          processData().then(d => metrics[SESSION].process = d),
-          networkData().then(d => metrics[SESSION].network = d)
-        ])
-      } catch (error) {
-        metrics[SESSION].error = error.toString()
-      }
-      setTimeout(pollMetrics, METRICS_POLL_INTERVAL)
-    }
-
-    pollMetrics()
-
-    async function shutdown() {
-      if (shuttingDown) return
-      shuttingDown = true
-      console.log("Shutting down API server. Cleaning up...")
-      metrics[SESSION].closed = Date.now()
-      delete metrics[SESSION]
-      //  TODO: diagnose why Agent.synced() not sufficient
-      await new Promise(r => setTimeout(r, 250))
-      let syncTimeout
-      try {
-        await Promise.race([
-          Agent.synced(),
-          new Promise((resolve, reject) => {
-            syncTimeout = setTimeout(() => reject(new Error('Internal agent synchronization timed out after 10 seconds')), 10_000)
-          })
-        ])
-      }
-      catch (error) {
-        console.error('Shutdown synchronization incomplete; exiting.', error)
-        return Deno.exit(1)
-      }
-      finally {
-        clearTimeout(syncTimeout)
-      }
-      console.log("Cleanup complete.")
-      Deno.exit()
-    }
-
-    shutdownApiServer = shutdown
-    Deno.addSignalListener("SIGTERM", shutdown)
-
-    return metrics[SESSION]
-  })
+function shutdownApiServer() {
+  if (shuttingDown) return
+  shuttingDown = true
+  clearInterval(idleRestartInterval)
+  console.log('Shutting down API server.')
+  Deno.exit(0)
+}
