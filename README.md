@@ -56,19 +56,25 @@ single-state updates retain their atomic transactions and Lua scripts.
 ```sh
 bash core/infrastructure/GCP/publish production
 bash core/infrastructure/GCP/publish production 1 3 6
+bash core/infrastructure/GCP/publish production 10 11 12 13
 bash core/infrastructure/GCP/publish production all
 ```
 
 Select servers from the numbered menu, or pass numbers separated by spaces or
-commas. Use `all` to deploy all nine servers. Each selected server deploys once,
+commas. Use `all` to deploy all thirteen servers. Each selected server deploys once,
 in ascending server-number order, and finishes provisioning and startup before
 the next server begins. Authentication and project selection happen once;
 existing per-server confirmations and SSH retries still apply. Infrastructure
 errors stop the deployment before proceeding to another server.
 
+Servers 10–13 use the existing `n4-standard-2` machine type in `europe-west3`:
+10 and 12 are in `europe-west3-a`; 11 and 13 are in `europe-west3-b`.
+Publishing does not update DNS or load-balancer membership; add the new servers'
+static IPs to the existing production traffic configuration separately.
+
 ## Server logs
 
-Download logs from any combination of the nine production servers listed in the
+Download logs from any combination of the thirteen production servers listed in the
 publish script. Run without arguments for a numbered menu, or pass server numbers
 separated by spaces or commas. Use `all` to download from every server:
 

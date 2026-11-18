@@ -13,11 +13,15 @@ ZONES=(
   europe-west3-b
   europe-west3-a
   europe-west3-b
+  europe-west3-a
+  europe-west3-b
+  europe-west3-a
+  europe-west3-b
 )
 
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
   echo "Usage: $0 [server numbers | all]"
-  echo "Select servers 1-9, separated by spaces or commas; omit arguments for a menu."
+  echo "Select servers 1-13, separated by spaces or commas; omit arguments for a menu."
   echo "Logs are saved in your home directory using the current gcloud project."
   exit 0
 fi
@@ -35,7 +39,7 @@ fi
 read -r -a choices <<< "${selection//,/ }"
 
 if [ "${choices[*]}" = "all" ]; then
-  choices=(1 2 3 4 5 6 7 8 9)
+  choices=(1 2 3 4 5 6 7 8 9 10 11 12 13)
 fi
 
 if [ "${#choices[@]}" -eq 0 ]; then
@@ -45,9 +49,9 @@ fi
 
 for choice in "${choices[@]}"; do
   case "$choice" in
-    [1-9]) ;;
+    [1-9]|1[0-3]) ;;
     *)
-      echo "Invalid server selection: $choice. Use numbers 1-9 or all." >&2
+      echo "Invalid server selection: $choice. Use numbers 1-13 or all." >&2
       exit 1
       ;;
   esac
