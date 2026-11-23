@@ -27,6 +27,50 @@ const HANGING_WORKER_CONFIG = `
       await new Promise(() => {})
 `
 
+const SERIAL_SIDE_EFFECT_CONFIG = `
+  sideEffects:
+    script: |
+      if (scope !== 'queue-writes' && scope !== 'queue-control') return
+      const audit = globalThis.queueAudit ||= { active: 0, maximum: 0, released: false }
+      if (scope === 'queue-control') {
+        if (patch.some(operation => operation.path[0] === 'release')) {
+          audit.released = true
+          audit.release?.()
+        }
+        return { active: audit.active }
+      }
+      const sequence = patch.find(operation => operation.path[0] === 'sequence').value
+      audit.active += 1
+      audit.maximum = Math.max(audit.maximum, audit.active)
+      try {
+        if (sequence === 0 && !audit.released) await new Promise(resolve => { audit.release = resolve })
+        else await new Promise(resolve => setTimeout(resolve, 30))
+        return { sequence, maximum: audit.maximum }
+      }
+      finally { audit.active -= 1 }
+`
+
+const QUERY_QUEUE_CONFIG = `
+  postgres:
+    queries:
+      queue-blocking-query: SELECT 1 AS value
+      queue-following-query: SELECT 2 AS value
+  sideEffects:
+    script: |
+      const audit = globalThis.queryQueueAudit ||= { started: false, released: false }
+      if (scope === 'queue-control') {
+        if (patch.some(operation => operation.path[0] === 'release')) {
+          audit.released = true
+          audit.release?.()
+        }
+        return { started: audit.started, released: audit.released }
+      }
+      if (scope !== 'sessions') return
+      if (!patch.some(operation => operation.path[1] === 'queries' && operation.value?.query === 'queue-blocking-query')) return
+      audit.started = true
+      if (!audit.released) await new Promise(resolve => { audit.release = resolve })
+`
+
 const mirrorFieldConfig = `
   sideEffects:
     script: |
@@ -73,6 +117,111 @@ export default function () {
   `
 
   describe('New Domain Agent', function () {
+    it('Serializes a same-scope burst through delayed domain side effects', async function () {
+      this.timeout(10000)
+
+      const queueAgent = browserAgent({
+        unique: true,
+        root: true,
+        domain: `promise-queue-${Agent.uuid()}.localhost:5112`,
+        apiHost: localStorage.getItem('API_HOST'),
+        getToken: () => 'anonymous'
+      })
+      const responses = [], responseOrder = []
+      let control
+
+      try {
+        const { domain } = await queueAgent.environment()
+        await configureDomain(domain, SERIAL_SIDE_EFFECT_CONFIG)
+        const state = await queueAgent.state('queue-writes')
+        control = await queueAgent.state('queue-control')
+        const enqueue = sequence => {
+          state.sequence = sequence
+          responses.push(queueAgent.response().then(result => {
+            responseOrder.push(result.response.sequence)
+            return result
+          }))
+        }
+
+        enqueue(0)
+        let status
+        const deadline = Date.now() + 3000
+        do {
+          control.probe = Agent.uuid()
+          status = (await queueAgent.response()).response
+          if (status.active === 1) break
+          await pause(10)
+        } while (Date.now() < deadline)
+        expect(status.active).to.equal(1)
+
+        const expectedOrder = Array.from({ length: 8 }, (value, index) => index)
+        for (const sequence of expectedOrder.slice(1)) {
+          enqueue(sequence)
+          await pause()
+        }
+        control.release = Agent.uuid()
+        await queueAgent.response()
+
+        const results = await Promise.all(responses)
+        expect(responseOrder).to.deep.equal(expectedOrder)
+        expect(results.map(result => result.response.sequence)).to.deep.equal(expectedOrder)
+        expect(results.map(result => result.response.maximum)).to.deep.equal(expectedOrder.map(() => 1))
+      }
+      finally {
+        if (control) {
+          control.release = Agent.uuid()
+          await queueAgent.response()
+          await Promise.allSettled(responses)
+        }
+        queueAgent.disconnect?.()
+      }
+    })
+
+    it('Continues session queries while an earlier query side effect is pending', async function () {
+      this.timeout(10000)
+      const queueAgent = browserAgent({
+        unique: true,
+        root: true,
+        domain: `query-queue-${Agent.uuid()}.localhost:5112`,
+        apiHost: localStorage.getItem('API_HOST'),
+        getToken: () => 'anonymous'
+      })
+      let control, following, timer
+
+      try {
+        const { domain } = await queueAgent.environment()
+        await configureDomain(domain, QUERY_QUEUE_CONFIG)
+        control = await queueAgent.state('queue-control')
+        expect(await queueAgent.query('queue-blocking-query')).to.deep.equal([{ value: 1 }])
+
+        let status
+        const deadline = Date.now() + 3000
+        do {
+          control.probe = Agent.uuid()
+          status = (await queueAgent.response()).response
+          if (status.started) break
+          await pause(10)
+        } while (Date.now() < deadline)
+        expect(status).to.deep.equal({ started: true, released: false })
+
+        following = queueAgent.query('queue-following-query')
+        const rows = await Promise.race([
+          following,
+          new Promise((resolve, reject) => { timer = setTimeout(() => reject(new Error('Later query blocked behind domain effects')), 3000) })
+        ])
+        expect(rows).to.deep.equal([{ value: 2 }])
+      }
+      finally {
+        clearTimeout(timer)
+        if (control) {
+          control.release = Agent.uuid()
+          await queueAgent.response()
+          await Promise.allSettled([following])
+        }
+        queueAgent.disconnect?.()
+      }
+    })
+
     it('Is resilient against broken side effect scripts (syntax)', async function () {
       const { domain } = await Agent.environment()
       await configureDomain(domain, BROKEN_SYNTAX_CONFIG)

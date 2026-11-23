@@ -3,6 +3,7 @@ import browserAgent from '@knowlearning/agents/browser/initialize.js'
 import SIMPLE_MIRROR_CONFIGURATION from './domain-agents/simple-mirror-config.js'
 import PROXY_TO_SIMPLE_MIRROR_CONFIGURATION from './domain-agents/proxy-to-simple-mirror-config.js'
 import LIVENESS_REPORTING_CONFIGURATION from './domain-agents/liveness-reporting-config.js'
+import queueCompatibility from './domain-agents/queue-compatibility.js'
 
 const DOMAIN_CONFIG_TYPE = 'application/json;type=domain-config'
 
@@ -287,6 +288,8 @@ agent: |
 `
 
   describe('Domain Agent', function () {
+    queueCompatibility()
+
     it('Configures successfully in a domain', async function () {
       const { domain } = await Agent.environment()
       await configureDomain(domain, CONFIGURATION_1)

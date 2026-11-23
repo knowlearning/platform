@@ -288,53 +288,56 @@ export default async function handleConnection(connection, domain, sid, secrets=
           sessionMessageIndexes[session] = si
 
           const id = await scopeToId(domain, user, scope)
-          if (!outstandingSideEffects[session][id]) outstandingSideEffects[session][id] = []
-
-          await Promise.all(outstandingSideEffects[session][id])
+          const pending = outstandingSideEffects[session]
+          const previous = pending[id]
           let resolveSideEffects
-          outstandingSideEffects[session][id].push(new Promise(resolve => resolveSideEffects = resolve))
+          const completion = pending[id] = new Promise(resolve => resolveSideEffects = resolve)
+          let domainSideEffectResponse
+          let completed = false
 
-          const log = []
-          let response
-          const isSessionQuery = scope === 'sessions' && patch[0]?.path?.[2] === 'queries'
-          try { await assertInteractionAllowed(domain, user, id, patch) }
-          catch (error) {
-            resolveSideEffects()
-            throw error
-          }
-          const domainSideEffectResponse = (
-            handleSideEffects({ domain, user, scope, patch, id, context, session })
-              .then(r => response = r)
+          try {
+            await previous
+            if (outstandingSideEffects[session] !== pending) return
+
+            const log = []
+            let response
+            const isSessionQuery = scope === 'sessions' && patch[0]?.path?.[2] === 'queries'
+            await assertInteractionAllowed(domain, user, id, patch)
+            domainSideEffectResponse = handleSideEffects({ domain, user, scope, patch, id, context, session })
+              .then(result => response = result)
               .catch(error => log.push(error))
-          )
-          const { ii, active_type } = await interact(domain, user, scope, patch, context)
-            .catch(error => {
-              domainSideEffectResponse.finally(resolveSideEffects)
-              throw error
-            })
+            const { ii, active_type } = await interact(domain, user, scope, patch, context)
 
-          await coreSideEffects({
-            id, session, domain, user, scope, active_type, patch, si, ii,
-            send: async message => {
-              if (isSessionQuery) {
-                send(message)
-                return
-              }
-
-              return domainSideEffectResponse
-                .finally(() => {
-                  message.log = log
-                  message.response = response
+            await coreSideEffects({
+              id, session, domain, user, scope, active_type, patch, si, ii,
+              send: async message => {
+                if (isSessionQuery) {
                   send(message)
-                })
-            }
-          })
-          if (agent && user !== domain) {
-            const data = { scope, patch, ii, id, context }
-            agent.send({ type: 'mutate', session, data, context })
-          }
+                  return
+                }
 
-          resolveSideEffects()
+                return domainSideEffectResponse
+                  .finally(() => {
+                    message.log = log
+                    message.response = response
+                    send(message)
+                  })
+              }
+            })
+            if (agent && user !== domain) {
+              const data = { scope, patch, ii, id, context }
+              agent.send({ type: 'mutate', session, data, context })
+            }
+            completed = true
+          }
+          finally {
+            const release = () => {
+              if (pending[id] === completion) delete pending[id]
+              resolveSideEffects()
+            }
+            if (!completed && domainSideEffectResponse) domainSideEffectResponse.then(release, release)
+            else release()
+          }
         }
       }
       catch (error) {
