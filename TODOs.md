@@ -33,6 +33,8 @@
 - [ ] document/surface error for localhosts connecting on non https connections
 - [ ] Agent.embed should guard against infinite loops in embeddings
 - [ ] Redis JSONPath escaping drops keys with backslash sequences; intentionally left unresolved while fixing upload/download routing.
+- [ ] Snapshot `info.remoteAddr` before calling Socket.IO in `core/source/index.js`: with Deno 2.9.7 and socket_io 0.2.1, an initial WebSocket-only handshake upgrades the request before the lazy address getter runs, throwing `Request closed` and closing the HTTP listener while the process stays alive. Reproduced independently of application code over HTTP and TLS; eager address capture passes all three transport modes.
+- [x] Propagate pending upload errors without orphaned promises: root uploads await their request directly, and the upload bridge forwards rejection through nested embeds. Regression tests cover default Node rejection handling and subsequent uploads; MIME behavior is unchanged.
 
 
 

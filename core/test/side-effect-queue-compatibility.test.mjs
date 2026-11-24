@@ -1,10 +1,16 @@
 import test, { beforeEach, afterEach, after } from 'node:test'
 import assert from 'node:assert/strict'
-import { registerHooks } from 'node:module'
+import { createRequire, registerHooks } from 'node:module'
+
+const requireTest = createRequire(new URL('../../test/package.json', import.meta.url))
+const { v5: uuidv5, validate: isUUID } = requireTest('uuid')
 
 const fixtureName = Symbol.for('knowlearning.queue-compatibility')
 const domain = 'queue-compatibility.test', user = 'queue-user', session = 'queue-session'
 const effects = new Map(), started = new Map(), publications = new Map(), types = new Map()
+const uploadRequestId = '485fa92f-84c9-4b16-a172-77ea44120443'
+const uploadFileId = '221ad0f9-4258-4efc-87cb-6f47e2f1880a'
+const uploadStates = new Map(), uploadRevisions = new Map(), uploadCalls = []
 let socket, messageIndex, interactionIndex, coreStateGate
 
 function deferred() {
@@ -31,21 +37,34 @@ function effectStarted(label) {
 }
 
 globalThis[fixtureName] = {
-  environment: { ADMIN_DOMAIN: domain, MODE: 'local', SUPER_ADMINS: [], HEARTBEAT_INTERVAL: 3600000 },
+  environment: { ADMIN_DOMAIN: domain, MODE: 'local', SUPER_ADMINS: [], HEARTBEAT_INTERVAL: 3600000, GCS_BUCKET_NAME: 'queue-upload-bucket' },
   jwt: { sign: (claims, key, options, callback) => callback(null, 'queue-jwt') },
   uuid: () => 'queue-uuid',
-  isUUID: () => false,
+  isUUID,
+  uuidv5,
   randomBytes: () => 'queue-token',
   PatchProxy: class {},
   authenticate: async () => ({ user, session, provider: 'test', info: {} }),
-  scopeToId: async (requestDomain, requestUser, scope) => `resolved:${scope}`,
+  scopeToId: async (requestDomain, requestUser, scope) => scope === 'transfer' ? uploadRequestId : isUUID(scope) ? scope : `resolved:${scope}`,
   assertInteractionAllowed: async () => {},
-  interact: async (requestDomain, requestUser, scope) => ({ ii: ++interactionIndex, active_type: types.get(scope) || 'application/json' }),
+  interact: async (requestDomain, requestUser, scope, patch) => {
+    if (scope === 'transfer' || scope === uploadFileId) {
+      const revision = (uploadRevisions.get(scope) || 0) + 1
+      uploadRevisions.set(scope, revision)
+      if (scope === uploadFileId) {
+        const state = uploadStates.get(scope) || {}
+        for (const operation of patch) state[operation.path[0]] = operation.value
+        uploadStates.set(scope, state)
+      }
+      return { ii: revision, active_type: types.get(scope) || 'application/json' }
+    }
+    return { ii: ++interactionIndex, active_type: types.get(scope) || 'application/json' }
+  },
   handleSideEffects: ({ context: [label] }) => {
     effectStarted(label).resolve()
     return effects.get(label)?.promise || Promise.resolve({ label })
   },
-  getState: async () => ({ active: { value: 42 } }),
+  getState: async (requestDomain, id) => uploadStates.get(id) || { active: { value: 42 } },
   coreState: async () => {
     coreStateGate?.started.resolve()
     await coreStateGate?.promise
@@ -57,7 +76,10 @@ globalThis[fixtureName] = {
     if (query === 'invalid') throw new Error('INVALID QUERY TARGET DOMAIN')
     return { rows: [{ query }] }
   },
-  upload: async () => ({ url: 'https://storage.test/upload', info: {} }),
+  upload: async (...args) => {
+    uploadCalls.push(args)
+    return { url: 'https://storage.test/upload', info: {} }
+  },
   download: async () => 'https://storage.test/download'
 }
 
@@ -66,7 +88,7 @@ const mocks = new Map()
 const stub = names => `const fixture = globalThis[Symbol.for('knowlearning.queue-compatibility')];\n${names.map(name => `export const ${name} = fixture.${name};`).join('\n')}`
 const mock = (path, source) => mocks.set(new URL(path, sourceRoot).href, source)
 const mockDefault = (path, name) => mock(path, `${stub([name])}\nexport default ${name};`)
-mock('utils.js', stub(['environment', 'jwt', 'uuid', 'isUUID', 'randomBytes', 'PatchProxy']))
+mock('utils.js', stub(['environment', 'jwt', 'uuid', 'isUUID', 'uuidv5', 'randomBytes', 'PatchProxy']))
 mock('persistence.js', stub(['getState', 'setState', 'subscribe']))
 mock('interact.js', `${stub(['interact', 'assertInteractionAllowed'])}\nexport default interact;`)
 for (const [path, name] of [
@@ -96,6 +118,9 @@ beforeEach(async () => {
   started.clear()
   publications.clear()
   types.clear()
+  uploadStates.clear()
+  uploadRevisions.clear()
+  uploadCalls.length = 0
   coreStateGate = undefined
   messageIndex = interactionIndex = 0
   for (const name of ['activeConnections', 'activeConnectionInfo', 'sessionMessageIndexes', 'responseBuffers', 'outstandingSideEffects', 'reconnectionPromiseResolvers', 'subscriptions', 'subscriptionResponses', 'guarantees']) {
@@ -138,7 +163,7 @@ for (const query of ['valid', 'invalid']) {
 for (const [name, scope, activeType, patch] of [
   ['session metadata', 'sessions', 'application/json', valuePatch],
   ['configuration', 'configuration/target.test', 'application/json', valuePatch],
-  ['upload', 'transfer', 'application/json;type=upload', [{ op: 'add', path: ['active'], value: { id: 'upload-id', type: 'text/plain' } }]],
+  ['upload', 'transfer', 'application/json;type=upload', [{ op: 'add', path: ['active'], value: { id: uploadFileId, type: 'text/plain' } }]],
   ['download metadata', 'transfer', 'application/json;type=download', valuePatch],
   ['claim metadata', 'claim', 'application/json;type=domain-claim', valuePatch]
 ]) {
@@ -154,6 +179,14 @@ for (const [name, scope, activeType, patch] of [
     await turn()
     assert.deepEqual(socket.sent.find(message => message.si === 0).response, { label: 'first' })
     assert.deepEqual(stateful.outstandingSideEffects[session], {})
+    if (name === 'upload') {
+      assert.equal(socket.sent.find(message => message.si === 0).error, undefined)
+      assert.equal(socket.sent.find(message => message.si === 1).error, undefined)
+      assert.equal(uploadRevisions.get(uploadFileId), 1)
+      assert.equal(uploadCalls.length, 2)
+      assert.deepEqual(uploadCalls[0], uploadCalls[1])
+      assert.equal(uploadCalls[0][2], uploadStates.get(uploadFileId).active.id)
+    }
   })
 }
 

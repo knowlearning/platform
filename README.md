@@ -113,6 +113,25 @@ From `test/`, run `node --test ../core/test/*.test.mjs` for the focused safety
 tests. These exercise the actual startup wiring with simulated clocks and
 external services; they do not validate live systemd recovery.
 
+## Upload replay verification
+
+From `test/`, run `TEST_GREP="Uploads and downloads" npm test` for upload coverage.
+To also exercise automatic replay after the local default reconnection window
+expires, enable the approximately 65-second root-agent regression:
+
+```sh
+TEST_URL='https://localhost:5112/?uploadReplaySoak=1' TEST_GREP='Uploads and downloads' npm test
+```
+
+This checks that completed uploads actually replay, a superseded request cannot
+replace the newer file mapping, downloads still return the replacement bytes,
+and subsequent interactions complete. Embedded contexts skip the expiry soak.
+
+Run `node --test upload-error-propagation.test.mjs` from `test/` for isolated
+SDK rejection checks. These use fresh Node processes to catch orphaned promise
+rejections and verify error forwarding through nested embeds. Client changes
+require releasing the updated SDK and rebuilding applications that bundle it.
+
 # System Spec
 
 ## Client Request Loop

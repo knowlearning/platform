@@ -78,12 +78,12 @@ export default function Agent({ Connection, domain, token, sid, uuid, fetch, app
 
   async function upload(info) {
     const { name, type, data, id=uuid() } = info || {}
-    create({
-      active_type: UPLOAD_TYPE,
-      active: { id, type, name },
-      name
-    })
-    const { url } = await lastMessageResponse()
+    const patch = [
+      { op: 'add', path: ['active_type'], value: UPLOAD_TYPE },
+      { op: 'add', path: ['active'], value: { id, type, name } }
+    ]
+    if (name) patch.push({ op: 'add', path: ['name'], value: name })
+    const { url } = await queueMessage({ scope: uuid(), patch, context: [] })
 
     if (data === undefined) return url
     else {

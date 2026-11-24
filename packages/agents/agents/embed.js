@@ -148,7 +148,12 @@ export default function createEmbed(getRootAgent) {
           .catch(error => sendDown(null, error))
       }
       else if (type === 'upload') {
-        sendDown(await Agent.upload(message.info))
+        try {
+          sendDown(await Agent.upload(message.info))
+        }
+        catch (error) {
+          sendDown(null, error?.message || error?.error || String(error || 'Upload request failed'))
+        }
       }
       else if (type === 'download') {
         sendDown(await Agent.download(message.id).url())

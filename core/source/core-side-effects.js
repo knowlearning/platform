@@ -188,7 +188,7 @@ export default async function coreSideEffects({
   }
   else {
     const sideEffect = sideEffects[active_type] || (() => send({ si, ii }))
-    await sideEffect({ domain, user, session, scope, patch, si, ii, send })
+    await sideEffect({ id, domain, user, session, scope, patch, si, ii, send })
   }
 }
 

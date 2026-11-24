@@ -112,8 +112,9 @@ The ```info``` parameter has the form:
 }
 ```
 
-This will upload an immutable blob containing the value in ```data``` and return a promise for the id of the blob.
-You can force the ```id``` parameter with your own value, but it must be a new uuid, otherwise an error will be thrown.
+When `data` is supplied, this uploads its bytes and returns a promise for the file ID after the storage PUT succeeds.
+The optional `id` must be a UUID. A new `Agent.upload()` call with an existing file ID is a replacement upload; it allocates a new storage object rather than updating the previous object's bytes.
+Replaying the same initialized request after reconnecting instead renews its existing allocation without rewriting the file's metadata. See [Reconnecting during an upload](../introduction/files.md#reconnecting-during-an-upload) for limitations.
 
 All fields in the ```info``` parameter are optional.
 If you supply no fields or no ```info``` parameter,

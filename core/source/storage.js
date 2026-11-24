@@ -39,8 +39,7 @@ const storage = new createGCSClient({
 const bucket = storage.bucket(GCS_BUCKET_NAME)
 const gcpCredentials = JSON.parse(GCS_SERVICE_ACCOUNT_CREDENTIALS)
 
-async function upload(contentType, internal=false) {
-  const id = uuid()
+async function upload(contentType, internal=false, id=uuid()) {
   const info = { type: 'gcs', id, bucket: GCS_BUCKET_NAME }
 
   const options  = {
